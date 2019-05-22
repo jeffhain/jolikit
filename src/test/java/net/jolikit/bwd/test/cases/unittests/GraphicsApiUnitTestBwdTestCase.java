@@ -1,0 +1,1615 @@
+/*
+ * Copyright 2019 Jeff Hain
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package net.jolikit.bwd.test.cases.unittests;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
+import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.fonts.BwdFontKind;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
+import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.Argb3264;
+import net.jolikit.bwd.api.graphics.Argb64;
+import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GRotation;
+import net.jolikit.bwd.api.graphics.GTransform;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.utils.BwdUnicode;
+import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
+import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
+import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
+import net.jolikit.time.TimeUtils;
+
+/**
+ * Tests behavior of InterfaceBwdGraphics API,
+ * not which pixels are actually drawn,
+ * for which we use visual tests.
+ */
+public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase {
+
+    //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    private static final boolean DEBUG = false;
+    
+    private static final double CHECK_PERIOD_S = 0.1;
+
+    /*
+     * 
+     */
+    
+    private static final int INITIAL_WIDTH = 200;
+    private static final int INITIAL_HEIGHT = 160;
+
+    private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
+
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    private static final int MIN = Integer.MIN_VALUE;
+    private static final int MAX = Integer.MAX_VALUE;
+    
+    /**
+     * Positions in all int range.
+     * 
+     * To check that drawing methods don't throw or take forever
+     * in case of drawable and/or huge positions or spans.
+     */
+    private static final int[] POS_ANY_ARR = new int [] {
+        MIN,
+        MIN / 2,
+        -1, 0, 1,
+        MAX / 2,
+        MAX
+    };
+
+    /**
+     * Contains negative spans, which are allowed.
+     */
+    private static final int[] SPAN_ANY_ARR = new int [] {
+        MIN,
+        -1, 0, 1,
+        MAX / 3,
+        MAX / 2,
+        MAX
+    };
+
+    /**
+     * General and special cases.
+     */
+    private static final List<GRect> RECT_ANY_LIST;
+    static {
+        final List<GRect> list = new ArrayList<GRect>();
+        /*
+         * Separating X and Y cases,
+         * not to have too many zillions of rectangles.
+         */
+        /*
+         * X cases.
+         */
+        for (int x : POS_ANY_ARR) {
+            for (int xSpan : SPAN_ANY_ARR) {
+                if (xSpan < 0) {
+                    continue;
+                }
+                // Empty in y.
+                list.add(GRect.valueOf(x, 0, xSpan, 0));
+                // Not empty in y.
+                list.add(GRect.valueOf(x, 0, xSpan, 1));
+            }
+        }
+        /*
+         * Y cases.
+         */
+        for (int y : POS_ANY_ARR) {
+            for (int ySpan : SPAN_ANY_ARR) {
+                if (ySpan < 0) {
+                    continue;
+                }
+                // Empty in x.
+                list.add(GRect.valueOf(0, y, 0, ySpan));
+                // Not empty in x.
+                list.add(GRect.valueOf(0, y, 1, ySpan));
+            }
+        }
+        RECT_ANY_LIST = Collections.unmodifiableList(list);
+    }
+
+    private static final double[] BAD_ANG_ARR = new double[]{
+        Double.NaN,
+        Double.NEGATIVE_INFINITY,
+        Double.POSITIVE_INFINITY
+    };
+    
+    //--------------------------------------------------------------------------
+    // PRIVATE CLASSES
+    //--------------------------------------------------------------------------
+
+    private enum MyTest {
+        LIFE_CYCLE,
+        CLIPS,
+        TRANSFORMS,
+        COLORS,
+        FONTS,
+        PRIMITIVES,
+        TEXT,
+        IMAGES,
+        COLORS_REWORK,
+        COLORS_READING;
+    }
+    
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+
+    private static final MyTest[] MyTest_VALUES = MyTest.values();
+    
+    private boolean mustTest = false;
+    
+    private int nextTextIndex = 0;
+    
+    private final Boolean[] testPassedByIndex = new Boolean[MyTest_VALUES.length];
+    
+    //--------------------------------------------------------------------------
+    // PUBLIC METHODS
+    //--------------------------------------------------------------------------
+
+    public GraphicsApiUnitTestBwdTestCase() {
+    }
+    
+    public GraphicsApiUnitTestBwdTestCase(InterfaceBwdBinding binding) {
+        super(binding);
+    }
+    
+    @Override
+    public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
+        return new GraphicsApiUnitTestBwdTestCase(binding);
+    }
+
+    @Override
+    public InterfaceBwdTestCaseClient newClient() {
+        return new GraphicsApiUnitTestBwdTestCase(this.getBinding());
+    }
+    
+    /*
+     * 
+     */
+
+    @Override
+    public GPoint getInitialClientSpans() {
+        return INITIAL_CLIENT_SPANS;
+    }
+
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+
+    @Override
+    protected long testSome(long nowNs) {
+        
+        if (this.nextTextIndex == MyTest_VALUES.length) {
+            this.mustTest = false;
+            return Long.MAX_VALUE;
+        } else {
+            this.mustTest = true;
+            // ensuring drawings (in which we do tests) until we're done.
+            this.getHost().ensurePendingClientPainting();
+            
+            return TimeUtils.sToNs(TimeUtils.nsToS(nowNs) + CHECK_PERIOD_S);
+        }
+    }
+
+    @Override
+    protected void drawCurrentState(InterfaceBwdGraphics g) {
+        try {
+            if (this.mustTest) {
+                this.runNextTest(g);
+            }
+        } finally {
+            if (this.nextTextIndex == MyTest_VALUES.length) {
+                this.mustTest = false;
+            } else {
+                // Next test ASAP.
+                this.getHost().ensurePendingClientPainting();
+            }
+
+            final GRect box = g.getBoxInClient();
+
+            g.setColor(BwdColor.WHITE);
+            g.clearRectOpaque(box);
+
+            g.setColor(BwdColor.BLACK);
+            final int dy = 1 + g.getFont().fontMetrics().fontHeight();
+            for (int i = 0; i < MyTest_VALUES.length; i++) {
+                final MyTest test = MyTest_VALUES[i];
+                final Boolean bRef = this.testPassedByIndex[i];
+                final String res = ((bRef == null) ? "" : (bRef ? "ok" : "---KO---"));
+                g.drawText(10, 10 + i * dy, "" + test + " : " + res);
+            }
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    private void runNextTest(InterfaceBwdGraphics g) {
+        final int testIndex = this.nextTextIndex++;
+        if (DEBUG) {
+            System.out.println("testIndex = " + testIndex);
+        }
+
+        final MyTest test = MyTest_VALUES[testIndex];
+        if (DEBUG) {
+            System.out.println("test = " + test);
+        }
+
+        boolean completedNormally = false;
+        try {
+            switch (test) {
+            case LIFE_CYCLE: {
+                test_life_cycle(g);
+            } break;
+            case CLIPS: {
+                test_clips(g);
+            } break;
+            case TRANSFORMS: {
+                test_transfoms(g);
+            } break;
+            case COLORS: {
+                test_colors(g);
+            } break;
+            case FONTS: {
+                test_fonts(g);
+            } break;
+            case PRIMITIVES: {
+                test_primitives(g);
+            } break;
+            case TEXT: {
+                test_text(g);
+            } break;
+            case IMAGES: {
+                test_images(g);
+            } break;
+            case COLORS_REWORK: {
+                test_colors_rework(g);
+            } break;
+            case COLORS_READING: {
+                test_colors_reading(g);
+            } break;
+            default:
+                throw new AssertionError("" + test);
+            }
+            completedNormally = true;
+        } finally {
+            this.testPassedByIndex[testIndex] = completedNormally;
+        }
+    }
+    
+    /*
+     * LIFE_CYCLE
+     */
+    
+    private void test_life_cycle(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_life_cycle(...)");
+        }
+
+        try {
+            g.newChildGraphics(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * 
+         */
+        
+        final GRect box = g.getBoxInClient();
+        
+        /*
+         * Nested calls.
+         */
+
+        {
+            final InterfaceBwdGraphics childG = g.newChildGraphics(box);
+            
+            childG.init();
+            childG.init();
+            
+            childG.finish();
+            // Idempotent...
+            childG.finish();
+            // ...even if called more times than init().
+            childG.finish();
+        }
+        
+        /*
+         * init() after finish().
+         */
+        
+        {
+            final InterfaceBwdGraphics childG = g.newChildGraphics(box);
+            childG.finish();
+            try {
+                childG.init();
+                fail();
+            } catch (IllegalStateException e) {
+                // ok
+            }
+        }
+        
+        /*
+         * ISE, typically when not called between init() and finish().
+         * 
+         * Not bothering to test callability between init() and finish(),
+         * as our set of functionnal tests already take care of that.
+         */
+        
+        {
+            final InterfaceBwdFont font = g.getFont();
+            final double startDeg = 123.456;
+            final double spanDeg = 78.9;
+            final String text = "text";
+            final InterfaceBwdImage image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
+            
+            final InterfaceBwdGraphics childG = g.newChildGraphics(box);
+            // First round: calls before init().
+            // Second round: calls after finish().
+            for (int k = 0; k < 2; k++) {
+                final boolean beforeInitElseAfterFinish = (k == 0);
+                if (beforeInitElseAfterFinish) {
+                    childG.newChildGraphics(box);
+                } else {
+                    try {
+                        childG.newChildGraphics(box);
+                        fail();
+                    } catch (IllegalStateException ok) {}
+                }
+                /*
+                 * 
+                 */
+                try {
+                    childG.addClipInClient(box);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.addClipInUser(box);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.removeLastAddedClip();
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.removeAllAddedClips();
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.setTransform(GTransform.IDENTITY);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.addTransform(GTransform.IDENTITY);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.removeLastAddedTransform();
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.removeAllAddedTransforms();
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.setColor(BwdColor.BLACK);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.setArgb64(0L);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.setArgb32(0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.setFont(font);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.clearRectOpaque(0, 0, 1, 1);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.clearRectOpaque(GRect.DEFAULT_HUGE);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawPoint(0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawLine(0, 0, 0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawLineStipple(
+                            0, 0, 0, 0,
+                            1, GprimUtils.PLAIN_PATTERN, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawRect(0, 0, 0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawRect(GRect.DEFAULT_HUGE);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillRect(0, 0, 0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillRect(GRect.DEFAULT_HUGE);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawOval(0, 0, 0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawOval(GRect.DEFAULT_HUGE);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillOval(0, 0, 0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillOval(GRect.DEFAULT_HUGE);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawArc(0, 0, 0, 0, startDeg, spanDeg);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawArc(GRect.DEFAULT_HUGE, startDeg, spanDeg);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillArc(0, 0, 0, 0, startDeg, spanDeg);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillArc(GRect.DEFAULT_HUGE, startDeg, spanDeg);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawText(0, 0, text);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawImage(0, 0, image);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawImage(0, 0, 100, 100, image);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawImage(GRect.valueOf(0, 0, 100, 100), image);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.getArgb64At(0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.getArgb32At(0, 0);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                if (k == 0) {
+                    childG.init();
+                    childG.finish();
+                }
+            }
+            
+            image.dispose();
+        }
+    }
+    
+    /*
+     * CLIPS
+     */
+    
+    private void test_clips(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_clips(...)");
+        }
+        
+        final GRect box = g.getBoxInClient();
+        
+        final GRect baseClipInClient = g.getBaseClipInClient();
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.addClipInClient(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.addClipInUser(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * Invariants.
+         */
+        
+        checkContains(box, baseClipInClient);
+        checkContains(baseClipInClient, g.getClipInClient());
+        
+        /*
+         * Adds and removals.
+         */
+        
+        {
+            final GRect clip0 = g.getClipInClient();
+            GRect oldClip = clip0;
+            for (int i = 0; i < 10; i++) {
+                // Shrinking.
+                final GRect addedClip = oldClip.withPosDeltas(1, 1);
+                g.addClipInClient(addedClip);
+                final GRect expectedClip = oldClip.intersected(addedClip);
+
+                final GRect actualClip = g.getClipInClient();
+                checkEqual(expectedClip, actualClip);
+                
+                oldClip = actualClip;
+            }
+            for (int i = 0; i < 5; i++) {
+                // Growing.
+                g.removeLastAddedClip();
+                final GRect expectedClip = oldClip.withBordersDeltas(-1, -1, 0, 0);
+                
+                final GRect actualClip = g.getClipInClient();
+                checkEqual(expectedClip, actualClip);
+                
+                oldClip = actualClip;
+            }
+            {
+                // Growing.
+                g.removeAllAddedClips();
+                final GRect expectedClip = oldClip.withBordersDeltas(-5, -5, 0, 0);
+                
+                final GRect actualClip = g.getClipInClient();
+                checkEqual(expectedClip, actualClip);
+                
+                oldClip = actualClip;
+            }
+        }
+        
+        /*
+         * Checking that clip add counts whatever the clip.
+         */
+        
+        {
+            final GRect clip0 = g.getClipInClient();
+            final GRect clip1 = clip0.withPosDeltas(1, 1);
+            final GRect clip1And0 = clip1.intersected(clip0);
+            final GRect clipEmptyCustom = clip1And0.withSpans(clip1And0.xSpan(), 0);
+
+            g.addClipInClient(clip1);
+            // Adding same.
+            g.addClipInClient(clip1);
+            // Adding equals.
+            g.addClipInClient(GRect.valueOf(clip1.x(), clip1.y(), clip1.xSpan(), clip1.ySpan()));
+            // Adding containing small.
+            g.addClipInClient(clip0);
+            // Adding containing huge.
+            g.addClipInClient(GRect.DEFAULT_HUGE);
+            // Adding empty custom.
+            g.addClipInClient(clipEmptyCustom);
+            // Adding empty default.
+            g.addClipInClient(GRect.DEFAULT_EMPTY);
+            
+            // Our bindings preserve information of empty clips.
+            // Empty custom's position preserved,
+            // but spans were zeroized by EMPTY_DEFAULT.
+            checkEqual(clipEmptyCustom.withSpans(0, 0), g.getClipInClient());
+            
+            // Removing empty default.
+            g.removeLastAddedClip();
+            // Our bindings preserve information of empty clips.
+            checkEqual(clipEmptyCustom, g.getClipInClient());
+            // Removing empty custom.
+            g.removeLastAddedClip();
+            checkEqual(clip1And0, g.getClipInClient());
+            // Removing containing huge.
+            g.removeLastAddedClip();
+            checkEqual(clip1And0, g.getClipInClient());
+            // Removing containing small.
+            g.removeLastAddedClip();
+            checkEqual(clip1And0, g.getClipInClient());
+            // Removing equals.
+            g.removeLastAddedClip();
+            checkEqual(clip1And0, g.getClipInClient());
+            // Removing same.
+            g.removeLastAddedClip();
+            checkEqual(clip1And0, g.getClipInClient());
+            // Removing first.
+            g.removeLastAddedClip();
+            checkEqual(clip0, g.getClipInClient());
+        }
+        
+        /*
+         * Clips transforms.
+         */
+        
+        {
+            g.addClipInClient(baseClipInClient.withPosDeltas(baseClipInClient.xSpan()/2, baseClipInClient.ySpan()/2));
+            final GRect userClipInClient = g.getClipInClient();
+            for (GRotation rotation : GRotation.values()) {
+                final GTransform transform = GTransform.valueOf(
+                        rotation,
+                        rotation.ordinal(),
+                        2 * rotation.ordinal());
+                g.setTransform(transform);
+                
+                checkEqual(baseClipInClient, g.getBaseClipInClient());
+                checkEqual(userClipInClient, g.getClipInClient());
+                
+                checkConsistent(baseClipInClient, transform, g.getBaseClipInUser());
+                checkConsistent(userClipInClient, transform, g.getClipInUser());
+            }
+        }
+    }
+
+    /*
+     * TRANSFORMS
+     */
+    
+    private void test_transfoms(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_transfoms(...)");
+        }
+        
+        checkEqual(GTransform.IDENTITY, g.getTransform());
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.setTransform(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        // Not changed.
+        checkEqual(GTransform.IDENTITY, g.getTransform());
+        
+        /*
+         * 
+         */
+        
+        // Transforms we play with.
+        final GTransform transform0 = GTransform.valueOf(GRotation.ROT_90, 5, 7);
+        final GTransform added1 = GTransform.valueOf(GRotation.ROT_0, 11, 17);
+        final GTransform transform1 = GTransform.valueOf(GRotation.ROT_90, 5-17, 7+11);
+        final GTransform added2 = GTransform.valueOf(GRotation.ROT_90, 0, 0);
+        final GTransform transform2 = GTransform.valueOf(GRotation.ROT_180, 5-17, 7+11);
+        final GTransform added3 = GTransform.valueOf(GRotation.ROT_270, 0, 0);
+        final GTransform transform3 = GTransform.valueOf(GRotation.ROT_90, 5-17, 7+11);
+        
+        // Setting the transform.
+        g.setTransform(transform0);
+        
+        checkEqual(transform0, g.getTransform());
+        // Could be a different one, if identical,
+        // but here we know it changed in which case
+        // our bindings use the specified one.
+        if (g.getTransform() != transform0) {
+            fail();
+        }
+        
+        // Adding first.
+        g.addTransform(added1);
+        checkEqual(transform1, g.getTransform());
+        
+        // Adding a second one.
+        g.addTransform(added2);
+        checkEqual(transform2, g.getTransform());
+        
+        // Adding a third one.
+        g.addTransform(added3);
+        checkEqual(transform3, g.getTransform());
+        
+        // Removing third one.
+        g.removeLastAddedTransform();
+        checkEqual(transform2, g.getTransform());
+        
+        // Removing first and second ones.
+        g.removeAllAddedTransforms();
+        checkEqual(transform0, g.getTransform());
+        
+        /*
+         * Checking that transform add counts whatever the transform.
+         */
+        
+        final GTransform tr_0_1 = transform0.composed(added1);
+        final GTransform tr_0_1P2 = tr_0_1.composed(added1);
+        final GTransform tr_0_1P3 = tr_0_1P2.composed(added1);
+        
+        g.addTransform(added1);
+        // Adding same.
+        g.addTransform(added1);
+        // Adding equals.
+        g.addTransform(GTransform.valueOf(added1.rotation(), added1.frame2XIn1(), added1.frame2YIn1()));
+        // Adding identity.
+        g.addTransform(GTransform.IDENTITY);
+        checkEqual(tr_0_1P3, g.getTransform());
+        
+        // Removing identity.
+        g.removeLastAddedTransform();
+        checkEqual(tr_0_1P3, g.getTransform());
+        // Removing equals.
+        g.removeLastAddedTransform();
+        checkEqual(tr_0_1P2, g.getTransform());
+        // Removing same.
+        g.removeLastAddedTransform();
+        checkEqual(tr_0_1, g.getTransform());
+        // Removing the first added.
+        g.removeLastAddedTransform();
+        checkEqual(transform0, g.getTransform());
+    }
+    
+    /*
+     * COLORS
+     */
+    
+    private void test_colors(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_colors(...)");
+        }
+        
+        checkEqual(BwdColor.BLACK, g.getColor());
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.setColor(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        // Not changed.
+        checkEqual(BwdColor.BLACK, g.getColor());
+        
+        /*
+         * 
+         */
+        
+        final BwdColor c1 = BwdColor.valueOfArgb64(0x123456789ABCDEF0L);
+        final BwdColor c2 = BwdColor.valueOfArgb64(0x0102030405060708L);
+        final BwdColor c3 = BwdColor.TRANSPARENT;
+        // Ending with black for safety.
+        final BwdColor c4 = BwdColor.BLACK;
+        final List<BwdColor> cList = Arrays.asList(c1, c2, c3, c4);
+        
+        for (BwdColor c : cList) {
+            final int argb32 = c.toArgb32();
+            final long argb64 = c.toArgb64();
+            
+            g.setColor(c);
+            checkEqual(c, g.getColor());
+            checkEqualArgb32(argb32, g.getArgb32());
+            checkEqualArgb64(argb64, g.getArgb64());
+            
+            g.setArgb32(argb32);
+            checkEqual(BwdColor.valueOfArgb32(argb32), g.getColor());
+            checkEqualArgb32(argb32, g.getArgb32());
+            checkEqualArgb64(Argb3264.toArgb64(argb32), g.getArgb64());
+            
+            g.setArgb64(argb64);
+            checkEqual(c, g.getColor());
+            checkEqualArgb32(argb32, g.getArgb32());
+            checkEqualArgb64(argb64, g.getArgb64());
+        }
+    }
+    
+    /*
+     * FONTS
+     */
+    
+    private void test_fonts(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_fonts(...)");
+        }
+        
+        final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
+        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
+        
+        InterfaceBwdFont font = g.getFont();
+        checkSame(defaultFont, font);
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.setFont(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        // Not changed.
+        font = g.getFont();
+        checkSame(defaultFont, font);
+        
+        /*
+         * 
+         */
+        
+        final BwdFontKind defaultFontKind = defaultFont.fontKind();
+        
+        final InterfaceBwdFont createdFont = fontHome.newFontWithSize(
+                defaultFontKind,
+                defaultFont.fontSize() + 1);
+        g.setFont(createdFont);
+        checkSame(createdFont, g.getFont());
+    }
+
+    /*
+     * PRIMITIVES
+     */
+
+    private void test_primitives(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives(...)");
+        }
+        
+        test_primitives_points(g);
+        test_primitives_lines(g);
+        test_primitives_rects(g);
+        test_primitives_ovals(g);
+        test_primitives_arcs(g);
+    }
+
+    private void test_primitives_points(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_points(...)");
+        }
+        
+        for (int x : POS_ANY_ARR) {
+            for (int y : POS_ANY_ARR) {
+                g.drawPoint(x, y);
+            }
+        }
+    }
+    
+    private void test_primitives_lines(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_lines(...)");
+        }
+        
+        final short pattern = (short) 0x81;
+        
+        /*
+         * IAE
+         */
+        
+        for (int badFactor : new int[] {
+                MIN, -1, 0,
+                //
+                257, MAX
+        }) {
+            try {
+                g.drawLineStipple(
+                        1, 2, 3, 4,
+                        badFactor, pattern, 0);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        for (int badPixelNum : new int[] {
+                MIN, -1
+        }) {
+            try {
+                g.drawLineStipple(
+                        1, 2, 3, 4,
+                        1, pattern, badPixelNum);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        /*
+         * 
+         */
+        
+        {
+            int pixelNum = 0;
+            for (int factor : new int[] {1, 256}) {
+                pixelNum = g.drawLineStipple(
+                        1, 2, 300, 400,
+                        factor, pattern, pixelNum);
+                if (pixelNum < 0) {
+                    throw new AssertionError("returned pixelNum must be >= 0");
+                }
+                
+                pixelNum = MAX;
+                pixelNum = g.drawLineStipple(
+                        1, 2, 300, 400,
+                        factor, pattern, pixelNum);
+                if (pixelNum < 0) {
+                    throw new AssertionError("returned pixelNum must be >= 0");
+                }
+            }
+        }
+        
+        /*
+         * 
+         */
+        
+        {
+            int pixelNum = 0;
+            for (int x : POS_ANY_ARR) {
+                for (int y : POS_ANY_ARR) {
+                    final int x2 = -y;
+                    final int y2 = -x;
+                    
+                    g.drawLine(x, y, x2, y2);
+                    
+                    // Sometimes 1, sometimes max.
+                    final int factor = ((x < 0) ? 1 : 256);
+                    pixelNum = g.drawLineStipple(
+                            x, y, x2, y2,
+                            factor, pattern, pixelNum);
+                    if (pixelNum < 0) {
+                        throw new AssertionError("returned pixelNum must be >= 0");
+                    }
+                }
+            }
+        }
+    }
+    
+    private void test_primitives_rects(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_rects(...)");
+        }
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.drawRect(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.fillRect(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * 
+         */
+        
+        for (int xSpan : SPAN_ANY_ARR) {
+            for (int ySpan : SPAN_ANY_ARR) {
+                g.drawRect(0, 0, xSpan, ySpan);
+                g.fillRect(0, 0, xSpan, ySpan);
+            }
+        }
+        
+        for (GRect rect : RECT_ANY_LIST) {
+            g.drawRect(rect);
+            g.fillRect(rect);
+        }
+    }
+    
+    private void test_primitives_ovals(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_ovals(...)");
+        }
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.drawOval(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.fillOval(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * Clip starting as (0,0), these should cause huge oval curve
+         * to (potentially) pass within clip, and cause usage of
+         * huge-specific algorithm, instead of taking ages
+         * using regular algorithm.
+         */
+        
+        {
+            final int span = MAX;
+            
+            g.drawOval(-span/2, 0, span, span);
+            
+            g.drawOval(0, -span/2, span, span);
+            
+            g.fillOval(-span/2, 0, span, span);
+            
+            g.fillOval(0, -span/2, span, span);
+        }
+
+        /*
+         * 
+         */
+        
+        for (int xSpan : SPAN_ANY_ARR) {
+            for (int ySpan : SPAN_ANY_ARR) {
+                g.drawOval(0, 0, xSpan, ySpan);
+                g.fillOval(0, 0, xSpan, ySpan);
+            }
+        }
+        
+        for (GRect rect : RECT_ANY_LIST) {
+            g.drawOval(rect);
+            g.fillOval(rect);
+        }
+    }
+    
+    private void test_primitives_arcs(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_arcs(...)");
+        }
+        
+        final double startDeg = 123.456;
+        final double spanDeg = 78.9;
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.drawArc(null, startDeg, spanDeg);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.fillArc(null, startDeg, spanDeg);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * IAE
+         */
+
+        for (double badStartDeg : BAD_ANG_ARR) {
+            try {
+                g.drawArc(0, 0, 10, 10, badStartDeg, spanDeg);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+            try {
+                g.fillArc(0, 0, 10, 10, badStartDeg, spanDeg);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        for (double badSpanDeg : BAD_ANG_ARR) {
+            try {
+                g.drawArc(0, 0, 10, 10, startDeg, badSpanDeg);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+            try {
+                g.fillArc(0, 0, 10, 10, startDeg, badSpanDeg);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+
+        /*
+         * Clip starting as (0,0), these should cause huge oval curve
+         * to (potentially) pass within clip, and cause usage of
+         * huge-specific algorithm, instead of taking ages
+         * using regular algorithm.
+         */
+        
+        {
+            final int span = MAX;
+            
+            g.drawArc(-span/2, 0, span, span, startDeg, spanDeg);
+            
+            g.drawArc(0, -span/2, span, span, startDeg, spanDeg);
+            
+            g.fillArc(-span/2, 0, span, span, startDeg, spanDeg);
+            
+            g.fillArc(0, -span/2, span, span, startDeg, spanDeg);
+        }
+
+        /*
+         * 
+         */
+        
+        for (int xSpan : SPAN_ANY_ARR) {
+            for (int ySpan : SPAN_ANY_ARR) {
+                g.drawArc(0, 0, xSpan, ySpan, startDeg, spanDeg);
+                g.fillArc(0, 0, xSpan, ySpan, startDeg, spanDeg);
+            }
+        }
+        
+        for (GRect rect : RECT_ANY_LIST) {
+            g.drawArc(rect, startDeg, spanDeg);
+            g.fillArc(rect, startDeg, spanDeg);
+        }
+    }
+
+    /*
+     * TEXT
+     */
+    
+    private void test_text(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_text(...)");
+        }
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.drawText(0, 0, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        /*
+         * Basic characters in [0,127].
+         */
+        
+        {
+            final StringBuilder sb = new StringBuilder();
+
+            for (int c : new int[]{
+                    BwdUnicode.HT,
+                    BwdUnicode.SPACE,
+                    BwdUnicode.EXCLAMATION_MARK,
+                    BwdUnicode.DOUBLE_QUOTE,
+                    BwdUnicode.HASH,
+                    BwdUnicode.DOLLAR,
+                    BwdUnicode.PERCENT,
+                    BwdUnicode.AMPERSAND,
+                    BwdUnicode.SINGLE_QUOTE,
+                    BwdUnicode.LEFT_PARENTHESIS,
+                    BwdUnicode.RIGHT_PARENTHESIS,
+                    BwdUnicode.ASTERISK,
+                    BwdUnicode.PLUS,
+                    BwdUnicode.COMMA,
+                    BwdUnicode.MINUS,
+                    BwdUnicode.DOT,
+                    BwdUnicode.SLASH,
+            }) {
+                sb.append((char) c);
+            }
+            
+            for (int c = BwdUnicode.ZERO; c <= BwdUnicode.NINE; c++) {
+                sb.append((char) c);
+            }
+            
+            for (int c : new int[]{
+                    BwdUnicode.COLON,
+                    BwdUnicode.SEMICOLON,
+                    BwdUnicode.LESS_THAN,
+                    BwdUnicode.EQUALS,
+                    BwdUnicode.GREATER_THAN,
+                    BwdUnicode.QUESTION_MARK,
+                    BwdUnicode.AT_SYMBOL,
+            }) {
+                sb.append((char) c);
+            }
+            
+            for (int c = BwdUnicode.A; c <= BwdUnicode.Z; c++) {
+                sb.append((char) c);
+            }
+            
+            for (int c : new int[]{
+                    BwdUnicode.LEFT_BRACKET,
+                    BwdUnicode.BACKSLASH,
+                    BwdUnicode.RIGHT_BRACKET,
+                    BwdUnicode.CIRCUMFLEX_ACCENT,
+                    BwdUnicode.UNDERSCORE,
+                    BwdUnicode.GRAVE_ACCENT,
+            }) {
+                sb.append((char) c);
+            }
+
+            for (int c = BwdUnicode.a; c <= BwdUnicode.z; c++) {
+                sb.append((char) c);
+            }
+            
+            for (int c : new int[]{
+                    BwdUnicode.LEFT_BRACE,
+                    BwdUnicode.VERTICAL_BAR,
+                    BwdUnicode.RIGHT_BRACE,
+                    BwdUnicode.TILDE,
+            }) {
+                sb.append((char) c);
+            }
+            
+            for (int c : new int[]{
+                    // LF
+                    BwdUnicode.LF,
+                    // CR
+                    BwdUnicode.CR,
+                    // CR+LF
+                    BwdUnicode.CR,
+                    BwdUnicode.LF,
+            }) {
+                sb.append((char) c);
+            }
+
+            final String text = sb.toString();
+            {
+                g.drawText(0, 0, text);
+            }
+            
+            for (char c : text.toCharArray()) {
+                final String cStr = String.valueOf(c);
+                g.drawText(0, 0, cStr);
+            }
+        }
+    }
+    
+    /*
+     * IMAGES
+     */
+    
+    
+    private void test_images(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_images(...)");
+        }
+        
+        final InterfaceBwdImage image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.drawImage(0, 0, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        try {
+            g.drawImage(0, 0, 0, 0, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        try {
+            g.drawImage(null, image);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.drawImage(GRect.DEFAULT_EMPTY, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        try {
+            g.drawImage(0, 0, 0, 0, null, 0, 0, 0, 0);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+
+        try {
+            g.drawImage(null, image, GRect.DEFAULT_EMPTY);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.drawImage(GRect.DEFAULT_EMPTY, null, GRect.DEFAULT_EMPTY);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.drawImage(GRect.DEFAULT_EMPTY, image, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+
+        /*
+         * 
+         */
+        
+        g.drawImage(0, 0, image);
+
+        g.drawImage(0, 0, 100, 100, image);
+        g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
+        
+        g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
+        g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+        
+        /*
+         * 
+         */
+        
+        image.dispose();
+        
+        /*
+         * IAE
+         */
+        
+        try {
+            g.drawImage(0, 0, image);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        
+        try {
+            g.drawImage(0, 0, 100, 100, image);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        try {
+            g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        
+        try {
+            g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
+            fail();
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+        try {
+            g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+            fail();
+        } catch (IllegalArgumentException e) {
+            // ok
+        }
+    }
+
+    /*
+     * COLORS_REWORK
+     */
+    
+    
+    private void test_colors_rework(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_colors_rework(...)");
+        }
+        
+        /*
+         * NPE
+         */
+        
+        try {
+            g.flipColors(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+
+        /*
+         * 
+         */
+        
+        for (int xSpan : SPAN_ANY_ARR) {
+            for (int ySpan : SPAN_ANY_ARR) {
+                g.flipColors(0, 0, xSpan, ySpan);
+            }
+        }
+        
+        for (GRect rect : RECT_ANY_LIST) {
+            g.flipColors(rect.x(), rect.y(), rect.xSpan(), rect.ySpan());
+            g.flipColors(rect);
+        }
+    }
+
+    /*
+     * COLORS_READING
+     */
+    
+    private void test_colors_reading(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_colors_reading(...)");
+        }
+
+        final GRect clip = g.getBaseClipInUser();
+        
+        for (int x : POS_ANY_ARR) {
+            for (int y : POS_ANY_ARR) {
+                if (clip.contains(x, y)) {
+                    g.getArgb64At(x, y);
+                    g.getArgb32At(x, y);
+                } else {
+                    try {
+                        g.getArgb64At(x, y);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                    try {
+                        g.getArgb32At(x, y);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                }
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    private static void fail() {
+        throw new AssertionError();
+    }
+    
+    private static void checkSame(Object expected, Object actual) {
+        if (actual != expected) {
+            throw new AssertionError(
+                    "expected " + expected + " (" + System.identityHashCode(expected) + ")"
+                    + ", got " + actual + " (" + System.identityHashCode(actual) + ")");
+        }
+    }
+
+    private static void checkEqual(Object expected, Object actual) {
+        if (!actual.equals(expected)) {
+            throw new AssertionError("expected " + expected + ", got " + actual);
+        }
+    }
+
+    private static void checkEqualArgb32(int expected, int actual) {
+        checkEqual(Argb32.toString(expected), Argb32.toString(actual));
+    }
+
+    private static void checkEqualArgb64(long expected, long actual) {
+        checkEqual(Argb64.toString(expected), Argb64.toString(actual));
+    }
+
+    private static void checkContains(GRect container, GRect contained) {
+        if (!container.contains(contained)) {
+            throw new AssertionError(contained + " not contained in " + container);
+        }
+    }
+    
+    private static void checkConsistent(
+            GRect rectInClient,
+            GTransform transform,
+            GRect rectInUser) {
+        final GRect expectedRectInUser = transform.rectIn2(rectInClient);
+        if (!rectInUser.equals(expectedRectInUser)) {
+            throw new AssertionError(
+                    "expected " + expectedRectInUser
+                    + ", got " + rectInUser
+                    + ", transform = " + transform);
+        }
+    }
+}

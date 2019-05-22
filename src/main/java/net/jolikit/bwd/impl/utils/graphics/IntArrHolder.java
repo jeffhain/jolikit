@@ -1,0 +1,56 @@
+/*
+ * Copyright 2019 Jeff Hain
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package net.jolikit.bwd.impl.utils.graphics;
+
+import net.jolikit.lang.LangUtils;
+
+/**
+ * Holds an int array.
+ * Only grows.
+ * Not thread-safe.
+ */
+public class IntArrHolder {
+
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+
+    private static final int[] EMPTY_ARR = new int[0];
+    
+    private int[] arr = EMPTY_ARR;
+
+    //--------------------------------------------------------------------------
+    // PUBLIC METHODS
+    //--------------------------------------------------------------------------
+
+    public IntArrHolder() {
+    }
+    
+    /**
+     * @param minLength Min length for the array to return.
+     * @return An array of at least the specified length, the same as from
+     *         a previous call if possible.
+     */
+    public int[] getArr(int minLength) {
+        int[] arr = this.arr;
+        if (arr.length < minLength) {
+            final int newLength = LangUtils.increasedArrayLength(arr.length, minLength);
+            arr = new int[newLength];
+            this.arr = arr;
+        }
+        return arr;
+    }
+}
