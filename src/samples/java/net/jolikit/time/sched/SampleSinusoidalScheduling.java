@@ -95,7 +95,7 @@ public class SampleSinusoidalScheduling {
         @Override
         protected long process(long theoreticalTimeNs, long actualTimeNs) {
             final double nowS = nsToS(actualTimeNs);
-            System.out.println("nowS =  " + nowS);
+            System.out.println("nowS = " + nowS);
             System.out.flush();
             return sToNs(nsToS(actualTimeNs) + PROCESS_DELAY_S);
         }

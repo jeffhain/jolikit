@@ -1,0 +1,18 @@
+################################################################################
+Jolikit X.X, XXXX/XX/XX
+
+- Corrected a bug in HardScheduler, where workers were not being woken up
+  after schedules removals due to cancellations (cancelPendingAsapSchedules(),
+  cancelPendingTimedSchedules()) or drains (drainPendingAsapRunnablesInto(...),
+  drainPendingTimedRunnablesInto(...)).
+  This could cause shutdownNow(...) (which calls drain methods) to let worker
+  threads wait, instead of figuring out shutdown state and die.
+  Possible workarounds were to call interruptWorkers() after shutdownNow(...),
+  or to call stopAccepting() and then drain or cancellation methods before
+  calling shutdownNow(...).
+   
+- Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
+
+################################################################################
+Jolikit 0.1, 2019/05/22
+################################################################################

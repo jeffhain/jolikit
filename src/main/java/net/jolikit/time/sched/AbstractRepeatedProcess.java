@@ -26,10 +26,10 @@ import net.jolikit.time.TimeUtils;
  * Handy class to implement a treatment executed repeatedly,
  * which execution can be stopped and started at will.
  * 
- * onBegin/onEnd/run methods are not called from
+ * onBegin/onEnd/process methods are not called from
  * within start and stop methods, but in a schedulable.
  * Also, a mutex ensures main memory synchronization
- * for calls to onBegin/onEnd/run methods,
+ * for calls to onBegin/onEnd/process methods,
  * for safe use of multi-threaded schedulers.
  * 
  * start and stop methods are thread-safe, and not blocking other
@@ -50,7 +50,7 @@ public abstract class AbstractRepeatedProcess {
     
     private class MyTask extends AbstractTask {
         /**
-         * Set on new schedulable, then read in locker's lock.
+         * Set on new schedulable, then read in lock.
          */
         private MyTask previousToStop;
         public MyTask(Lock lock) {
@@ -135,11 +135,12 @@ public abstract class AbstractRepeatedProcess {
         }
         private void cancelIt() {
             final MyTask toCancel = this.toCancel;
-            // Testing if toStop is null, but should not need to,
+            // Testing for nullity, but should not need to,
             // since process(...) and onCancel() calls should be exclusive.
             if (toCancel != null) {
-                // Interrupting even if in onEnd() or onDone(), because might be in these
-                // treatments due to an exception (and not cancellation).
+                // Interrupting even if task's onEnd() or onDone() are being
+                // called, because it might be due to an exception
+                // (and not cancellation).
                 toCancel.cancel(this.mayInterruptIfRunning);
                 this.toCancel = null;
             }
@@ -177,7 +178,7 @@ public abstract class AbstractRepeatedProcess {
     }
 
     /**
-     * @param locker The locker to guard calls to abstract methods.
+     * @param lock The lock to guard calls to abstract methods.
      */
     public AbstractRepeatedProcess(
             final InterfaceScheduler scheduler,
@@ -277,14 +278,16 @@ public abstract class AbstractRepeatedProcess {
         }
         /*
          * Need to schedule outside startStopMutex,
-         * to avoid possible deadlock with locker,
-         * if schedulable is rejected (onCancel() called by current thread).
+         * to avoid possible deadlock with our lock,
+         * if schedulable is rejected (onCancel()
+         * called by current thread).
          * 
          * NB: If stop() is called from within process(...),
          * we don't need do to that.
          * Could add a requestCancellation() or weakStop() method
          * that would not do it (but then, cancellation flag would
-         * no longer indicate that we did this schedule).
+         * no longer indicate that we did this "stop" schedule,
+         * which some of this class code assumes).
          */
         this.scheduler.execute(new MyStopSchedulable(oldStartedTask, mayInterruptIfRunning));
     }
@@ -340,7 +343,7 @@ public abstract class AbstractRepeatedProcess {
      * and after last call to process(...) if any,
      * if either of the following events occur:
      * - stop(...) or start() have been called,
-     * - process(...) did throw an exception or returned Long.MAX_VALUE.
+     * - process(...) did throw an exception.
      * 
      * This method might be called directly after onBegin(),
      * without intermediary call to process(...),

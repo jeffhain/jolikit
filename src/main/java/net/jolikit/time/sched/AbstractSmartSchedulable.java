@@ -72,7 +72,9 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
 
     /**
-     * Must not be called after it returned false or did throw an exception.
+     * Must be called again if it did set a next theoretical time
+     * in the last set scheduling, except if it throws an exception,
+     * in which case it must not be called again.
      * 
      * If termination (call to onEnd() and onDone()) has been initiated already,
      * just returns false.

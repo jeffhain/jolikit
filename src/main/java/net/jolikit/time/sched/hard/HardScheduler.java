@@ -1168,6 +1168,9 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             for (int i = 0; i < n; i++) {
                 runnables.add(this.asapSchedQueue.remove());
             }
+            if (n != 0) {
+                this.schedCondition.signalAll();
+            }
         } finally {
             schedLock.unlock();
         }
@@ -1183,8 +1186,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             final int n = this.timedSchedQueue.size();
             for (int i = 0; i < n; i++) {
-                MyRunnableSchedule schedule = this.timedSchedQueue.remove();
+                final MyRunnableSchedule schedule = this.timedSchedQueue.remove();
                 runnables.add(schedule.getRunnable());
+            }
+            if (n != 0) {
+                this.schedCondition.signalAll();
             }
         } finally {
             schedLock.unlock();
@@ -1536,23 +1542,33 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      */
 
     private Runnable pollAsapRunnableInLock() {
+        final Runnable ret;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            return this.asapSchedQueue.poll();
+            ret = this.asapSchedQueue.poll();
+            if (ret != null) {
+                this.schedCondition.signalAll();
+            }
         } finally {
             schedLock.unlock();
         }
+        return ret;
     }
 
     private MyRunnableSchedule pollTimedScheduleInLock() {
+        final MyRunnableSchedule ret;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            return this.timedSchedQueue.poll();
+            ret = this.timedSchedQueue.poll();
+            if (ret != null) {
+                this.schedCondition.signalAll();
+            }
         } finally {
             schedLock.unlock();
         }
+        return ret;
     }
     
     /*
@@ -1632,7 +1648,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             
             try {
                 // Waiting for a runnable or schedulable,
-                // or for being supposed to work.
+                // or for being supposed to work,
+                // or for death.
                 schedCondition.await();
             } catch (InterruptedException e) {
                 // Quiet.
