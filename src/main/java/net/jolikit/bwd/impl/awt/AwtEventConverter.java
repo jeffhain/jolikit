@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
@@ -206,7 +207,40 @@ public class AwtEventConverter extends AbstractEventConverter {
     @Override
     protected int getWheelYRoll(Object backingEvent) {
         final MouseWheelEvent mouseWheelEvent = (MouseWheelEvent) backingEvent;
-        return computeBwdRollAmount(mouseWheelEvent.getWheelRotation());
+        
+        final int backingWheelRotation = mouseWheelEvent.getWheelRotation();
+        final int wheelRotation;
+        if (OsUtils.isMac()
+                && (mouseWheelEvent.getPreciseWheelRotation() == 0.0)) {
+            /*
+             * TODO awt TODO mac On Mac when moving two fingers
+             * together on the touch pad, WHEEL_UNIT_SCROLL events generated
+             * when removing fingers have getWheelRotation() equal to 1,
+             * but getPreciseWheelRotation() equal to +-0.0.
+             * To avoid undesired scroll when removing fingers,
+             * we use zero wheel rotation whenever getPreciseWheelRotation()
+             * is positive or negative zero.
+             * On Windows, we don't want to do it, else the first roll
+             * after switching roll sign is 0. 
+             */
+            wheelRotation = 0;
+        } else {
+            if (OsUtils.isMac()
+                    && mouseWheelEvent.isShiftDown()) {
+                /*
+                 * TODO awt TODO mac On Mac, at least when moving two fingers
+                 * together on the touch pad, some WHEEL_UNIT_SCROLL events
+                 * have opposite rotation value AND "shift down" flag,
+                 * which must be a weird bug since shift is never down then.
+                 * This is a best effort workaround.
+                 */
+                wheelRotation = -backingWheelRotation;
+            } else {
+                wheelRotation = backingWheelRotation;
+            }
+        }
+        
+        return computeBwdRollAmount(wheelRotation);
     }
 
     //--------------------------------------------------------------------------
@@ -216,7 +250,8 @@ public class AwtEventConverter extends AbstractEventConverter {
     private static int computeBwdRollAmount(int wheelRotation) {
         /*
          * TODO awt Maybe we should just use signum,
-         * as done for some other bindings.
+         * as done for some other bindings,
+         * or use precise (fp) rotation.
          */
         return wheelRotation;
     }

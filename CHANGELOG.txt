@@ -59,6 +59,8 @@ Jolikit X.X, XXXX/XX/XX
 - In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
   onHostClosedEventFiringImpl(...). 
 
+- AwtEventConverter : guards against spurious wheel events on Mac.
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################
