@@ -74,7 +74,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         }
         @Override
         public void onHostClosedEventFiring(AbstractBwdHost host) {
-            onClosedEventFiringImpl(host);
+            onHostClosedEventFiringImpl(host);
         }
     }
     
@@ -501,7 +501,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
     /**
      * Overriding implementations must call super.
      */
-    protected void onClosedEventFiringImpl(AbstractBwdHost host) {
+    protected void onHostClosedEventFiringImpl(AbstractBwdHost host) {
         if (DEBUG) {
             Dbg.log("removing host " + host);
         }

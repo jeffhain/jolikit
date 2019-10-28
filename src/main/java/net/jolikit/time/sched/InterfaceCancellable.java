@@ -40,7 +40,7 @@ public interface InterfaceCancellable extends Runnable {
      * Called when the execution (ASAP or at a scheduled time) is cancelled.
      * 
      * Can be called from any thread (like from a thread shutting down a
-     * scheduler, or from a thread cancelling a task), but it does not mandate
+     * scheduler, or from a thread canceling a task), but it does not mandate
      * thread safety, which depending on design can be ensured by enclosing
      * treatments if needed.
      * 

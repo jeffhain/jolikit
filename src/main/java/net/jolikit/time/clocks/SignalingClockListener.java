@@ -41,8 +41,8 @@ public class SignalingClockListener implements InterfaceClockModificationListene
     //--------------------------------------------------------------------------
 
     /**
-     * @param acquirableCondition Acquirable condition to call acquireAndSignalAll() on
-     *        when a clock listened at is modified.
+     * @param acquirableCondition Acquirable condition to call signalAllInLock()
+     *        when a clock listened at has been modified.
      */
     public SignalingClockListener(InterfaceCondilock acquirableCondition) {
         this.acquirableCondition = acquirableCondition;

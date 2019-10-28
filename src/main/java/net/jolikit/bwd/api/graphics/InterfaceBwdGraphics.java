@@ -182,11 +182,20 @@ public interface InterfaceBwdGraphics {
      * painting and non-painting work done from UI thread,
      * whether or not parallel painting is supported.
      * 
+     * When painting and deciding whether or not to go parallel,
+     * instead of checking binding.isParallelPaintingSupported() and
+     * binding.getParallelizer().getParallelism(), you just have to check
+     * whether getPaintingParallelizer().getParallelism() is >= 2.
+     * 
      * @return A parallelizer that can be used for parallel painting,
      *         or a sequential parallelizer if parallel painting
      *         is not supported be the binding.
      */
     public InterfaceParallelizer getPaintingParallelizer();
+    
+    /*
+     * 
+     */
 
     /**
      * Children graphics allow:

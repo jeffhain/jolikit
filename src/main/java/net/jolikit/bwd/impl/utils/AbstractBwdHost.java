@@ -2100,7 +2100,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         } else {
             if (this.isDragPressDetected()) {
                 // Useful in case we missed
-                // some drag-cancelling condition.
+                // some drag-canceling condition.
                 this.onDragCancel();
             }
             this.clientWrapper.onMouseMoved(event);
@@ -2495,18 +2495,21 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
     }
 
-    //--------------------------------------------------------------------------
-    // PACKAGE-PRIVATE METHODS
-    //--------------------------------------------------------------------------
+    /*
+     * 
+     */
 
     /**
      * To be called periodically, to check state changes or delays
      * and act accordingly.
      * 
+     * Protected for visibility from extending classes, in case of virtual hosts
+     * implementations that would have their own event logic process.
+     * 
      * @param nowS Must be a freshly retrieved current time,
      *        cf. spec of called method.
      */
-    void runWindowEventLogicLoopOnPeriod(double nowS) {
+    protected void runWindowEventLogicLoopOnPeriod(double nowS) {
         final boolean isPeriodicCall = true;
         this.runWindowEventLogicLoop(
                 isPeriodicCall,

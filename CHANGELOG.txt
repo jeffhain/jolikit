@@ -49,6 +49,12 @@ Jolikit X.X, XXXX/XX/XX
     If it's not set, it will be equal to actual time (which is fine for ASAP
     schedules, or if you don't care about it).
 
+- In AbstractBwdHost, runWindowEventLogicLoopOnPeriod(..) visibility was
+  changed from package-private to protected.
+
+- In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
+  onHostClosedEventFiringImpl(...). 
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################
