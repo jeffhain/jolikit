@@ -49,6 +49,10 @@ Jolikit X.X, XXXX/XX/XX
     If it's not set, it will be equal to actual time (which is fine for ASAP
     schedules, or if you don't care about it).
 
+- BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
+  instead of to available parallelism, for multi-threading not to hurt
+  incognizant users.
+
 - In AbstractBwdHost, runWindowEventLogicLoopOnPeriod(..) visibility was
   changed from package-private to protected.
 

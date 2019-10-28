@@ -98,8 +98,10 @@ public class BaseBwdBindingConfig {
     
     /**
      * Parallelism for parallelizer.
+     * 
+     * 1 by default, for multi-threading not to hurt incognizant users.  
      */
-    private int parallelizerParallelism = Runtime.getRuntime().availableProcessors();
+    private int parallelizerParallelism = 1;
     
     /**
      * Type of time provided by the clock used for UI thread scheduler.
