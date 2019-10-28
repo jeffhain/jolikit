@@ -41,7 +41,7 @@ import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 import org.lwjgl.glfw.Callbacks;
@@ -370,7 +370,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
     /**
      * To generate synthetic mouse moved events, cf. config.
      */
-    private class MySynthMmeProcess extends AbstractRepeatedProcess {
+    private class MySynthMmeProcess extends AbstractProcess {
         private final double periodS;
         private GPoint lastPos = GPoint.valueOf(-1, -1);
         private final double[] tmpXPosArr = new double[1];

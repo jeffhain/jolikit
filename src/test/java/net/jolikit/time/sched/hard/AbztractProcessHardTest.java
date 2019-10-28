@@ -28,14 +28,15 @@ import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.hard.ControllableSystemTimeClock;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
+import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
- * To test AbstractRepeatedProcess, using hard scheduling.
+ * To test AbstractProcess, using hard scheduling.
  * In hard package to avoid cycles.
  */
-public class AbztractRepeatedProcessHardTest extends TestCase {
+public class AbztractProcessHardTest extends TestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -44,7 +45,7 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
     private static final boolean DEBUG = false;
     
     private static final double TOLERANCE_S = 0.1;
-    private static final long TOLERANCE_MS = (int) (TOLERANCE_S * 1000);
+    private static final long TOLERANCE_MS = TimeUtils.sToMillis(TOLERANCE_S);
     
     /**
      * Hopefully enough calls so that all tested cases are
@@ -79,14 +80,14 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
     }
     
     private class MyMethodHelper {
-        final AbstractRepeatedProcess owner;
+        final AbstractProcess owner;
         final AtomicReference<String> problem;
         final MyMethod method;
         boolean beingCalled;
         boolean mustThrow;
         boolean didLastCallThrow;
         public MyMethodHelper(
-                AbstractRepeatedProcess owner,
+                AbstractProcess owner,
                 AtomicReference<String> problem,
                 MyMethod method) {
             this.owner = owner;
@@ -131,7 +132,7 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
         }
     }
     
-    private class MyProcess extends AbstractRepeatedProcess {
+    private class MyProcess extends AbstractProcess {
         
         private final double exceptionProbability;
         
@@ -333,7 +334,7 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
     public void test_startXxx(boolean mustUseStartAfter) {
         final ControllableSystemTimeClock clock = new ControllableSystemTimeClock();
         clock.setTimeSpeed(0.0);
-        clock.setTimeNs(10000000000L);
+        clock.setTimeNs(TimeUtils.sToNs(10.0));
 
         final boolean daemon = true;
         final HardScheduler scheduler = HardScheduler.newSingleThreadedInstance(
@@ -354,10 +355,10 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
             }
         };
 
-        final long startAfterDelayNs = 2 * TOLERANCE_MS;
+        final long startAfterDelayMs = 2 * TOLERANCE_MS;
         
         // Making scheduler thread busy for some time.
-        final long blockingDelayMs = startAfterDelayNs + TOLERANCE_MS;
+        final long blockingDelayMs = startAfterDelayMs + TOLERANCE_MS * 10;
         // Timed schedules have priority over ASAP schedules,
         // so using a timed schedule with no delay to make sure
         // the sleep always gets to run first.
@@ -373,11 +374,13 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
 
         final double t1S = clock.getTimeS();
         if (mustUseStartAfter) {
-            process.startAfterNs(startAfterDelayNs);
+            process.startAfterNs(startAfterDelayMs * (1000L * 1000L));
         } else {
             process.start();
         }
 
+        // Waiting long enough for start to have its effect
+        // and process be called once.
         Unchecked.sleepMs(blockingDelayMs + TOLERANCE_MS);
         
         scheduler.shutdownNow(false);
@@ -385,8 +388,8 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
         final double t2S_theo = TimeUtils.nsToS(process.last_theoreticalTimeNs);
         final double t2S_actu = TimeUtils.nsToS(process.last_actualTimeNs);
         
-        final double blockingDelayS = blockingDelayMs / 1000.0;
-        final double startAfterDelayS = TimeUtils.nsToS(startAfterDelayNs);
+        final double blockingDelayS = TimeUtils.millisToS(blockingDelayMs);
+        final double startAfterDelayS = TimeUtils.millisToS(startAfterDelayMs);
         final double expected_t2S_actu = t1S + blockingDelayS;
         final double expected_t2S_theo = t1S + (mustUseStartAfter ? startAfterDelayS : blockingDelayS);
         
@@ -399,6 +402,8 @@ public class AbztractRepeatedProcessHardTest extends TestCase {
             System.out.println("startAfterDelayS = " + startAfterDelayS);
             System.out.println("blockingDelayS =   " + blockingDelayS);
             System.out.println("t1S =      " + t1S);
+            System.out.println("expected_t2S_theo = " + expected_t2S_theo);
+            System.out.println("expected_t2S_actu = " + expected_t2S_actu);
             System.out.println("t2S_theo = " + t2S_theo);
             System.out.println("t2S_actu = " + t2S_actu);
             fail();

@@ -109,7 +109,7 @@ public class LwjglUiThreadScheduler extends AbstractScheduler implements Interfa
     /**
      * Guarded by synchronization on itself.
      */
-    private final List<Runnable> schedulableList = new ArrayList<Runnable>();
+    private final List<Runnable> runnableList = new ArrayList<Runnable>();
     
     private final AtomicBoolean processXxxUntilShutdownAlreadyCalled = new AtomicBoolean(false);
     
@@ -247,9 +247,9 @@ public class LwjglUiThreadScheduler extends AbstractScheduler implements Interfa
             }
             
             final List<Runnable> currentList;
-            synchronized (this.schedulableList) {
-                currentList = new ArrayList<Runnable>(this.schedulableList);
-                this.schedulableList.clear();
+            synchronized (this.runnableList) {
+                currentList = new ArrayList<Runnable>(this.runnableList);
+                this.runnableList.clear();
             }
             
             for (Runnable runnable : currentList) {
@@ -305,8 +305,8 @@ public class LwjglUiThreadScheduler extends AbstractScheduler implements Interfa
             return;
         }
         
-        synchronized (this.schedulableList) {
-            this.schedulableList.add(runnable);
+        synchronized (this.runnableList) {
+            this.runnableList.add(runnable);
         }
         
         GLFW.glfwPostEmptyEvent();

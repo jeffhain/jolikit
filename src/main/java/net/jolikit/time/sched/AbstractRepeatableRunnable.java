@@ -15,15 +15,21 @@
  */
 package net.jolikit.time.sched;
 
+import net.jolikit.lang.LangUtils;
+
 /**
- * Schedulable with methods called at different life cycle transitions,
- * and isXXX methods to read current life cycle.
+ * A runnable which provides its theoretical and actual execution times,
+ * makes it easy to ask for its re-schedule at a new specified theoretical time
+ * using setNextTheoreticalTimeNs(...), keeps track of its current life cycle,
+ * and notifies of its life cycle changes through hook methods.
  * 
- * Methods of this class must not be used concurrently,
- * alone or with each other, except isXXX methods, which
- * also are non-blocking.
+ * Allows for multiple schedules until its state is "done".
+ * 
+ * Must not be used for multiple concurrent executions, as its state is tied
+ * to at most a single schedule and is not guarded, but its isXxx() state
+ * reading methods can be used concurrently and are non-blocking.
  */
-public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
+public abstract class AbstractRepeatableRunnable implements InterfaceCancellable {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -47,28 +53,61 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     private static final int STATUS_ON_DONE_CALL_INITIATED_CANCELLED = -STATUS_ON_DONE_CALL_INITIATED;
     private static final int STATUS_DONE_CANCELLED = -STATUS_DONE;
     
+    private final InterfaceScheduler scheduler;
+    
     /**
      * Status volatile to be readable concurrently
      * (otherwise, it would not need to be).
      */
     private volatile int status = STATUS_FIRST_RUN_PENDING;
-
-    private InterfaceScheduling scheduling;
     
+    /**
+     * Whether theoreticalTimeNs value is set.
+     * 
+     * In practice, must be set for timed schedules or re-schedules,
+     * is not set for ASAP schedules, and is unset before calls
+     * to runImpl(...), within which user must re-set it
+     * to cause a re-schedule.
+     * 
+     * Volatile to avoid issue in case of concurrent reads.
+     */
+    private volatile boolean isTheoreticalTimeSet = false;
+    
+    /**
+     * Theoretical time for next call to runImpl(...), in nanoseconds.
+     */
+    private long theoreticalTimeNs;
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public AbstractSmartSchedulable() {
+    public AbstractRepeatableRunnable(InterfaceScheduler scheduler) {
+        this.scheduler = LangUtils.requireNonNull(scheduler);
     }
     
     /*
      * 
      */
 
-    @Override
-    public void setScheduling(InterfaceScheduling scheduling) {
-        this.scheduling = scheduling;
+    public InterfaceScheduler getScheduler() {
+        return this.scheduler;
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * To be called before submitting this runnable to a scheduler,
+     * for first call to runImpl(...) to use proper theoretical time,
+     * and from runImpl(...) to request a new execution.
+     * 
+     * @param nextTheoreticalTimeNs Theoretical time, in nanoseconds,
+     *        at which next call to runImpl(...) must occur.
+     */
+    public void setNextTheoreticalTimeNs(long nextTheoreticalTimeNs) {
+        this.setTheoreticalTimeNs(nextTheoreticalTimeNs);
     }
 
     /**
@@ -91,6 +130,16 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
             return;
         }
         
+        // Theoretical time retrieved before call to onBegin(),
+        // in case user changes it in onBegin(), which must have no effect.
+        final boolean initialTheoTimeSet = this.isTheoreticalTimeSet();
+        final long initialTheoTimeNs;
+        if (initialTheoTimeSet) {
+            initialTheoTimeNs = this.getTheoreticalTimeNs();
+        } else {
+            initialTheoTimeNs = Long.MIN_VALUE;
+        }
+        
         boolean mustRepeat = false;
         try {
             if (this.status == STATUS_FIRST_RUN_PENDING) {
@@ -98,42 +147,54 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
                 this.onBegin();
                 if (this.status == STATUS_DONE_CANCELLED) {
                     // User called onCancel() in onBegin().
-                    // Clearing next theoretical time for consistency,
+                    // Clearing theoretical time for consistency,
                     // in case user ever set it during onBegin() call.
-                    this.scheduling.clearNextTheoreticalTime();
+                    this.clearTheoreticalTime();
                     return;
                 }
                 this.status = STATUS_REPEATING;
             }
+
+            final long actualTimeNs = this.scheduler.getClock().getTimeNs();
+            final long theoreticalTimeNs;
+            if (initialTheoTimeSet) {
+                theoreticalTimeNs = initialTheoTimeNs;
+            } else {
+                theoreticalTimeNs = actualTimeNs;
+            }
             
-            this.runImpl();
+            this.clearTheoreticalTime();
+
+            this.runImpl(theoreticalTimeNs, actualTimeNs);
             
-            mustRepeat = this.scheduling.isNextTheoreticalTimeSet();
+            mustRepeat = this.isTheoreticalTimeSet();
         } finally {
             if (mustRepeat) {
                 if (this.status == STATUS_DONE_CANCELLED) {
-                    // User called onCancel() in runImpl().
-                    // Clearing next theoretical time for consistency,
-                    // in case user ever set it during runImpl() call.
-                    this.scheduling.clearNextTheoreticalTime();
+                    // User called onCancel() in runImpl(...).
+                    mustRepeat = false;
+                    // Clearing theoretical time for consistency.
+                    this.clearTheoreticalTime();
                 }
             } else {
                 if (this.status == STATUS_DONE_CANCELLED) {
-                    // User called onCancel() in onBegin() or runImpl().
+                    // User called onCancel() in onBegin() or runImpl(...).
                     // Done already.
                 } else {
                     final boolean dueToCancellation = false;
-                    this.terminateIfNeeded(
-                            dueToCancellation,
-                            this.scheduling);
+                    this.terminateIfNeeded(dueToCancellation);
                 }
             }
+        }
+        if (mustRepeat) {
+            final long nextNs = this.getTheoreticalTimeNs();
+            this.rescheduleAtNs(nextNs);
         }
         return;
     }
     
     /**
-     * After call to this method, this schedulable is in done state.
+     * After call to this method, this repeatable runnable is in done state.
      * If termination (call to onEnd() and onDone()) has been initiated already,
      * calling this method does nothing.
      * 
@@ -142,12 +203,7 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     @Override
     public void onCancel() {
         final boolean dueToCancellation = true;
-        // Not supposed to be set during cancellation,
-        // so null even if accidentally set.
-        final InterfaceScheduling scheduling = null;
-        terminateIfNeeded(
-                dueToCancellation,
-                scheduling);
+        this.terminateIfNeeded(dueToCancellation);
     }
 
     /*
@@ -156,13 +212,16 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     
     /**
      * Makes this object ready for a new sequence of schedules.
-     * Must not be called concurrently with actual usage of this schedulable.
+     * Must not be called concurrently with actual usage of this runnable.
      */
     public void reset() {
         this.status = STATUS_FIRST_RUN_PENDING;
+        this.isTheoreticalTimeSet = false;
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onBegin() call has not yet been initiated, false otherwise.
      */
     public boolean isPending() {
@@ -170,6 +229,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
     
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onBegin() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
@@ -178,7 +239,9 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
     
     /**
-     * @return True if runImpl() is being called or if a call to it
+     * Thread-safe and non-blocking.
+     * 
+     * @return True if runImpl(...) is being called or if a call to it
      *         is expected (i.e. after a call to onBegin() that completed
      *         normally and did not cancel), false otherwise.
      */
@@ -187,6 +250,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onEnd() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
@@ -195,6 +260,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onDone() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
@@ -203,6 +270,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onDone() call has detectably finished, false otherwise.
      */
     public boolean isDone() {
@@ -210,6 +279,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if termination (call to onEnd() and then onDone(), or just
      *         onDone()) has been initiated, false otherwise.
      */
@@ -218,9 +289,11 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
     
     /**
-     * Note: A schedulable can be cancelled but not yet done.
+     * Thread-safe and non-blocking.
      * 
-     * @return True if this schedulable is being cancelled (i.e. is being
+     * Note: A repeatable runnable can be cancelled but not yet done.
+     * 
+     * @return True if this repeatable runnable is being cancelled (i.e. is being
      *         terminated due to cancellation), or has been cancelled and is
      *         done, false otherwise.
      */
@@ -231,17 +304,34 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+    
+    /**
+     * Used for reschedules, after user called setNextTheoreticalTimeNs(...).
+     * 
+     * This default implementation uses scheduler.executeAtNs(this, timeNs).
+     * 
+     * Can be overridden for example if wanting to schedule
+     * not this runnable directly, but a wrapper,
+     * or use another scheduling method.
+     */
+    protected void rescheduleAtNs(long timeNs) {
+        this.scheduler.executeAtNs(this, timeNs);
+    }
+
+    /*
+     * 
+     */
 
     /**
-     * Called before first call to runImpl(), if any.
+     * Called before first call to runImpl(...), if any.
      * 
-     * Calling onCancel() in this method ensures that runImpl()
+     * Calling onCancel() in this method ensures that runImpl(...)
      * won't be called next,
      * and ensures a call to onEnd() and then onDone().
      * 
-     * scheduling.clearNextTheoreticalTime() is called
-     * just after this, to make sure the only next theoretical time used
-     * is the one set from within runImpl().
+     * clearNextTheoreticalTime() is called just after this,
+     * to make sure that the only theoretical time used
+     * for re-scheduling is the one set from within runImpl(...).
      * 
      * Default implementation does nothing.
      */
@@ -249,8 +339,8 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
     }
     
     /**
-     * Called after last call to runImpl(), if any:
-     * - in a call to run(), after runImpl() completed normally
+     * Called after last call to runImpl(...), if any:
+     * - in a call to run(), after runImpl(...) completed normally
      *   without asking for repetition or did throw an exception,
      * - in a call to onCancel(), if a call to onBegin() has been initiated.
      * 
@@ -276,20 +366,64 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
      */
     protected void onDone() {
     }
-    
-    /**
-     * @return The scheduling for use in runImpl().
-     */
-    protected final InterfaceScheduling getScheduling() {
-        return this.scheduling;
-    }
 
     /**
      * Implement your run() in it.
      * 
      * Not called if onCancel() has been called.
+     * 
+     * Call setNextTheoreticalTimeNs(...) from within this method
+     * for a new call to be scheduled for the specified time.
+     * 
+     * Note that for first call, if setNextTheoreticalTimeNs(...) has not
+     * properly been called already, theoretical time will be set with
+     * actual time.
+     * 
+     * @param theoreticalTimeNs Theoretical time, in nanoseconds, for which
+     *        this call was scheduled.
+     * @param actualTimeNs Actual time, in nanoseconds, at which this call
+     *        occurs.
      */
-    protected abstract void runImpl();
+    protected abstract void runImpl(long theoreticalTimeNs, long actualTimeNs);
+    
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Clears theoretical time information.
+     */
+    void clearTheoreticalTime() {
+        this.isTheoreticalTimeSet = false;
+    }
+    
+    /**
+     * @return Whether theoretical time is set.
+     */
+    boolean isTheoreticalTimeSet() {
+        return this.isTheoreticalTimeSet;
+    }
+
+    /**
+     * @param theoreticalTimeNs Theoretical time, in nanoseconds,
+     *        at which next call to runImpl(...) must occur.
+     */
+    void setTheoreticalTimeNs(long theoreticalTimeNs) {
+        this.theoreticalTimeNs = theoreticalTimeNs;
+        this.isTheoreticalTimeSet = true;
+    }
+    
+    /**
+     * @return Theoretical time, in nanoseconds,
+     *         at which next call to runImpl(...) must occur.
+     * @throws IllegalStateException if theoretical time is not set.
+     */
+    long getTheoreticalTimeNs() {
+        if (!this.isTheoreticalTimeSet) {
+            throw new IllegalStateException();
+        }
+        return this.theoreticalTimeNs;
+    }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
@@ -300,9 +434,7 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
      * (can happen if onCancel() is called twice, or is called
      * in onEnd() or onDone() (both of which are bad usages)).
      */
-    private void terminateIfNeeded(
-            boolean dueToCancellation,
-            InterfaceScheduling scheduling) {
+    private void terminateIfNeeded(boolean dueToCancellation) {
         if (Math.abs(this.status) >= STATUS_ON_END_CALL_INITIATED) {
             return;
         }
@@ -320,12 +452,10 @@ public abstract class AbstractSmartSchedulable implements InterfaceSchedulable {
             } finally {
                 this.status = (dueToCancellation ? STATUS_DONE_CANCELLED : STATUS_DONE);
                 
-                if (scheduling != null) {
-                    // Clearing next theoretical time for consistency,
-                    // in case user ever set it during onBegin(),
-                    // runImpl(), onEnd() or onDone() call.
-                    scheduling.clearNextTheoreticalTime();
-                }
+                // Clearing next theoretical time for consistency,
+                // in case user ever set it during onBegin(),
+                // runImpl(...), onEnd() or onDone() call.
+                this.clearTheoreticalTime();
             }
         }
     }

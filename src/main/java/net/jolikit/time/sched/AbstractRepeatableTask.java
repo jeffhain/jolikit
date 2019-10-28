@@ -23,20 +23,20 @@ import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
- * A task is a sort of AbstractSmartSchedulable, which run() and onCancel()
- * methods are thread safe, and which provides methods for being cancelled
- * concurrently.
+ * Similar to AbstractRepeatableRunnable, but it can be cancelled concurrently,
+ * and its public methods are thread-safe except setNextTheoreticalTimeNs(...)
+ * which is not meant to be used concurrently with execution.
  * 
- * onBegin(), onEnd(), onDone() and runImpl() methods are called within a lock
- * which can be specified by the user.
- * Allowing the user to specify this lock allows him, for example, to figure out
+ * Protected onBegin(), onEnd(), onDone() and runImpl(...) methods are called
+ * within a lock which can be specified by the user.
+ * Allowing users to specify this lock allows them, for example, to figure out
  * whether the task has been executed, and if not, to cancel it, and know it has
  * not been executed concurrently in the mean time.
  * Example:
  * lock.lock();
  * try {
  *     // Here we are in the lock, so none of
- *     // onBegin()/onEnd()/onDone()/runImpl()
+ *     // onBegin()/onEnd()/onDone()/runImpl(...)
  *     // is being executed.
  *     if (task.isDone()) {
  *         if (task.isCancelled()) {
@@ -45,7 +45,7 @@ import net.jolikit.time.TimeUtils;
  *             // Done without cancellation.
  *         }
  *     } else {
- *         // Will call onEnd() and onDone() synchronously,
+ *         // This call will call onEnd() and onDone() synchronously,
  *         // and return true.
  *         // No need to interrupt since not being run concurrently.
  *         task.cancel(false);
@@ -54,7 +54,7 @@ import net.jolikit.time.TimeUtils;
  *     lock.unlock();
  * }
  */
-public abstract class AbstractTask implements InterfaceSchedulable {
+public abstract class AbstractRepeatableTask implements InterfaceCancellable {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -66,10 +66,13 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private class MySmartSchedulable extends AbstractSmartSchedulable {
+    private class MyRepRunnable extends AbstractRepeatableRunnable {
+        public MyRepRunnable(InterfaceScheduler scheduler) {
+            super(scheduler);
+        }
         @Override
         public void run() {
-            if (AbstractTask.this.isCancellationRequested()) {
+            if (AbstractRepeatableTask.this.isCancellationRequested()) {
                 // Canceling now, else will end up done as not being cancelled
                 // (normal way of being done, when no new execution is planned).
                 this.onCancel();
@@ -82,25 +85,33 @@ public abstract class AbstractTask implements InterfaceSchedulable {
          */
         @Override
         protected void onBegin() {
-            AbstractTask.this.onBegin();
+            AbstractRepeatableTask.this.onBegin();
         }
         @Override
         protected void onEnd() {
-            AbstractTask.this.onEnd();
+            AbstractRepeatableTask.this.onEnd();
         }
         @Override
         protected void onDone() {
-            AbstractTask.this.onDone();
+            AbstractRepeatableTask.this.onDone();
         }
         @Override
-        protected void runImpl() {
-            if (AbstractTask.this.isCancellationRequested()) {
+        protected void runImpl(long theoreticalTimeNs, long actualTimeNs) {
+            if (AbstractRepeatableTask.this.isCancellationRequested()) {
                 // Cancellation might have been requested in onBegin(),
                 // in which case we want to cancel now.
                 this.onCancel();
             } else {
-                AbstractTask.this.runImpl();
+                AbstractRepeatableTask.this.runImpl(theoreticalTimeNs, actualTimeNs);
             }
+        }
+        /**
+         * Overriding to re-schedule the task,
+         * not the (non-thread-safe) repeatable runnable. 
+         */
+        @Override
+        protected void rescheduleAtNs(long timeNs) {
+            rescheduleTaskAtNs(timeNs);
         }
     }
     
@@ -112,7 +123,7 @@ public abstract class AbstractTask implements InterfaceSchedulable {
      * Also used as run() running nullification mutex,
      * to avoid creation of a specific object as mutex.
      */
-    private final MySmartSchedulable smartSched = new MySmartSchedulable();
+    private final MyRepRunnable repRunnable;
     
     private final Lock lock;
     
@@ -128,12 +139,16 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public AbstractTask() {
+    public AbstractRepeatableTask(InterfaceScheduler scheduler) {
+        this.repRunnable = new MyRepRunnable(scheduler);
         // Avoiding the null check of the other constructor.
         this.lock = new ReentrantLock();
     }
     
-    public AbstractTask(Lock lock) {
+    public AbstractRepeatableTask(
+            InterfaceScheduler scheduler,
+            Lock lock) {
+        this.repRunnable = new MyRepRunnable(scheduler);
         this.lock = LangUtils.requireNonNull(lock);
     }
     
@@ -141,13 +156,28 @@ public abstract class AbstractTask implements InterfaceSchedulable {
      * 
      */
 
-    @Override
-    public void setScheduling(InterfaceScheduling scheduling) {
-        // No need to lock, since not supposed to be called
-        // concurrently with run().
-        this.smartSched.setScheduling(scheduling);
+    public InterfaceScheduler getScheduler() {
+        return this.repRunnable.getScheduler();
     }
     
+    /*
+     * 
+     */
+    
+    /**
+     * Not thread-safe.
+     * 
+     * To be called before submitting this runnable to a scheduler,
+     * for first call to runImpl(...) to use proper theoretical time,
+     * and from runImpl(...) to request a new execution.
+     * 
+     * @param nextTheoreticalTimeNs Theoretical time, in nanoseconds,
+     *        at which next call to runImpl(...) must occur.
+     */
+    public void setNextTheoreticalTimeNs(long nextTheoreticalTimeNs) {
+        this.repRunnable.setNextTheoreticalTimeNs(nextTheoreticalTimeNs);
+    }
+
     /**
      * Thread-safe.
      */
@@ -173,71 +203,87 @@ public abstract class AbstractTask implements InterfaceSchedulable {
         final Lock lock = this.lock;
         lock.lock();
         try {
-            this.smartSched.onCancel();
+            this.repRunnable.onCancel();
         } finally {
             lock.unlock();
         }
     }
 
     /*
-     * Life cycle methods, same as those in AbstractSmartScheduler.
+     * Life cycle methods, same as those in AbstractRepeatableRunnable.
      */
     
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onBegin() call has not yet been initiated, false otherwise.
      */
     public boolean isPending() {
-        return this.smartSched.isPending();
+        return this.repRunnable.isPending();
     }
     
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onBegin() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
     public boolean isOnBeginBeingCalled() {
-        return this.smartSched.isOnBeginBeingCalled();
+        return this.repRunnable.isOnBeginBeingCalled();
     }
     
     /**
-     * @return True if runImpl() is being called or if an additional call to it
+     * Thread-safe and non-blocking.
+     * 
+     * @return True if runImpl(...) is being called or if an additional call to it
      *         is scheduled, false otherwise.
      */
     public boolean isRepeating() {
-        return this.smartSched.isRepeating();
+        return this.repRunnable.isRepeating();
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onEnd() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
     public boolean isOnEndBeingCalled() {
-        return this.smartSched.isOnEndBeingCalled();
+        return this.repRunnable.isOnEndBeingCalled();
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onDone() call has been initiated, and has not yet
      *         detectably finished, false otherwise.
      */
     public boolean isOnDoneBeingCalled() {
-        return this.smartSched.isOnDoneBeingCalled();
+        return this.repRunnable.isOnDoneBeingCalled();
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if onDone() call has detectably finished, false otherwise.
      */
     public boolean isDone() {
-        return this.smartSched.isDone();
+        return this.repRunnable.isDone();
     }
 
     /**
+     * Thread-safe and non-blocking.
+     * 
      * @return True if termination (call to onEnd() and then onDone(), or just
      *         onDone()) has been initiated, false otherwise.
      */
     public boolean isTerminatingOrDone() {
-        return this.smartSched.isTerminatingOrDone();
+        return this.repRunnable.isTerminatingOrDone();
     }
     
     /**
+     * Thread-safe and non-blocking.
+     * 
      * Note: A task can be cancelled but not yet done.
      * 
      * @return True if this task is being cancelled (i.e. is being
@@ -245,11 +291,11 @@ public abstract class AbstractTask implements InterfaceSchedulable {
      *         done, false otherwise.
      */
     public boolean isCancelled() {
-        return this.smartSched.isCancelled();
+        return this.repRunnable.isCancelled();
     }
 
     /*
-     * Life cycle methods, additional to those in AbstractSmartScheduler.
+     * Life cycle methods, additional to those in AbstractRepeatableRunnable.
      */
     
     /**
@@ -258,7 +304,7 @@ public abstract class AbstractTask implements InterfaceSchedulable {
      * - if it does not succeed, eventually interrupts the worker, as specified.
      * 
      * If worker gets interrupted, it might be currently running any of the methods
-     * onBegin(), onEnd(), onDone(), and runImpl().
+     * onBegin(), onEnd(), onDone(), and runImpl(...).
      * 
      * @param mayInterruptIfRunning True if runner might be interrupted in an attempt
      *        to quicken the cancellation, false otherwise.
@@ -314,10 +360,27 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     //--------------------------------------------------------------------------
     
     /**
-     * Called before first call to runImpl(), if any.
+     * Used for reschedules, after user called setNextTheoreticalTimeNs(...).
+     * 
+     * This default implementation uses scheduler.executeAtNs(this, timeNs).
+     * 
+     * Can be overridden for example if wanting to schedule
+     * not this task directly, but a wrapper,
+     * or use another scheduling method.
+     */
+    protected void rescheduleTaskAtNs(long timeNs) {
+        this.getScheduler().executeAtNs(this, timeNs);
+    }
+
+    /*
+     * 
+     */
+
+    /**
+     * Called before first call to runImpl(...), if any.
      * 
      * Requesting cancellation or calling cancel(boolean) in this method
-     * ensures that runImpl() won't be called next,
+     * ensures that runImpl(...) won't be called next,
      * and ensures a call to onEnd() and then onDone().
      * 
      * Default implementation does nothing.
@@ -326,8 +389,8 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     }
     
     /**
-     * Called after last call to runImpl(), if any:
-     * - in a call to run(), after runImpl() completed normally
+     * Called after last call to runImpl(...), if any:
+     * - in a call to run(), after runImpl(...) completed normally
      *   without asking for repetition or did throw an exception,
      * - in a call to onCancel(), if a call to onBegin() has been initiated.
      * 
@@ -355,18 +418,23 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     }
 
     /**
-     * @return The scheduling for use in runImpl().
-     */
-    protected final InterfaceScheduling getScheduling() {
-        return this.smartSched.getScheduling();
-    }
-
-    /**
      * Implement your run() in it.
      * 
      * Not called if cancellation has been requested.
+     * 
+     * Call setNextTheoreticalTimeNs(...) from within this method
+     * for a new call to be scheduled for the specified time.
+     * 
+     * Note that for first call, if setNextTheoreticalTimeNs(...) has not
+     * properly been called already, theoretical time will be set with
+     * actual time.
+     * 
+     * @param theoreticalTimeNs Theoretical time, in nanoseconds, for which
+     *        this call was scheduled.
+     * @param actualTimeNs Actual time, in nanoseconds, at which this call
+     *        occurs.
      */
-    protected abstract void runImpl();
+    protected abstract void runImpl(long theoreticalTimeNs, long actualTimeNs);
     
     /*
      * Helper methods for next theoretical time computation.
@@ -410,11 +478,23 @@ public abstract class AbstractTask implements InterfaceSchedulable {
     }
 
     //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * For tests.
+     * Not thread-safe.
+     */
+    long getTheoreticalTimeNs() {
+        return this.repRunnable.getTheoreticalTimeNs();
+    }
+
+    //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
     private Object getRunnerThreadNullificationMutex() {
-        return this.smartSched;
+        return this.repRunnable;
     }
     
     private boolean run_locked() {
@@ -423,8 +503,8 @@ public abstract class AbstractTask implements InterfaceSchedulable {
         
         boolean mustRepeat = false;
         try {
-            this.smartSched.run();
-            mustRepeat = this.smartSched.getScheduling().isNextTheoreticalTimeSet();
+            this.repRunnable.run();
+            mustRepeat = this.repRunnable.isTheoreticalTimeSet();
         } finally {
             this.nullifyRunnerThread();
             
@@ -434,13 +514,14 @@ public abstract class AbstractTask implements InterfaceSchedulable {
             // reason, in which case we still clear it.
             Thread.interrupted();
             
-            if (mustRepeat && this.isCancellationRequested()) {
+            if (mustRepeat
+                    && this.isCancellationRequested()) {
                 /*
                  * Doing cancellation now, in case not already done
                  * by the thread that requested cancellation
                  * (typically due to failing to acquire the lock).
                  */
-                this.smartSched.onCancel();
+                this.repRunnable.onCancel();
                 mustRepeat = false;
             }
         }

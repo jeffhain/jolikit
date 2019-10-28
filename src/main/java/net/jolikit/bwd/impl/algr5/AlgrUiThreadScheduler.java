@@ -31,7 +31,7 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.AbstractScheduler;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
@@ -70,7 +70,7 @@ public class AlgrUiThreadScheduler extends AbstractScheduler implements Interfac
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private class MyPollProcess extends AbstractRepeatedProcess {
+    private class MyPollProcess extends AbstractProcess {
         final long pollPeriodNs;
         public MyPollProcess(
                 InterfaceScheduler scheduler,

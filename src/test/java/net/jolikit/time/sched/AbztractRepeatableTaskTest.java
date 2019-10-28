@@ -15,12 +15,14 @@
  */
 package net.jolikit.time.sched;
 
+import java.util.concurrent.atomic.AtomicLong;
+
 import junit.framework.TestCase;
 
 /**
- * To test AbstractTask.
+ * To test AbstractRepeatableTask.
  */
-public class AbztractTaskTest extends TestCase {
+public class AbztractRepeatableTaskTest extends TestCase {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -47,7 +49,7 @@ public class AbztractTaskTest extends TestCase {
     }
     
     private static class MyMethodHelper {
-        final AbstractTask owner;
+        final AbstractRepeatableTask owner;
         final MyMethod method;
         boolean beingCalled;
         int callCount;
@@ -55,7 +57,7 @@ public class AbztractTaskTest extends TestCase {
         boolean mustCancel;
         boolean mustThrow;
         public MyMethodHelper(
-                AbstractTask owner,
+                AbstractRepeatableTask owner,
                 MyMethod method) {
             this.owner = owner;
             this.method = method;
@@ -89,7 +91,7 @@ public class AbztractTaskTest extends TestCase {
         }
     }
     
-    private class MyTask extends AbstractTask {
+    private class MyRepTask extends AbstractRepeatableTask {
         
         private final MyMethodHelper onBegin_helper = new MyMethodHelper(this, MyMethod.ON_BEGIN);
         
@@ -99,11 +101,12 @@ public class AbztractTaskTest extends TestCase {
         
         private final MyMethodHelper runImpl_helper = new MyMethodHelper(this, MyMethod.RUN_IMPL);
         
-        private long lastRunTimeNs = Long.MIN_VALUE;
-        
+        private long runImpl_theoreticalTimeNs = Long.MIN_VALUE;
+        private long runImpl_actualTimeNs = Long.MIN_VALUE;
         private boolean runImpl_mustSetNextTheoreticalTime = true;
         
-        public MyTask() {
+        public MyRepTask(InterfaceScheduler scheduler) {
+            super(scheduler);
         }
         
         @Override
@@ -157,7 +160,7 @@ public class AbztractTaskTest extends TestCase {
         }
 
         @Override
-        protected void runImpl() {
+        protected void runImpl(long theoreticalTimeNs, long actualTimeNs) {
             assertFalse(this.isPending());
             assertFalse(this.isOnBeginBeingCalled());
             assertTrue(this.isRepeating());
@@ -166,20 +169,13 @@ public class AbztractTaskTest extends TestCase {
             assertFalse(this.isDone());
             assertFalse(this.isTerminatingOrDone());
             
-            final InterfaceScheduling scheduling = this.getScheduling();
-            
             this.runImpl_helper.onCall(new Runnable() {
                 public void run() {
-                    final long theoreticalTimeNs = scheduling.getTheoreticalTimeNs();
-                    final long actualTimeNs = scheduling.getActualTimeNs();
-                    if (actualTimeNs != theoreticalTimeNs) {
-                        // Soft scheduling, so always the same.
-                        throw new AssertionError(actualTimeNs + " != " + theoreticalTimeNs);
-                    }
-                    lastRunTimeNs = actualTimeNs;
+                    runImpl_theoreticalTimeNs = theoreticalTimeNs;
+                    runImpl_actualTimeNs = actualTimeNs;
                     
                     if (runImpl_mustSetNextTheoreticalTime) {
-                        scheduling.setNextTheoreticalTimeNs(plusBounded(actualTimeNs, PERIOD_NS));
+                        setNextTheoreticalTimeNs(plusBounded(actualTimeNs, PERIOD_NS));
                     }
                 }
             });
@@ -195,11 +191,9 @@ public class AbztractTaskTest extends TestCase {
      */
     
     public void test_general() {
-        
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        // Just need to set it once for this test.
-        task.setScheduling(scheduling);
+        final TestScheduler scheduler = new TestScheduler();
+
+        final MyRepTask task = new MyRepTask(scheduler);
         //
         assertEquals(0, task.onBegin_helper.callCount);
         assertEquals(0, task.runImpl_helper.callCount);
@@ -219,17 +213,17 @@ public class AbztractTaskTest extends TestCase {
          * Running (starting periodic run).
          */
         
-        long nowNs = 1000;
+        long nowNs = scheduler.getClock().getTimeNs();
         
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
         assertEquals(1, task.runImpl_helper.callCount);
         assertEquals(0, task.onEnd_helper.callCount);
         assertEquals(0, task.onDone_helper.callCount);
-        assertEquals(nowNs, task.lastRunTimeNs);
-        assertEquals(nowNs + PERIOD_NS, scheduling.getNextTheoreticalTimeNs());
+        assertEquals(nowNs, task.runImpl_theoreticalTimeNs);
+        assertEquals(nowNs, task.runImpl_actualTimeNs);
+        assertEquals(nowNs + PERIOD_NS, task.getTheoreticalTimeNs());
         assertFalse(task.isCancellationRequested());
         assertFalse(task.isCancelled());
         
@@ -237,17 +231,17 @@ public class AbztractTaskTest extends TestCase {
          * Running again.
          */
         
-        nowNs = scheduling.getNextTheoreticalTimeNs();
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
+        nowNs = scheduler.setAndGetTimeNs(task.getTheoreticalTimeNs());
+
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
         assertEquals(2, task.runImpl_helper.callCount);
         assertEquals(0, task.onEnd_helper.callCount);
         assertEquals(0, task.onDone_helper.callCount);
-        assertEquals(nowNs, task.lastRunTimeNs);
-        assertEquals(nowNs + PERIOD_NS, scheduling.getNextTheoreticalTimeNs());
+        assertEquals(nowNs, task.runImpl_theoreticalTimeNs);
+        assertEquals(nowNs, task.runImpl_actualTimeNs);
+        assertEquals(nowNs + PERIOD_NS, task.getTheoreticalTimeNs());
         assertFalse(task.isCancellationRequested());
         assertFalse(task.isCancelled());
         
@@ -309,10 +303,9 @@ public class AbztractTaskTest extends TestCase {
      */
     
     public void test_onBegin_requestsCancellation() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -320,9 +313,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onBegin_helper.mustRequestCancellation = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -334,10 +324,9 @@ public class AbztractTaskTest extends TestCase {
     }
     
     public void test_onBegin_cancels() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -345,9 +334,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onBegin_helper.mustCancel = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -359,10 +345,9 @@ public class AbztractTaskTest extends TestCase {
     }
     
     public void test_onBegin_throws() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -370,9 +355,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onBegin_helper.mustThrow = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         try {
             task.run();
             fail();
@@ -396,10 +378,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onEnd_requestsCancellation() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -410,9 +391,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onEnd_helper.mustRequestCancellation = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -429,10 +407,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onEnd_cancels() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -443,9 +420,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onEnd_helper.mustCancel = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -462,10 +436,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onEnd_throws() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -476,9 +449,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onEnd_helper.mustThrow = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         try {
             task.run();
             fail();
@@ -502,10 +472,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onDone_requestsCancellation() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -516,9 +485,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onDone_helper.mustRequestCancellation = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -535,10 +501,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onDone_cancels() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -549,9 +514,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onDone_helper.mustCancel = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         task.run();
         //
         assertEquals(1, task.onBegin_helper.callCount);
@@ -568,10 +530,9 @@ public class AbztractTaskTest extends TestCase {
      * Just checking that doesn't hurt.
      */
     public void test_onDone_throws() {
+        final TestScheduler scheduler = new TestScheduler();
         
-        final MyTask task = new MyTask();
-        final DefaultScheduling scheduling = new DefaultScheduling();
-        task.setScheduling(scheduling);
+        final MyRepTask task = new MyRepTask(scheduler);
         
         /*
          * 
@@ -582,9 +543,6 @@ public class AbztractTaskTest extends TestCase {
         
         task.onDone_helper.mustThrow = true;
         
-        long nowNs = 1000;
-        
-        scheduling.configureBeforeRun(nowNs, nowNs);
         try {
             task.run();
             fail();
@@ -598,5 +556,101 @@ public class AbztractTaskTest extends TestCase {
         assertEquals(1, task.onDone_helper.callCount);
         assertFalse(task.isCancellationRequested());
         assertFalse(task.isCancelled());
+    }
+    
+    /*
+     * First theoretical time.
+     */
+    
+    public void test_firstTheoreticalTime_notSet() {
+        final TestScheduler scheduler = new TestScheduler();
+        final MyRepTask task = new MyRepTask(scheduler);
+
+        long nowNs = scheduler.getClock().getTimeNs();
+        
+        task.run();
+        
+        assertEquals(nowNs, task.runImpl_theoreticalTimeNs);
+        assertEquals(nowNs, task.runImpl_actualTimeNs);
+    }
+
+    public void test_firstTheoreticalTime_set() {
+        final TestScheduler scheduler = new TestScheduler();
+        final MyRepTask task = new MyRepTask(scheduler);
+
+        long nowNs = scheduler.getClock().getTimeNs();
+        
+        task.setNextTheoreticalTimeNs(nowNs - 1);
+        task.run();
+        
+        assertEquals(nowNs - 1, task.runImpl_theoreticalTimeNs);
+        assertEquals(nowNs, task.runImpl_actualTimeNs);
+    }
+    
+    /*
+     * Re-schedules.
+     */
+    
+    public void test_reschedule_noOverride() {
+        final TestScheduler scheduler = new TestScheduler();
+        final MyRepTask task = new MyRepTask(scheduler);
+
+        task.runImpl_mustSetNextTheoreticalTime = true;
+
+        task.run();
+
+        assertEquals(0, scheduler.get_execute_callCount());
+        assertEquals(1, scheduler.get_executeAtNs_callCount());
+        assertEquals(0, scheduler.get_executeAfterNs_callCount());
+
+        assertSame(task, scheduler.get_executeAtNs_runnable());
+        final long nowNs = scheduler.getClock().getTimeNs();
+        assertEquals(nowNs + PERIOD_NS, scheduler.get_executeAtNs_timeNs());
+    }
+
+    public void test_reschedule_noReschedule() {
+        final TestScheduler scheduler = new TestScheduler();
+        final AtomicLong lastRescheduleTimeNsRef = new AtomicLong();
+        final MyRepTask task = new MyRepTask(scheduler) {
+            @Override
+            protected void rescheduleTaskAtNs(long timeNs) {
+                lastRescheduleTimeNsRef.set(timeNs);
+            }
+        };
+
+        task.runImpl_mustSetNextTheoreticalTime = true;
+
+        task.run();
+
+        assertEquals(0, scheduler.get_execute_callCount());
+        assertEquals(0, scheduler.get_executeAtNs_callCount());
+        assertEquals(0, scheduler.get_executeAfterNs_callCount());
+
+        final long nowNs = scheduler.getClock().getTimeNs();
+        assertEquals(nowNs + PERIOD_NS, lastRescheduleTimeNsRef.get());
+    }
+
+    public void test_reschedule_asapReschedule() {
+        final TestScheduler scheduler = new TestScheduler();
+        final AtomicLong lastRescheduleTimeNsRef = new AtomicLong();
+        final MyRepTask task = new MyRepTask(scheduler) {
+            @Override
+            protected void rescheduleTaskAtNs(long timeNs) {
+                lastRescheduleTimeNsRef.set(timeNs);
+                scheduler.execute(this);
+            }
+        };
+
+        task.runImpl_mustSetNextTheoreticalTime = true;
+
+        task.run();
+
+        assertEquals(1, scheduler.get_execute_callCount());
+        assertEquals(0, scheduler.get_executeAtNs_callCount());
+        assertEquals(0, scheduler.get_executeAfterNs_callCount());
+
+        assertSame(task, scheduler.get_execute_runnable());
+        final long nowNs = scheduler.getClock().getTimeNs();
+        assertEquals(nowNs + PERIOD_NS, lastRescheduleTimeNsRef.get());
     }
 }

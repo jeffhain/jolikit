@@ -22,7 +22,7 @@ import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.lang.Dbg;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -54,7 +54,7 @@ public abstract class AbstractUnitTestBwdTestCase extends AbstractBwdTestCase {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private class MyTestProcess extends AbstractRepeatedProcess {
+    private class MyTestProcess extends AbstractProcess {
         public MyTestProcess(InterfaceScheduler scheduler) {
             super(scheduler);
         }

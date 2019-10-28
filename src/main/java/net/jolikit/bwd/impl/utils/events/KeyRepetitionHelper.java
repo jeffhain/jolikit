@@ -23,7 +23,7 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.TimeUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -60,7 +60,7 @@ public class KeyRepetitionHelper {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
 
-    private class MyKeyTypedRepetitionProcess extends AbstractRepeatedProcess {
+    private class MyKeyTypedRepetitionProcess extends AbstractProcess {
         private boolean firstCall;
         private BwdKeyEventT repeatEvent;
         public MyKeyTypedRepetitionProcess(InterfaceScheduler scheduler) {

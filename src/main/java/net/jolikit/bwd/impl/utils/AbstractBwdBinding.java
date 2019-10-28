@@ -43,9 +43,7 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
-import net.jolikit.time.TimeUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
-import net.jolikit.time.sched.AbstractSchedulable;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -80,7 +78,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         }
     }
     
-    private class MyHostEventLoopRunnable extends AbstractSchedulable {
+    private class MyHostEventLoopRunnable implements Runnable {
         private final AbstractBwdHost host;
         public MyHostEventLoopRunnable(AbstractBwdHost host) {
             this.host = host;
@@ -88,7 +86,8 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         @Override
         public void run() {
             final AbstractBwdHost host = this.host;
-            final double nowS = TimeUtils.nsToS(this.getScheduling().getActualTimeNs());
+            final InterfaceScheduler scheduler = host.getBinding().getUiThreadScheduler();
+            final double nowS = scheduler.getClock().getTimeS();
             
             boolean completedNormally = false;
             try {
@@ -104,9 +103,6 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
                     stream.println("exception during event logic run for host " + AbstractBwdHost.hid(host));
                 }
             }
-        }
-        @Override
-        public void onCancel() {
         }
     }
     
@@ -124,7 +120,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
      * the CLOSED event will still be ensured later by this polling
      * (except if an abrupt shutdown has been triggered).
      */
-    private class MyEventLogicProcess extends AbstractRepeatedProcess {
+    private class MyEventLogicProcess extends AbstractProcess {
         public MyEventLogicProcess(InterfaceScheduler scheduler) {
             super(scheduler);
         }

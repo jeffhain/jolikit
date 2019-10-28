@@ -88,8 +88,8 @@ public class SampleSinusoidalScheduling {
         }
     }
     
-    private static class MyRepeatedProcess extends AbstractRepeatedProcess {
-        public MyRepeatedProcess(InterfaceScheduler scheduler) {
+    private static class MyProcess extends AbstractProcess {
+        public MyProcess(InterfaceScheduler scheduler) {
             super(scheduler);
         }
         @Override
@@ -141,7 +141,7 @@ public class SampleSinusoidalScheduling {
          * Creating/starting process.
          */
         
-        final AbstractRepeatedProcess process = new MyRepeatedProcess(scheduler);
+        final AbstractProcess process = new MyProcess(scheduler);
         // Schedules first run.
         process.start();
         

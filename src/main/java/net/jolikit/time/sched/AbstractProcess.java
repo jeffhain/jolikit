@@ -23,20 +23,26 @@ import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
- * Handy class to implement a treatment executed repeatedly,
- * which execution can be stopped and started at will.
+ * Similar to AbstractRepeatableTask, but it can be started and stopped at will.
+ * For this class, repetition is the rule rather than the special case,
+ * and to reflect this its API is a bit different than the one of
+ * AbstractRepeatableTask (and of AbstractRepeatableRunnable):
+ * - "void runImpl(...)" is replaced with "long process(...)",
+ *   theoretical time for next schedule being the return value
+ *   (harder to forget than a call to setNextTheoreticalTimeNs(...)).
+ * - "process" more or less implies the notion of repetition,
+ *   so "repeatable" is not added to the class name.
+ * - start() and stop() methods replace the facts of submitting to a scheduler
+ *   and then eventually canceling current schedule if any.
  * 
- * onBegin/onEnd/process methods are not called from
- * within start and stop methods, but in a schedulable.
- * Also, a mutex ensures main memory synchronization
- * for calls to onBegin/onEnd/process methods,
- * for safe use of multi-threaded schedulers.
+ * Protected onBegin(), onEnd() and process(...) methods are not called from
+ * within start() and stop() methods, but asynchronously using the specified
+ * scheduler.
  * 
- * start and stop methods are thread-safe, and not blocking other
- * than due to scheduler's call, which is not supposed
- * to block for long.
+ * start() and stop() methods are thread-safe, and not blocking other
+ * than due to scheduler's call, which is not supposed to block for long.
  */
-public abstract class AbstractRepeatedProcess {
+public abstract class AbstractProcess {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -48,13 +54,24 @@ public abstract class AbstractRepeatedProcess {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private class MyTask extends AbstractTask {
+    private class MyRepTask extends AbstractRepeatableTask {
         /**
-         * Set on new schedulable, then read in lock.
+         * Set on new task, then read in lock.
          */
-        private MyTask previousToStop;
-        public MyTask(Lock lock) {
-            super(lock);
+        private MyRepTask previousToStop;
+        public MyRepTask(InterfaceScheduler scheduler) {
+            super(scheduler);
+        }
+        public MyRepTask(
+                InterfaceScheduler scheduler,
+                Lock lock) {
+            super(
+                    scheduler,
+                    lock);
+        }
+        @Override
+        protected void rescheduleTaskAtNs(long timeNs) {
+            rescheduleCurrentTaskAtNs(this, timeNs);
         }
         @Override
         protected void onBegin() {
@@ -62,12 +79,12 @@ public abstract class AbstractRepeatedProcess {
                 // Making sure the past is buried before starting the present.
                 this.cancelPreviousIfNeeded();
             } finally {
-                AbstractRepeatedProcess.this.onBegin();
+                AbstractProcess.this.onBegin();
             }
         }
         @Override
         protected void onEnd() {
-            AbstractRepeatedProcess.this.onEnd();
+            AbstractProcess.this.onEnd();
         }
         @Override
         protected void onDone() {
@@ -75,25 +92,19 @@ public abstract class AbstractRepeatedProcess {
             this.cancelPreviousIfNeeded();
         }
         @Override
-        protected void runImpl() {
-            /*
-             * If scheduling is null, can be due to scheduler mistakenly wrapping
-             * a schedulable with a simple runnable, and then not setting
-             * scheduling properly.
-             */
-            final InterfaceScheduling scheduling = this.getScheduling();
-            final long nextNs = AbstractRepeatedProcess.this.process(
-                    scheduling.getTheoreticalTimeNs(),
-                    scheduling.getActualTimeNs());
+        protected void runImpl(long theoreticalTimeNs, long actualTimeNs) {
+            final long nextNs = AbstractProcess.this.process(
+                    theoreticalTimeNs,
+                    actualTimeNs);
             if (this.isCancellationRequested()) {
                 // Not setting next theoretical time,
                 // which could cause a new call.
             } else {
-                scheduling.setNextTheoreticalTimeNs(nextNs);
+                this.setNextTheoreticalTimeNs(nextNs);
             }
         }
         private void cancelPreviousIfNeeded() {
-            final MyTask pts = this.previousToStop;
+            final MyRepTask pts = this.previousToStop;
             if (pts != null) {
                 this.previousToStop = null;
                 if (!pts.isDone()) {
@@ -111,18 +122,14 @@ public abstract class AbstractRepeatedProcess {
         }
     }
 
-    private class MyStopSchedulable implements InterfaceSchedulable {
-        private volatile MyTask toCancel;
+    private class MyStopCancellable implements InterfaceCancellable {
+        private volatile MyRepTask toCancel;
         private final boolean mayInterruptIfRunning;
-        public MyStopSchedulable(
-                final MyTask toCancel,
+        public MyStopCancellable(
+                final MyRepTask toCancel,
                 final boolean mayInterruptIfRunning) {
             this.toCancel = toCancel;
             this.mayInterruptIfRunning = mayInterruptIfRunning;
-        }
-        @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            // Not used.
         }
         @Override
         public void run() {
@@ -134,7 +141,7 @@ public abstract class AbstractRepeatedProcess {
             this.cancelIt();
         }
         private void cancelIt() {
-            final MyTask toCancel = this.toCancel;
+            final MyRepTask toCancel = this.toCancel;
             // Testing for nullity, but should not need to,
             // since process(...) and onCancel() calls should be exclusive.
             if (toCancel != null) {
@@ -154,7 +161,7 @@ public abstract class AbstractRepeatedProcess {
     private final InterfaceScheduler scheduler;
 
     /**
-     * Lock to prevent concurrent usage of schedulables.
+     * Lock to prevent concurrent usage of runnables.
      */
     private final Lock lock;
 
@@ -165,13 +172,13 @@ public abstract class AbstractRepeatedProcess {
      * Written in start stop mutex.
      * Volatile for readability outside start stop mutex.
      */
-    private volatile MyTask lastStartedTask;
+    private volatile MyRepTask lastStartedTask;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public AbstractRepeatedProcess(InterfaceScheduler scheduler) {
+    public AbstractProcess(InterfaceScheduler scheduler) {
         this(
                 scheduler,
                 new ReentrantLock());
@@ -180,7 +187,7 @@ public abstract class AbstractRepeatedProcess {
     /**
      * @param lock The lock to guard calls to abstract methods.
      */
-    public AbstractRepeatedProcess(
+    public AbstractProcess(
             final InterfaceScheduler scheduler,
             final Lock lock) {
         this.scheduler = LangUtils.requireNonNull(scheduler);
@@ -202,7 +209,7 @@ public abstract class AbstractRepeatedProcess {
      * identical to actual time.
      */
     public void start() {
-        final MyTask startTask = newStartTaskOrNullIfStartPending();
+        final MyRepTask startTask = newStartTaskOrNullIfStartPending();
         if (startTask != null) {
             this.scheduler.execute(startTask);
         }
@@ -231,9 +238,15 @@ public abstract class AbstractRepeatedProcess {
      *        in nanoseconds.
      */
     public void startAfterNs(long delayNs) {
-        final MyTask startTask = newStartTaskOrNullIfStartPending();
+        final MyRepTask startTask = newStartTaskOrNullIfStartPending();
         if (startTask != null) {
-            this.scheduler.executeAfterNs(startTask, delayNs);
+            final InterfaceScheduler scheduler = this.getScheduler();
+            
+            final long nowNs = scheduler.getClock().getTimeNs();
+            final long timeNs = plusBounded(nowNs, delayNs);
+            
+            startTask.setNextTheoreticalTimeNs(timeNs);
+            scheduler.executeAtNs(startTask, timeNs);
         }
     }
 
@@ -262,7 +275,7 @@ public abstract class AbstractRepeatedProcess {
      * due to a call to any start method.
      */
     public void stop(boolean mayInterruptIfRunning) {
-        final MyTask oldStartedTask;
+        final MyRepTask oldStartedTask;
         synchronized (this.startStopMutex) {
             oldStartedTask = this.lastStartedTask;
             if ((oldStartedTask == null)
@@ -279,7 +292,7 @@ public abstract class AbstractRepeatedProcess {
         /*
          * Need to schedule outside startStopMutex,
          * to avoid possible deadlock with our lock,
-         * if schedulable is rejected (onCancel()
+         * if runnable is rejected (onCancel()
          * called by current thread).
          * 
          * NB: If stop() is called from within process(...),
@@ -289,7 +302,7 @@ public abstract class AbstractRepeatedProcess {
          * no longer indicate that we did this "stop" schedule,
          * which some of this class code assumes).
          */
-        this.scheduler.execute(new MyStopSchedulable(oldStartedTask, mayInterruptIfRunning));
+        this.scheduler.execute(new MyStopCancellable(oldStartedTask, mayInterruptIfRunning));
     }
 
     /**
@@ -301,7 +314,7 @@ public abstract class AbstractRepeatedProcess {
      *         won't even be executed but we don't know it yet, false otherwise.
      */
     public boolean isAlive() {
-        final MyTask task = this.lastStartedTask;
+        final MyRepTask task = this.lastStartedTask;
         return (task != null) && (!task.isDone());
     }
 
@@ -316,7 +329,7 @@ public abstract class AbstractRepeatedProcess {
      *         false otherwise.
      */
     public boolean isStarted() {
-        final MyTask task = this.lastStartedTask;
+        final MyRepTask task = this.lastStartedTask;
         return (task != null)
                 && (!task.isCancellationRequested())
                 && (!task.isTerminatingOrDone());
@@ -325,6 +338,23 @@ public abstract class AbstractRepeatedProcess {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+    
+    /**
+     * Used for reschedules, after process(...) calls.
+     * 
+     * This default implementation uses scheduler.executeAtNs(task, timeNs).
+     * 
+     * Can be overridden for example if wanting to schedule
+     * not the task directly, but a wrapper,
+     * or use another scheduling method.
+     */
+    protected void rescheduleCurrentTaskAtNs(Runnable task, long timeNs) {
+        this.getScheduler().executeAtNs(task, timeNs);
+    }
+
+    /*
+     * 
+     */
     
     /**
      * Called before first call to process(...),
@@ -421,7 +451,7 @@ public abstract class AbstractRepeatedProcess {
     protected final long sToNsNoUnderflow(double s) {
         return TimeUtils.sToNsNoUnderflow(s);
     }
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -431,18 +461,20 @@ public abstract class AbstractRepeatedProcess {
      * to avoid possible deadlock with lock, if task is rejected
      * (onCancel() called by current thread).
      */
-    private MyTask newStartTaskOrNullIfStartPending() {
-        final MyTask newStartedTask;
+    private MyRepTask newStartTaskOrNullIfStartPending() {
+        final MyRepTask newStartedTask;
         
         synchronized (this.startStopMutex) {
-            final MyTask oldStartedTask = this.lastStartedTask;
+            final MyRepTask oldStartedTask = this.lastStartedTask;
             if ((oldStartedTask != null)
                     && (!oldStartedTask.isCancellationRequested())
                     && oldStartedTask.isPending()) {
                 // Start still pending: nothing to schedule.
                 newStartedTask = null;
             } else {
-                newStartedTask = new MyTask(this.lock);
+                newStartedTask = new MyRepTask(
+                        this.scheduler,
+                        this.lock);
                 this.lastStartedTask = newStartedTask;
                 
                 if ((oldStartedTask != null) && (!oldStartedTask.isTerminatingOrDone())) {

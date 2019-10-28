@@ -18,54 +18,15 @@ package net.jolikit.time.sched;
 public class SchedUtils {
     
     //--------------------------------------------------------------------------
-    // PRIVATE CLASSES
-    //--------------------------------------------------------------------------
-    
-    private static class MySchedulableRunnableAdapter implements InterfaceSchedulable {
-        private final Runnable runnable;
-        public MySchedulableRunnableAdapter(Runnable runnable) {
-            this.runnable = runnable;
-        }
-        @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            // No use for it.
-        }
-        @Override
-        public void run() {
-            this.runnable.run();
-        }
-        @Override
-        public void onCancel() {
-            // Nothing to do.
-        }
-    }
-    
-    //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-    
-    public static InterfaceSchedulable asSchedulable(Runnable runnable) {
-        if (runnable instanceof InterfaceSchedulable) {
-            return (InterfaceSchedulable) runnable;
-        } else {
-            return new MySchedulableRunnableAdapter(runnable);
-        }
-    }
-
-    public static void call_setScheduling_IfSchedulable(
-            Runnable runnable,
-            InterfaceScheduling scheduling) {
-        if (runnable instanceof InterfaceSchedulable) {
-            ((InterfaceSchedulable) runnable).setScheduling(scheduling);
-        }
-    }
 
     public static void call_onCancel_IfCancellable(Runnable runnable) {
         if (runnable instanceof InterfaceCancellable) {
             ((InterfaceCancellable) runnable).onCancel();
         }
     }
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------

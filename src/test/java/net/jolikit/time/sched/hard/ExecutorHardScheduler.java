@@ -30,9 +30,7 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.DefaultScheduling;
-import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.InterfaceSchedulable;
+import net.jolikit.time.sched.SchedUtils;
 
 /**
  * Scheduler based on implementations of JDK's Executor interfaces.
@@ -57,62 +55,15 @@ public class ExecutorHardScheduler extends AbstractScheduler {
         }
         @Override
         public void rejectedExecution(Runnable runnable, ThreadPoolExecutor executor) {
-            final Runnable userRunnable;
-            if (runnable instanceof MySchedulableCommand) {
-                final MySchedulableCommand impl = (MySchedulableCommand) runnable;
-                userRunnable = impl.schedulable;
-            } else {
-                userRunnable = runnable;
-            }
             try {
-                if (userRunnable instanceof InterfaceCancellable) {
-                    final InterfaceCancellable userCancellable = (InterfaceCancellable) userRunnable;
-                    userCancellable.onCancel();
-                }
+                SchedUtils.call_onCancel_IfCancellable(runnable);
             } finally {
                 final RejectedExecutionHandler handler = this.handler;
                 if (handler != null) {
-                    handler.rejectedExecution(userRunnable, executor);
+                    // Here runnable is always the one specified by the user,
+                    // not a wrapped from which we would have to dig it out.
+                    handler.rejectedExecution(runnable, executor);
                 }
-            }
-        }
-    }
-
-    private class MySchedulableCommand extends DefaultScheduling implements Runnable {
-        private final InterfaceSchedulable schedulable;
-        /**
-         * For ASAP schedules.
-         */
-        public MySchedulableCommand(InterfaceSchedulable schedulable) {
-            this.schedulable = schedulable;
-        }
-        /**
-         * For timed schedules.
-         */
-        public MySchedulableCommand(
-                InterfaceSchedulable schedulable,
-                long theoreticalTimeNs) {
-            this.schedulable = schedulable;
-            this.setTheoreticalTimeNs(theoreticalTimeNs);
-        }
-        @Override
-        public void run() {
-            final long actualTimeNs = clock.getTimeNs();
-
-            final DefaultScheduling scheduling = this;
-            scheduling.updateBeforeRun(actualTimeNs);
-            
-            this.schedulable.setScheduling(scheduling);
-            this.schedulable.run();
-            
-            final boolean mustRepeat = scheduling.isNextTheoreticalTimeSet();
-            if (mustRepeat) {
-                final long nextNs = scheduling.getNextTheoreticalTimeNs();
-                scheduling.setTheoreticalTimeNs(nextNs);
-                
-                final long timeAfterRunNs = clock.getTimeNs();
-                final long delayNs = NumbersUtils.minusBounded(nextNs, timeAfterRunNs);
-                scheduleCommand(this, delayNs, nextNs);
             }
         }
     }
@@ -220,13 +171,7 @@ public class ExecutorHardScheduler extends AbstractScheduler {
 
     @Override
     public void execute(Runnable runnable) {
-        if (runnable instanceof InterfaceSchedulable) {
-            final MySchedulableCommand command = new MySchedulableCommand(
-                    (InterfaceSchedulable) runnable);
-            this.asapExecutor.execute(command);
-        } else {
-            this.asapExecutor.execute(runnable);
-        }
+        this.asapExecutor.execute(runnable);
     }
 
     @Override
@@ -234,39 +179,23 @@ public class ExecutorHardScheduler extends AbstractScheduler {
             Runnable runnable,
             long timeNs) {
         final long delayNs = NumbersUtils.minusBounded(timeNs, this.clock.getTimeNs());
-        if (runnable instanceof InterfaceSchedulable) {
-            final MySchedulableCommand command = new MySchedulableCommand(
-                    (InterfaceSchedulable) runnable,
-                    timeNs);
-            this.scheduleCommand(command, delayNs, timeNs);
-        } else {
-            this.timedExecutor.schedule(runnable, delayNs, TimeUnit.NANOSECONDS);
-        }
+        this.executeDelayed(runnable, delayNs);
     }
 
     @Override
     public void executeAfterNs(
             Runnable runnable,
             long delayNs) {
-        if (runnable instanceof InterfaceSchedulable) {
-            final long timeNs = NumbersUtils.plusBounded(this.clock.getTimeNs(), delayNs);
-            final MySchedulableCommand command = new MySchedulableCommand(
-                    (InterfaceSchedulable) runnable,
-                    timeNs);
-            this.scheduleCommand(command, delayNs, timeNs);
-        } else {
-            this.timedExecutor.schedule(runnable, delayNs, TimeUnit.NANOSECONDS);
-        }
+        this.executeDelayed(runnable, delayNs);
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private void scheduleCommand(
-            final MySchedulableCommand command,
-            long delayNs,
-            long timeNs) {
-        this.timedExecutor.schedule(command, delayNs, TimeUnit.NANOSECONDS);
+    private void executeDelayed(
+            final Runnable runnable,
+            long delayNs) {
+        this.timedExecutor.schedule(runnable, delayNs, TimeUnit.NANOSECONDS);
     }
 }

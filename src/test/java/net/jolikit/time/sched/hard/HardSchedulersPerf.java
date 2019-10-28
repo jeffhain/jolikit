@@ -27,9 +27,9 @@ import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
-import net.jolikit.time.sched.InterfaceSchedulable;
+import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
-import net.jolikit.time.sched.InterfaceScheduling;
+import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
  * Class to bench performances of hard schedulers.
@@ -41,10 +41,9 @@ public class HardSchedulersPerf {
     //--------------------------------------------------------------------------
     
     protected enum RescheduleType {
-        RE_PROCESS,
         EXECUTE,
-        EXECUTE_AT_NOW,
-        EXECUTE_AT_SOON,
+        EXECUTE_AFTER_0,
+        EXECUTE_AFTER_1NS,
     }
 
     protected static class SchedulerData {
@@ -76,15 +75,14 @@ public class HardSchedulersPerf {
         public Runnable newInstance(int nbrOfCalls);
     }
     
-    private class MyNShotSchedulable implements InterfaceSchedulable {
+    private class MyNShotCancellable implements InterfaceCancellable {
         private final InterfaceScheduler scheduler;
-        private InterfaceScheduling scheduling;
         // volatile in case scheduler switches threads
         // without memory synchronization
         private volatile int nbrOfSchedules;
         private final RescheduleType rescheduleType;
         private final int nbrOfSqrt;
-        public MyNShotSchedulable(
+        public MyNShotCancellable(
                 final InterfaceScheduler scheduler,
                 int nbrOfSchedules,
                 final RescheduleType rescheduleType,
@@ -98,62 +96,39 @@ public class HardSchedulersPerf {
             this.nbrOfSqrt = nbrOfSqrt;
         }
         @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            this.scheduling = scheduling;
-        }
-        @Override
         public void run() {
-            final InterfaceScheduling scheduling = this.scheduling;
-            final long theoreticalTimeNs = scheduling.getTheoreticalTimeNs();
-            final long actualTimeNs = scheduling.getActualTimeNs();
-            
-            boolean mustRepeat = false;
             try {
-                final long nextNs = this.innerProcess(theoreticalTimeNs, actualTimeNs);
-                mustRepeat = (nextNs != MY_NO_REPEAT_NEXT_NS);
-                if (mustRepeat) {
-                    scheduling.setNextTheoreticalTimeNs(nextNs);
-                }
+                this.innerRun();
             } finally {
-                if (!mustRepeat) {
-                    this.onDone();
-                }
+                this.onDone();
             }
         }
         @Override
         public void onCancel() {
             this.onDone();
         }
-        private long innerProcess(
-                long theoreticalTimeNs,
-                long actualTimeNs) {
+        private void innerRun() {
             for (int i = this.nbrOfSqrt; --i >= 0;) {
                 if (Math.sqrt(i) == 10.1) {
                     throw new RuntimeException();
                 }
             }
-            if ((--this.nbrOfSchedules) == 0) {
-                return MY_NO_REPEAT_NEXT_NS;
-            }
-            if (this.rescheduleType == RescheduleType.RE_PROCESS) {
-                return actualTimeNs;
-            } else if (this.rescheduleType == RescheduleType.EXECUTE) {
-                // will have one more sequence of calls to run
-                endCounter.incrementAndGet();
-                this.scheduler.execute(this);
-                return MY_NO_REPEAT_NEXT_NS;
-            } else if (this.rescheduleType == RescheduleType.EXECUTE_AT_NOW) {
-                // will have one more sequence of calls to run
-                endCounter.incrementAndGet();
-                this.scheduler.executeAtNs(this, actualTimeNs);
-                return MY_NO_REPEAT_NEXT_NS;
-            } else if (this.rescheduleType == RescheduleType.EXECUTE_AT_SOON) {
-                // will have one more sequence of calls to run
-                endCounter.incrementAndGet();
-                this.scheduler.executeAtNs(this, actualTimeNs + 1);
-                return MY_NO_REPEAT_NEXT_NS;
-            } else {
-                throw new AssertionError(this.rescheduleType);
+            if ((--this.nbrOfSchedules) > 0) {
+                if (this.rescheduleType == RescheduleType.EXECUTE) {
+                    // will have one more sequence of calls to run
+                    endCounter.incrementAndGet();
+                    this.scheduler.execute(this);
+                } else if (this.rescheduleType == RescheduleType.EXECUTE_AFTER_0) {
+                    // will have one more sequence of calls to run
+                    endCounter.incrementAndGet();
+                    this.scheduler.executeAfterNs(this, 0L);
+                } else if (this.rescheduleType == RescheduleType.EXECUTE_AFTER_1NS) {
+                    // will have one more sequence of calls to run
+                    endCounter.incrementAndGet();
+                    this.scheduler.executeAfterNs(this, 1);
+                } else {
+                    throw new AssertionError(this.rescheduleType);
+                }
             }
         }
         private void onDone() {
@@ -165,12 +140,12 @@ public class HardSchedulersPerf {
         }
     }
     
-    private class MyNShotSchedulableFactory implements InterfaceFactory<InterfaceSchedulable> {
+    private class MyNShotCancellableFactory implements InterfaceFactory<InterfaceCancellable> {
         private final InterfaceScheduler scheduler;
         private final int nbrOfSchedules;
         private final RescheduleType rescheduleType;
         private final int nbrOfSqrt;
-        public MyNShotSchedulableFactory(
+        public MyNShotCancellableFactory(
                 final InterfaceScheduler scheduler,
                 int nbrOfSchedules,
                 final RescheduleType rescheduleType,
@@ -181,8 +156,8 @@ public class HardSchedulersPerf {
             this.nbrOfSqrt = nbrOfSqrt;
         }
         @Override
-        public InterfaceSchedulable newInstance() {
-            return new MyNShotSchedulable(
+        public InterfaceCancellable newInstance() {
+            return new MyNShotCancellable(
                     this.scheduler,
                     this.nbrOfSchedules,
                     this.rescheduleType,
@@ -195,12 +170,12 @@ public class HardSchedulersPerf {
      */
     private static class MyAsapCallerFactory implements MyInterfaceCallerFactory {
         private final InterfaceScheduler scheduler;
-        private final InterfaceFactory<InterfaceSchedulable> scheduledFactory;
+        private final InterfaceFactory<InterfaceCancellable> cancellableFactory;
         public MyAsapCallerFactory(
                 InterfaceScheduler scheduler,
-                 InterfaceFactory<InterfaceSchedulable> scheduledFactory) {
+                 InterfaceFactory<InterfaceCancellable> cancellableFactory) {
             this.scheduler = scheduler;
-            this.scheduledFactory = scheduledFactory;
+            this.cancellableFactory = cancellableFactory;
         }
         @Override
         public Runnable newInstance(final int nbrOfCalls) {
@@ -208,9 +183,9 @@ public class HardSchedulersPerf {
                 @Override
                 public void run() {
                     final InterfaceScheduler localScheduler = scheduler;
-                    final InterfaceFactory<InterfaceSchedulable> localScheduledFactory = scheduledFactory;
+                    final InterfaceFactory<InterfaceCancellable> localCancellableFactory = cancellableFactory;
                     for (int i = 0; i < nbrOfCalls; i++) {
-                        localScheduler.execute(localScheduledFactory.newInstance());
+                        localScheduler.execute(localCancellableFactory.newInstance());
                     }
                 }
             };
@@ -223,14 +198,14 @@ public class HardSchedulersPerf {
     private static class MyTimedCallerFactory implements MyInterfaceCallerFactory {
         private final InterfaceClock clock;
         private final InterfaceScheduler scheduler;
-        private final InterfaceFactory<InterfaceSchedulable> scheduledFactory;
+        private final InterfaceFactory<InterfaceCancellable> cancellableFactory;
         public MyTimedCallerFactory(
                 InterfaceClock clock,
                 InterfaceScheduler scheduler,
-                InterfaceFactory<InterfaceSchedulable> scheduledFactory) {
+                InterfaceFactory<InterfaceCancellable> cancellableFactory) {
             this.clock = clock;
             this.scheduler = scheduler;
-            this.scheduledFactory = scheduledFactory;
+            this.cancellableFactory = cancellableFactory;
         }
         @Override
         public Runnable newInstance(final int nbrOfCalls) {
@@ -239,10 +214,10 @@ public class HardSchedulersPerf {
                 public void run() {
                     final InterfaceClock localClock = clock;
                     final InterfaceScheduler localScheduler = scheduler;
-                    final InterfaceFactory<InterfaceSchedulable> localScheduledFactory = scheduledFactory;
+                    final InterfaceFactory<InterfaceCancellable> localCancellableFactory = cancellableFactory;
                     for (int i = 0; i < nbrOfCalls; i++) {
                         localScheduler.executeAtNs(
-                                localScheduledFactory.newInstance(),
+                                localCancellableFactory.newInstance(),
                                 localClock.getTimeNs());
                     }
                 }
@@ -253,8 +228,6 @@ public class HardSchedulersPerf {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-    
-    private static final long MY_NO_REPEAT_NEXT_NS = Long.MAX_VALUE;
     
     /**
      * Little hack for new line when number of threads changes.
@@ -300,8 +273,8 @@ public class HardSchedulersPerf {
         tester.nbrOfK = 1;
         tester.nbrOfRuns = 10;
         
-        System.out.println("t1 = time elapsed up to last executeXXX called");
-        System.out.println("t2 = time elapsed up to last schedulable called");
+        System.out.println("t1 = time elapsed up to last executeXxx called");
+        System.out.println("t2 = time elapsed up to last runnable called");
 
         final InterfaceHardClock clock = new SystemTimeClock();
 
@@ -347,11 +320,9 @@ public class HardSchedulersPerf {
          */
 
         tester.bench_execute(schedulersData, 0, null);
-        tester.bench_execute(schedulersData, 9, RescheduleType.RE_PROCESS);
-        tester.bench_executeAtNs(schedulersData, 0, null);
-        tester.bench_executeAtNs(schedulersData, 9, RescheduleType.RE_PROCESS);
-        tester.bench_executeAtNs(schedulersData, 9, RescheduleType.EXECUTE_AT_NOW);
-        tester.bench_executeAtNs(schedulersData, 9, RescheduleType.EXECUTE_AT_SOON);
+        tester.bench_executeAfterNs(schedulersData, 0, null);
+        tester.bench_executeAfterNs(schedulersData, 9, RescheduleType.EXECUTE_AFTER_0);
+        tester.bench_executeAfterNs(schedulersData, 9, RescheduleType.EXECUTE_AFTER_1NS);
 
         System.out.println("--- ..." + HardSchedulersPerf.class.getSimpleName() + " ---");
     }
@@ -372,7 +343,7 @@ public class HardSchedulersPerf {
                     continue;
                 }
                 final InterfaceScheduler scheduler = schedulerData.scheduler;
-                MyNShotSchedulableFactory sFactory = new MyNShotSchedulableFactory(
+                MyNShotCancellableFactory sFactory = new MyNShotCancellableFactory(
                         scheduler,
                         nbrOfSchedules,
                         rescheduleType,
@@ -389,7 +360,7 @@ public class HardSchedulersPerf {
         }
     }
     
-    private void bench_executeAtNs(
+    private void bench_executeAfterNs(
             final Collection<SchedulerData> schedulersData,
             int nbrOfReSchedules,
             final RescheduleType rescheduleType) {
@@ -405,7 +376,7 @@ public class HardSchedulersPerf {
                     continue;
                 }
                 final InterfaceScheduler scheduler = schedulerData.scheduler;
-                MyNShotSchedulableFactory sFactory = new MyNShotSchedulableFactory(
+                MyNShotCancellableFactory sFactory = new MyNShotCancellableFactory(
                         scheduler,
                         nbrOfSchedules,
                         rescheduleType,
@@ -415,7 +386,7 @@ public class HardSchedulersPerf {
                         scheduler,
                         sFactory);
 
-                String benchInfo = getBenchInfo("executeAt", nbrOfReSchedules, rescheduleType, nbrOfSqrt);
+                String benchInfo = getBenchInfo("executeAfterNs", nbrOfReSchedules, rescheduleType, nbrOfSqrt);
                 for (int k = 0; k < nbrOfK; k++) {
                     this.bench_executeXXX(schedulerData, benchInfo, cFactory, nbrOfRuns, nbrOfCallsPerRun);
                 }

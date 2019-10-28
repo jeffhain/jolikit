@@ -29,7 +29,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.time.TimeUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -176,14 +176,14 @@ public class UiSchedulerAsapBwdTestCase extends AbstractBwdTestCase {
             };
             scheduler.execute(runnable);
             
-            final AbstractRepeatedProcess repeatedProcess = new AbstractRepeatedProcess(scheduler) {
+            final AbstractProcess process = new AbstractProcess(scheduler) {
                 @Override
                 protected long process(long theoreticalTimeNs, long actualTimeNs) {
                     getHost().ensurePendingClientPainting();
                     return theoreticalTimeNs + sToNs(DRAW_UPDATE_PERIOD_S);
                 }
             };
-            repeatedProcess.start();
+            process.start();
         }
         
         return GRect.DEFAULT_HUGE_IN_LIST;

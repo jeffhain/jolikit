@@ -39,10 +39,6 @@ import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.hard.HardClockCondilock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractDefaultScheduler;
-import net.jolikit.time.sched.DefaultScheduling;
-import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.InterfaceSchedulable;
-import net.jolikit.time.sched.InterfaceScheduling;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 import net.jolikit.time.sched.SchedUtils;
 import net.jolikit.time.sched.WorkerThreadChecker;
@@ -63,11 +59,6 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  * - different:
  *   - Uses fixed threads instead of a thread pool.
  * 
- * If you only do ASAP schedules through this scheduler,
- * and that you don't need actual times to be specified
- * to your schedulables, then you can optimize by using
- * a clock that returns a constant.
- * 
  * This scheduler provides methods to:
  * - start/stop schedules acceptance,
  * - start/stop schedules processing by worker threads,
@@ -77,13 +68,13 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  * might respectively do timed and ASAP schedules, so no such feature
  * is provided.
  * 
+ * Scheduling fairness: when a timed schedule is eligible along with an
+ * ASAP schedule, the one that has been scheduled first has priority.
+ * 
  * Workers runnables don't catch any throwable, so worker threads might die
  * on the first exception thrown by a runnable, but workers runnables
  * are designed such as if a runnable throws an exception, calling
- * worker's runnable again will make it continue working properly
- * (the schedulable that threw the exception not being re-scheduled,
- * as if its scheduling's getNextTheoreticalTimeNs() method returned
- * Long.MAX_VALUE).
+ * worker's runnable again will make it continue working properly.
  * Making sure that worker's runnables are called again after they threw
  * an exception can be done easily, using a thread factory that properly
  * wraps worker's runnables with runnables containing proper try/catch
@@ -94,16 +85,17 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  * 
  * Threads are lazily started, as well as listening to clocks modifications,
  * to avoid "this" publication before the instance is fully constructed.
+ * You can force early threads start with startWorkerThreadsIfNeeded().
  * 
  * Listening to clocks modifications is also automatically removed when
- * no more worker thread is running and no clock time waitXXX method is
+ * no more worker thread is running and no clock time waitXxx method is
  * being used.
  * Add/removal of listener for clocks modifications is done within a state lock,
  * and involves calling addListener, removeListener and getMasterClock methods
  * of listenable and enslaved clocks: to avoid deadlock possibilities, implementations
  * of these methods should therefore never try to acquire a lock in which another
  * thread could be concurrently calling a method triggering such add/removal, i.e. a
- * clock time waitXXX method of this class, or worker's runnables.
+ * clock time waitXxx method of this class, or worker's runnables.
  * 
  * NB: executeAfterXxx(...) methods schedule the specified runnable
  * for current time plus the specified delay, which makes the
@@ -208,7 +200,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * Workers runnable.
      */
     
-    private class MyWorkerRunnable extends DefaultScheduling implements Runnable {
+    private class MyWorkerRunnable implements Runnable {
         private volatile boolean started = false;
         /**
          * Volatile, in case run gets called again by another thread.
@@ -234,8 +226,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             }
             try {
                 incrementClockWaitersCountAndAddListenerIfNeeded();
-                final DefaultScheduling tmpScheduling = this;
-                workerRun(tmpScheduling);
+                workerRun();
                 this.done = true;
             } finally {
                 if (nbrOfRunningWorkers.decrementAndGet() == 0) {
@@ -275,38 +266,44 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * (but once it grows, it doesn't shrink).
      */
     private static class MyAsapQueue {
-        private Runnable[] arr = new Runnable[2];
+        private MySequencedSchedule[] arr = new MySequencedSchedule[2];
         private int beginIndex = 0;
         private int endIndex = -1;
         private int size = 0;
         public int size() {
             return this.size;
         }
-        public boolean add(Runnable runnable) {
+        public boolean add(MySequencedSchedule schedule) {
             if (this.arr.length == this.size) {
                 this.growArr();
             }
             if (++this.endIndex == this.arr.length) {
                 this.endIndex = 0;
             }
-            this.arr[this.endIndex] = runnable;
+            this.arr[this.endIndex] = schedule;
             ++this.size;
             return true;
         }
-        public Runnable remove() {
+        public MySequencedSchedule first() {
+            if (this.size == 0) {
+                throw new NoSuchElementException();
+            }
+            return this.arr[this.beginIndex];
+        }
+        public MySequencedSchedule remove() {
             if (this.size == 0) {
                 throw new NoSuchElementException();
             }
             return remove_notEmpty();
         }
-        public Runnable poll() {
+        public MySequencedSchedule poll() {
             if (this.size == 0) {
                 return null;
             }
             return remove_notEmpty();
         }
-        private Runnable remove_notEmpty() {
-            final Runnable runnable = this.arr[this.beginIndex++];
+        private MySequencedSchedule remove_notEmpty() {
+            final MySequencedSchedule schedule = this.arr[this.beginIndex++];
             if (this.beginIndex == this.arr.length) {
                 this.beginIndex = 0;
             }
@@ -314,11 +311,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                 this.beginIndex = 0;
                 this.endIndex = -1;
             }
-            return runnable;
+            return schedule;
         }
         private void growArr() {
             final int newCapacity = LangUtils.increasedArrayLength(this.arr.length, this.arr.length + 1);
-            final Runnable[] newArr = new Runnable[newCapacity];
+            final MySequencedSchedule[] newArr = new MySequencedSchedule[newCapacity];
             if (this.beginIndex <= this.endIndex) {
                 System.arraycopy(this.arr, this.beginIndex, newArr, 0, this.size);
             } else {
@@ -426,8 +423,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * Number of running workers.
      * A worker can become non-running due to an exception thrown by a
-     * runnable or schedulable, but then be called again and re-become
-     * running.
+     * runnable, but then be called again and re-become running.
      */
     private final AtomicInteger nbrOfRunningWorkers = new AtomicInteger();
     
@@ -451,9 +447,6 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     private static final int ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED = 3;
     /**
      * To be set only from within constructor or stateMutex.
-     * 
-     * Even if brand new schedules are not accepted, re-schedules
-     * (schedulables asking for a new schedule) still are.
      * 
      * 0 for YES status, for fast checks in this general case.
      * 
@@ -517,10 +510,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * Guarded by schedLock.
      */
-    private final PriorityQueue<MyRunnableSchedule> timedSchedQueue =
-            new PriorityQueue<MyRunnableSchedule>(
+    private final PriorityQueue<MyTimedSchedule> timedSchedQueue =
+            new PriorityQueue<MyTimedSchedule>(
                     INITIAL_PRIORITY_QUEUE_CAPACITY,
-                    new MyScheduleComparator());
+                    new MyTimedScheduleComparator());
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -1135,9 +1128,9 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * method is called as many times.
      */
     public void cancelPendingAsapSchedules() {
-        Runnable runnable;
-        while ((runnable = this.pollAsapRunnableInLock()) != null) {
-            SchedUtils.call_onCancel_IfCancellable(runnable);
+        MySequencedSchedule schedule;
+        while ((schedule = this.pollAsapScheduleInLock()) != null) {
+            SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
     }
     
@@ -1149,7 +1142,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * method is called as many times.
      */
     public void cancelPendingTimedSchedules() {
-        MyRunnableSchedule schedule = null;
+        MyTimedSchedule schedule = null;
         while ((schedule = this.pollTimedScheduleInLock()) != null) {
             SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
@@ -1166,7 +1159,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             final int n = this.asapSchedQueue.size();
             for (int i = 0; i < n; i++) {
-                runnables.add(this.asapSchedQueue.remove());
+                final MySequencedSchedule schedule = this.asapSchedQueue.remove();
+                runnables.add(schedule.getRunnable());
             }
             if (n != 0) {
                 this.schedCondition.signalAll();
@@ -1186,7 +1180,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             final int n = this.timedSchedQueue.size();
             for (int i = 0; i < n; i++) {
-                final MyRunnableSchedule schedule = this.timedSchedQueue.remove();
+                final MyTimedSchedule schedule = this.timedSchedQueue.remove();
                 runnables.add(schedule.getRunnable());
             }
             if (n != 0) {
@@ -1333,9 +1327,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
 
     @Override
     public void execute(Runnable runnable) {
-        if (this.enqueueScheduleIfPossible(runnable, null)) {
+        final MySequencedSchedule schedule = newAsapSchedule(runnable);
+
+        if (this.enqueueScheduleIfPossible(schedule)) {
             this.tryStartWorkerThreadsOnScheduleSubmit();
-            this.enqueueScheduleIfPossible(runnable, null);
+            this.enqueueScheduleIfPossible(schedule);
         }
     }
 
@@ -1343,11 +1339,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public void executeAtNs(
             Runnable runnable,
             long timeNs) {
-        final MyRunnableSchedule schedule = newSchedule(runnable, timeNs);
+        final MyTimedSchedule schedule = newTimedSchedule(runnable, timeNs);
 
-        if (this.enqueueScheduleIfPossible(null, schedule)) {
+        if (this.enqueueScheduleIfPossible(schedule)) {
             this.tryStartWorkerThreadsOnScheduleSubmit();
-            this.enqueueScheduleIfPossible(null, schedule);
+            this.enqueueScheduleIfPossible(schedule);
         }
     }
 
@@ -1490,11 +1486,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /*
      * 
      */
-    
-    private boolean mustAcceptSchedules() {
-        return mustAcceptSchedules(this.acceptSchedulesStatus);
-    }
-    
+
     private static boolean mustAcceptSchedules(int acceptStatus) {
         // YES tested before, to optimize the general case.
         return (acceptStatus == ACCEPT_SCHEDULES_YES)
@@ -1541,8 +1533,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * 
      */
 
-    private Runnable pollAsapRunnableInLock() {
-        final Runnable ret;
+    private MySequencedSchedule pollAsapScheduleInLock() {
+        final MySequencedSchedule ret;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
@@ -1556,8 +1548,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         return ret;
     }
 
-    private MyRunnableSchedule pollTimedScheduleInLock() {
-        final MyRunnableSchedule ret;
+    private MyTimedSchedule pollTimedScheduleInLock() {
+        final MyTimedSchedule ret;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
@@ -1608,7 +1600,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     }
 
     /**
-     * If more than one runnable or schedulable is processable,
+     * If more than one runnable is processable,
      * signals condition before returning,
      * to eventually wake up a waiting worker.
      * 
@@ -1647,7 +1639,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             }
             
             try {
-                // Waiting for a runnable or schedulable,
+                // Waiting for a runnable,
                 // or for being supposed to work,
                 // or for death.
                 schedCondition.await();
@@ -1657,76 +1649,98 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         }
     }
     
-    private void workerRun(DefaultScheduling tmpScheduling) {
-        MyRunnableSchedule schedule = null;
-        // Boolean values to avoid specific locking.
-        boolean mustTryToEnqueueSchedule = false;
-        
+    /**
+     * @param nbrOfAsapToProcess ASAP queue size.
+     * @param firstTimedSched Can be null.
+     * @param timeAfterWaitNs Only used if firstTimedSched is not null.
+     * @return The ASAP schedule to process now, NOT removed from the list,
+     *         or null if no ASAP schedule must be process yet.
+     */
+    private MySequencedSchedule getAsapScheduleToProcessElseNull_schedLocked(
+            int nbrOfAsapToProcess,
+            MyTimedSchedule firstTimedSched,
+            long timeAfterWaitNs) {
+        final MySequencedSchedule ret;
+        if (nbrOfAsapToProcess > 0) {
+            // Not null.
+            final MySequencedSchedule firstAsapSched =
+                    this.asapSchedQueue.first();
+            if (firstTimedSched != null) {
+                final boolean isTimedScheduleEligible =
+                        (timeAfterWaitNs >= firstTimedSched.getTheoreticalTimeNs());
+                if (isTimedScheduleEligible) {
+                    // Comparing sequence numbers to decide
+                    // whether to execute ASAP or timed runnable.
+                    final int cmp = compareSequenceNumbers(
+                            firstAsapSched.getSequenceNumber(),
+                            firstTimedSched.getSequenceNumber());
+                    final boolean mustProcessAsapElseTimed = (cmp < 0);
+                    if (mustProcessAsapElseTimed) {
+                        ret = firstAsapSched;
+                    } else {
+                        ret = null;
+                    }
+                } else {
+                    ret = firstAsapSched;
+                }
+            } else {
+                ret = firstAsapSched;
+            }
+        } else {
+            ret = null;
+        }
+        return ret;
+    }
+    
+    private void workerRun() {
         final Lock schedLock = this.schedLock;
         while (true) {
-            long timeAfterWaitNs;
-            
             Runnable runnable;
             
             schedLock.lock();
             try {
-                if (mustTryToEnqueueSchedule) {
-                    final boolean enqueued =
-                            this.mustAcceptSchedules()
-                            && this.enqueueTimedScheduleIfRoom_schedLocked(schedule);
-                    if (!enqueued) {
-                        final Runnable tmpRunnable = schedule.getRunnable();
-                        if (tmpRunnable instanceof InterfaceCancellable) {
-                            final InterfaceCancellable cancellable = (InterfaceCancellable) tmpRunnable;
-                            // Canceling outside lock (never call user's methods in locks!).
-                            // We only locked once, so it releases the lock.
-                            schedLock.unlock();
-                            try {
-                                cancellable.onCancel();
-                            } finally {
-                                schedLock.lock();
-                                // We just got the lock back: anything can have happened,
-                                // but it's fine since we have no assumptions yet.
-                            }
-                        }
-                    }
-                    // Reseting default for next runnable's eventual schedule.
-                    mustTryToEnqueueSchedule = false;
-                }
-
                 // Loop to avoid getting out-and-in synchronization
                 // when we are done waiting for a schedule's time.
                 while (true) {
-                    final int nbrOfAsapToProcessOrNeg = waitForWorkOrDeath_schedLocked();
-                    if (nbrOfAsapToProcessOrNeg < 0) {
-                        return;
+                    final int nbrOfAsapToProcess;
+                    {
+                        final int nbrOfAsapToProcessOrNeg = waitForWorkOrDeath_schedLocked();
+                        if (nbrOfAsapToProcessOrNeg < 0) {
+                            return;
+                        }
+                        nbrOfAsapToProcess = nbrOfAsapToProcessOrNeg;
                     }
                     // Here, we have schedule(s) in queues, and we are supposed to work.
-
-                    // Peeking earliest timed schedule if any
-                    // (these have priority over ASAP schedules).
-                    schedule = this.timedSchedQueue.peek();
-
-                    timeAfterWaitNs = this.clock.getTimeNs();
                     
-                    final boolean mustProcessAsapElseTimed =
-                            (nbrOfAsapToProcessOrNeg != 0)
-                            && ((schedule == null)
-                                    || (schedule.getTheoreticalTimeNs_monomorphic() > timeAfterWaitNs));
-                    if (mustProcessAsapElseTimed) {
-                        // Setting it to null indicates the schedule is an ASAP one.
-                        schedule = null;
-
+                    // Peeking earliest timed schedule if any.
+                    final MyTimedSchedule firstTimedSched = this.timedSchedQueue.peek();
+                    final long timeAfterWaitNs;
+                    if (firstTimedSched != null) {
+                        timeAfterWaitNs = this.clock.getTimeNs();
+                    } else {
+                        // Won't be used this time.
+                        timeAfterWaitNs = Long.MIN_VALUE;
+                    }
+                    
+                    final MySequencedSchedule asapSchedToProcess =
+                            this.getAsapScheduleToProcessElseNull_schedLocked(
+                                    nbrOfAsapToProcess,
+                                    firstTimedSched,
+                                    timeAfterWaitNs);
+                    
+                    if (asapSchedToProcess != null) {
                         // ASAP FIFO.
-                        runnable = this.asapSchedQueue.remove();
+                        final MySequencedSchedule forCheck = this.asapSchedQueue.remove();
+                        if(AZZERTIONS)LangUtils.azzert(forCheck == asapSchedToProcess);
+                        runnable = asapSchedToProcess.getRunnable();
                     } else {
                         // If we pass here, that means an eligible schedule is in
                         // timed queue.
-                        if(AZZERTIONS)LangUtils.azzert(schedule != null);
+                        if(AZZERTIONS)LangUtils.azzert(firstTimedSched != null);
                         
                         // Wait time (in clock time) before schedule time.
                         final long clockWaitTimeNs = NumbersUtils.minusBounded(
-                                schedule.getTheoreticalTimeNs_monomorphic(),
+                                firstTimedSched.getTheoreticalTimeNs(),
                                 timeAfterWaitNs);
                         if (clockWaitTimeNs > 0) {
                             try {
@@ -1747,10 +1761,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                             continue;
                         }
                         
-                        // Schedulable will be called now: removing it from the queue.
-                        final MyRunnableSchedule forCheck = this.timedSchedQueue.remove();
-                        if(AZZERTIONS)LangUtils.azzert(forCheck == schedule);
-                        runnable = schedule.getRunnable();
+                        // Runnable will be called now: removing it from the queue.
+                        final MySequencedSchedule forCheck = this.timedSchedQueue.remove();
+                        if(AZZERTIONS)LangUtils.azzert(forCheck == firstTimedSched);
+                        runnable = firstTimedSched.getRunnable();
                     }
                     // Existing anti-synchro loop.
                     break;
@@ -1763,53 +1777,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
              * 
              */
 
-            if (runnable instanceof InterfaceSchedulable) {
-                final InterfaceSchedulable schedulable = (InterfaceSchedulable) runnable;
-                final InterfaceScheduling scheduling;
-                if (schedule == null) {
-                    // Was an ASAP schedule, so using
-                    // time after wait as theoretical (and actual) time.
-                    tmpScheduling.configureBeforeRun(timeAfterWaitNs, timeAfterWaitNs);
-                    scheduling = tmpScheduling;
-                } else {
-                    final MySchedulableSchedule scheduleImpl = (MySchedulableSchedule) schedule;
-                    scheduleImpl.configureBeforeRun(timeAfterWaitNs);
-                    scheduling = scheduleImpl;
-                }
-                schedulable.setScheduling(scheduling);
-                
-                /*
-                 * Schedulable execution.
-                 */
-                
-                schedulable.run();
-
-                /*
-                 * Setting next schedule, or releasing schedule and its schedulable.
-                 */
-
-                final boolean mustRepeat = scheduling.isNextTheoreticalTimeSet();
-                if (mustRepeat) {
-                    final long nextNs = scheduling.getNextTheoreticalTimeNs();
-                    if (schedule == null) {
-                        // Was an ASAP schedule, of a schedulable
-                        // that now asks for a timed schedule.
-                        schedule = new MySchedulableSchedule(schedulable);
-                    }
-                    schedule.setTheoreticalTimeNs(nextNs);
-                    // Not to acquire schedLock just for enqueuing, this new schedule
-                    // will be enqueued on next loop round (if room and accepted).
-                    mustTryToEnqueueSchedule = true;
-                } else {
-                    // Helping GC, in case it was not null (i.e. not an ASAP schedule).
-                    schedule = null;
-                }
-            } else {
-                /*
-                 * Raw runnable execution.
-                 */
-                runnable.run();
-            }
+            runnable.run();
         } // End while.
     }
 
@@ -1817,18 +1785,24 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * 
      */
     
-    private static MyRunnableSchedule newSchedule(
-            final Runnable runnable,
-            long theoreticalTimeNs) {
-        // Creating new schedule whether or not it will be accepted (queue might be full),
+    private static MySequencedSchedule newAsapSchedule(
+            final Runnable runnable) {
+        // Creating new schedule whether or not
+        // it will be accepted (queue might be full),
         // to minimize treatments in lock.
-        final MyRunnableSchedule schedule;
-        if (runnable instanceof InterfaceSchedulable) {
-            schedule = new MySchedulableSchedule((InterfaceSchedulable) runnable);
-        } else {
-            schedule = new MyRunnableSchedule(runnable);
-        }
-        schedule.setTheoreticalTimeNs(theoreticalTimeNs);
+        final MySequencedSchedule schedule = new MySequencedSchedule(runnable);
+        return schedule;
+    }
+    
+    private static MyTimedSchedule newTimedSchedule(
+            final Runnable runnable,
+            long timeNs) {
+        // Creating new schedule whether or not
+        // it will be accepted (queue might be full),
+        // to minimize treatments in lock.
+        final MyTimedSchedule schedule = new MyTimedSchedule(
+                runnable,
+                timeNs);
         return schedule;
     }
     
@@ -1861,24 +1835,24 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @return True if runnable could be enqueued, false otherwise.
      */
-    private boolean enqueueAsapRunnableIfRoom_schedLocked(Runnable runnable) {
+    private boolean enqueueAsapScheduleIfRoom_schedLocked(MySequencedSchedule schedule) {
         if (this.asapSchedQueue.size() == this.asapQueueCapacity) {
             return false;
         }
-        return this.asapSchedQueue.add(runnable);
+        schedule.setSequenceNumber(this.sequencer++);
+        return this.asapSchedQueue.add(schedule);
     }
 
     /**
      * Sets sequence number before queuing.
      * @return True if schedule could be enqueued, false otherwise.
      */
-    private boolean enqueueTimedScheduleIfRoom_schedLocked(MyRunnableSchedule schedule) {
+    private boolean enqueueTimedScheduleIfRoom_schedLocked(MyTimedSchedule schedule) {
         if (this.timedSchedQueue.size() == this.timedQueueCapacity) {
             return false;
         }
         schedule.setSequenceNumber(this.sequencer++);
-        final boolean didEnqueue = this.timedSchedQueue.add(schedule);
-        return didEnqueue;
+        return this.timedSchedQueue.add(schedule);
     }
     
     /**
@@ -1887,13 +1861,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * Cancels the schedule if could not enqueue due to no room
      * or not being accepted.
      * 
-     * @param asapRunnable For ASAP schedules, else null.
-     * @param timedSchedule For timed schedules, else null.
+     * @param schedule ASAP or timed schedule, depending on type.
      * @return True if need workers start for retry, false otherwise.
      */
     private boolean enqueueScheduleIfPossible(
-            Runnable asapRunnable,
-            MyRunnableSchedule timedSchedule) {
+            MySequencedSchedule schedule) {
         
         boolean enqueued = false;
         final Lock schedLock = this.schedLock;
@@ -1928,10 +1900,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                 }
             }
             if (mustTryToEnqueue) {
-                if (asapRunnable != null) {
-                    enqueued = this.enqueueAsapRunnableIfRoom_schedLocked(asapRunnable);
+                if (schedule instanceof MyTimedSchedule) {
+                    enqueued = this.enqueueTimedScheduleIfRoom_schedLocked((MyTimedSchedule) schedule);
                 } else {
-                    enqueued = this.enqueueTimedScheduleIfRoom_schedLocked(timedSchedule);
+                    enqueued = this.enqueueAsapScheduleIfRoom_schedLocked(schedule);
                 }
             }
             if (enqueued) {
@@ -1950,11 +1922,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         }
 
         if (!enqueued) {
-            if (asapRunnable != null) {
-                SchedUtils.call_onCancel_IfCancellable(asapRunnable);
-            } else {
-                SchedUtils.call_onCancel_IfCancellable(timedSchedule.getRunnable());
-            }
+            SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
         
         return false;

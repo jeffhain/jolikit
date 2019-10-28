@@ -288,7 +288,7 @@ public class SdlUiThreadScheduler_sdlWait extends AbstractScheduler implements I
             if (type == MY_SCHED_PROCESS_EVENT_TYPE) {
                 final SDL_UserEvent.ByValue scheduleEvent = SdlJnaUtils.getUserEvent(eventUnion);
                 // This is always a simple runnable,
-                // user runnable or schedulable is within it.
+                // user runnable is within it.
                 final Runnable runnable = getRunnable(scheduleEvent);
                 
                 try {

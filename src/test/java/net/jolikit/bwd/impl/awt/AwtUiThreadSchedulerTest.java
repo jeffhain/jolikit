@@ -28,9 +28,7 @@ import net.jolikit.test.utils.ConcUnit;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.InterfaceSchedulable;
 import net.jolikit.time.sched.InterfaceScheduler;
-import net.jolikit.time.sched.InterfaceScheduling;
 import net.jolikit.time.sched.hard.HardScheduler;
 
 public class AwtUiThreadSchedulerTest extends TestCase {
@@ -73,27 +71,6 @@ public class AwtUiThreadSchedulerTest extends TestCase {
         }
     }
 
-    private class MySchedulable extends MyCancellable implements InterfaceSchedulable {
-        final MyCounter setSchedulingCount = new MyCounter();
-        private boolean firstRun;
-        private InterfaceScheduling scheduling;
-        @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            this.firstRun = (this.scheduling == null);
-            this.scheduling = scheduling;
-            this.setSchedulingCount.incr();
-            cu.assertTrue(EventQueue.isDispatchThread());
-        }
-        @Override
-        public void run() {
-            super.run();
-            if (this.firstRun) {
-                this.scheduling.setNextTheoreticalTimeNs(
-                        this.scheduling.getActualTimeNs() + 1L);
-            }
-        }
-    }
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -120,14 +97,6 @@ public class AwtUiThreadSchedulerTest extends TestCase {
         cancellable.onCancelCount.join(0);
     }
 
-    public void test_execute_schedulable() {
-        final MySchedulable schedulable = new MySchedulable();
-        this.edtScheduler.execute(schedulable);
-        schedulable.setSchedulingCount.join(2);
-        schedulable.runCount.join(2);
-        schedulable.onCancelCount.join(0);
-    }
-
     public void test_executeAtNs_runnable() {
         final MyRunnable runnable = new MyRunnable();
         this.edtScheduler.executeAtNs(runnable, 0);
@@ -139,14 +108,6 @@ public class AwtUiThreadSchedulerTest extends TestCase {
         this.edtScheduler.executeAtNs(cancellable, 0);
         cancellable.runCount.join(1);
         cancellable.onCancelCount.join(0);
-    }
-
-    public void test_executeAtNs_schedulable() {
-        final MySchedulable schedulable = new MySchedulable();
-        this.edtScheduler.executeAtNs(schedulable, 0);
-        schedulable.setSchedulingCount.join(2);
-        schedulable.runCount.join(2);
-        schedulable.onCancelCount.join(0);
     }
 
     public void test_isWorkerThread() {

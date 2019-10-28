@@ -36,11 +36,8 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.DefaultScheduling;
-import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.InterfaceSchedulable;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 import net.jolikit.time.sched.hard.HardScheduler;
@@ -131,7 +128,7 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
         }
     }
     
-    private class MyPollProcess extends AbstractRepeatedProcess {
+    private class MyPollProcess extends AbstractProcess {
         final long pollPeriodNs;
         public MyPollProcess(
                 InterfaceScheduler scheduler,
@@ -151,36 +148,6 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
              * of time processing took.
              */
             return plusBounded(actualTimeNs, this.pollPeriodNs);
-        }
-    }
-    
-    /**
-     * For ASAP execution of a schedulable.
-     * (Only used if MUST_EXECUTE_ASAP_THROUGH_USER_SDL_EVENT is true.)
-     */
-    private class MySchedRunnable extends DefaultScheduling implements InterfaceCancellable {
-        final InterfaceSchedulable schedulable;
-        public MySchedRunnable(InterfaceSchedulable schedulable) {
-            this.schedulable = schedulable;
-        }
-        @Override
-        public void run() {
-            final long actualTimeNs = hardScheduler.getClock().getTimeNs();
-            
-            this.configureBeforeRun(actualTimeNs, actualTimeNs);
-            
-            this.schedulable.setScheduling(this);
-            this.schedulable.run();
-            
-            final boolean mustRepeat = this.isNextTheoreticalTimeSet();
-            if (mustRepeat) {
-                final long nextNs = this.getNextTheoreticalTimeNs();
-                executeAtNs(this.schedulable, nextNs);
-            }
-        }
-        @Override
-        public void onCancel() {
-            this.schedulable.onCancel();
         }
     }
 
@@ -501,17 +468,8 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
                 final SDL_UserEvent.ByValue scheduleEvent = SdlJnaUtils.getUserEvent(eventUnion);
                 final MySchedInfo schedInfo = getSchedInfo(scheduleEvent);
                 
-                final Runnable runnableToRun;
-                if (schedInfo.runnable instanceof InterfaceSchedulable) {
-                    // Need a wrapper to take care of scheduling setting.
-                    runnableToRun = new MySchedRunnable(
-                            (InterfaceSchedulable) schedInfo.runnable);
-                } else {
-                    runnableToRun = schedInfo.runnable;
-                }
-
                 try {
-                    runnableToRun.run();
+                    schedInfo.runnable.run();
                 } catch (Throwable t) {
                     this.exceptionHandler.uncaughtException(Thread.currentThread(), t);
                 }

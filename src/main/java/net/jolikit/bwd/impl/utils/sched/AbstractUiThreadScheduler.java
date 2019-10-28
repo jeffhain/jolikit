@@ -23,9 +23,7 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.DefaultScheduling;
 import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.InterfaceSchedulable;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 import net.jolikit.time.sched.SchedUtils;
@@ -107,59 +105,6 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
         }
     }
     
-    /**
-     * For ASAP (from user or timing thread) execution (in UI thread) of a schedulable.
-     * Uses exception handler if user code throws.
-     */
-    private class MySchedulableWrapper extends DefaultScheduling implements InterfaceCancellable {
-        final InterfaceSchedulable schedulable;
-        public MySchedulableWrapper(
-                InterfaceSchedulable schedulable,
-                Long theoreticalTimeNsIfAny) {
-            this.schedulable = schedulable;
-            if (theoreticalTimeNsIfAny != null) {
-                this.setTheoreticalTimeNs(theoreticalTimeNsIfAny.longValue());
-            }
-        }
-        @Override
-        public void run() {
-            /*
-             * Here we are in UI thread.
-             */
-            final long actualTimeNs = timingScheduler.getClock().getTimeNs();
-            
-            this.updateBeforeRun(actualTimeNs);
-            
-            try {
-                this.schedulable.setScheduling(this);
-                this.schedulable.run();
-            } catch (Throwable t) {
-                exceptionHandler.uncaughtException(Thread.currentThread(), t);
-            }
-            
-            final boolean mustRepeat = this.isNextTheoreticalTimeSet();
-            if (mustRepeat) {
-                final long nextNs = this.getNextTheoreticalTimeNs();
-                /*
-                 * Going to wait in timing scheduler.
-                 */
-                final MyTimingThreadRunnable cancellable =
-                        new MyTimingThreadRunnable(
-                                this.schedulable,
-                                nextNs);
-                timingScheduler.executeAtNs(cancellable, nextNs);
-            }
-        }
-        @Override
-        public void onCancel() {
-            try {
-                this.schedulable.onCancel();
-            } catch (Throwable t) {
-                exceptionHandler.uncaughtException(Thread.currentThread(), t);
-            }
-        }
-    }
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -179,6 +124,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
 
     /**
      * Calls runLater(Runnable) from user thread, not necessarily timing thread.
+     * 
      * @param timingScheduler Scheduler used to wait for timed (non-ASAP)
      *        schedules, and eventually to call runLater(...) ASAP.
      *        Cf. newTimingScheduler(...) helper method to create
@@ -335,15 +281,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
     private void wrapAndCallRunLater(
             final Runnable runnable,
             Long theoreticalTimeNsIfAny) {
-        final Runnable runnableWrapper;
-        if (runnable instanceof InterfaceSchedulable) {
-            // Need a wrapper to take care of scheduling setting.
-            runnableWrapper = new MySchedulableWrapper(
-                    (InterfaceSchedulable) runnable,
-                    theoreticalTimeNsIfAny);
-        } else {
-            runnableWrapper = new MyRunnableWrapper(runnable);
-        }
+        final Runnable runnableWrapper = new MyRunnableWrapper(runnable);
         
         boolean completedNormally = false;
         try {

@@ -37,7 +37,7 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.time.clocks.InterfaceClock;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 
@@ -373,7 +373,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * Takes care of calling paintClientNowOrLater() ASAP, but
      * taking into account client paint delay to avoid too close calls.
      */
-    private class MyPaintProcess extends AbstractRepeatedProcess {
+    private class MyPaintProcess extends AbstractProcess {
         private long lastPaintTimeNs = Long.MIN_VALUE;
         private long lastPaintLatenessNs = 0L;
         public MyPaintProcess(InterfaceScheduler uiTheadScheduler) {
@@ -454,7 +454,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * There must be one instance for (x,y) events (moves),
      * and another for (width,height) events (resizes).
      */
-    private class MyPaintAfterEventProcess extends AbstractRepeatedProcess {
+    private class MyPaintAfterEventProcess extends AbstractProcess {
         private final long delayNs;
         private final boolean mustTryToPaintDuringBurst;
         private boolean firstCall;
@@ -2270,7 +2270,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * Start it on (x,y) change, if you want to cause a corresponding
      * asynchronous repaint.
      */
-    protected AbstractRepeatedProcess getPaintAfterMoveProcess() {
+    protected AbstractProcess getPaintAfterMoveProcess() {
         return this.paintAfterMoveProcess;
     }
 
@@ -2278,7 +2278,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * Start it on (width,height) change, if you want to cause a corresponding
      * asynchronous repaint.
      */
-    protected AbstractRepeatedProcess getPaintAfterResizeProcess() {
+    protected AbstractProcess getPaintAfterResizeProcess() {
         return this.paintAfterResizeProcess;
     }
 

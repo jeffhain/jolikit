@@ -31,7 +31,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.lang.Dbg;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 
 public class BwdBindingLaunchUtils {
 
@@ -215,7 +215,7 @@ public class BwdBindingLaunchUtils {
          */
 
         final double pollPeriodS = 0.1;
-        final AbstractRepeatedProcess shutdownProcess = new AbstractRepeatedProcess(binding.getUiThreadScheduler()) {
+        final AbstractProcess shutdownProcess = new AbstractProcess(binding.getUiThreadScheduler()) {
             @Override
             protected long process(long theoreticalTimeNs, long actualTimeNs) {
                 final int hostCount = binding.getHostCount();

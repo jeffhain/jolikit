@@ -11,6 +11,44 @@ Jolikit X.X, XXXX/XX/XX
   or to call stopAccepting() and then drain or cancellation methods before
   calling shutdownNow(...).
    
+- Scheduling redesign:
+
+  - Removed the over-engineering of InterfaceSchedulable and
+    InterfaceScheduling interfaces, which allowed schedulers to indicate to
+    runnables their theoretical and actual execution times, and allowed
+    runnables to ask the scheduler for re-schedules without going through
+    scheduler's regular (interface-implementing) executeXxx(...) methods.
+    In schedulers implementations, it caused complexities which were unnecessary
+    (since these features can easily be added on top of regular runnables),
+    and it did not allow to intercept (internal) re-schedules by simply
+    overriding executeAtNs(...) method.
+    Also, this caused calls to clock.getTimeNs() for each runnable execution,
+    even when there were only ASAP schedules, and added a useless per-schedule
+    memory overhead for users not caring about execution times or re-schedules.
+
+  - In HardScheduler, instead of giving priority to timed schedules over
+    ASAP schedules, which could cause ASAP schedules to never be executed
+    in case of bursts of timed schedules for current time (or in the past),
+    implemented fairness by adding a sequence number for ASAP schedules.
+    Now, if an ASAP schedule and a timed schedule which time has come
+    are to be executed, the one with the smallest sequence number is
+    executed first.
+    Note that this was already the behavior of SoftScheduler,
+    so now these schedulers behave consistently.
+
+  - Renamed AbstractSmartSchedulable into AbstractRepeatableRunnable,
+    AbstractTask into AbstractRepeatableTask, and AbstractRepeatedProcess into
+    AbstractProcess, and updated their javadoc to describe how they are related.
+    For each of them, re-schedules are now done through a protected method that
+    can be overridden, which allows for custom (and even unlawful) re-scheduling
+    logics.
+    For AbstractRepeatableRunnable and AbstractRepeatableTask instances,
+    the theoretical time for a first timed schedule (when the state is pending)
+    has now to be set (with setNextTheoreticalTimeNs(...)) before submitting
+    to the scheduler, since it's no longer computed by the scheduler.
+    If it's not set, it will be equal to actual time (which is fine for ASAP
+    schedules, or if you don't care about it).
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################

@@ -21,9 +21,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import junit.framework.TestCase;
 import net.jolikit.lang.Dbg;
+import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.soft.RootSoftClock;
-import net.jolikit.time.sched.InterfaceSchedulable;
-import net.jolikit.time.sched.InterfaceScheduling;
+import net.jolikit.time.sched.InterfaceCancellable;
+import net.jolikit.time.sched.soft.SoftScheduler;
 
 public class SoftSchedulerTest extends TestCase {
     
@@ -37,43 +38,30 @@ public class SoftSchedulerTest extends TestCase {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private class MySchedulable implements InterfaceSchedulable {
-        private InterfaceScheduling scheduling;
-        
-        private boolean mustCallAgainOnce;
-        private long nextTheoreticalTimeNs;
+    private class MyRunnable implements InterfaceCancellable {
+        private final InterfaceClock clock;
         
         private boolean runCalled;
         private boolean onCancelCalled;
         
-        private long callTimeNs;
-        private int callNum;
+        private long runCallTimeNs;
+        private int runCallNum;
         
-        @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            this.scheduling = scheduling;
+        public MyRunnable(InterfaceClock clock) {
+            this.clock = clock;
         }
         @Override
         public void run() {
-            final InterfaceScheduling scheduling = this.scheduling;
-            final long theoreticalTimeNs = scheduling.getTheoreticalTimeNs();
-            final long actualTimeNs = scheduling.getActualTimeNs();
+            final long runCallTimeNs = this.clock.getTimeNs();
             
             if (DEBUG) {
-                Dbg.log(this.hashCode() + " : run(), theoretical = " + theoreticalTimeNs + ", actual = " + actualTimeNs);
+                Dbg.log(this.hashCode() + " : run(), runCallTimeNs = " + runCallTimeNs);
             }
             
-            // Always equal for soft scheduling.
-            assertEquals(theoreticalTimeNs, actualTimeNs);
-            this.callTimeNs = actualTimeNs;
+            this.runCallTimeNs = runCallTimeNs;
             
-            this.callNum = ++counter;
+            this.runCallNum = ++counter;
             this.runCalled = true;
-            boolean callAgain = this.mustCallAgainOnce;
-            if (callAgain) {
-                scheduling.setNextTheoreticalTimeNs(this.nextTheoreticalTimeNs);
-                this.mustCallAgainOnce = false;
-            }
         }
         @Override
         public void onCancel() {
@@ -203,8 +191,8 @@ public class SoftSchedulerTest extends TestCase {
          * scheduling
          */
         
-        final MySchedulable schedulable1 = new MySchedulable();
-        scheduler.execute(schedulable1);
+        final MyRunnable runnable1 = new MyRunnable(clock);
+        scheduler.execute(runnable1);
 
         /*
          * running
@@ -216,11 +204,11 @@ public class SoftSchedulerTest extends TestCase {
          * checking
          */
         
-        assertTrue(schedulable1.runCalled);
-        assertFalse(schedulable1.onCancelCalled);
+        assertTrue(runnable1.runCalled);
+        assertFalse(runnable1.onCancelCalled);
 
-        // Schedulable called at clock's time.
-        assertEquals(10L, schedulable1.callTimeNs);
+        // Runnable called at clock's time.
+        assertEquals(10L, runnable1.runCallTimeNs);
     }
 
     public void test_executeAtNs_Runnable_long() {
@@ -235,15 +223,13 @@ public class SoftSchedulerTest extends TestCase {
          * scheduling
          */
         
-        final MySchedulable schedulable1 = new MySchedulable();
-        schedulable1.mustCallAgainOnce = true;
-        schedulable1.nextTheoreticalTimeNs = 20L;
-        scheduler.executeAtNs(schedulable1, 12L);
-
-        final MySchedulable schedulable2 = new MySchedulable();
-        schedulable2.mustCallAgainOnce = true;
-        schedulable2.nextTheoreticalTimeNs = 20L;
-        scheduler.executeAtNs(schedulable2, 11L);
+        final MyRunnable runnable1 = new MyRunnable(clock);
+        final MyRunnable runnable2 = new MyRunnable(clock);
+        final MyRunnable runnable3 = new MyRunnable(clock);
+        
+        scheduler.executeAtNs(runnable1, 12L);
+        scheduler.executeAtNs(runnable2, 11L);
+        scheduler.executeAtNs(runnable3, 11L);
 
         /*
          * running
@@ -255,18 +241,22 @@ public class SoftSchedulerTest extends TestCase {
          * checking
          */
         
-        assertTrue(schedulable1.runCalled);
-        assertFalse(schedulable1.onCancelCalled);
+        assertTrue(runnable1.runCalled);
+        assertFalse(runnable1.onCancelCalled);
         
-        assertTrue(schedulable2.runCalled);
-        assertFalse(schedulable2.onCancelCalled);
+        assertTrue(runnable2.runCalled);
+        assertFalse(runnable2.onCancelCalled);
 
-        assertEquals(20L, schedulable1.callTimeNs);
-        assertEquals(20L, schedulable2.callTimeNs);
+        assertTrue(runnable3.runCalled);
+        assertFalse(runnable3.onCancelCalled);
+
+        assertEquals(12L, runnable1.runCallTimeNs);
+        assertEquals(11L, runnable2.runCallTimeNs);
+        assertEquals(11L, runnable3.runCallTimeNs);
         
-        // FIFO order : for time 20, schedulable2 called before schedulable1,
+        // FIFO order : for time 11, runnable2 called before runnable3,
         // because has been scheduled for that time before.
-        assertTrue(schedulable2.callNum + 1 == schedulable1.callNum);
+        assertEquals(runnable2.runCallNum + 1, runnable3.runCallNum);
     }
 
     public void test_executeAfterNs_Runnable_long() {
@@ -279,11 +269,11 @@ public class SoftSchedulerTest extends TestCase {
          * Scheduling.
          */
         
-        final MySchedulable schedulable1 = new MySchedulable();
-        scheduler.executeAfterNs(schedulable1, 2L);
+        final MyRunnable runnable1 = new MyRunnable(clock);
+        scheduler.executeAfterNs(runnable1, 2L);
 
-        final MySchedulable schedulable2 = new MySchedulable();
-        scheduler.executeAfterNs(schedulable2, 1L);
+        final MyRunnable runnable2 = new MyRunnable(clock);
+        scheduler.executeAfterNs(runnable2, 1L);
 
         /*
          * Running.
@@ -295,16 +285,81 @@ public class SoftSchedulerTest extends TestCase {
          * Checking.
          */
         
-        assertTrue(schedulable1.runCalled);
-        assertFalse(schedulable1.onCancelCalled);
+        assertTrue(runnable1.runCalled);
+        assertFalse(runnable1.onCancelCalled);
         
-        assertTrue(schedulable2.runCalled);
-        assertFalse(schedulable2.onCancelCalled);
+        assertTrue(runnable2.runCalled);
+        assertFalse(runnable2.onCancelCalled);
 
-        assertEquals(12L, schedulable1.callTimeNs);
-        assertEquals(11L, schedulable2.callTimeNs);
+        assertEquals(12L, runnable1.runCallTimeNs);
+        assertEquals(11L, runnable2.runCallTimeNs);
         
-        assertTrue(schedulable2.callNum + 1 == schedulable1.callNum);
+        assertEquals(runnable2.runCallNum + 1, runnable1.runCallNum);
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_schedulingFairness() {
+        final RootSoftClock clock = new RootSoftClock();
+        
+        final SoftScheduler scheduler = new SoftScheduler(clock);
+
+        /*
+         * scheduling
+         */
+        
+        final long nowNs = clock.getTimeNs();
+        final long futureNs = nowNs + 1L;
+        
+        final MyRunnable scheduledAsap1 = new MyRunnable(clock);
+        final MyRunnable scheduledInFuture = new MyRunnable(clock);
+        final MyRunnable scheduledAsap2 = new MyRunnable(clock);
+        final MyRunnable scheduledAtNow = new MyRunnable(clock);
+        final MyRunnable scheduledAsap3 = new MyRunnable(clock);
+        
+        scheduler.execute(scheduledAsap1);
+        scheduler.executeAtNs(scheduledInFuture, futureNs);
+        scheduler.execute(scheduledAsap2);
+        scheduler.executeAtNs(scheduledAtNow, nowNs);
+        scheduler.execute(scheduledAsap3);
+
+        /*
+         * running
+         */
+        
+        scheduler.start();
+        
+        /*
+         * checking
+         */
+        
+        assertTrue(scheduledAsap1.runCalled);
+        assertFalse(scheduledAsap1.onCancelCalled);
+        
+        assertTrue(scheduledAsap2.runCalled);
+        assertFalse(scheduledAsap2.onCancelCalled);
+
+        assertTrue(scheduledAtNow.runCalled);
+        assertFalse(scheduledAtNow.onCancelCalled);
+
+        assertTrue(scheduledAsap3.runCalled);
+        assertFalse(scheduledAsap3.onCancelCalled);
+
+        assertTrue(scheduledInFuture.runCalled);
+        assertFalse(scheduledInFuture.onCancelCalled);
+
+        assertEquals(0L, scheduledAsap1.runCallTimeNs);
+        assertEquals(0L, scheduledAsap2.runCallTimeNs);
+        assertEquals(nowNs, scheduledAtNow.runCallTimeNs);
+        assertEquals(0L, scheduledAsap3.runCallTimeNs);
+        assertEquals(futureNs, scheduledInFuture.runCallTimeNs);
+        
+        assertEquals(scheduledAsap1.runCallNum + 1, scheduledAsap2.runCallNum);
+        assertEquals(scheduledAsap2.runCallNum + 1, scheduledAtNow.runCallNum);
+        assertEquals(scheduledAtNow.runCallNum + 1, scheduledAsap3.runCallNum);
+        assertEquals(scheduledAsap3.runCallNum + 1, scheduledInFuture.runCallNum);
     }
     
     /*
@@ -321,11 +376,17 @@ public class SoftSchedulerTest extends TestCase {
          */
 
         // first schedule sets clock's time
-        final MySchedulable schedulable1 = new MySchedulable();
-        // second schedule in the past
-        schedulable1.mustCallAgainOnce = true;
-        schedulable1.nextTheoreticalTimeNs = 10L;
-        scheduler.executeAtNs(schedulable1, 20L);
+        final MyRunnable runnable1 = new MyRunnable(clock) {
+            @Override
+            public void run() {
+                super.run();
+                
+                final MyRunnable runnable2 = new MyRunnable(clock);
+                final long pastNs = clock.getTimeNs() - 1;
+                scheduler.executeAtNs(runnable2, pastNs);
+            }
+        };
+        scheduler.executeAtNs(runnable1, 10L);
         
         /*
          * running
@@ -431,9 +492,9 @@ public class SoftSchedulerTest extends TestCase {
          * scheduling
          */
 
-        final MySchedulable schedulable1 = new MySchedulable();
+        final MyRunnable runnable1 = new MyRunnable(clock);
         
-        final MySchedulable schedulable2 = new MySchedulable();
+        final MyRunnable runnable2 = new MyRunnable(clock);
         
         controllerRef.set(new MyInterfaceTimeAdvanceController() {
             @Override
@@ -441,12 +502,12 @@ public class SoftSchedulerTest extends TestCase {
                 // Making sure we don't get used again.
                 controllerRef.set(null);
                 
-                scheduler.executeAtNs(schedulable2, newScheduleTimeNs);
+                scheduler.executeAtNs(runnable2, newScheduleTimeNs);
                 return firstGrantedTimeNs;
             }
         });
         
-        scheduler.executeAtNs(schedulable1, firstScheduleTimeNs);
+        scheduler.executeAtNs(runnable1, firstScheduleTimeNs);
         
         /*
          * running
@@ -463,20 +524,20 @@ public class SoftSchedulerTest extends TestCase {
             scheduler.start();
             
             if (newScheduleTimeNs >= firstScheduleTimeNs) {
-                assertEquals(1, schedulable1.callNum);
-                assertEquals(2, schedulable2.callNum);
+                assertEquals(1, runnable1.runCallNum);
+                assertEquals(2, runnable2.runCallNum);
             } else {
-                assertEquals(1, schedulable2.callNum);
-                assertEquals(2, schedulable1.callNum);
+                assertEquals(1, runnable2.runCallNum);
+                assertEquals(2, runnable1.runCallNum);
             }
             
-            assertTrue(schedulable1.runCalled);
-            assertFalse(schedulable1.onCancelCalled);
-            assertEquals(firstScheduleTimeNs, schedulable1.callTimeNs);
+            assertTrue(runnable1.runCalled);
+            assertFalse(runnable1.onCancelCalled);
+            assertEquals(firstScheduleTimeNs, runnable1.runCallTimeNs);
             
-            assertTrue(schedulable2.runCalled);
-            assertFalse(schedulable2.onCancelCalled);
-            assertEquals(newScheduleTimeNs, schedulable2.callTimeNs);
+            assertTrue(runnable2.runCalled);
+            assertFalse(runnable2.onCancelCalled);
+            assertEquals(newScheduleTimeNs, runnable2.runCallTimeNs);
         }
     }
 

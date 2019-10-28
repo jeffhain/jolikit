@@ -27,12 +27,11 @@ import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.soft.InterfaceSoftClock;
 import net.jolikit.time.sched.AbstractDefaultScheduler;
-import net.jolikit.time.sched.InterfaceSchedulable;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 import net.jolikit.time.sched.WorkerThreadChecker;
 
 /**
- * Scheduler for soft scheduling, i.e. for processing schedulables
+ * Scheduler for soft scheduling, i.e. for processing runnables
  * in a single thread, according to a soft clock.
  * 
  * Clock setTimeNs(...) method is allowed to behave like
@@ -40,13 +39,8 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  * than specified, typically due to new schedules being done
  * during the call, for a time earlier than specified.
  * 
- * For a same execution date, timed schedules (done with executeAtXxx(...)
- * or executeAfterXxx(...)) don't have priority over ASAP schedules
- * (done with execute(Runnable)), which on the contrary can be the case
- * with hard schedulers (to avoid ASAP schedules spam to prevent timed schedules
- * to ever execute), since this class implements ASAP schedules as
- * timed schedules to be executed at current time (unless they are
- * executed synchronously).
+ * Scheduling fairness: when a timed schedule is eligible along with an
+ * ASAP schedule, the one that has been scheduled first has priority.
  * 
  * Typical usage:
  * - initial calls to executeXxx(...)
@@ -147,11 +141,13 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
      * Optim: could be a bit faster to use an array for schedules at current time,
      * which could be a common case.
      */
-    private final Queue<MyRunnableSchedule> currentSchedules = new PriorityQueue<MyRunnableSchedule>(
-            INITIAL_QUEUE_CAPACITY,
-            new MyScheduleComparator());
+    private final Queue<MyTimedSchedule> currentSchedules =
+            new PriorityQueue<MyTimedSchedule>(
+                    INITIAL_QUEUE_CAPACITY,
+                    new MyTimedScheduleComparator());
 
-    private final ArrayList<MyRunnableSchedule> futureSchedules = new ArrayList<MyRunnableSchedule>();
+    private final ArrayList<MyTimedSchedule> futureSchedules =
+            new ArrayList<MyTimedSchedule>();
 
     private long nextSequenceNumber = 0;
 
@@ -173,7 +169,8 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * To run runnables from alien threads in the soft thread.
      */
-    private final LinkedBlockingQueue<Runnable> alienRunnables = new LinkedBlockingQueue<Runnable>();
+    private final LinkedBlockingQueue<Runnable> alienRunnables =
+            new LinkedBlockingQueue<Runnable>();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -336,25 +333,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
             this.checkIsWorkerThread();
             this.checkScheduleNotInThePast(nowNs);
             
-            if (runnable instanceof InterfaceSchedulable) {
-                final InterfaceSchedulable schedulable = (InterfaceSchedulable) runnable;
-                // Not using a same instance all the time,
-                // for execute(...) calls might be reentrant.
-                final MySchedulableSchedule tmpSchedule = new MySchedulableSchedule(schedulable);
-                tmpSchedule.setTheoreticalTimeNs(nowNs);
-                tmpSchedule.configureBeforeRun(nowNs);
-
-                schedulable.setScheduling(tmpSchedule);
-                schedulable.run();
-
-                final boolean mustRepeat = tmpSchedule.isNextTheoreticalTimeSet_monomorphic();
-                if (mustRepeat) {
-                    final long nextNs = tmpSchedule.getNextTheoreticalTimeNs_monomorphic();
-                    this.executeAtNs(schedulable, nextNs);
-                }
-            } else {
-                runnable.run();
-            }
+            runnable.run();
         } else {
             this.executeAtNs(runnable, nowNs);
         }
@@ -364,14 +343,9 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     public void executeAtNs(Runnable runnable, long timeNs) {
         this.ifRunningCheckIsWorkerThreadAndScheduleNotInPast(timeNs);
 
-        final MyRunnableSchedule schedule;
-        if (runnable instanceof InterfaceSchedulable) {
-            final InterfaceSchedulable impl = (InterfaceSchedulable)runnable;
-            schedule = new MySchedulableSchedule(impl);
-        } else {
-            schedule = new MyRunnableSchedule(runnable);
-        }
-        schedule.setTheoreticalTimeNs(timeNs);
+        final MyTimedSchedule schedule = new MyTimedSchedule(
+                runnable,
+                timeNs);
         this.addToFutureSchedules(schedule);
     }
 
@@ -432,9 +406,9 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * Sets sequence number.
      * 
-     * @param schedule Schedule with schedulable set.
+     * @param schedule Schedule to add.
      */
-    private void addToFutureSchedules(MyRunnableSchedule schedule) {
+    private void addToFutureSchedules(MyTimedSchedule schedule) {
         schedule.setSequenceNumber(this.nextSequenceNumber++);
         this.futureSchedules.add(schedule);
     }
@@ -508,14 +482,14 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
             // No new schedule gets enqueued during time advance,
             // so this one will still be the one to process
             // even after eventual wait.
-            MyRunnableSchedule schedule = this.currentSchedules.peek();
+            MyTimedSchedule schedule = this.currentSchedules.peek();
             if (schedule == null) {
                 // No schedule: we are done.
                 break;
             }
 
             {
-                final long theoreticalTimeNs = schedule.getTheoreticalTimeNs_monomorphic();
+                final long theoreticalTimeNs = schedule.getTheoreticalTimeNs();
                 
                 // Should never throw and be useless,
                 // due to checks done when creating schedules,
@@ -557,7 +531,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
             final boolean gotNewSchedules = this.makeFutureSchedulesCurrent();
             if (gotNewSchedules) {
                 schedule = this.currentSchedules.peek();
-                final long theoreticalTimeNs = schedule.getTheoreticalTimeNs_monomorphic();
+                final long theoreticalTimeNs = schedule.getTheoreticalTimeNs();
                 // Earliest schedule time must be current time.
                 if (theoreticalTimeNs != nowNs) {
                     throw new IllegalArgumentException(
@@ -585,27 +559,10 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
                     throw new AssertionError(forCheck + " != " + schedule);
                 }
 
-                if (schedule instanceof MySchedulableSchedule) {
-                    final MySchedulableSchedule impl = (MySchedulableSchedule) schedule;
-                    final InterfaceSchedulable schedulable = (InterfaceSchedulable) impl.getRunnable();
-
-                    impl.configureBeforeRun(nowNs);
-
-                    schedulable.setScheduling(impl);
-                    schedulable.run();
-
-                    if (impl.isNextTheoreticalTimeSet_monomorphic()) {
-                        final long nextNs = impl.getNextTheoreticalTimeNs_monomorphic();
-                        this.checkScheduleNotInThePast(nextNs);
-
-                        schedule.setTheoreticalTimeNs(nextNs);
-                        this.addToFutureSchedules(schedule);
-                    }
-                } else {
-                    schedule.getRunnable().run();
-                }
+                final Runnable runnable = schedule.getRunnable();
+                runnable.run();
             } while (((schedule = this.currentSchedules.peek()) != null)
-                    && (schedule.getTheoreticalTimeNs_monomorphic() == nowNs));
+                    && (schedule.getTheoreticalTimeNs() == nowNs));
         }
     }
 }

@@ -23,13 +23,11 @@ import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.InterfaceSchedulable;
-import net.jolikit.time.sched.DefaultScheduling;
 
 /**
  * Scheduler based on an implementation of JDK's Timer class.
  * 
- * To ensure that onCancel() method of schedulables is properly called
+ * To ensure that onCancel() method of cancellables is properly called
  * on timer's cancellation or purge, we would need to keep track
  * of pending schedules aside from the Timer, which would add
  * an unacceptable overhead. We prefer to disable calls to
@@ -42,62 +40,14 @@ public class TimerHardScheduler extends AbstractScheduler {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
 
-    private abstract class MyAbstractTimerTask extends TimerTask {
+    private static class MyTimerTask extends TimerTask {
         private final Runnable runnable;
-        public MyAbstractTimerTask(Runnable runnable) {
+        public MyTimerTask(Runnable runnable) {
             this.runnable = runnable;
         }
         @Override
         public void run() {
-            if (this.runnable instanceof InterfaceSchedulable) {
-                InterfaceSchedulable schedulable = (InterfaceSchedulable)this.runnable;
-                
-                final long actualTimeNs = clock.getTimeNs();
-                final long theoreticalTimeNs = this.getTheoreticalTimeNs(actualTimeNs);
-                
-                // Created here for memory locality (only used once
-                // so no need to have it as field anyway).
-                final DefaultScheduling scheduling = new DefaultScheduling();
-                scheduling.configureBeforeRun(
-                        theoreticalTimeNs,
-                        actualTimeNs);
-                
-                schedulable.setScheduling(scheduling);
-                schedulable.run();
-                
-                final boolean mustRepeat = scheduling.isNextTheoreticalTimeSet();
-                if (mustRepeat) {
-                    final long nextNs = scheduling.getNextTheoreticalTimeNs();
-                    executeAtNs(schedulable, nextNs);
-                }
-            } else {
-                this.runnable.run();
-            }
-        }
-        protected abstract long getTheoreticalTimeNs(long actualTimeNs);
-    }
-
-    private class MyAsapTimerTask extends MyAbstractTimerTask {
-        public MyAsapTimerTask(Runnable runnable) {
-            super(runnable);
-        }
-        @Override
-        protected long getTheoreticalTimeNs(long actualTimeNs) {
-            return actualTimeNs;
-        }
-    }
-
-    private class MyTimedTimerTask extends MyAbstractTimerTask {
-        private final long theoreticalTimeNs;
-        public MyTimedTimerTask(
-                Runnable runnable,
-                long theoreticalTimeNs) {
-            super(runnable);
-            this.theoreticalTimeNs = theoreticalTimeNs;
-        }
-        @Override
-        protected long getTheoreticalTimeNs(long actualTimeNs) {
-            return this.theoreticalTimeNs;
+            this.runnable.run();
         }
     }
     
@@ -134,7 +84,7 @@ public class TimerHardScheduler extends AbstractScheduler {
 
     @Override
     public void execute(Runnable runnable) {
-        final MyAsapTimerTask task = new MyAsapTimerTask(runnable);
+        final MyTimerTask task = new MyTimerTask(runnable);
         this.timer.schedule(task, 0L);
     }
 
@@ -166,7 +116,7 @@ public class TimerHardScheduler extends AbstractScheduler {
          * Timer does not accept already schedule tasks for new schedules,
          * so we need to create one each time.
          */
-        final MyTimedTimerTask task = new MyTimedTimerTask(runnable, timeNs);
+        final MyTimerTask task = new MyTimerTask(runnable);
         long delayMs = TimeUnit.NANOSECONDS.toMillis(delayNs);
         if (delayMs < 0) {
             // Timer does not accept negative delays.

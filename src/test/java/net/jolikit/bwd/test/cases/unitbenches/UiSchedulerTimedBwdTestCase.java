@@ -30,7 +30,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.time.TimeUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -201,7 +201,7 @@ public class UiSchedulerTimedBwdTestCase extends AbstractBwdTestCase {
             };
             scheduler.execute(runnable);
             
-            final AbstractRepeatedProcess repeatedProcess = new AbstractRepeatedProcess(scheduler) {
+            final AbstractProcess process = new AbstractProcess(scheduler) {
                 private long expectedTheoNs = Long.MIN_VALUE;
                 @Override
                 protected long process(long theoreticalTimeNs, long actualTimeNs) {
@@ -224,7 +224,7 @@ public class UiSchedulerTimedBwdTestCase extends AbstractBwdTestCase {
                     return nextTheoNs;
                 }
             };
-            repeatedProcess.start();
+            process.start();
         }
         
         return GRect.DEFAULT_HUGE_IN_LIST;

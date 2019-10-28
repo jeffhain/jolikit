@@ -15,16 +15,20 @@
  */
 package net.jolikit.time.sched.misc;
 
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
+
 import junit.framework.TestCase;
 import net.jolikit.time.clocks.InterfaceClock;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
+import net.jolikit.time.sched.AbstractRepeatableTask;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
- * To test AbstractRepeatedProcess, using soft scheduling.
+ * To test AbstractProcess, using soft scheduling.
  * In misc package to avoid cycles.
  */
-public class AbztractRepeatedProcessSoftTest extends TestCase {
+public class AbztractProcessSoftTest extends TestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -50,7 +54,7 @@ public class AbztractRepeatedProcessSoftTest extends TestCase {
     }
     
     private static class MyMethodHelper {
-        final AbstractRepeatedProcess owner;
+        final AbstractProcess owner;
         final MyMethod method;
         boolean beingCalled;
         int callCount;
@@ -59,7 +63,7 @@ public class AbztractRepeatedProcessSoftTest extends TestCase {
         boolean mustThrow;
         boolean didLastCallThrow;
         public MyMethodHelper(
-                AbstractRepeatedProcess owner,
+                AbstractProcess owner,
                 MyMethod method) {
             this.owner = owner;
             this.method = method;
@@ -95,13 +99,13 @@ public class AbztractRepeatedProcessSoftTest extends TestCase {
         }
     }
 
-    private class MyProcess extends AbstractRepeatedProcess {
+    private class MyProcess extends AbstractProcess {
         
-        private final MyMethodHelper onBegin_helper = new MyMethodHelper(this, MyMethod.ON_BEGIN);
+        final MyMethodHelper onBegin_helper = new MyMethodHelper(this, MyMethod.ON_BEGIN);
         
-        private final MyMethodHelper onEnd_helper = new MyMethodHelper(this, MyMethod.ON_END);
+        final MyMethodHelper onEnd_helper = new MyMethodHelper(this, MyMethod.ON_END);
         
-        private final MyMethodHelper process_helper = new MyMethodHelper(this, MyMethod.PROCESS);
+        final MyMethodHelper process_helper = new MyMethodHelper(this, MyMethod.PROCESS);
         
         private long process_lastTheoreticalTimeNs;
         private long process_lastActualTimeNs;
@@ -733,5 +737,104 @@ public class AbztractRepeatedProcessSoftTest extends TestCase {
             assertEquals(1, process.process_helper.callCount);
             assertEquals(1, process.onEnd_helper.callCount);
         }
+    }
+    
+    /*
+     * Re-schedules.
+     */
+    
+    public void test_reschedule_exactPeriod() {
+        this.test_reschedule(PERIOD_NS);
+    }
+    
+    public void test_reschedule_halfPeriod() {
+        this.test_reschedule(PERIOD_NS/2);
+    }
+    
+    public void test_reschedule(long myPeriodNs) {
+        final SoftTestHelper helper = new SoftTestHelper();
+
+        final InterfaceClock clock = helper.getClock();
+        final long initialTimeNs = clock.getTimeNs();
+
+        final InterfaceScheduler scheduler = helper.getScheduler();
+
+        final AtomicReference<Runnable> lastRescheduleTaskRef = new AtomicReference<Runnable>();
+        final AtomicLong lastRescheduleTimeNsRef = new AtomicLong();
+        final MyProcess process = new MyProcess(scheduler) {
+            @Override
+            protected void rescheduleCurrentTaskAtNs(Runnable task, long timeNs) {
+                scheduler.executeAfterNs(task, myPeriodNs);
+
+                lastRescheduleTaskRef.set(task);
+                lastRescheduleTimeNsRef.set(timeNs);
+            }
+        };
+
+        /*
+         * 
+         */
+
+        long whenNs = initialTimeNs;
+
+        scheduler.executeAtNs(new Runnable() {
+            @Override
+            public void run() {
+                process.start();
+            }
+        }, whenNs);
+        
+        /*
+         * 
+         */
+        
+        whenNs += 1;
+
+        scheduler.executeAtNs(new Runnable() {
+            @Override
+            public void run() {
+                // No getter to check the reference, but we know it must be a repeatable task.
+                assertTrue(lastRescheduleTaskRef.get() instanceof AbstractRepeatableTask);
+
+                assertEquals(1, process.process_helper.callCount);
+                assertEquals(initialTimeNs + PERIOD_NS, lastRescheduleTimeNsRef.get());
+            }
+        }, whenNs);
+
+        /*
+         * 
+         */
+        
+        whenNs += myPeriodNs - 1;
+
+        scheduler.executeAtNs(new Runnable() {
+            @Override
+            public void run() {
+                // No second process yet.
+                assertEquals(1, process.process_helper.callCount);
+                assertEquals(initialTimeNs + PERIOD_NS, lastRescheduleTimeNsRef.get());
+            }
+        }, whenNs);
+
+        /*
+         * 
+         */
+
+        whenNs += 2;
+
+        scheduler.executeAtNs(new Runnable() {
+            @Override
+            public void run() {
+                assertEquals(2, process.process_helper.callCount);
+                assertEquals(initialTimeNs + PERIOD_NS + myPeriodNs, lastRescheduleTimeNsRef.get());
+            }
+        }, whenNs);
+
+        /*
+         * 
+         */
+
+        final long stopTimeNs = whenNs + 1;
+        helper.startNowAndStopAtNs(stopTimeNs);
     }
 }

@@ -28,27 +28,19 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
     //--------------------------------------------------------------------------
 
     /**
-     * Timed schedule for raw runnables.
+     * Can be used for raw runnables, when wanting to asign a sequnce number
+     * to their schedules, to implement fairness with timed schedules,
+     * for example to prevent a spam of timed schedules in the past
+     * to prevent ASAP schedules from being executed.
      */
-    protected static class MyRunnableSchedule {
-        private final Runnable runnable;
-        /**
-         * Needed even for raw runnables,
-         * for comparison in time sorted collections.
-         */
-        private long theoreticalTimeNs;
-        private long sequenceNumber;
-        public MyRunnableSchedule(Runnable runnable) {
+    protected static class MySequencedSchedule {
+        final Runnable runnable;
+        long sequenceNumber;
+        public MySequencedSchedule(Runnable runnable) {
             this.runnable = runnable;
         }
         public Runnable getRunnable() {
             return this.runnable;
-        }
-        public final long getTheoreticalTimeNs_monomorphic() {
-            return this.theoreticalTimeNs;
-        }
-        public void setTheoreticalTimeNs(long theoreticalTimeNs) {
-            this.theoreticalTimeNs = theoreticalTimeNs;
         }
         public long getSequenceNumber() {
             return this.sequenceNumber;
@@ -58,91 +50,59 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
         }
     }
 
-    /**
-     * Timed schedule for schedulables, which is also the scheduling to use.
-     */
-    protected static class MySchedulableSchedule extends MyRunnableSchedule implements InterfaceScheduling {
-        private long actualTimeNs;
-        private boolean isNextTheoreticalTimeSet = false;
-        private long nextTheoreticalTimeNs;
-        public MySchedulableSchedule(InterfaceSchedulable schedulable) {
-            super(schedulable);
+    protected static class MyTimedSchedule extends MySequencedSchedule {
+        private final long theoreticalTimeNs;
+        public MyTimedSchedule(
+                Runnable runnable,
+                long theoreticalTimeNs) {
+            super(runnable);
+            this.theoreticalTimeNs = theoreticalTimeNs;
         }
-        /**
-         * Theoretical time must be set aside.
-         * 
-         * Clears next theoretical time information.
-         */
-        public void configureBeforeRun(long actualTimeNs) {
-            this.actualTimeNs = actualTimeNs;
-            
-            this.isNextTheoreticalTimeSet = false;
-            this.nextTheoreticalTimeNs = Long.MAX_VALUE;
-        }
-        /*
-         * 
-         */
-        public final boolean isNextTheoreticalTimeSet_monomorphic() {
-            return this.isNextTheoreticalTimeSet;
-        }
-        public final long getNextTheoreticalTimeNs_monomorphic() {
-            return this.nextTheoreticalTimeNs;
-        }
-        /*
-         * 
-         */
-        @Override
         public long getTheoreticalTimeNs() {
-            return this.getTheoreticalTimeNs_monomorphic();
-        }
-        @Override
-        public long getActualTimeNs() {
-            return this.actualTimeNs;
-        }
-        @Override
-        public void setNextTheoreticalTimeNs(long nextTheoreticalTimeNs) {
-            this.nextTheoreticalTimeNs = nextTheoreticalTimeNs;
-            this.isNextTheoreticalTimeSet = true;
-        }
-        @Override
-        public boolean isNextTheoreticalTimeSet() {
-            return this.isNextTheoreticalTimeSet_monomorphic();
-        }
-        @Override
-        public void clearNextTheoreticalTime() {
-            this.isNextTheoreticalTimeSet = false;
-        }
-        @Override
-        public long getNextTheoreticalTimeNs() {
-            return this.getNextTheoreticalTimeNs_monomorphic();
+            return this.theoreticalTimeNs;
         }
     }
-
-    protected static class MyScheduleComparator implements Comparator<MyRunnableSchedule> {
-        public MyScheduleComparator() {
+    
+    protected static class MyTimedScheduleComparator implements Comparator<MyTimedSchedule> {
+        public MyTimedScheduleComparator() {
         }
         @Override
         public int compare(
-                final MyRunnableSchedule a,
-                final MyRunnableSchedule b) {
-            if (a.theoreticalTimeNs < b.theoreticalTimeNs) {
-                return -1;
-            } else if (a.theoreticalTimeNs > b.theoreticalTimeNs) {
-                return 1;
+                final MyTimedSchedule a,
+                final MyTimedSchedule b) {
+            final long aNs = a.getTheoreticalTimeNs();
+            final long bNs = b.getTheoreticalTimeNs();
+            final int cmpI;
+            if (aNs < bNs) {
+                cmpI = -1;
+            } else if (aNs > bNs) {
+                cmpI = 1;
             } else {
                 // Breaking ties with sequence number.
-                // Being robust to crazy huge sequence numbers
-                // (a.x < b.x is not robust near Long.MAX_VALUE).
-                if (a.sequenceNumber - b.sequenceNumber < 0) {
-                    return -1;
-                } else {
-                    if (a == b) {
-                        // To be consistent with equals, in case it could help.
-                        return 0;
-                    }
-                    return 1;
-                }
+                cmpI = compareSequenceNumbers(
+                        a.sequenceNumber,
+                        b.sequenceNumber);
             }
+            return cmpI;
         }
+    }
+    
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+    
+    protected static int compareSequenceNumbers(long sa, long sb) {
+        // Being robust to crazy huge sequence numbers
+        // (sa < sb is not robust near Long.MAX_VALUE).
+        final long cmpL = (sa - sb);
+        final int cmpI;
+        if (cmpL < 0) {
+            cmpI = -1;
+        } else if (cmpL > 0) {
+            cmpI = 1;
+        } else {
+            cmpI = 0;
+        }
+        return cmpI;
     }
 }

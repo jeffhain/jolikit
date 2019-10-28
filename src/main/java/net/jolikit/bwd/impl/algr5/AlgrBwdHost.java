@@ -40,7 +40,7 @@ import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.Dbg;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 public class AlgrBwdHost extends AbstractBwdHost {
@@ -110,7 +110,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
     /**
      * Because Allegro doesn't have a window moved event.
      */
-    private class MyHostMoveDetectionProcess extends AbstractRepeatedProcess {
+    private class MyHostMoveDetectionProcess extends AbstractProcess {
         private final long delayNs;
         private GRect lastClientBounds;
         public MyHostMoveDetectionProcess(
@@ -163,7 +163,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
      * Delayed client resize process.
      * TODO algr Maybe don't need it on Mac, but shouldn't hurt.
      */
-    private class MyDcrp extends AbstractRepeatedProcess {
+    private class MyDcrp extends AbstractProcess {
         private boolean firstCall;
         public MyDcrp(InterfaceScheduler scheduler) {
             super(scheduler);
@@ -231,7 +231,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
     private int lastResizeTargetWidth = Integer.MIN_VALUE;
     private int lastResizeTargetHeight = Integer.MIN_VALUE;
 
-    private final AbstractRepeatedProcess delayedClientResizeProcess;
+    private final AbstractProcess delayedClientResizeProcess;
 
     private int lastMouseAxesXInScreen = Integer.MIN_VALUE;
     private int lastMouseAxesYInScreen = Integer.MIN_VALUE;

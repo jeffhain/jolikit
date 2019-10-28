@@ -27,7 +27,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.lang.Dbg;
 import net.jolikit.time.TimeUtils;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.misc.SoftTestHelper;
 
@@ -105,10 +105,10 @@ public class AbztractBwdHostTest extends TestCase {
      * 
      */
 
-    private class MyTestTask extends AbstractRepeatedProcess {
+    private class MyTestProcess extends AbstractProcess {
         final int nbrOfCalls;
         int callCount = 0;
-        public MyTestTask(
+        public MyTestProcess(
                 InterfaceScheduler scheduler,
                 int nbrOfCalls) {
             super(scheduler);
@@ -272,9 +272,9 @@ public class AbztractBwdHostTest extends TestCase {
         final SoftTestHelper helper = this.binding.getSoftTestHelper();
         final InterfaceScheduler scheduler = helper.getScheduler();
 
-        final MyTestTask testTask = new MyTestTask(scheduler, nbrOfCalls);
+        final MyTestProcess testProcess = new MyTestProcess(scheduler, nbrOfCalls);
         
-        testTask.start();
+        testProcess.start();
 
         final long stopTimeNs = Long.MAX_VALUE;
         helper.startNowAndStopAtNs(stopTimeNs);

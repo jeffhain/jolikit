@@ -35,14 +35,15 @@ import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.threading.locks.MonitorCondilock;
 import net.jolikit.time.TimeUtils;
+import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.hard.EnslavedControllableHardClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
-import net.jolikit.time.sched.InterfaceSchedulable;
+import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
-import net.jolikit.time.sched.InterfaceScheduling;
+import net.jolikit.time.sched.hard.HardScheduler;
 
 public class HardSchedulerTest extends TestCase {
 
@@ -99,27 +100,22 @@ public class HardSchedulerTest extends TestCase {
     };
 
     private static class MySchedulingReport {
-        private final long theoreticalTimeNs;
-        private final long actualTimeNs;
+        private final long runCallTimeNs;
         /**
-         * 1 for first schedulable, etc.
+         * 1 for first runnable, etc.
          * Only considers last run call.
          */
         private final long orderNum;
         public MySchedulingReport(
-                long theoreticalTimeNs,
-                long actualTimeNs,
+                long runCallTimeNs,
                 long orderNum) {
-            this.theoreticalTimeNs = theoreticalTimeNs;
-            this.actualTimeNs = actualTimeNs;
+            this.runCallTimeNs = runCallTimeNs;
             this.orderNum = orderNum;
         }
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append("[theoreticalTimeNs=");
-            sb.append(theoreticalTimeNs);
-            sb.append(",actualTimeNs=");
-            sb.append(actualTimeNs);
+            sb.append("[runCallTimeNs=");
+            sb.append(runCallTimeNs);
             sb.append(",orderNum=");
             sb.append(orderNum);
             sb.append("]");
@@ -127,76 +123,61 @@ public class HardSchedulerTest extends TestCase {
         }
     }
 
-    private class MySchedulable implements InterfaceSchedulable {
-        private InterfaceScheduling scheduling;
+    private class MyRunnable implements InterfaceCancellable {
         private final Object reportMutex = new Object();
+        private final InterfaceClock clock;
         /**
          * Report for last run call.
          */
         private volatile MySchedulingReport report;
         private volatile int nbrOfRunCalls;
         private volatile int nbrOfOnCancelCalls;
-        private int nbrOfReschedules;
         private final long sleepTimeMsInRun;
         private final long sleepTimeMsInOnCancel;
         private final MyThrowableType throwableInRun;
         private final MyThrowableType throwableInOnCancel;
         private volatile boolean runInterrupted;
         private volatile boolean onCancelInterrupted;
-        public MySchedulable() {
-            this(0);
+        public MyRunnable(InterfaceClock clock) {
+            this(clock, 0);
         }
-        public MySchedulable(long sleepTimeMsInRun) {
-            this(
-                    0,
-                    sleepTimeMsInRun);
-        }
-        public MySchedulable(
-                int nbrOfReschedules,
+        public MyRunnable(
+                InterfaceClock clock,
                 long sleepTimeMsInRun) {
             this(
-                    nbrOfReschedules,
+                    clock,
                     sleepTimeMsInRun,
                     0);
         }
-        public MySchedulable(
-                int nbrOfReschedules,
+        public MyRunnable(
+                InterfaceClock clock,
                 long sleepTimeMsInRun,
                 long sleepTimeMsInOnCancel) {
             this(
-                    nbrOfReschedules,
+                    clock,
                     sleepTimeMsInRun,
                     sleepTimeMsInOnCancel,
                     null,
                     null);
         }
-        public MySchedulable(
-                int nbrOfReschedules,
+        public MyRunnable(
+                InterfaceClock clock,
                 long sleepTimeMsInRun,
                 long sleepTimeMsInOnCancel,
                 final MyThrowableType throwableInRun,
                 final MyThrowableType throwableInOnCancel) {
-            this.nbrOfReschedules = nbrOfReschedules;
+            this.clock = clock;
             this.sleepTimeMsInRun = sleepTimeMsInRun;
             this.sleepTimeMsInOnCancel = sleepTimeMsInOnCancel;
             this.throwableInRun = throwableInRun;
             this.throwableInOnCancel = throwableInOnCancel;
         }
         @Override
-        public void setScheduling(InterfaceScheduling scheduling) {
-            this.scheduling = scheduling;
-        }
-        @Override
         public void run() {
-            final InterfaceScheduling scheduling = this.scheduling;
-            final long theoreticalTimeNs = scheduling.getTheoreticalTimeNs();
-            final long actualTimeNs = scheduling.getActualTimeNs();
+            final long runCallTimeNs = this.clock.getTimeNs();
 
             this.nbrOfRunCalls++;
 
-            final boolean mustReport =
-                    (this.nbrOfReschedules == 0)
-                    || (this.throwableInRun != null);
             try {
                 if (this.sleepTimeMsInRun > 0) {
                     try {
@@ -207,22 +188,14 @@ public class HardSchedulerTest extends TestCase {
                 }
 
                 throwIfNeeded(this.throwableInRun);
-
-                if (this.nbrOfReschedules > 0) {
-                    this.nbrOfReschedules--;
-                    scheduling.setNextTheoreticalTimeNs(actualTimeNs);
-                }
             } finally {
-                if (mustReport) {
-                    final long orderNum = counter.incrementAndGet();
+                final long orderNum = counter.incrementAndGet();
 
-                    this.report = new MySchedulingReport(
-                            theoreticalTimeNs,
-                            actualTimeNs,
-                            orderNum);
-                    synchronized (reportMutex) {
-                        reportMutex.notify();
-                    }
+                this.report = new MySchedulingReport(
+                        runCallTimeNs,
+                        orderNum);
+                synchronized (reportMutex) {
+                    reportMutex.notify();
                 }
             }
         }
@@ -242,9 +215,8 @@ public class HardSchedulerTest extends TestCase {
                 throwIfNeeded(this.throwableInOnCancel);
             } finally {
                 this.report = new MySchedulingReport(
-                        0,
-                        0,
-                        0);
+                        0L,
+                        0L);
                 synchronized (reportMutex) {
                     reportMutex.notify();
                 }
@@ -365,11 +337,11 @@ public class HardSchedulerTest extends TestCase {
             // the schedule should occur maxSystemWaitTimeS
             // from now (unless spurious wake-up), when the
             // scheduler realizes he's late.
-            final MySchedulable schedulable = new MySchedulable();
+            final MyRunnable runnable = new MyRunnable(clock);
             final long startTimeNs = clock.getTimeNs();
             final long timeJumpNs = maxSystemWaitTimeNs + TimeUtils.sToNs(10.0);
             final long jumpedTimeNs = startTimeNs + timeJumpNs;
-            scheduler.executeAtNs(schedulable, jumpedTimeNs);
+            scheduler.executeAtNs(runnable, jumpedTimeNs);
             // Letting time for schedule wait to start.
             sleepMS(REAL_TIME_TOLERANCE_MS);
             // Setting clock's time to theoretical time (plus the time
@@ -378,9 +350,8 @@ public class HardSchedulerTest extends TestCase {
             // won't be notified on this modification since the clock
             // is not listenable.
             backingClock.setTimeNs(jumpedTimeNs + REAL_TIME_TOLERANCE_NS);
-            final MySchedulingReport report = schedulable.waitAndGetReport();
-            assertEquals(TimeUtils.nsToS(jumpedTimeNs), TimeUtils.nsToS(report.theoreticalTimeNs), REAL_TIME_TOLERANCE_S);
-            assertEquals(TimeUtils.nsToS(jumpedTimeNs + maxSystemWaitTimeNs), TimeUtils.nsToS(report.actualTimeNs), REAL_TIME_TOLERANCE_S);
+            final MySchedulingReport report = runnable.waitAndGetReport();
+            assertEquals(TimeUtils.nsToS(jumpedTimeNs + maxSystemWaitTimeNs), TimeUtils.nsToS(report.runCallTimeNs), REAL_TIME_TOLERANCE_S);
         }
         
         shutdownNowAndWait(schedulerList);
@@ -450,8 +421,6 @@ public class HardSchedulerTest extends TestCase {
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
         @SuppressWarnings("unused")
-        int nbrOfReschedules;
-        @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
         long sleepTimeMsInOnCancel;
@@ -465,16 +434,16 @@ public class HardSchedulerTest extends TestCase {
             int expectedNbrOfAliveWorkers = scheduler.getNbrOfRunningWorkers();
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = MyThrowableType.ERROR,
                         throwableInOnCancel = null);
-                scheduler.execute(schedulable);
-                schedulable.waitAndGetReport();
-                assertEquals(1, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.execute(runnable);
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
                 // Letting time for worker thread to die.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 expectedNbrOfAliveWorkers--;
@@ -482,16 +451,16 @@ public class HardSchedulerTest extends TestCase {
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = MyThrowableType.ERROR,
                         throwableInOnCancel = null);
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
-                schedulable.waitAndGetReport();
-                assertEquals(1, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
                 // Letting time for worker thread to die.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 expectedNbrOfAliveWorkers--;
@@ -525,26 +494,30 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(nbrOfWorkers, scheduler.getNbrOfIdleWorkers());
 
             {
-                final MySchedulable schedulable = new MySchedulable(2 * REAL_TIME_TOLERANCE_MS);
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
+                        2 * REAL_TIME_TOLERANCE_MS);
+                scheduler.execute(runnable);
                 // Letting time for processing to begin.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(nbrOfWorkers-1, scheduler.getNbrOfIdleWorkers());
                 // Waiting for run to finish.
-                schedulable.waitAndGetReport();
+                runnable.waitAndGetReport();
                 // Letting time for scheduler to get aware worker finished its work.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(nbrOfWorkers, scheduler.getNbrOfIdleWorkers());
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(2 * REAL_TIME_TOLERANCE_MS);
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
+                        2 * REAL_TIME_TOLERANCE_MS);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
                 // Letting time for processing to begin.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(nbrOfWorkers-1, scheduler.getNbrOfIdleWorkers());
                 // Waiting for run to finish.
-                schedulable.waitAndGetReport();
+                runnable.waitAndGetReport();
                 // Letting time for scheduler to get aware worker finished its work.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(nbrOfWorkers, scheduler.getNbrOfIdleWorkers());
@@ -572,26 +545,30 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfWorkingWorkers());
 
             {
-                final MySchedulable schedulable = new MySchedulable(2 * REAL_TIME_TOLERANCE_MS);
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
+                        2 * REAL_TIME_TOLERANCE_MS);
+                scheduler.execute(runnable);
                 // Letting time for processing to begin.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(1, scheduler.getNbrOfWorkingWorkers());
                 // Waiting for run to finish.
-                schedulable.waitAndGetReport();
+                runnable.waitAndGetReport();
                 // Letting time for scheduler to get aware worker finished its work.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(0, scheduler.getNbrOfWorkingWorkers());
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(2 * REAL_TIME_TOLERANCE_MS);
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
+                        2 * REAL_TIME_TOLERANCE_MS);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
                 // Letting time for processing to begin.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(1, scheduler.getNbrOfWorkingWorkers());
                 // Waiting for run to finish.
-                schedulable.waitAndGetReport();
+                runnable.waitAndGetReport();
                 // Letting time for scheduler to get aware worker finished its work.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(0, scheduler.getNbrOfWorkingWorkers());
@@ -610,19 +587,19 @@ public class HardSchedulerTest extends TestCase {
 
             assertEquals(0, scheduler.getNbrOfPendingSchedules());
 
-            final MySchedulable schedulable1 = new MySchedulable();
-            scheduler.execute(schedulable1);
+            final MyRunnable runnable1 = new MyRunnable(clock);
+            scheduler.execute(runnable1);
             assertEquals(1, scheduler.getNbrOfPendingSchedules());
 
-            final MySchedulable schedulable2 = new MySchedulable();
-            scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+            final MyRunnable runnable2 = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable2, clock.getTimeNs());
             assertEquals(2, scheduler.getNbrOfPendingSchedules());
 
             scheduler.startProcessing();
 
-            // Waiting for schedulables to be processed.
-            schedulable1.waitAndGetReport();
-            schedulable2.waitAndGetReport();
+            // Waiting for runnables to be processed.
+            runnable1.waitAndGetReport();
+            runnable2.waitAndGetReport();
 
             assertEquals(0, scheduler.getNbrOfPendingSchedules());
         }
@@ -640,21 +617,21 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
-            final MySchedulable schedulable1 = new MySchedulable();
-            scheduler.execute(schedulable1);
+            final MyRunnable runnable1 = new MyRunnable(clock);
+            scheduler.execute(runnable1);
             assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
-            final MySchedulable schedulable2 = new MySchedulable();
-            scheduler.execute(schedulable2);
+            final MyRunnable runnable2 = new MyRunnable(clock);
+            scheduler.execute(runnable2);
             assertEquals(2, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
             scheduler.startProcessing();
 
-            // Waiting for schedulables to be processed.
-            schedulable1.waitAndGetReport();
-            schedulable2.waitAndGetReport();
+            // Waiting for runnables to be processed.
+            runnable1.waitAndGetReport();
+            runnable2.waitAndGetReport();
 
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
@@ -673,21 +650,21 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
-            final MySchedulable schedulable1 = new MySchedulable();
-            scheduler.executeAtNs(schedulable1, clock.getTimeNs());
+            final MyRunnable runnable1 = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable1, clock.getTimeNs());
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
-            final MySchedulable schedulable2 = new MySchedulable();
-            scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+            final MyRunnable runnable2 = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable2, clock.getTimeNs());
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(2, scheduler.getNbrOfPendingTimedSchedules());
 
             scheduler.startProcessing();
 
-            // Waiting for schedulables to be processed.
-            schedulable1.waitAndGetReport();
-            schedulable2.waitAndGetReport();
+            // Waiting for runnables to be processed.
+            runnable1.waitAndGetReport();
+            runnable2.waitAndGetReport();
 
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
@@ -826,19 +803,19 @@ public class HardSchedulerTest extends TestCase {
             final long startTimeNs = clock.getTimeNs();
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.execute(schedulable);
-                final MySchedulingReport report = schedulable.waitAndGetReport();
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.execute(runnable);
+                final MySchedulingReport report = runnable.waitAndGetReport();
                 // Processed right away.
-                assertEquals(startTimeNs, report.actualTimeNs, REAL_TIME_TOLERANCE_NS);
+                assertEquals(startTimeNs, report.runCallTimeNs, REAL_TIME_TOLERANCE_NS);
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.executeAtNs(schedulable, startTimeNs);
-                final MySchedulingReport report = schedulable.waitAndGetReport();
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable, startTimeNs);
+                final MySchedulingReport report = runnable.waitAndGetReport();
                 // Processed right away.
-                assertEquals(startTimeNs, report.actualTimeNs, REAL_TIME_TOLERANCE_NS);
+                assertEquals(startTimeNs, report.runCallTimeNs, REAL_TIME_TOLERANCE_NS);
             }
         }
         
@@ -855,21 +832,21 @@ public class HardSchedulerTest extends TestCase {
             // Checking schedules are not processed, and not accepted.
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.execute(runnable);
                 // letting time for processing (not) to occur
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertTrue(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertTrue(runnable.onCancelCalled());
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
                 // letting time for processing (not) to occur
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertTrue(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertTrue(runnable.onCancelCalled());
             }
 
             // Checking schedules were really not accepted,
@@ -895,22 +872,22 @@ public class HardSchedulerTest extends TestCase {
             scheduler.startAccepting();
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.execute(runnable);
                 // Letting time for processing (not) to occur.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertFalse(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertFalse(runnable.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
                 // Letting time for processing (not) to occur.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertFalse(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertFalse(runnable.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
             }
         }
@@ -922,8 +899,6 @@ public class HardSchedulerTest extends TestCase {
         final InterfaceHardClock clock = getClockForTest();
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
-        @SuppressWarnings("unused")
-        int nbrOfReschedules;
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
@@ -939,16 +914,10 @@ public class HardSchedulerTest extends TestCase {
 
             // To test timed schedules are still processed
             // when new ones are not accepted.
-            // This schedulable will be processed in a few,
-            // but just once, since re-schedule shall be refused.
-            final MySchedulable toBeProcessedSchedulable = new MySchedulable(
-                    nbrOfReschedules = 1,
-                    sleepTimeMsInRun = 0,
-                    sleepTimeMsInOnCancel = 0,
-                    throwableInRun = null,
-                    throwableInOnCancel = null);
+            // This runnable will be processed in a few.
+            final MyRunnable toBeProcessedRunnable = new MyRunnable(clock);
             final long theoreticalTimeNs = clock.getTimeNs() + TimeUtils.sToNs(1.0);
-            scheduler.executeAtNs(toBeProcessedSchedulable, theoreticalTimeNs);
+            scheduler.executeAtNs(toBeProcessedRunnable, theoreticalTimeNs);
             assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
             // To test ASAP schedules are still processed
@@ -957,7 +926,9 @@ public class HardSchedulerTest extends TestCase {
             // when acceptance gets stopped.
             final int nbrOfAsapSchedules = 4;
             for (int i = 0; i < nbrOfAsapSchedules; i++) {
-                scheduler.execute(new MySchedulable(sleepTimeMsInRun = 10));
+                scheduler.execute(new MyRunnable(
+                        clock,
+                        sleepTimeMsInRun = 10));
             }
 
             scheduler.stopAccepting();
@@ -969,21 +940,21 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.execute(runnable);
                 // Letting time for processing (not) to occur.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertTrue(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertTrue(runnable.onCancelCalled());
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
                 // Letting time for processing (not) to occur.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertFalse(schedulable.runCalled());
-                assertTrue(schedulable.onCancelCalled());
+                assertFalse(runnable.runCalled());
+                assertTrue(runnable.onCancelCalled());
             }
 
             // Checking schedules were really not accepted,
@@ -992,11 +963,10 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
-            // Checking timed schedule has been processed,
-            // but not its re-schedule.
-            toBeProcessedSchedulable.waitAndGetReport();
-            assertEquals(1, toBeProcessedSchedulable.nbrOfRunCalls);
-            assertTrue(toBeProcessedSchedulable.onCancelCalled());
+            // Checking timed schedule has been processed.
+            toBeProcessedRunnable.waitAndGetReport();
+            assertEquals(1, toBeProcessedRunnable.nbrOfRunCalls);
+            assertFalse(toBeProcessedRunnable.onCancelCalled());
         }
         
         shutdownNowAndWait(schedulerList);
@@ -1012,18 +982,18 @@ public class HardSchedulerTest extends TestCase {
                 // we check startProcessing gets things back up.
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.execute(schedulable);
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.execute(runnable);
 
-                // Letting time for schedulable (not) to be processed.
+                // Letting time for runnable (not) to be processed.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
 
-                // Schedulable should start to be processed after that call.
+                // Runnable should start to be processed after that call.
                 scheduler.startProcessing();
 
-                schedulable.waitAndGetReport();
-                assertTrue(schedulable.runCalled());
-                assertFalse(schedulable.onCancelCalled());
+                runnable.waitAndGetReport();
+                assertTrue(runnable.runCalled());
+                assertFalse(runnable.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             }
 
@@ -1032,18 +1002,18 @@ public class HardSchedulerTest extends TestCase {
                 // we check startProcessing gets things back up.
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulable = new MySchedulable();
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                final MyRunnable runnable = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
 
-                // Letting time for schedulable (not) to be processed.
+                // Letting time for runnable (not) to be processed.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
 
-                // Schedulable should start to be processed after that call.
+                // Runnable should start to be processed after that call.
                 scheduler.startProcessing();
 
-                schedulable.waitAndGetReport();
-                assertTrue(schedulable.runCalled());
-                assertFalse(schedulable.onCancelCalled());
+                runnable.waitAndGetReport();
+                assertTrue(runnable.runCalled());
+                assertFalse(runnable.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
             }
         }
@@ -1064,20 +1034,20 @@ public class HardSchedulerTest extends TestCase {
             for (HardScheduler scheduler : schedulerList) {
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulable1 = new MySchedulable();
-                scheduler.execute(schedulable1);
+                final MyRunnable runnable1 = new MyRunnable(clock);
+                scheduler.execute(runnable1);
 
-                final MySchedulable schedulable2 = new MySchedulable();
-                scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+                final MyRunnable runnable2 = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable2, clock.getTimeNs());
 
-                // Letting time for schedulables (not) to be processed.
+                // Letting time for runnables (not) to be processed.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
-                assertFalse(schedulable1.runCalled());
-                assertFalse(schedulable1.onCancelCalled());
-                assertFalse(schedulable2.runCalled());
-                assertFalse(schedulable2.onCancelCalled());
+                assertFalse(runnable1.runCalled());
+                assertFalse(runnable1.onCancelCalled());
+                assertFalse(runnable2.runCalled());
+                assertFalse(runnable2.onCancelCalled());
             }
             
             shutdownNowAndWait(schedulerList);
@@ -1092,16 +1062,20 @@ public class HardSchedulerTest extends TestCase {
             
             for (HardScheduler scheduler : schedulerList) {
 
-                // Schedulables that wait for a bit, and enough
+                // Runnables that wait for a bit, and enough
                 // of them for pending schedules queues to contain
                 // a few of them before we start to sleep.
                 final int nbrOfSchedules = 10;
                 final int sleepTimeMsInRun = 10;
                 for (int i = 0; i < nbrOfSchedules; i++) {
-                    MySchedulable schedulable1 = new MySchedulable(sleepTimeMsInRun);
-                    scheduler.execute(schedulable1);
-                    MySchedulable schedulable2 = new MySchedulable(sleepTimeMsInRun);
-                    scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+                    MyRunnable runnable1 = new MyRunnable(
+                            clock,
+                            sleepTimeMsInRun);
+                    scheduler.execute(runnable1);
+                    MyRunnable runnable2 = new MyRunnable(
+                            clock,
+                            sleepTimeMsInRun);
+                    scheduler.executeAtNs(runnable2, clock.getTimeNs());
                 }
 
                 // Stopping processing, which is supposed to make pending
@@ -1122,48 +1096,12 @@ public class HardSchedulerTest extends TestCase {
             
             shutdownNowAndWait(schedulerList);
         }
-        
-        /*
-         * Stopping processing from within a schedulable execution,
-         * which should NOT cause the next schedule to be cancelled,
-         * just remain pending.
-         */
-
-        {
-            final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
-
-            for (final HardScheduler scheduler : schedulerList) {
-
-                final int nbrOfReschedules = 1;
-                final long sleepTimeMsInRun = 0;
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules,
-                        sleepTimeMsInRun) {
-                    @Override
-                    public void run() {
-                        super.run();
-
-                        scheduler.stopProcessing();
-                    }
-                };
-
-                scheduler.execute(schedulable);
-
-                sleepMS(REAL_TIME_TOLERANCE_MS);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
-                assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
-            }
-
-            shutdownNowAndWait(schedulerList);
-        }
     }
 
     public void test_cancelPendingSchedules() {
         final InterfaceHardClock clock = getClockForTest();
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
-        @SuppressWarnings("unused")
-        int nbrOfReschedules;
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
@@ -1182,21 +1120,21 @@ public class HardSchedulerTest extends TestCase {
              */
 
             {
-                final MySchedulable schedulable1 = new MySchedulable();
-                scheduler.execute(schedulable1);
-                final MySchedulable schedulable2 = new MySchedulable();
-                scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+                final MyRunnable runnable1 = new MyRunnable(clock);
+                scheduler.execute(runnable1);
+                final MyRunnable runnable2 = new MyRunnable(clock);
+                scheduler.executeAtNs(runnable2, clock.getTimeNs());
 
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
                 scheduler.cancelPendingSchedules();
 
-                assertFalse(schedulable1.runCalled());
-                assertFalse(schedulable2.runCalled());
+                assertFalse(runnable1.runCalled());
+                assertFalse(runnable2.runCalled());
 
-                assertTrue(schedulable1.onCancelCalled());
-                assertTrue(schedulable2.onCancelCalled());
+                assertTrue(runnable1.onCancelCalled());
+                assertTrue(runnable2.onCancelCalled());
 
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
@@ -1207,43 +1145,43 @@ public class HardSchedulerTest extends TestCase {
              */
 
             {
-                // Getting non-throwing schedulables surrounded
+                // Getting non-throwing runnables surrounded
                 // with throwing ones, to handle different cases
                 // of iteration.
-                final MySchedulable schedulableExceptionAsap1 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionAsap1 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.execute(schedulableExceptionAsap1);
-                final MySchedulable schedulableExceptionTimed1 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                scheduler.execute(runnableExceptionAsap1);
+                final MyRunnable runnableExceptionTimed1 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.executeAtNs(schedulableExceptionTimed1, clock.getTimeNs());
+                scheduler.executeAtNs(runnableExceptionTimed1, clock.getTimeNs());
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
-                final MySchedulable schedulableExceptionAsap2 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionAsap2 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.execute(schedulableExceptionAsap2);
-                final MySchedulable schedulableExceptionTimed2 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                scheduler.execute(runnableExceptionAsap2);
+                final MyRunnable runnableExceptionTimed2 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.executeAtNs(schedulableExceptionTimed2, clock.getTimeNs());
+                scheduler.executeAtNs(runnableExceptionTimed2, clock.getTimeNs());
 
                 assertEquals(3, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(3, scheduler.getNbrOfPendingTimedSchedules());
@@ -1255,15 +1193,15 @@ public class HardSchedulerTest extends TestCase {
                     // ok
                 }
 
-                assertFalse(schedulableAsap.runCalled());
-                assertFalse(schedulableTimed.runCalled());
-                assertFalse(schedulableExceptionAsap1.runCalled());
-                assertFalse(schedulableExceptionAsap2.runCalled());
-                assertFalse(schedulableExceptionTimed1.runCalled());
-                assertFalse(schedulableExceptionTimed2.runCalled());
+                assertFalse(runnableAsap.runCalled());
+                assertFalse(runnableTimed.runCalled());
+                assertFalse(runnableExceptionAsap1.runCalled());
+                assertFalse(runnableExceptionAsap2.runCalled());
+                assertFalse(runnableExceptionTimed1.runCalled());
+                assertFalse(runnableExceptionTimed2.runCalled());
 
-                assertFalse(schedulableAsap.onCancelCalled() && schedulableExceptionAsap1.onCancelCalled() && schedulableExceptionAsap2.onCancelCalled());
-                assertFalse(schedulableTimed.onCancelCalled() && schedulableExceptionTimed1.onCancelCalled() && schedulableExceptionTimed2.onCancelCalled());
+                assertFalse(runnableAsap.onCancelCalled() && runnableExceptionAsap1.onCancelCalled() && runnableExceptionAsap2.onCancelCalled());
+                assertFalse(runnableTimed.onCancelCalled() && runnableExceptionTimed1.onCancelCalled() && runnableExceptionTimed2.onCancelCalled());
 
                 assertNotSame(0, scheduler.getNbrOfPendingAsapSchedules());
                 assertNotSame(0, scheduler.getNbrOfPendingTimedSchedules());
@@ -1290,8 +1228,6 @@ public class HardSchedulerTest extends TestCase {
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
-        int nbrOfReschedules;
-        @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
         long sleepTimeMsInOnCancel;
@@ -1309,33 +1245,33 @@ public class HardSchedulerTest extends TestCase {
             {
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
                 scheduler.cancelPendingAsapSchedules();
 
-                assertFalse(schedulableAsap.runCalled());
-                assertTrue(schedulableAsap.onCancelCalled());
+                assertFalse(runnableAsap.runCalled());
+                assertTrue(runnableAsap.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
 
                 // Timed schedule not canceled.
-                assertFalse(schedulableTimed.runCalled());
-                assertFalse(schedulableTimed.onCancelCalled());
+                assertFalse(runnableTimed.runCalled());
+                assertFalse(runnableTimed.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
                 // Starting processing for timed schedule.
                 scheduler.startProcessing();
 
                 // Waiting for timed schedule to be processed.
-                schedulableTimed.waitAndGetReport();
+                runnableTimed.waitAndGetReport();
 
-                assertTrue(schedulableTimed.runCalled());
-                assertFalse(schedulableTimed.onCancelCalled());
+                assertTrue(runnableTimed.runCalled());
+                assertFalse(runnableTimed.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
             }
 
@@ -1346,29 +1282,29 @@ public class HardSchedulerTest extends TestCase {
             {
                 scheduler.stopProcessing();
 
-                // Getting non-throwing ASAP schedulable surrounded
+                // Getting non-throwing ASAP runnable surrounded
                 // with throwing ones, to handle different cases
                 // of iteration.
-                final MySchedulable schedulableExceptionAsap1 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionAsap1 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.execute(schedulableExceptionAsap1);
+                scheduler.execute(runnableExceptionAsap1);
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
-                final MySchedulable schedulableExceptionAsap2 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionAsap2 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.execute(schedulableExceptionAsap2);
+                scheduler.execute(runnableExceptionAsap2);
 
                 assertEquals(3, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
@@ -1380,13 +1316,13 @@ public class HardSchedulerTest extends TestCase {
                     // ok
                 }
 
-                assertFalse(schedulableAsap.runCalled());
-                assertFalse(schedulableExceptionAsap1.runCalled());
-                assertFalse(schedulableExceptionAsap2.runCalled());
+                assertFalse(runnableAsap.runCalled());
+                assertFalse(runnableExceptionAsap1.runCalled());
+                assertFalse(runnableExceptionAsap2.runCalled());
 
-                assertFalse(schedulableAsap.onCancelCalled()
-                        && schedulableExceptionAsap1.onCancelCalled()
-                        && schedulableExceptionAsap2.onCancelCalled());
+                assertFalse(runnableAsap.onCancelCalled()
+                        && runnableExceptionAsap1.onCancelCalled()
+                        && runnableExceptionAsap2.onCancelCalled());
 
                 assertNotSame(0, scheduler.getNbrOfPendingAsapSchedules());
 
@@ -1409,10 +1345,10 @@ public class HardSchedulerTest extends TestCase {
                 scheduler.startProcessing();
 
                 // Waiting for timed schedule to be processed.
-                schedulableTimed.waitAndGetReport();
+                runnableTimed.waitAndGetReport();
 
-                assertTrue(schedulableTimed.runCalled());
-                assertFalse(schedulableTimed.onCancelCalled());
+                assertTrue(runnableTimed.runCalled());
+                assertFalse(runnableTimed.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
             }
         }
@@ -1424,8 +1360,6 @@ public class HardSchedulerTest extends TestCase {
         final InterfaceHardClock clock = getClockForTest();
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
-        @SuppressWarnings("unused")
-        int nbrOfReschedules;
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
@@ -1444,33 +1378,33 @@ public class HardSchedulerTest extends TestCase {
             {
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
 
                 scheduler.cancelPendingTimedSchedules();
 
-                assertFalse(schedulableTimed.runCalled());
-                assertTrue(schedulableTimed.onCancelCalled());
+                assertFalse(runnableTimed.runCalled());
+                assertTrue(runnableTimed.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
                 // ASAP schedule not canceled.
-                assertFalse(schedulableAsap.runCalled());
-                assertFalse(schedulableAsap.onCancelCalled());
+                assertFalse(runnableAsap.runCalled());
+                assertFalse(runnableAsap.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
 
                 // Starting processing for ASAP schedule.
                 scheduler.startProcessing();
 
                 // Waiting for ASAP schedule to be processed.
-                schedulableAsap.waitAndGetReport();
+                runnableAsap.waitAndGetReport();
 
-                assertTrue(schedulableAsap.runCalled());
-                assertFalse(schedulableAsap.onCancelCalled());
+                assertTrue(runnableAsap.runCalled());
+                assertFalse(runnableAsap.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             }
 
@@ -1481,29 +1415,29 @@ public class HardSchedulerTest extends TestCase {
             {
                 scheduler.stopProcessing();
 
-                // Getting non-throwing timed schedulable surrounded
+                // Getting non-throwing timed runnable surrounded
                 // with throwing ones, to handle different cases
                 // of iteration.
-                final MySchedulable schedulableExceptionTimed1 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionTimed1 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.executeAtNs(schedulableExceptionTimed1, clock.getTimeNs());
+                scheduler.executeAtNs(runnableExceptionTimed1, clock.getTimeNs());
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
-                final MySchedulable schedulableExceptionTimed2 = new MySchedulable(
-                        nbrOfReschedules = 0,
+                final MyRunnable runnableExceptionTimed2 = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = MyThrowableType.EXCEPTION);
-                scheduler.executeAtNs(schedulableExceptionTimed2, clock.getTimeNs());
+                scheduler.executeAtNs(runnableExceptionTimed2, clock.getTimeNs());
 
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(3, scheduler.getNbrOfPendingTimedSchedules());
@@ -1515,14 +1449,14 @@ public class HardSchedulerTest extends TestCase {
                     // ok
                 }
 
-                assertFalse(schedulableTimed.runCalled());
-                assertFalse(schedulableExceptionTimed1.runCalled());
-                assertFalse(schedulableExceptionTimed2.runCalled());
+                assertFalse(runnableTimed.runCalled());
+                assertFalse(runnableExceptionTimed1.runCalled());
+                assertFalse(runnableExceptionTimed2.runCalled());
 
                 assertFalse(
-                        schedulableTimed.onCancelCalled()
-                        && schedulableExceptionTimed1.onCancelCalled()
-                        && schedulableExceptionTimed2.onCancelCalled());
+                        runnableTimed.onCancelCalled()
+                        && runnableExceptionTimed1.onCancelCalled()
+                        && runnableExceptionTimed2.onCancelCalled());
 
                 assertNotSame(0, scheduler.getNbrOfPendingTimedSchedules());
 
@@ -1545,10 +1479,10 @@ public class HardSchedulerTest extends TestCase {
                 scheduler.startProcessing();
 
                 // Waiting for ASAP schedule to be processed.
-                schedulableAsap.waitAndGetReport();
+                runnableAsap.waitAndGetReport();
 
-                assertTrue(schedulableAsap.runCalled());
-                assertFalse(schedulableAsap.onCancelCalled());
+                assertTrue(runnableAsap.runCalled());
+                assertFalse(runnableAsap.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
             }
         }
@@ -1563,7 +1497,7 @@ public class HardSchedulerTest extends TestCase {
         for (HardScheduler scheduler : schedulerList) {
 
             /*
-             * No schedulable.
+             * No runnable.
              */
 
             {
@@ -1579,18 +1513,18 @@ public class HardSchedulerTest extends TestCase {
             }
 
             /*
-             * Schedulables.
+             * Runnables.
              */
 
             {
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulableAsap1 = new MySchedulable();
-                scheduler.execute(schedulableAsap1);
-                final MySchedulable schedulableAsap2 = new MySchedulable();
-                scheduler.execute(schedulableAsap2);
-                final MySchedulable schedulableTimed = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+                final MyRunnable runnableAsap1 = new MyRunnable(clock);
+                scheduler.execute(runnableAsap1);
+                final MyRunnable runnableAsap2 = new MyRunnable(clock);
+                scheduler.execute(runnableAsap2);
+                final MyRunnable runnableTimed = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
                 assertEquals(2, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
@@ -1603,18 +1537,18 @@ public class HardSchedulerTest extends TestCase {
                 // Checking drained.
                 assertEquals(3, runnables.size());
                 assertEquals(foo, runnables.get(0));
-                assertEquals(schedulableAsap1, runnables.get(1));
-                assertEquals(schedulableAsap2, runnables.get(2));
+                assertEquals(runnableAsap1, runnables.get(1));
+                assertEquals(runnableAsap2, runnables.get(2));
 
-                assertFalse(schedulableAsap1.runCalled());
-                assertFalse(schedulableAsap1.onCancelCalled());
-                assertFalse(schedulableAsap2.runCalled());
-                assertFalse(schedulableAsap2.onCancelCalled());
+                assertFalse(runnableAsap1.runCalled());
+                assertFalse(runnableAsap1.onCancelCalled());
+                assertFalse(runnableAsap2.runCalled());
+                assertFalse(runnableAsap2.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingAsapSchedules());
 
-                // Timed schedulable not drained.
-                assertFalse(schedulableTimed.runCalled());
-                assertFalse(schedulableTimed.onCancelCalled());
+                // Timed runnable not drained.
+                assertFalse(runnableTimed.runCalled());
+                assertFalse(runnableTimed.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingTimedSchedules());
             }
         }
@@ -1629,7 +1563,7 @@ public class HardSchedulerTest extends TestCase {
         for (HardScheduler scheduler : schedulerList) {
 
             /*
-             * No schedulable.
+             * No runnable.
              */
 
             {
@@ -1645,18 +1579,18 @@ public class HardSchedulerTest extends TestCase {
             }
 
             /*
-             * Schedulables.
+             * Runnables.
              */
 
             {
                 scheduler.stopProcessing();
 
-                final MySchedulable schedulableAsap = new MySchedulable();
-                scheduler.execute(schedulableAsap);
-                final MySchedulable schedulableTimed1 = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed1, clock.getTimeNs());
-                final MySchedulable schedulableTimed2 = new MySchedulable();
-                scheduler.executeAtNs(schedulableTimed2, clock.getTimeNs());
+                final MyRunnable runnableAsap = new MyRunnable(clock);
+                scheduler.execute(runnableAsap);
+                final MyRunnable runnableTimed1 = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed1, clock.getTimeNs());
+                final MyRunnable runnableTimed2 = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTimed2, clock.getTimeNs());
 
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
                 assertEquals(2, scheduler.getNbrOfPendingTimedSchedules());
@@ -1669,18 +1603,18 @@ public class HardSchedulerTest extends TestCase {
                 // Checking drained.
                 assertEquals(3, runnables.size());
                 assertEquals(foo, runnables.get(0));
-                assertTrue(runnables.contains(schedulableTimed1));
-                assertTrue(runnables.contains(schedulableTimed2));
+                assertTrue(runnables.contains(runnableTimed1));
+                assertTrue(runnables.contains(runnableTimed2));
 
-                assertFalse(schedulableTimed1.runCalled());
-                assertFalse(schedulableTimed1.onCancelCalled());
-                assertFalse(schedulableTimed2.runCalled());
-                assertFalse(schedulableTimed2.onCancelCalled());
+                assertFalse(runnableTimed1.runCalled());
+                assertFalse(runnableTimed1.onCancelCalled());
+                assertFalse(runnableTimed2.runCalled());
+                assertFalse(runnableTimed2.onCancelCalled());
                 assertEquals(0, scheduler.getNbrOfPendingTimedSchedules());
 
-                // ASAP schedulable not drained.
-                assertFalse(schedulableAsap.runCalled());
-                assertFalse(schedulableAsap.onCancelCalled());
+                // ASAP runnable not drained.
+                assertFalse(runnableAsap.runCalled());
+                assertFalse(runnableAsap.onCancelCalled());
                 assertEquals(1, scheduler.getNbrOfPendingAsapSchedules());
             }
         }
@@ -1734,14 +1668,14 @@ public class HardSchedulerTest extends TestCase {
             sleepMS(REAL_TIME_TOLERANCE_MS);
             assertEquals(1, scheduler.getNbrOfRunningWorkers());
 
-            // For worker to wait for schedulable to be processable.
+            // For worker to wait for runnable to be processable.
             scheduler.stopProcessing();
             
-            final MySchedulable schedulable = new MySchedulable();
+            final MyRunnable runnable = new MyRunnable(clock);
             if (mustAsapElseTimed) {
-                scheduler.execute(schedulable);
+                scheduler.execute(runnable);
             } else {
-                scheduler.executeAtNs(schedulable, Long.MAX_VALUE);
+                scheduler.executeAtNs(runnable, Long.MAX_VALUE);
             }
 
             scheduler.shutdown();
@@ -1818,31 +1752,35 @@ public class HardSchedulerTest extends TestCase {
 
         for (HardScheduler scheduler : schedulerList) {
 
-            final MySchedulable schedulable1 = new MySchedulable(Long.MAX_VALUE);
-            scheduler.execute(schedulable1);
-            final MySchedulable schedulable2 = new MySchedulable(Long.MAX_VALUE);
-            scheduler.executeAtNs(schedulable2, clock.getTimeNs());
+            final MyRunnable runnable1 = new MyRunnable(
+                    clock,
+                    Long.MAX_VALUE);
+            scheduler.execute(runnable1);
+            final MyRunnable runnable2 = new MyRunnable(
+                    clock,
+                    Long.MAX_VALUE);
+            scheduler.executeAtNs(runnable2, clock.getTimeNs());
 
-            // Letting time for schedulables to be called.
+            // Letting time for runnables to be called.
             sleepMS(REAL_TIME_TOLERANCE_MS);
 
-            // Schedulables being called.
-            assertTrue(schedulable1.runCalled());
-            assertTrue(schedulable2.runCalled());
-            assertFalse(schedulable1.onCancelCalled());
-            assertFalse(schedulable2.onCancelCalled());
+            // Runnables being called.
+            assertTrue(runnable1.runCalled());
+            assertTrue(runnable2.runCalled());
+            assertFalse(runnable1.onCancelCalled());
+            assertFalse(runnable2.onCancelCalled());
 
             scheduler.interruptWorkers();
 
             // Letting time for interruption to propagate.
             sleepMS(REAL_TIME_TOLERANCE_MS);
 
-            assertTrue(schedulable1.runInterrupted);
-            assertTrue(schedulable2.runInterrupted);
-            assertFalse(schedulable1.onCancelCalled());
-            assertFalse(schedulable2.onCancelCalled());
-            assertFalse(schedulable1.onCancelInterrupted);
-            assertFalse(schedulable2.onCancelInterrupted);
+            assertTrue(runnable1.runInterrupted);
+            assertTrue(runnable2.runInterrupted);
+            assertFalse(runnable1.onCancelCalled());
+            assertFalse(runnable2.onCancelCalled());
+            assertFalse(runnable1.onCancelInterrupted);
+            assertFalse(runnable2.onCancelInterrupted);
         }
         
         /*
@@ -1850,38 +1788,51 @@ public class HardSchedulerTest extends TestCase {
          * even when scheduler is calling onCancel().
          */
 
+        @SuppressWarnings("unused")
+        long sleepTimeMsInRun;
+        @SuppressWarnings("unused")
+        long sleepTimeMsInOnCancel;
+        
         for (final HardScheduler scheduler : schedulerList) {
 
-            final MySchedulable schedulable = new MySchedulable(
-                    1,
-                    0L,
-                    Long.MAX_VALUE) {
+            final MyRunnable runnableToCancel = new MyRunnable(
+                    clock,
+                    sleepTimeMsInRun = 0,
+                    sleepTimeMsInOnCancel = Long.MAX_VALUE);
+            scheduler.executeAfterNs(runnableToCancel, REAL_TIME_TOLERANCE_NS/2);
+            
+            final MyRunnable runnableCanceller = new MyRunnable(clock) {
                 @Override
                 public void run() {
                     super.run();
-                    // Will cause re-schedule to be rejected,
-                    // i.e. onCancel() called just after this call.
-                    scheduler.stopAccepting();
+                    // Will cause runnable1 execution to be rejected,
+                    // i.e. onCancel() called synchronously.
+                    scheduler.cancelPendingTimedSchedules();
                 }
             };
-            scheduler.execute(schedulable);
+            scheduler.execute(runnableCanceller);
 
             // Letting time for run() to be called
             // and then onCancel() to start being called.
             sleepMS(REAL_TIME_TOLERANCE_MS);
             
-            assertTrue(schedulable.runCalled());
-            assertTrue(schedulable.onCancelCalled());
-            assertFalse(schedulable.runInterrupted);
-            assertFalse(schedulable.onCancelInterrupted);
-
+            assertTrue(runnableCanceller.runCalled());
+            assertFalse(runnableCanceller.onCancelCalled());
+            assertFalse(runnableCanceller.runInterrupted);
+            
+            assertFalse(runnableToCancel.runCalled());
+            assertTrue(runnableToCancel.onCancelCalled());
+            // We didn't interrupt yet.
+            assertFalse(runnableToCancel.runInterrupted);
+            assertFalse(runnableToCancel.onCancelInterrupted);
+            
             scheduler.interruptWorkers();
 
             // Letting time for interruption to propagate.
             sleepMS(REAL_TIME_TOLERANCE_MS);
 
-            assertFalse(schedulable.runInterrupted);
-            assertTrue(schedulable.onCancelInterrupted);
+            assertFalse(runnableToCancel.runInterrupted);
+            assertTrue(runnableToCancel.onCancelInterrupted);
         }
         
         shutdownNowAndWait(schedulerList);
@@ -1891,8 +1842,6 @@ public class HardSchedulerTest extends TestCase {
         final InterfaceHardClock clock = getClockForTest();
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
-        @SuppressWarnings("unused")
-        int nbrOfReschedules;
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
@@ -1907,21 +1856,14 @@ public class HardSchedulerTest extends TestCase {
             scheduler.stopProcessing();
 
             /*
-             * Getting some pending schedules, one ASAP,
-             * and one timed that ask for one re-schedule
-             * (to make sure the re-schedule is properly cancelled).
+             * Getting some pending schedules, one ASAP, and one timed.
              */
 
-            final MySchedulable schedulableAsap = new MySchedulable();
-            scheduler.execute(schedulableAsap);
+            final MyRunnable runnableAsap = new MyRunnable(clock);
+            scheduler.execute(runnableAsap);
 
-            final MySchedulable schedulableTimed = new MySchedulable(
-                    nbrOfReschedules = 1,
-                    sleepTimeMsInRun = 0,
-                    sleepTimeMsInOnCancel = 0,
-                    throwableInRun = null,
-                    throwableInOnCancel = null);
-            scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+            final MyRunnable runnableTimed = new MyRunnable(clock);
+            scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
             /*
              * Requesting workers death when idle.
@@ -1930,15 +1872,15 @@ public class HardSchedulerTest extends TestCase {
             scheduler.shutdown();
 
             // Making sure no more schedules are accepted.
-            MySchedulable schedulableAsapRejected = new MySchedulable();
-            scheduler.execute(schedulableAsapRejected);
-            assertFalse(schedulableAsapRejected.runCalled());
-            assertTrue(schedulableAsapRejected.onCancelCalled());
+            final MyRunnable runnableAsapRejected = new MyRunnable(clock);
+            scheduler.execute(runnableAsapRejected);
+            assertFalse(runnableAsapRejected.runCalled());
+            assertTrue(runnableAsapRejected.onCancelCalled());
             //
-            MySchedulable schedulableTimedRejected = new MySchedulable();
-            scheduler.executeAtNs(schedulableTimedRejected, clock.getTimeNs());
-            assertFalse(schedulableTimedRejected.runCalled());
-            assertTrue(schedulableTimedRejected.onCancelCalled());
+            final MyRunnable runnableTimedRejected = new MyRunnable(clock);
+            scheduler.executeAtNs(runnableTimedRejected, clock.getTimeNs());
+            assertFalse(runnableTimedRejected.runCalled());
+            assertTrue(runnableTimedRejected.onCancelCalled());
 
             // Letting time for workers NOT to die (since there are pending schedules).
             sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -1956,15 +1898,15 @@ public class HardSchedulerTest extends TestCase {
             scheduler.startProcessing();
 
             // Waiting for schedules to be processed.
-            schedulableAsap.waitAndGetReport();
-            schedulableTimed.waitAndGetReport();
+            runnableAsap.waitAndGetReport();
+            runnableTimed.waitAndGetReport();
 
             // Checking correct schedules execution.
-            assertTrue(schedulableAsap.runCalled());
-            assertFalse(schedulableAsap.onCancelCalled());
+            assertTrue(runnableAsap.runCalled());
+            assertFalse(runnableAsap.onCancelCalled());
             //
-            assertEquals(1, schedulableTimed.nbrOfRunCalls);
-            assertTrue(schedulableTimed.onCancelCalled());
+            assertEquals(1, runnableTimed.nbrOfRunCalls);
+            assertFalse(runnableTimed.onCancelCalled());
 
             // Letting time for workers to die.
             sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -2007,13 +1949,13 @@ public class HardSchedulerTest extends TestCase {
 
         for (HardScheduler scheduler : schedulerList) {
 
-            final MySchedulable schedulableAsap = new MySchedulable();
-            final MySchedulable schedulableTimed = new MySchedulable();
+            final MyRunnable runnableAsap = new MyRunnable(clock);
+            final MyRunnable runnableTimed = new MyRunnable(clock);
 
             scheduler.stopProcessing();
 
-            scheduler.execute(schedulableAsap);
-            scheduler.executeAtNs(schedulableTimed, clock.getTimeNs());
+            scheduler.execute(runnableAsap);
+            scheduler.executeAtNs(runnableTimed, clock.getTimeNs());
 
             // No need to wait for workers to get running, since
             // they are not considered as "no more running" if they
@@ -2092,10 +2034,10 @@ public class HardSchedulerTest extends TestCase {
             assertEquals(0, scheduler.getNbrOfRunningWorkers());
 
             // Checking schedules have been executed before wait returned.
-            assertTrue(schedulableAsap.runCalled());
-            assertFalse(schedulableAsap.onCancelCalled());
-            assertTrue(schedulableTimed.runCalled());
-            assertFalse(schedulableTimed.onCancelCalled());
+            assertTrue(runnableAsap.runCalled());
+            assertFalse(runnableAsap.onCancelCalled());
+            assertTrue(runnableTimed.runCalled());
+            assertFalse(runnableTimed.onCancelCalled());
 
             /*
              * Not waiting at all (no running worker when wait starts).
@@ -2132,23 +2074,23 @@ public class HardSchedulerTest extends TestCase {
             // Reseting counter.
             this.counter.set(0);
 
-            final ArrayList<MySchedulable> schedulableList = new ArrayList<MySchedulable>();
+            final ArrayList<MyRunnable> runnableList = new ArrayList<MyRunnable>();
 
-            final int nbrOfSchedulables = 100000;
+            final int nbrOfRunnables = 100000;
 
-            for (int i = 0; i < nbrOfSchedulables; i++) {
-                final MySchedulable schedulable = new MySchedulable();
-                schedulableList.add(schedulable);
+            for (int i = 0; i < nbrOfRunnables; i++) {
+                final MyRunnable runnable = new MyRunnable(clock);
+                runnableList.add(runnable);
                 // clock not supposed to have any impact on ASAP scheduling
                 // (to stop them, must stop scheduler)
                 clock.setTimeNs(TimeUtils.sToNs(random.nextDouble()));
                 clock.setTimeSpeed(random.nextDouble());
-                scheduler.execute(schedulable);
+                scheduler.execute(runnable);
             }
 
-            for (int i = 0; i < nbrOfSchedulables; i++) {
-                final MySchedulable schedulable = schedulableList.get(i);
-                assertEquals(i+1,schedulable.waitAndGetReport().orderNum);
+            for (int i = 0; i < nbrOfRunnables; i++) {
+                final MyRunnable runnable = runnableList.get(i);
+                assertEquals(i+1,runnable.waitAndGetReport().orderNum);
             }
         }
         
@@ -2172,23 +2114,23 @@ public class HardSchedulerTest extends TestCase {
             // Reseting counter.
             this.counter.set(0);
 
-            final int nbrOfSchedulables = 100000;
+            final int nbrOfRunnables = 100000;
 
-            final ArrayList<MySchedulable> schedulableList = new ArrayList<MySchedulable>();
+            final ArrayList<MyRunnable> runnableList = new ArrayList<MyRunnable>();
 
-            for (int i = 0; i < nbrOfSchedulables; i++) {
-                final MySchedulable schedulable = new MySchedulable();
-                schedulableList.add(schedulable);
+            for (int i = 0; i < nbrOfRunnables; i++) {
+                final MyRunnable runnable = new MyRunnable(clock);
+                runnableList.add(runnable);
                 if ((i&1) == 0) {
-                    scheduler.executeAtNs(schedulable, nowNs);
+                    scheduler.executeAtNs(runnable, nowNs);
                 } else {
-                    scheduler.executeAfterNs(schedulable, 0L);
+                    scheduler.executeAfterNs(runnable, 0L);
                 }
             }
 
-            for (int i = 0; i < nbrOfSchedulables; i++) {
-                final MySchedulable schedulable = schedulableList.get(i);
-                assertEquals(i+1,schedulable.waitAndGetReport().orderNum);
+            for (int i = 0; i < nbrOfRunnables; i++) {
+                final MyRunnable runnable = runnableList.get(i);
+                assertEquals(i+1,runnable.waitAndGetReport().orderNum);
             }
         }
         
@@ -2211,24 +2153,24 @@ public class HardSchedulerTest extends TestCase {
             // Reseting counter.
             this.counter.set(0);
 
-            final MySchedulable s7 = new MySchedulable();
+            final MyRunnable s7 = new MyRunnable(clock);
             scheduler.executeAtNs(s7, Long.MAX_VALUE);
-            final MySchedulable s8 = new MySchedulable();
+            final MyRunnable s8 = new MyRunnable(clock);
             scheduler.executeAtNs(s8, Long.MAX_VALUE);
 
-            final MySchedulable s5 = new MySchedulable();
+            final MyRunnable s5 = new MyRunnable(clock);
             scheduler.executeAtNs(s5, Long.MAX_VALUE - 1);
-            final MySchedulable s6 = new MySchedulable();
+            final MyRunnable s6 = new MyRunnable(clock);
             scheduler.executeAtNs(s6, Long.MAX_VALUE - 1);
 
-            final MySchedulable s3 = new MySchedulable();
+            final MyRunnable s3 = new MyRunnable(clock);
             scheduler.executeAtNs(s3, nowNs + 1L);
-            final MySchedulable s4 = new MySchedulable();
+            final MyRunnable s4 = new MyRunnable(clock);
             scheduler.executeAtNs(s4, nowNs + 1L);
 
-            final MySchedulable s1 = new MySchedulable();
+            final MyRunnable s1 = new MyRunnable(clock);
             scheduler.executeAtNs(s1, Long.MIN_VALUE);
-            final MySchedulable s2 = new MySchedulable();
+            final MyRunnable s2 = new MyRunnable(clock);
             scheduler.executeAtNs(s2, Long.MIN_VALUE);
             
             /*
@@ -2285,49 +2227,46 @@ public class HardSchedulerTest extends TestCase {
             clock.setTimeSpeed(0.0);
             clock.setTimeNs(0L);
 
-            MySchedulable schedulable;
+            MyRunnable runnable;
 
             /*
              * ASAP
              */
 
-            schedulable = new MySchedulable();
-            scheduler.execute(schedulable);
-            assertEquals(0L, schedulable.waitAndGetReport().theoreticalTimeNs);
-            assertEquals(0L, schedulable.waitAndGetReport().actualTimeNs);
+            runnable = new MyRunnable(clock);
+            scheduler.execute(runnable);
+            assertEquals(0L, runnable.waitAndGetReport().runCallTimeNs);
 
             /*
              * At time (now).
              */
 
-            schedulable = new MySchedulable();
-            scheduler.executeAtNs(schedulable,0L);
+            runnable = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable,0L);
 
-            assertEquals(0L, schedulable.waitAndGetReport().theoreticalTimeNs);
-            assertEquals(0L, schedulable.waitAndGetReport().actualTimeNs);
+            assertEquals(0L, runnable.waitAndGetReport().runCallTimeNs);
 
             /*
              * At time (future).
              */
 
-            schedulable = new MySchedulable();
-            scheduler.executeAtNs(schedulable,1L);
+            runnable = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable,1L);
 
             // Letting time for processing (not) to occur.
             sleepMS(REAL_TIME_TOLERANCE_MS);
-            assertFalse(schedulable.runCalled());
+            assertFalse(runnable.runCalled());
 
             // Clock change supposed to stop scheduler's wait.
             clock.setTimeNs(1L);
-            assertEquals(1L, schedulable.waitAndGetReport().theoreticalTimeNs);
-            assertEquals(1L, schedulable.waitAndGetReport().actualTimeNs);
+            assertEquals(1L, runnable.waitAndGetReport().runCallTimeNs);
 
             /*
              * At time (future) with multiple time changes.
              */
 
-            schedulable = new MySchedulable();
-            scheduler.executeAtNs(schedulable,1000L);
+            runnable = new MyRunnable(clock);
+            scheduler.executeAtNs(runnable,1000L);
 
             clock.setTimeNs(500L);
             clock.setTimeNs(100L);
@@ -2337,11 +2276,10 @@ public class HardSchedulerTest extends TestCase {
 
             // Letting time for processing (not) to occur.
             sleepMS(REAL_TIME_TOLERANCE_MS);
-            assertFalse(schedulable.runCalled());
+            assertFalse(runnable.runCalled());
 
             clock.setTimeNs(1000L);
-            assertEquals(1000L, schedulable.waitAndGetReport().theoreticalTimeNs);
-            assertEquals(1000L, schedulable.waitAndGetReport().actualTimeNs);
+            assertEquals(1000L, runnable.waitAndGetReport().runCallTimeNs);
         }
         
         shutdownNowAndWait(schedulerList);
@@ -2367,13 +2305,13 @@ public class HardSchedulerTest extends TestCase {
              */
 
             final long durationMs = 1000L;
-            final long durationNs = durationMs*1000L*1000L;
+            final long durationNs = durationMs * (1000L * 1000L);
             final double halfTimeSpeed = 0.5;
 
             final long dummyWaitMs = durationMs/10;
 
-            final MySchedulable schedulable = new MySchedulable();
-            scheduler.executeAfterNs(schedulable, durationNs);
+            final MyRunnable runnable = new MyRunnable(clock);
+            scheduler.executeAfterNs(runnable, durationNs);
             final long sysStartMs = System.currentTimeMillis();
 
             // Waiting some real time (clock time not flowing).
@@ -2393,24 +2331,19 @@ public class HardSchedulerTest extends TestCase {
             // i.e. half the duration in clock time,
             // and the duration in real time (since clock time is twice slower).
 
-            final MySchedulingReport report = schedulable.waitAndGetReport();
+            final MySchedulingReport report = runnable.waitAndGetReport();
             final long sysEndMs = System.currentTimeMillis();
 
             // Checking real time spent.
             assertEquals(durationMs/2 + 2*dummyWaitMs + durationMs, sysEndMs - sysStartMs, REAL_TIME_TOLERANCE_MS);
-            // Checking scheduling theoretical time.
-            assertEquals(startTimeNs+durationNs, report.theoreticalTimeNs);
             // Checking scheduling actual time.
-            assertEquals(startTimeNs+durationNs, report.actualTimeNs, REAL_TIME_TOLERANCE_NS);
+            assertEquals(startTimeNs+durationNs, report.runCallTimeNs, REAL_TIME_TOLERANCE_NS);
         }
         
         shutdownNowAndWait(schedulerList);
     }
 
-    /**
-     * Testing priority of timed schedules over ASAP schedules.
-     */
-    public void test_timedSchedPriority() {
+    public void test_schedulingFairness() {
         final EnslavedControllableHardClock clock = getClockForTest();
         clock.setTimeSpeed(0.0);
         clock.setTimeNs(0L);
@@ -2421,39 +2354,45 @@ public class HardSchedulerTest extends TestCase {
             // Stopping scheduler while we setup schedules.
             ((HardScheduler) scheduler).stopProcessing();
 
-            // Schedulables.
-            final MySchedulable scheduledInPast = new MySchedulable();
-            final MySchedulable scheduledAsap = new MySchedulable();
-            final MySchedulable scheduledInFuture = new MySchedulable();
-            scheduler.execute(scheduledAsap);
-            scheduler.executeAtNs(scheduledInPast, clock.getTimeNs() - REAL_TIME_TOLERANCE_NS);
+            final MyRunnable scheduledAsap1 = new MyRunnable(clock);
+            final MyRunnable scheduledInFuture = new MyRunnable(clock);
+            final MyRunnable scheduledAsap2 = new MyRunnable(clock);
+            final MyRunnable scheduledInPast = new MyRunnable(clock);
+            final MyRunnable scheduledAsap3 = new MyRunnable(clock);
+            scheduler.execute(scheduledAsap1);
             scheduler.executeAtNs(scheduledInFuture, clock.getTimeNs() + REAL_TIME_TOLERANCE_NS);
+            scheduler.execute(scheduledAsap2);
+            scheduler.executeAtNs(scheduledInPast, clock.getTimeNs() - REAL_TIME_TOLERANCE_NS);
+            scheduler.execute(scheduledAsap3);
 
             // Starting scheduler and clock.
             ((HardScheduler)scheduler).startProcessing();
             clock.setTimeSpeed(1.0);
             
-            // In past < ASAP < in future.
-            final long num1 = scheduledInPast.waitAndGetReport().orderNum;
-            final long num2 = scheduledAsap.waitAndGetReport().orderNum;
-            final long num3 = scheduledInFuture.waitAndGetReport().orderNum;
+            /*
+             * Asap1 and Asap2 executed before InPast because scheduled before.
+             */
+            final long num1 = scheduledAsap1.waitAndGetReport().orderNum;
+            final long num2 = scheduledAsap2.waitAndGetReport().orderNum;
+            final long num3 = scheduledInPast.waitAndGetReport().orderNum;
+            final long num4 = scheduledAsap3.waitAndGetReport().orderNum;
+            final long num5 = scheduledInFuture.waitAndGetReport().orderNum;
             assertEquals(num2, num1 + 1);
             assertEquals(num3, num2 + 1);
+            assertEquals(num4, num3 + 1);
+            assertEquals(num5, num4 + 1);
         }
         
         shutdownNowAndWait(schedulerList);
     }
 
     /**
-     * Testing run method reschedules unless if exception,
-     * in which case worker threads must survive.
+     * Testing that worker threads survive exceptions.
      */
-    public void test_runReschedulesAndExceptions() {
+    public void test_workersSurvivalFromExceptions() {
         final InterfaceHardClock clock = getClockForTest();
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
-        @SuppressWarnings("unused")
-        int nbrOfReschedules;
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
@@ -2480,59 +2419,59 @@ public class HardSchedulerTest extends TestCase {
              */
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = null);
-                scheduler.execute(schedulable);
-                schedulable.waitAndGetReport();
-                assertEquals(2, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.execute(runnable);
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = null);
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
-                schedulable.waitAndGetReport();
-                assertEquals(2, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = null,
                         throwableInOnCancel = null);
-                scheduler.executeAfterNs(schedulable, 0);
-                schedulable.waitAndGetReport();
-                assertEquals(2, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.executeAfterNs(runnable, 0);
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
             }
 
             /*
-             * Exception in run: doesn't reschedule, and scheduler survives.
+             * Exception in run: workers survives.
              */
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = MyThrowableType.EXCEPTION,
                         throwableInOnCancel = null);
-                scheduler.execute(schedulable);
-                schedulable.waitAndGetReport();
-                assertEquals(1, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.execute(runnable);
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
 
                 // Letting time to wrapping runnable to call worker's runnable again.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -2541,16 +2480,16 @@ public class HardSchedulerTest extends TestCase {
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = MyThrowableType.EXCEPTION,
                         throwableInOnCancel = null);
-                scheduler.executeAtNs(schedulable, clock.getTimeNs());
-                schedulable.waitAndGetReport();
-                assertEquals(1, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.executeAtNs(runnable, clock.getTimeNs());
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
 
                 // Letting time to wrapping runnable to call worker's runnable again.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -2559,16 +2498,16 @@ public class HardSchedulerTest extends TestCase {
             }
 
             {
-                final MySchedulable schedulable = new MySchedulable(
-                        nbrOfReschedules = 1,
+                final MyRunnable runnable = new MyRunnable(
+                        clock,
                         sleepTimeMsInRun = 0,
                         sleepTimeMsInOnCancel = 0,
                         throwableInRun = MyThrowableType.EXCEPTION,
                         throwableInOnCancel = null);
-                scheduler.executeAfterNs(schedulable, 0);
-                schedulable.waitAndGetReport();
-                assertEquals(1, schedulable.nbrOfRunCalls);
-                assertEquals(0, schedulable.nbrOfOnCancelCalls);
+                scheduler.executeAfterNs(runnable, 0);
+                runnable.waitAndGetReport();
+                assertEquals(1, runnable.nbrOfRunCalls);
+                assertEquals(0, runnable.nbrOfOnCancelCalls);
 
                 // Letting time to wrapping runnable to call worker's runnable again.
                 sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -2631,8 +2570,6 @@ public class HardSchedulerTest extends TestCase {
                 null);
 
         @SuppressWarnings("unused")
-        int nbrOfReschedules;
-        @SuppressWarnings("unused")
         long sleepTimeMsInRun;
         @SuppressWarnings("unused")
         long sleepTimeMsInOnCancel;
@@ -2641,59 +2578,39 @@ public class HardSchedulerTest extends TestCase {
         @SuppressWarnings("unused")
         MyThrowableType throwableInOnCancel;
 
-        MySchedulable schedulableTmp;
+        MyRunnable runnableTmp;
 
         for (HardScheduler scheduler : schedulerList) {
             scheduler.stopProcessing();
 
             // Filling ASAP queue.
             for (int i = 0; i < asapQueueCapacity; i++) {
-                scheduler.execute(new MySchedulable());
+                runnableTmp = new MyRunnable(clock);
+                scheduler.execute(runnableTmp);
+                assertFalse(runnableTmp.runCalled());
+                assertFalse(runnableTmp.onCancelCalled());
             }
 
             // Checking new ASAP schedules are rejected.
-            schedulableTmp = new MySchedulable();
-            scheduler.execute(schedulableTmp);
-            assertFalse(schedulableTmp.runCalled());
-            assertTrue(schedulableTmp.onCancelCalled());
-
-            final long runSleepMs = 1000L;
+            runnableTmp = new MyRunnable(clock);
+            scheduler.execute(runnableTmp);
+            assertFalse(runnableTmp.runCalled());
+            assertTrue(runnableTmp.onCancelCalled());
 
             // Filling timed queue.
             long nowNs = clock.getTimeNs();
-            MySchedulable schedulable = new MySchedulable(
-                    nbrOfReschedules = 1,
-                    sleepTimeMsInRun = runSleepMs,
-                    sleepTimeMsInOnCancel = 0,
-                    throwableInRun = null,
-                    throwableInOnCancel = null);
-            scheduler.executeAtNs(schedulable, nowNs);
-            for (int i = 1; i < timedQueueCapacity; i++) {
-                scheduler.executeAtNs(new MySchedulable(), nowNs);
+            for (int i = 0; i < timedQueueCapacity; i++) {
+                runnableTmp = new MyRunnable(clock);
+                scheduler.executeAtNs(runnableTmp, nowNs);
+                assertFalse(runnableTmp.runCalled());
+                assertFalse(runnableTmp.onCancelCalled());
             }
 
             // Checking new timed schedules are rejected.
-            schedulableTmp = new MySchedulable();
-            scheduler.executeAtNs(schedulableTmp, nowNs);
-            assertFalse(schedulableTmp.runCalled());
-            assertTrue(schedulableTmp.onCancelCalled());
-
-            // Starting processing, waiting for first timed schedule
-            // (which run waits for a bit) to start being processed,
-            // then we add a new timed schedule: the re-schedule must
-            // be canceled since the timed queue is now full again.
-            scheduler.startProcessing();
-            sleepMS(runSleepMs/2);
-            // New schedule added into timed queue.
-            schedulableTmp = new MySchedulable();
-            scheduler.executeAtNs(schedulableTmp, nowNs);
-            assertFalse(schedulableTmp.runCalled());
-            assertFalse(schedulableTmp.onCancelCalled());
-            // Waiting for schedulable to be done.
-            schedulable.waitAndGetReport();
-            // Checking schedulable was canceled instead of re-scheduled.
-            assertEquals(1, schedulable.nbrOfRunCalls);
-            assertTrue(schedulable.onCancelCalled());
+            runnableTmp = new MyRunnable(clock);
+            scheduler.executeAtNs(runnableTmp, nowNs);
+            assertFalse(runnableTmp.runCalled());
+            assertTrue(runnableTmp.onCancelCalled());
         }
         
         shutdownNowAndWait(schedulerList);
@@ -2723,12 +2640,12 @@ public class HardSchedulerTest extends TestCase {
                 final int nbrOfCallsPerThread = 1000;
                 final int nbrOfCalls = nbrOfCallsPerThread * nbrOfThreads;
 
-                final ArrayList<MySchedulable> schedulables = new ArrayList<MySchedulable>(nbrOfCalls);
+                final ArrayList<MyRunnable> runnables = new ArrayList<MyRunnable>(nbrOfCalls);
                 for (int i = 0; i < nbrOfCalls; i++) {
-                    schedulables.add(new MySchedulable());
+                    runnables.add(new MyRunnable(clock));
                 }
 
-                final AtomicInteger schedulableIndex = new AtomicInteger();
+                final AtomicInteger runnableIndex = new AtomicInteger();
 
                 final ExecutorService executor = Executors.newCachedThreadPool();
                 for (int t = 0; t < nbrOfThreads; t++) {
@@ -2736,14 +2653,14 @@ public class HardSchedulerTest extends TestCase {
                         @Override
                         public void run() {
                             for (int i = 0; i < nbrOfCallsPerThread; i++) {
-                                final InterfaceSchedulable schedulable = schedulables.get(schedulableIndex.getAndIncrement());
+                                final MyRunnable runnable = runnables.get(runnableIndex.getAndIncrement());
 
                                 final int uniform_0_3 = random.nextInt(4);
 
                                 if (uniform_0_3 <= 1) {
-                                    scheduler.execute(schedulable);
+                                    scheduler.execute(runnable);
                                 } else {
-                                    scheduler.executeAtNs(schedulable, clock.getTimeNs());
+                                    scheduler.executeAtNs(runnable, clock.getTimeNs());
                                 }
 
                                 if ((uniform_0_3&1) == 0) {
@@ -2759,12 +2676,12 @@ public class HardSchedulerTest extends TestCase {
                 }
                 Unchecked.shutdownAndAwaitTermination(executor);
 
-                // Checking all schedulables have been processed.
-                for (MySchedulable schedulable : schedulables) {
-                    schedulable.waitAndGetReport();
-                    assertTrue(schedulable.runCalled());
-                    assertFalse(schedulable.runInterrupted);
-                    assertFalse(schedulable.onCancelCalled());
+                // Checking all runnables have been processed.
+                for (MyRunnable runnable : runnables) {
+                    runnable.waitAndGetReport();
+                    assertTrue(runnable.runCalled());
+                    assertFalse(runnable.runInterrupted);
+                    assertFalse(runnable.onCancelCalled());
                 }
             }
         }
@@ -2865,13 +2782,13 @@ public class HardSchedulerTest extends TestCase {
                                     scheduler.interruptWorkers();
                                     break;
                                 case 18:
-                                    scheduler.execute(new MySchedulable());
+                                    scheduler.execute(new MyRunnable(clock));
                                     break;
                                 case 19:
-                                    scheduler.executeAtNs(new MySchedulable(), clock.getTimeNs());
+                                    scheduler.executeAtNs(new MyRunnable(clock), clock.getTimeNs());
                                     break;
                                 case 20:
-                                    scheduler.executeAfterNs(new MySchedulable(), 1L);
+                                    scheduler.executeAfterNs(new MyRunnable(clock), 1L);
                                     break;
                                 default:
                                     throw new AssertionError(uniform_1_N);
@@ -2922,7 +2839,7 @@ public class HardSchedulerTest extends TestCase {
             for (boolean asapElseTimed : new boolean[]{false,true}) {
                 final AtomicInteger res = new AtomicInteger();
                 final MonitorCondilock condilock = new MonitorCondilock();
-                final Runnable checkingRunnable = new Runnable() {
+                final MyRunnable checkingRunnable = new MyRunnable(clock) {
                     @Override
                     public void run() {
                         res.set(scheduler.isWorkerThread() ? 1 : -1);
@@ -2979,7 +2896,7 @@ public class HardSchedulerTest extends TestCase {
          * 
          */
         
-        final Runnable checkingRunnable = new Runnable() {
+        final MyRunnable checkingRunnable = new MyRunnable(clock) {
             @Override
             public void run() {
                 assertTrue(scheduler.isWorkerThread());
@@ -3031,7 +2948,11 @@ public class HardSchedulerTest extends TestCase {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
+    /*
+     * 
+     */
+    
     private static void shutdownNowAndWait(List<HardScheduler> schedulerList) {
         for (HardScheduler scheduler : schedulerList) {
             shutdownNowAndWait(scheduler);
@@ -3039,6 +2960,15 @@ public class HardSchedulerTest extends TestCase {
     }
 
     private static void shutdownNowAndWait(HardScheduler scheduler) {
+        /*
+         * TODO For some enigmaticalistiquesquish reason,
+         * interrupting formerly tested scheduler's workers,
+         * causes interruption of workers of subsequent tests,
+         * before we try to shut them down, as if the JVM
+         * was reusing OS threads for new Java threads,
+         * if that makes sense.
+         * As a result, we don't interrupt here.
+         */
         final boolean mustInterruptWorkingWorkers = false;
         scheduler.shutdownNow(mustInterruptWorkingWorkers);
         try {
@@ -3106,10 +3036,11 @@ public class HardSchedulerTest extends TestCase {
             int asapQueueCapacity,
             int timedQueueCapacity,
             final ThreadFactory threadFactory) {
+        final boolean daemon = true;
         final HardScheduler scheduler1 = HardScheduler.newInstance(
                 clock,
                 "SCHEDULER_1",
-                true,
+                daemon,
                 nbrOfThreads,
                 asapQueueCapacity,
                 timedQueueCapacity,

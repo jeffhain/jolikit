@@ -32,7 +32,7 @@ import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
-import net.jolikit.time.sched.AbstractRepeatedProcess;
+import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
@@ -81,10 +81,10 @@ public class SampleBwd {
          * Won't help if the backing library doesn't provide a way
          * to read mouse position aside from mouse events.
          */
-        private final AbstractRepeatedProcess mousePoll;
+        private final AbstractProcess mousePoll;
         public MyClient(final InterfaceBwdBinding binding) {
             this.binding = binding;
-            this.mousePoll = new AbstractRepeatedProcess(binding.getUiThreadScheduler()) {
+            this.mousePoll = new AbstractProcess(binding.getUiThreadScheduler()) {
                 @Override
                 protected long process(long theoreticalTimeNs, long actualTimeNs) {
                     

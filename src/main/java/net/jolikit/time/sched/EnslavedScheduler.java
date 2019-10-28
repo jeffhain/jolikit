@@ -36,61 +36,6 @@ import net.jolikit.time.clocks.InterfaceEnslavedClock;
 public class EnslavedScheduler extends AbstractScheduler {
 
     //--------------------------------------------------------------------------
-    // PRIVATE CLASSES
-    //--------------------------------------------------------------------------
-
-    /**
-     * Watch out: is a scheduling (in enslaved clock time frame),
-     * and also contains a scheduling (in root clock time frame).
-     */
-    private class MyEnslavedSchedulable extends DefaultScheduling implements InterfaceSchedulable {
-        private final InterfaceSchedulable schedulable;
-        private InterfaceScheduling rootScheduling;
-        /**
-         * For ASAP schedules.
-         */
-        public MyEnslavedSchedulable(InterfaceSchedulable schedulable) {
-            this.schedulable = schedulable;
-        }
-        /**
-         * For timed schedules.
-         */
-        public MyEnslavedSchedulable(
-                InterfaceSchedulable schedulable,
-                long theoreticalTimeNs) {
-            this.schedulable = schedulable;
-            this.setTheoreticalTimeNs(theoreticalTimeNs);
-        }
-        @Override
-        public void setScheduling(InterfaceScheduling rootScheduling) {
-            this.rootScheduling = rootScheduling;
-        }
-        @Override
-        public void run() {
-            final long enslavedActualTimeNs = enslavedClock.getTimeNs();
-            this.updateBeforeRun(enslavedActualTimeNs);
-            
-            this.schedulable.setScheduling(this);
-            this.schedulable.run();
-            
-            final boolean mustRepeat = this.isNextTheoreticalTimeSet();
-            if (mustRepeat) {
-                final long enslavedNextNs = this.getNextTheoreticalTimeNs();
-                this.setTheoreticalTimeNs(enslavedNextNs);
-                
-                final long rootNextNs = ClocksUtils.computeRootTimeNs(
-                        enslavedClock,
-                        enslavedNextNs);
-                this.rootScheduling.setNextTheoreticalTimeNs(rootNextNs);
-            }
-        }
-        @Override
-        public void onCancel() {
-            this.schedulable.onCancel();
-        }
-    }
-
-    //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
 
@@ -122,29 +67,14 @@ public class EnslavedScheduler extends AbstractScheduler {
 
     @Override
     public void execute(Runnable runnable) {
-        if (runnable instanceof InterfaceSchedulable) {
-            final MyEnslavedSchedulable schedule =
-                    new MyEnslavedSchedulable(
-                            (InterfaceSchedulable) runnable);
-            this.rootScheduler.execute(schedule);
-        } else {
-            this.rootScheduler.execute(runnable);
-        }
+        this.rootScheduler.execute(runnable);
     }
 
     @Override
     public void executeAtNs(Runnable runnable, long timeNs) {
         final long rootTimeNs = ClocksUtils.computeRootTimeNs(
-                enslavedClock,
+                this.enslavedClock,
                 timeNs);
-        if (runnable instanceof InterfaceSchedulable) {
-            final MyEnslavedSchedulable schedule =
-                    new MyEnslavedSchedulable(
-                            (InterfaceSchedulable) runnable,
-                            timeNs);
-            this.rootScheduler.executeAtNs(schedule, rootTimeNs);
-        } else {
-            this.rootScheduler.executeAtNs(runnable, rootTimeNs);
-        }
+        this.rootScheduler.executeAtNs(runnable, rootTimeNs);
     }
 }
