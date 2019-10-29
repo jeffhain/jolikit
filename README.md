@@ -78,8 +78,6 @@ Apache License V2.0
   Principal entry points:
   - net.jolikit.time.clocks.InterfaceClock
   - net.jolikit.time.sched.InterfaceScheduler
-  - net.jolikit.time.sched.InterfaceSchedulable
-  - net.jolikit.time.sched.InterfaceScheduling
 
 - net.jolikit.bwd:
   Provides a simple 2D UI API to abstract away UI libraries, by defining types
@@ -185,7 +183,7 @@ with compilation target version in parentheses:
 
 # Unit tests
 
-- Run individual XxxTest file with JUnit,
+- Run individual XxxTest files with JUnit,
   or all tests at once if your IDE allows.
 
 # BWD GUI tests
