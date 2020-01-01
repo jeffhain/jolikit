@@ -160,7 +160,7 @@ public class AbztractRepeatableTaskTest extends TestCase {
         }
 
         @Override
-        protected void runImpl(long theoreticalTimeNs, long actualTimeNs) {
+        protected void runImpl(final long theoreticalTimeNs, final long actualTimeNs) {
             assertFalse(this.isPending());
             assertFalse(this.isOnBeginBeingCalled());
             assertTrue(this.isRepeating());

@@ -751,7 +751,7 @@ public class AbztractProcessSoftTest extends TestCase {
         this.test_reschedule(PERIOD_NS/2);
     }
     
-    public void test_reschedule(long myPeriodNs) {
+    public void test_reschedule(final long myPeriodNs) {
         final SoftTestHelper helper = new SoftTestHelper();
 
         final InterfaceClock clock = helper.getClock();
