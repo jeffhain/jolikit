@@ -28,6 +28,7 @@ import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 
@@ -91,6 +92,10 @@ public class Sdl2BoundBwdMain implements InterfaceBindingMainLaunchInfo {
             final String[] args,
             final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
         
+        final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                args,
+                testCaseHomeProvider);
+
         eventuallyLoadLib();
 
         final SdlBwdBindingConfig bindingConfig;
@@ -104,6 +109,8 @@ public class Sdl2BoundBwdMain implements InterfaceBindingMainLaunchInfo {
                     ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE);
             bindingConfig.setScreenBounds(screenBounds);
             bindingConfig.setScreenBoundsType(ScreenBoundsType.CONFIGURED);
+            
+            BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
         }
 
         final SdlBwdBinding binding = new SdlBwdBinding(bindingConfig);
@@ -115,7 +122,7 @@ public class Sdl2BoundBwdMain implements InterfaceBindingMainLaunchInfo {
         binding.getUiThreadScheduler().execute(new Runnable() {
             @Override
             public void run() {
-                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
             }
         });
 

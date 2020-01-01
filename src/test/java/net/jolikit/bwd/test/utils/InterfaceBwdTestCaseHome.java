@@ -26,9 +26,19 @@ import net.jolikit.bwd.impl.utils.basics.InterfaceDefaultFontInfoComputer;
  * and to create new instances of the test case bound to a specific binding.
  */
 public interface InterfaceBwdTestCaseHome {
+
+    /*
+     * Stuffs for configuring the binding, before its creation.
+     */
+    
+    /**
+     * @return Parallelizer's parallelism to use,
+     *         or null to use binding's config default.
+     */
+    public Integer getParallelizerParallelismElseNull();
     
     /*
-     * Stuffs for configuring the binding.
+     * Stuffs for configuring the binding, after its creation.
      */
     
     /**

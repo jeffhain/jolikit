@@ -34,6 +34,21 @@ public abstract class AbstractBwdTestCaseHome extends BwdClientMock implements I
     
     /**
      * This default implementation returns null.
+     * 
+     * Note that tests use a sequential parallelizer if the binding
+     * doesn't support parallelism for their test cases.
+     */
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return null;
+    }
+    
+    /*
+     * 
+     */
+
+    /**
+     * This default implementation returns null.
      */
     @Override
     public Double getClientPaintDelaySElseNull() {

@@ -48,6 +48,8 @@ public class ConcurrentImageCreaDispBwdTestCase extends AbstractBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
+    private static final int PARALLELISM = 4;
+    
     private static final int SPLIT_COUNT = 2;
     
     private static final String[] IMG_FILE_PATH_ARR = new String[]{
@@ -188,6 +190,15 @@ public class ConcurrentImageCreaDispBwdTestCase extends AbstractBwdTestCase {
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return PARALLELISM;
     }
 
     //--------------------------------------------------------------------------

@@ -47,6 +47,8 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
+    private static final int PARALLELISM = 4;
+    
     private static final int SPLIT_COUNT = 2;
     
     private static final int FONT_SIZE_INCREMENT = 4;
@@ -170,6 +172,15 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return PARALLELISM;
     }
 
     //--------------------------------------------------------------------------

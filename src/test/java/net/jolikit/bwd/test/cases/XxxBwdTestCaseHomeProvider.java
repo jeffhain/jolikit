@@ -40,11 +40,11 @@ import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestC
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgTranspFgBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceTranspBgOpaqFgBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceTranspBgTranspFgBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchParallelFillBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_0s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over30s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over60s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
-import net.jolikit.bwd.test.cases.visualsturds.BenchParallelFillBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentFontCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentImageCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ParallelDrawingBwdTestCase;

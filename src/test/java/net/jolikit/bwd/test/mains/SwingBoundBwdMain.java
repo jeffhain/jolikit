@@ -23,6 +23,7 @@ import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.DefaultMainLaunchInfo;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 
@@ -71,7 +72,13 @@ public class SwingBoundBwdMain extends DefaultMainLaunchInfo implements Interfac
             final String[] args,
             final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
         
+        final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                args,
+                testCaseHomeProvider);
+
         final SwingBwdBindingConfig bindingConfig = new SwingBwdBindingConfig();
+        
+        BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
 
         final SwingBwdBinding binding = new SwingBwdBinding(bindingConfig);
         
@@ -82,7 +89,7 @@ public class SwingBoundBwdMain extends DefaultMainLaunchInfo implements Interfac
         binding.getUiThreadScheduler().execute(new Runnable() {
             @Override
             public void run() {
-                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
             }
         });
     }

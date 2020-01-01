@@ -27,6 +27,7 @@ import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 
@@ -89,6 +90,10 @@ public class Algr5BoundBwdMain implements InterfaceBindingMainLaunchInfo {
     protected static void launchTheBindingWithTestCaseFromArgs(
             final String[] args,
             final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
+        
+        final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                args,
+                testCaseHomeProvider);
 
         final double[] pixelRatioOsOverDeviceXyArr = BwdTestUtils.getPixelRatioOsOverDeviceXyArr();
 
@@ -104,6 +109,8 @@ public class Algr5BoundBwdMain implements InterfaceBindingMainLaunchInfo {
                 screenBounds,
                 BwdTestUtils.getBorderRectAlgr5());
         
+        BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+
         final AlgrBwdBinding binding = new AlgrBwdBinding(bindingConfig);
 
         /*
@@ -113,7 +120,7 @@ public class Algr5BoundBwdMain implements InterfaceBindingMainLaunchInfo {
         binding.getUiThreadScheduler().execute(new Runnable() {
             @Override
             public void run() {
-                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
             }
         });
 

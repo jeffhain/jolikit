@@ -66,27 +66,20 @@ public class BwdBindingLaunchUtils {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
-    public static void launchBindingWithTestCase(
-            String[] args,
-            final InterfaceBwdBinding binding,
-            String bindingName,
-            InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
-
+    
+    /**
+     * To be called first.
+     */
+    public static InterfaceBwdTestCaseHome getTestCaseHome(
+        String[] args,
+        InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
+        
         if (DEBUG) {
-            Dbg.log("launchBindingWithTestCase(...):");
-            Dbg.log("bindingName = " + bindingName);
+            Dbg.log("getTestCaseHome(...)");
         }
 
+        // Doing complete args check only once, here.
         AH.checkArgs(args, System.out);
-
-        final AbstractBwdBinding bindingImpl = (AbstractBwdBinding) binding;
-        
-        final BaseBwdBindingConfig bindingConfig = bindingImpl.getBindingConfig();
-        
-        if (DEBUG) {
-            Dbg.log("getting test case home...");
-        }
 
         final InterfaceBwdTestCaseHome testCaseHome;
         final String homeClassName = AH.getArgN(args, OPT_TCHCN, 1);
@@ -98,6 +91,43 @@ public class BwdBindingLaunchUtils {
                 throw new IllegalArgumentException("unknown home class name: " + homeClassName);
             }
         }
+        return testCaseHome;
+    }
+    
+    /**
+     * To be called second.
+     */
+    public static void setParallelizerParallelism(
+        InterfaceBwdTestCaseHome testCaseHome,
+        BaseBwdBindingConfig bindingConfig) {
+        
+        if (DEBUG) {
+            Dbg.log("setParallelizerParallelism(...)");
+        }
+        
+        final Integer prlRef = testCaseHome.getParallelizerParallelismElseNull();
+        if (prlRef != null) {
+            bindingConfig.setParallelizerParallelism(prlRef.intValue());
+        }
+    }
+    
+    /**
+     * To be called third.
+     */
+    public static void launchBindingWithTestCase(
+            String[] args,
+            final InterfaceBwdBinding binding,
+            String bindingName,
+            InterfaceBwdTestCaseHome testCaseHome) {
+
+        if (DEBUG) {
+            Dbg.log("launchBindingWithTestCase(...)");
+            Dbg.log("bindingName = " + bindingName);
+        }
+
+        final AbstractBwdBinding bindingImpl = (AbstractBwdBinding) binding;
+        
+        final BaseBwdBindingConfig bindingConfig = bindingImpl.getBindingConfig();
         
         if (DEBUG) {
             Dbg.log("configuring binding from test case home...");

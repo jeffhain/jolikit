@@ -24,6 +24,7 @@ import net.jolikit.bwd.test.cases.XxxBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 
@@ -110,7 +111,13 @@ public class SwtBoundBwdMain implements InterfaceBindingMainLaunchInfo {
             final String[] args,
             final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
 
+        final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                args,
+                testCaseHomeProvider);
+
         final SwtBwdBindingConfig bindingConfig = new SwtBwdBindingConfig();
+        
+        BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
 
         final SwtBwdBinding binding = new SwtBwdBinding(bindingConfig);
 
@@ -121,7 +128,7 @@ public class SwtBoundBwdMain implements InterfaceBindingMainLaunchInfo {
         binding.getUiThreadScheduler().execute(new Runnable() {
             @Override
             public void run() {
-                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
             }
         });
 

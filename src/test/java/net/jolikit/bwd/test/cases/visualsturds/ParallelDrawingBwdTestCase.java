@@ -47,6 +47,8 @@ public class ParallelDrawingBwdTestCase extends AbstractBwdTestCase {
     
     private static final boolean DEBUG = false;
 
+    private static final int PARALLELISM = 4;
+    
     /**
      * To make sure our font is not identical to default font,
      * so that setting it does something for sure.
@@ -181,6 +183,15 @@ public class ParallelDrawingBwdTestCase extends AbstractBwdTestCase {
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return PARALLELISM;
     }
 
     //--------------------------------------------------------------------------

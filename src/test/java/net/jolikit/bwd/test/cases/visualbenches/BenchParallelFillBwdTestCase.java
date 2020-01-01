@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.test.cases.visualsturds;
+package net.jolikit.bwd.test.cases.visualbenches;
 
 import java.util.List;
 
@@ -43,6 +43,8 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+    
+    private static final int PARALLELISM = 4;
     
     private static final int AREA_SPLIT_THRESHOLD = 5 * 100 * 100;
     
@@ -157,6 +159,15 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return PARALLELISM;
     }
 
     /*

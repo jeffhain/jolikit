@@ -27,6 +27,7 @@ import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 
@@ -90,6 +91,10 @@ public class JoglBoundBwdMain implements InterfaceBindingMainLaunchInfo {
             final String[] args,
             final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
 
+        final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                args,
+                testCaseHomeProvider);
+
         final double[] pixelRatioOsOverDeviceXyArr = BwdTestUtils.getPixelRatioOsOverDeviceXyArr();
 
         final JoglBwdBindingConfig bindingConfig;
@@ -101,8 +106,10 @@ public class JoglBoundBwdMain implements InterfaceBindingMainLaunchInfo {
                     ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE);
             bindingConfig.setScreenBounds(screenBounds);
             bindingConfig.setScreenBoundsType(ScreenBoundsType.CONFIGURED);
+            
+            BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
         }
-        
+
         final JoglBwdBinding binding = new JoglBwdBinding(bindingConfig);
 
         /*
@@ -112,7 +119,7 @@ public class JoglBoundBwdMain implements InterfaceBindingMainLaunchInfo {
         binding.getUiThreadScheduler().execute(new Runnable() {
             @Override
             public void run() {
-                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
             }
         });
 

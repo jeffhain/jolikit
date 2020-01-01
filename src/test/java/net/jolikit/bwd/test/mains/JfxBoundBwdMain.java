@@ -28,6 +28,7 @@ import net.jolikit.bwd.test.mains.utils.BwdBindingLaunchUtils;
 import net.jolikit.bwd.test.mains.utils.BwdMainLaunchUtils;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 import net.jolikit.test.utils.TestUtils;
@@ -98,11 +99,17 @@ public class JfxBoundBwdMain {
                 final String[] args,
                 final InterfaceBwdTestCaseHomeProvider testCaseHomeProvider) {
             
+            final InterfaceBwdTestCaseHome testCaseHome = BwdBindingLaunchUtils.getTestCaseHome(
+                    args,
+                    testCaseHomeProvider);
+
             Platform.runLater(new Runnable() {
                 @Override
                 public void run() {
                     final JfxBwdBindingConfig bindingConfig = new JfxBwdBindingConfig(
                             BwdTestUtils.getBorderRect());
+                    
+                    BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
 
                     /*
                      * XXX jfx Can have an IllegalStateException (using JDK 8u25)
@@ -115,7 +122,7 @@ public class JfxBoundBwdMain {
                      * 
                      */
                     
-                    BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHomeProvider);
+                    BwdBindingLaunchUtils.launchBindingWithTestCase(args, binding, BINDING_NAME, testCaseHome);
                 }
             });
         

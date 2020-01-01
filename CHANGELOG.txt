@@ -63,6 +63,9 @@ Jolikit X.X, XXXX/XX/XX
 
 - Added finals for Java 7 (or less) source compatibility.
 
+- Restored an actual parallelism for related test cases
+  (config default had been changed to 1).
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################
