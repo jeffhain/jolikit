@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.utils.BwdUnicode;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
@@ -172,10 +173,42 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void finishImpl() {
     }
+    
+    /*
+     * 
+     */
 
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         // Nothing to do.
+    }
+    
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clip,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        this.setBackingStateDefaultImpl(
+                mustSetClip,
+                clip,
+                //
+                mustSetTransform,
+                transform,
+                //
+                mustSetColor,
+                argb64,
+                //
+                mustSetFont,
+                font);
     }
     
     /*

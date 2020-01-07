@@ -29,6 +29,7 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.ObjectWrapper;
 
 import com.trolltech.qt.core.QEvent;
 import com.trolltech.qt.core.QEvent.Type;
@@ -422,7 +423,20 @@ public class QtjBwdHost extends AbstractBwdHost {
     private QImage offscreenImage = new QImage(
             BindingBasicsUtils.MIN_STORAGE_SPAN,
             BindingBasicsUtils.MIN_STORAGE_SPAN,
-            Format.Format_ARGB32_Premultiplied);;
+            Format.Format_ARGB32_Premultiplied);
+    
+    /**
+     * To contain the reference to a pool of Qt objects,
+     * shared among all graphics for a same host.
+     * 
+     * The pool itself is created and managed by the graphics class.
+     * 
+     * This pool is tied to each host, and not to the binding,
+     * so that it can be reclaimed by GC after closing a host
+     * which painting created a crazy amount of graphics.
+     */
+    private final ObjectWrapper<Object> hostGraphicsQtStuffsPoolRef =
+            new ObjectWrapper<Object>();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -938,7 +952,8 @@ public class QtjBwdHost extends AbstractBwdHost {
                     this.binding,
                     offscreenPainter,
                     imageForRead,
-                    box);
+                    box,
+                    this.hostGraphicsQtStuffsPoolRef);
 
             // No use for this list.
             @SuppressWarnings("unused")

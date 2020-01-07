@@ -34,6 +34,7 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.ObjectWrapper;
 
 import com.trolltech.qt.core.Qt.BrushStyle;
 import com.trolltech.qt.core.Qt.GlobalColor;
@@ -112,7 +113,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         public void fillRectInClip(
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
-            fillRect_raw(x, y, xSpan, ySpan, backingColor);
+            fillRect_raw(x, y, xSpan, ySpan, qtStuffs.backingColor);
         }
         @Override
         public void drawPoint(GRect clip, int x, int y) {
@@ -132,9 +133,35 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
             // Relying on backing clipping.
-            fillRect_raw(x, y, xSpan, ySpan, backingColor);
+            fillRect_raw(x, y, xSpan, ySpan, qtStuffs.backingColor);
         }
     };
+    
+    /**
+     * Qt objects, in which some of the backing state is held,
+     * that are pooled because they are heavy to create.
+     */
+    private static class MyQtStuffs {
+        
+        /*
+         * QPainter.pen(), QPen.color(), etc., return new instances at each call,
+         * so to avoid garbage we keep our own instances here.
+         */
+        
+        private final QTransform backingTransform = new QTransform();
+        
+        private final QColor backingColor = new QColor();
+        
+        private final QPen backingPen = new QPen();
+        
+        private final QColor clearColor = new QColor();
+        
+        /*
+         * Temps.
+         */
+        
+        private final QTransform tmpBackingTransform = new QTransform();
+    }
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -173,16 +200,12 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     private final QTransform initialBackingTransform;
     
     /*
-     * QPainter.pen(), QPen.color(), etc., return new instances at each call,
-     * so to avoid garbage we keep our own instances here.
+     * 
      */
     
-    private final QTransform backingTransform = new QTransform();
+    private final ArrayList<MyQtStuffs> qtStuffsPool;
     
-    private final QColor backingColor = new QColor();
-    private final QPen backingPen = new QPen(new QColor(GlobalColor.black));
-    
-    private final QColor clearColor = new QColor();
+    private final MyQtStuffs qtStuffs;
     
     /*
      * Common adjustments for some methods.
@@ -190,12 +213,6 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     private int xShiftInUser;
     private int yShiftInUser;
-    
-    /*
-     * temps
-     */
-
-    private final QTransform tmpBackingTransform = new QTransform();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -206,19 +223,25 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      * 
      * @param imageForRead Can be null, in which case pixel reading
      *        returns a default value.
+     * @param hostGraphicsQtStuffsPoolRef (in,out) Host-held reference
+     *        to a pool of Qt objects managed by this class.
      */
     public QtjBwdGraphics(
             InterfaceBwdBinding binding,
             QPainter painter,
             QImage imageForRead,
-            GRect box) {
+            GRect box,
+            //
+            ObjectWrapper<Object> hostGraphicsQtStuffsPoolRef) {
         this(
                 binding,
                 painter,
                 imageForRead,
                 box,
                 box, // baseClip
-                painter.combinedTransform());
+                //
+                painter.combinedTransform(),
+                getOrCreateQtStuffsPool(hostGraphicsQtStuffsPoolRef));
     }
 
     /**
@@ -271,7 +294,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 this.imageForRead,
                 childBox,
                 childBaseClip,
-                this.initialBackingTransform);
+                //
+                this.initialBackingTransform,
+                this.qtStuffsPool);
     }
 
     /*
@@ -292,7 +317,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.checkUsable();
         
         // Relying on backing clipping.
-        this.fillRect_raw(x, y, xSpan, ySpan, this.clearColor);
+        this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.clearColor);
     }
 
     /*
@@ -313,13 +338,13 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             computeQtPatternInto(factor, pattern, qtPattern);
 
             final QPen tmpPen = new QPen();
-            tmpPen.setColor(this.backingColor);
+            tmpPen.setColor(this.qtStuffs.backingColor);
             tmpPen.setDashPattern(qtPattern);
             this.painter.setPen(tmpPen);
             try {
                 this.painter.drawLine(x1, y1, x2, y2);
             } finally {
-                this.painter.setPen(this.backingPen);
+                this.painter.setPen(this.qtStuffs.backingPen);
             }
             
             // Best effort.
@@ -495,7 +520,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 this.drawLine(xClipped, lineY, xMaxClipped, lineY);
             }
         } finally {
-            this.painter.setPen(this.backingPen);
+            this.painter.setPen(this.qtStuffs.backingPen);
             
             this.painter.setCompositionMode(CompositionMode.CompositionMode_SourceOver);
         }
@@ -537,15 +562,21 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         }
 
         this.restoreBackingInitialTransform();
+        
+        this.releaseQtStuffs(this.qtStuffs);
     }
+    
+    /*
+     * 
+     */
 
     @Override
-    protected void onNewClip() {
+    protected void setBackingClip(GRect clipInClient) {
         this.setBackingClipToCurrent();
     }
     
     @Override
-    protected void onNewTransform() {
+    protected void setBackingTransform(GTransform transform) {
         this.setBackingTransformToCurrent();
 
         // Must reset clip as well, since we use transformed clip.
@@ -557,20 +588,54 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int argb32 = Argb3264.toArgb32(argb64);
         
         // TODO qtj Says rgba, but needs argb.
-        this.backingColor.setRgba(argb32);
+        this.qtStuffs.backingColor.setRgba(argb32);
         
-        this.backingPen.setColor(this.backingColor);
+        this.qtStuffs.backingPen.setColor(this.qtStuffs.backingColor);
         
-        this.painter.setPen(this.backingPen);
+        this.painter.setPen(this.qtStuffs.backingPen);
         
         final int opaqueArgb32 = Argb32.withAlpha8(argb32, 0xFF);
-        this.clearColor.setRgb(opaqueArgb32);
+        this.qtStuffs.clearColor.setRgb(opaqueArgb32);
     }
     
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         final QtjBwdFont fontImpl = (QtjBwdFont) font;
         this.painter.setFont(fontImpl.getBackingFont().backingFont());
+    }
+    
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clipInClient,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        if (mustSetTransform) {
+            this.setBackingTransform(transform);
+            if (mustSetClip) {
+                // Clip already taken care of by setBackingTransform(...).
+            }
+        } else {
+            if (mustSetClip) {
+                this.setBackingClip(clipInClient);
+            }
+        }
+        
+        if (mustSetColor) {
+            this.setBackingArgb64(argb64);
+        }
+        
+        if (mustSetFont) {
+            this.setBackingFont(font);
+        }
     }
     
     /*
@@ -605,7 +670,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int _y;
         final boolean scaling = (xSpan != sxSpan) || (ySpan != sySpan);
         if (scaling) {
-            final QTransform backingTransformToCombine = this.tmpBackingTransform;
+            final QTransform backingTransformToCombine = this.qtStuffs.tmpBackingTransform;
             backingTransformToCombine.reset();
             
             final double xScale = (xSpan / (double) sxSpan);
@@ -658,7 +723,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             }
         } finally {
             if (scaling) {
-                this.painter.setTransform(this.backingTransform);
+                this.painter.setTransform(this.qtStuffs.backingTransform);
             }
         }
     }
@@ -668,7 +733,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     /**
-     * Constructor to reuse initialTransform instance.
+     * Constructor to reuse instances from parent graphics.
      */
     private QtjBwdGraphics(
             InterfaceBwdBinding binding,
@@ -677,7 +742,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             GRect box,
             GRect baseClip,
             //
-            QTransform initialBackingTransform) {
+            QTransform initialBackingTransform,
+            ArrayList<MyQtStuffs> qtStuffsPool) {
         super(
                 binding,
                 box,
@@ -688,6 +754,41 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.imageForRead = imageForRead;
         
         this.initialBackingTransform = initialBackingTransform;
+        
+        this.qtStuffsPool = qtStuffsPool;
+        
+        this.qtStuffs = this.borrowQtStuffs();
+    }
+    
+    private static ArrayList<MyQtStuffs> getOrCreateQtStuffsPool(
+            ObjectWrapper<Object> hostGraphicsQtStuffsPoolRef) {
+        @SuppressWarnings("unchecked")
+        ArrayList<MyQtStuffs> ret =
+                (ArrayList<MyQtStuffs>) hostGraphicsQtStuffsPoolRef.value;
+        if (ret == null) {
+            /*
+             * Since painting is not done concurrently,
+             * the pool doesn't need to be thread-safe.
+             */
+            ret = new ArrayList<MyQtStuffs>();
+            hostGraphicsQtStuffsPoolRef.value = ret;
+        }
+        return ret;
+    }
+    
+    private MyQtStuffs borrowQtStuffs() {
+        MyQtStuffs ret = null;
+        final int size = this.qtStuffsPool.size();
+        if (size != 0) {
+            ret = this.qtStuffsPool.remove(size - 1);
+        } else {
+            ret = new MyQtStuffs();
+        }
+        return ret;
+    }
+    
+    private void releaseQtStuffs(MyQtStuffs obj) {
+        this.qtStuffsPool.add(obj);
     }
     
     /**
@@ -714,7 +815,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         // scaleInv = 2 means twice smaller.
         final double scaleInv = 1.0;
         
-        this.backingTransform.setMatrix(
+        this.qtStuffs.backingTransform.setMatrix(
                 rotation.cos(),
                 rotation.sin(),
                 0.0,
@@ -727,7 +828,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 transform.frame2YIn1(),
                 scaleInv);
 
-        this.painter.setTransform(this.backingTransform);
+        this.painter.setTransform(this.qtStuffs.backingTransform);
 
         this.xShiftInUser = ((rotation.angDeg() == 180) || (rotation.angDeg() == 270) ? -1 : 0);
         this.yShiftInUser = ((rotation.angDeg() == 90) || (rotation.angDeg() == 180) ? -1 : 0);

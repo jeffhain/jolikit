@@ -367,12 +367,12 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
 
     @Override
-    protected void onNewClip() {
+    protected void setBackingClip(GRect clipInClient) {
         // No backing clip to update.
     }
     
     @Override
-    protected void onNewTransform() {
+    protected void setBackingTransform(GTransform transform) {
         // No backing transform to update.
     }
 

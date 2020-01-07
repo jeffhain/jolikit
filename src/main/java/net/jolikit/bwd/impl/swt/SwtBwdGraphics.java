@@ -19,6 +19,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
@@ -192,10 +193,42 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             this.tmpGraphicBuffer.dispose();
         }
     }
+    
+    /*
+     * 
+     */
 
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         // Nothing to do, we retrieve it from BWD font when needed.
+    }
+    
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clip,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        this.setBackingStateDefaultImpl(
+                mustSetClip,
+                clip,
+                //
+                mustSetTransform,
+                transform,
+                //
+                mustSetColor,
+                argb64,
+                //
+                mustSetFont,
+                font);
     }
     
     /*

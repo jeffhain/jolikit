@@ -484,14 +484,18 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     protected void finishImpl() {
         this.restoreInitialBackingTransform();
     }
+    
+    /*
+     * 
+     */
 
     @Override
-    protected void onNewClip() {
+    protected void setBackingClip(GRect clipInClient) {
         this.setBackingClipToCurrent();
     }
     
     @Override
-    protected void onNewTransform() {
+    protected void setBackingTransform(GTransform transform) {
         this.setBackingTransformToCurrent();
 
         // Must reset clip as well, since we use transformed clip.
@@ -525,6 +529,40 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     protected void setBackingFont(InterfaceBwdFont font) {
         final AwtBwdFont fontImpl = (AwtBwdFont) font;
         this.g.setFont(fontImpl.getBackingFont());
+    }
+
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clipInClient,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        if (mustSetTransform) {
+            this.setBackingTransform(transform);
+            if (mustSetClip) {
+                // Clip already taken care of by setBackingTransform(...).
+            }
+        } else {
+            if (mustSetClip) {
+                this.setBackingClip(clipInClient);
+            }
+        }
+        
+        if (mustSetColor) {
+            this.setBackingArgb64(argb64);
+        }
+        
+        if (mustSetFont) {
+            this.setBackingFont(font);
+        }
     }
 
     /*

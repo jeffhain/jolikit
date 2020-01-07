@@ -36,6 +36,7 @@ import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCa
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchNewChildGBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgTranspFgBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceTranspBgOpaqFgBwdTestCase;
@@ -192,6 +193,13 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new BenchRepaint_1Over30s_BwdTestCase(),
                     new BenchRepaint_1Over60s_BwdTestCase(),
             });
+            
+            /*
+             * Sub/Child graphics benches.
+             */
+            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                    new BenchNewChildGBwdTestCase(),
+            });
 
             /*
              * Parallel.
@@ -200,6 +208,14 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new ParallelDrawingBwdTestCase(),
                     new ConcurrentFontCreaDispBwdTestCase(),
                     new ConcurrentImageCreaDispBwdTestCase(),
+            });
+            
+            /*
+             * Drawing methods benches.
+             */
+            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                    new BenchDrawTextBwdTestCase(),
+                    new BenchDrawImageBwdTestCase(),
             });
 
             /*
@@ -213,14 +229,6 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new BenchDirtyFillRectBwdTestCase(),
                     new BenchDirtyFillRectBulkBwdTestCase(),
                     new BenchParallelFillBwdTestCase(),
-            });
-            
-            /*
-             * Drawing methods benches.
-             */
-            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new BenchDrawTextBwdTestCase(),
-                    new BenchDrawImageBwdTestCase(),
             });
         }
         {

@@ -542,9 +542,9 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
          * apply new transform clip, because there seem to be
          * no other way to replace clipping (like a clearClip()
          * method).
-         * Must be done before super.initImpl(), for it calls onNewClip()
-         * and onNewTransform(), which require first save to be done
-         * already.
+         * Must be done before super.initImpl(), for it calls
+         * setBackingClip(...) and setBackingTransform(...),
+         * which require first save to be done already.
          */
         
         this.g.save();
@@ -562,15 +562,19 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
             printClipStack(this.g, "after finishImpl()");
         }
     }
+    
+    /*
+     * 
+     */
 
     @Override
-    protected void onNewClip() {
-        this.restoreBackingGraphicsAndResaveAndReapplyMods();
+    protected void setBackingClip(GRect clipInClient) {
+        this.setBackingClipAndTransformToCurrent();
     }
     
     @Override
-    protected void onNewTransform() {
-        this.restoreBackingGraphicsAndResaveAndReapplyMods();
+    protected void setBackingTransform(GTransform transform) {
+        this.setBackingClipAndTransformToCurrent();
     }
 
     @Override
@@ -600,6 +604,50 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         this.setFontAndFontSmoothingType(fontImpl.getBackingFont());
     }
     
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clip,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        final Color oldBackingColor = (Color) this.g.getStroke();
+        
+        final Font oldBackingFont = this.g.getFont();
+        
+        boolean didResetBackingState = false;
+        if (mustSetClip || mustSetTransform) {
+            this.resetBackingStateAndSetClipAndTransformToCurrent();
+            didResetBackingState = true;
+        }
+        
+        if (mustSetColor) {
+            this.setBackingArgb64(argb64);
+        } else {
+            if (didResetBackingState) {
+                // Restoring backing color.
+                this.g.setFill(oldBackingColor);
+                this.g.setStroke(oldBackingColor);
+            }
+        }
+        
+        if (mustSetFont) {
+            this.setBackingFont(font);
+        } else {
+            if (didResetBackingState) {
+                // Restoring backing font.
+                this.setFontAndFontSmoothingType(oldBackingFont);
+            }
+        }
+    }
+
     /*
      * 
      */
@@ -683,23 +731,33 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         this.g.setFontSmoothingType(FONT_SMOOTHING_TYPE);
     }
 
-    private void restoreBackingGraphicsAndResaveAndReapplyMods() {
+    private void setBackingClipAndTransformToCurrent() {
         // Works whether we are in XOR mode or not,
         // unlike getStroke().
-        final Color color = (Color) this.g.getStroke();
+        final Color currentBackingColor = (Color) this.g.getStroke();
         
-        final Font font = this.g.getFont();
+        final Font currentBackingFont = this.g.getFont();
         
+        this.resetBackingStateAndSetClipAndTransformToCurrent();
+
+        this.g.setFill(currentBackingColor);
+        this.g.setStroke(currentBackingColor);
+
+        this.setFontAndFontSmoothingType(currentBackingFont);
+    }
+
+    /**
+     * Resets all backing state to undefined initial state,
+     * and then sets its clip and transform to current.
+     * 
+     * After this call, backing color and font are undefined.
+     */
+    private void resetBackingStateAndSetClipAndTransformToCurrent() {
         // Restores initial (last saved) state (and pops it!!!).
         this.g.restore();
         // Re-save restored initial state, so that we can restore it later
         // (with a restoreButDontPopState() method we would not have to do that).
         this.g.save();
-        
-        this.g.setFill(color);
-        this.g.setStroke(color);
-        
-        this.setFontAndFontSmoothingType(font);
         
         this.addCurrentClipToBacking();
         

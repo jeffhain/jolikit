@@ -49,23 +49,22 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
 
     private static final InterfaceParallelizer SEQUENTIAL_PARALLELIZER = new SequentialParallelizer();
     
+    private static final BwdColor DEFAULT_COLOR = BwdColor.BLACK;
+    
+    private static final int SMALL_ARRAY_LIST_CAPACITY = 1;
+    
     /*
      * 
      */
     
     private final InterfaceBwdBinding binding;
 
+    /*
+     * 
+     */
+    
     private final GRect boxInClient;
-    
-    /*
-     * 
-     */
-    
     private final GRect baseClipInClient;
-    
-    /*
-     * 
-     */
     
     /**
      * Base clip in user coordinates.
@@ -87,10 +86,6 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     private ArrayList<GRect> clipsBeforeLastAdd = null;
     
-    /*
-     * 
-     */
-    
     /**
      * Transform between client coordinates (frame 1)
      * and user coordinates (frame 2).
@@ -98,16 +93,13 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * Never using the transform of the backing graphics,
      * for simplicity and consistency across bindings.
      */
-    private GTransform transform = GTransform.IDENTITY;
+    private GTransform transform;
     
     /**
      * Lazily created.
+     * Kept across resets.
      */
     private ArrayList<GTransform> transformsBeforeLastAdd = null;
-    
-    /*
-     * 
-     */
     
     /**
      * The reference color.
@@ -115,11 +107,15 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private long argb64;
     
     /**
-     * Lazily initialized.
+     * Lazily initialized after argb64 modification.
      */
     private BwdColor colorLazy;
     
     private InterfaceBwdFont font;
+    
+    /*
+     * 
+     */
     
     /**
      * For simple usage check.
@@ -147,21 +143,31 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             GRect clipInClient) {
         checkGraphicsInitialBoxAndClip(boxInClient, clipInClient);
         
-        final BwdColor defaultColor = BwdColor.BLACK;
         // Implicit null check.
         final InterfaceBwdFont defaultFont = binding.getFontHome().getDefaultFont();
         
         this.binding = binding;
         
         this.boxInClient = boxInClient;
-        
         this.baseClipInClient = clipInClient;
         
         this.baseClipInUser = clipInClient;
         this.clipInClient = clipInClient;
         this.clipInUser = clipInClient;
         
-        this.argb64 = defaultColor.toArgb64();
+        if (this.clipsBeforeLastAdd != null) {
+            this.clipsBeforeLastAdd.clear();
+        }
+        
+        this.transform = GTransform.IDENTITY;
+        
+        if (this.transformsBeforeLastAdd != null) {
+            this.transformsBeforeLastAdd.clear();
+        }
+
+        this.argb64 = DEFAULT_COLOR.toArgb64();
+        this.colorLazy = DEFAULT_COLOR;
+
         this.font = defaultFont;
     }
     
@@ -286,16 +292,15 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         
         ArrayList<GRect> preList = this.clipsBeforeLastAdd;
         if (preList == null) {
-            preList = new ArrayList<GRect>();
+            preList = new ArrayList<GRect>(SMALL_ARRAY_LIST_CAPACITY);
             this.clipsBeforeLastAdd = preList;
         }
         preList.add(oldClip);
         
-        // This test is optional but cheap.
-        if (newClip != oldClip) {
+        if (!newClip.equals(oldClip)) {
             this.clipInClient = newClip;
             this.updateTransformedClips();
-            this.onNewClip();
+            this.setBackingClip(newClip);
         }
     }
 
@@ -319,11 +324,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GRect oldClip = this.clipInClient;
         final GRect newClip = preList.remove(size-1);
         
-        // This test is optional but cheap.
-        if (newClip != oldClip) {
+        if (!newClip.equals(oldClip)) {
             this.clipInClient = newClip;
             this.updateTransformedClips();
-            this.onNewClip();
+            this.setBackingClip(newClip);
         }
     }
     
@@ -339,11 +343,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GRect oldClip = this.clipInClient;
         final GRect newClip = this.baseClipInClient;
         
-        // This test is optional but cheap.
-        if (newClip != oldClip) {
+        if (!newClip.equals(oldClip)) {
             this.clipInClient = newClip;
             this.updateTransformedClips();
-            this.onNewClip();
+            this.setBackingClip(newClip);
         }
     }
     
@@ -368,11 +371,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform oldTransform = this.transform;
         final GTransform newTransform = LangUtils.requireNonNull(transform);
         
-        // This test is optional but cheap.
-        if (newTransform != oldTransform) {
+        if (!newTransform.equals(oldTransform)) {
             this.transform = newTransform;
             this.updateTransformedClips();
-            this.onNewTransform();
+            this.setBackingTransform(newTransform);
         }
     }
 
@@ -382,7 +384,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         
         ArrayList<GTransform> preList = this.transformsBeforeLastAdd;
         if (preList == null) {
-            preList = new ArrayList<GTransform>();
+            preList = new ArrayList<GTransform>(SMALL_ARRAY_LIST_CAPACITY);
             this.transformsBeforeLastAdd = preList;
         }
         
@@ -391,11 +393,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform newTransform = oldTransform.composed(transform);
         preList.add(oldTransform);
         
-        // This test is optional but cheap.
-        if (newTransform != oldTransform) {
+        if (!newTransform.equals(oldTransform)) {
             this.transform = newTransform;
             this.updateTransformedClips();
-            this.onNewTransform();
+            this.setBackingTransform(newTransform);
         }
     }
 
@@ -413,11 +414,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform oldTransform = this.transform;
         final GTransform newTransform = preList.remove(size-1);
         
-        // This test is optional but cheap.
-        if (newTransform != oldTransform) {
+        if (!newTransform.equals(oldTransform)) {
             this.transform = newTransform;
             this.updateTransformedClips();
-            this.onNewTransform();
+            this.setBackingTransform(newTransform);
         }
     }
     
@@ -426,7 +426,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         final ArrayList<GTransform> preList = this.transformsBeforeLastAdd;
-        final int size = (preList != null) ? preList.size() : 0;
+        final int size = ((preList != null) ? preList.size() : 0);
         if (size == 0) {
             // Nothing to do.
             return;
@@ -436,11 +436,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform newTransform = preList.get(0);
         preList.clear();
         
-        // This test is optional but cheap.
-        if (newTransform != oldTransform) {
+        if (!newTransform.equals(oldTransform)) {
             this.transform = newTransform;
             this.updateTransformedClips();
-            this.onNewTransform();
+            this.setBackingTransform(newTransform);
         }
     }
 
@@ -462,12 +461,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     public void setColor(BwdColor color) {
         this.checkUsable();
         
-        // Implicit null check.
-        // This test is optional but cheap.
-        if (!color.equals(this.colorLazy)) {
-            this.colorLazy = color;
-            this.argb64 = color.toArgb64();
-            this.setBackingArgb64(this.argb64);
+        this.colorLazy = color;
+        final long argb64 = color.toArgb64();
+        
+        if (argb64 != this.argb64) {
+            this.argb64 = argb64;
+            this.setBackingArgb64(argb64);
         }
     }
     
@@ -480,7 +479,6 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     public void setArgb64(long argb64) {
         this.checkUsable();
         
-        // This test is optional but cheap.
         if (argb64 != this.argb64) {
             this.argb64 = argb64;
             this.colorLazy = null;
@@ -870,17 +868,30 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * If overriding it, must call super.initImpl() at some point in it.
      */
     protected void initImpl() {
-        this.removeAllAddedClips();
-        this.setTransform(GTransform.IDENTITY);
-        this.setArgb64(this.argb64);
-        this.setFont(this.font);
-        // Setting backing values explicitly, because they might never have
-        // been set yet, and above methods might not have set them if they saw
-        // they didn't change.
-        this.onNewClip();
-        this.onNewTransform();
-        this.setBackingArgb64(this.argb64);
-        this.setBackingFont(this.font);
+        
+        this.checkUsable();
+        
+        /*
+         * Non-backing state is properly initialized at creation time,
+         * so here we just need to initialize backing state.
+         */
+        
+        final boolean mustSetClip = true;
+        final boolean mustSetTransform = true;
+        final boolean mustSetColor = true;
+        final boolean mustSetFont = true;
+        this.setBackingState(
+                mustSetClip,
+                this.baseClipInClient,
+                //
+                mustSetTransform,
+                this.transform,
+                //
+                mustSetColor,
+                this.argb64,
+                //
+                mustSetFont,
+                this.font);
     }
     
     /**
@@ -890,30 +901,199 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     protected abstract void finishImpl();
     
     /*
-     * It is allowed to take care, of backing clip/transform in each
-     * method call rather than in these methods (for example, to use GTransform
-     * conversions before using non-transformed backing graphics, in case that
-     * would be faster, or in case the actual transform to apply on the backing
-     * graphics depends on the method called), in which case these implementations
-     * could do nothing, or just set some dirty flag.
+     * Backing state setting methods.
+     * 
+     * There are individual methods (for clip, transform, color and font),
+     * and a bulk method (for optimization, to avoid eventual redundancies
+     * from calling all four individual methods).
+     * Default implementations are proposed for each, the ones for individual
+     * methods delegating to the bulk method, and vice versa.
+     * 
+     * When these methods are called, the non-backing state has already been
+     * updated, but it is given as argument for convenience and performances.
+     * 
+     * NB: It is possible to take care of backing clip and transform in each
+     * painting method call rather than in these methods (for example, to use
+     * GTransform conversions before using non-transformed backing graphics,
+     * in case that would be faster, or in case the actual transform to apply
+     * on the backing graphics depends on the method called), in which case
+     * these implementations could do nothing, or just set some dirty flag.
      */
     
     /**
-     * Must update backing clip with current clip (transformed or not,
-     * depending on whether backing graphics has transform applied).
+     * Sets the backing clip, if any.
      */
-    protected abstract void onNewClip();
+    protected abstract void setBackingClip(GRect clipInClient);
     
     /**
-     * Must update backing transform according to current transform,
-     * or not if it is transformed and de-transformed for each draw.
+     * A default implementation for setBackingClip(...).
+     * Delegates to the bulk method.
      */
-    protected abstract void onNewTransform();
+    protected void setBackingClipDefaultImpl(GRect clipInClient) {
+        final boolean mustSetClip = true;
+        final boolean mustSetTransform = false;
+        final boolean mustSetColor = false;
+        final boolean mustSetFont = false;
+        this.setBackingState(
+                mustSetClip,
+                clipInClient,
+                //
+                mustSetTransform,
+                null,
+                //
+                mustSetColor,
+                0L,
+                //
+                mustSetFont,
+                null);
+    }
     
+    /**
+     * Sets the backing transform, if any,
+     * and possibly also the backing clip
+     * if impacted by the transform.
+     */
+    protected abstract void setBackingTransform(GTransform transform);
+    
+    /**
+     * A default implementation for setBackingTransform(...).
+     * Delegates to the bulk method.
+     */
+    protected void onNewTransformDefaultImpl(GTransform transform) {
+        final boolean mustSetClip = false;
+        final boolean mustSetTransform = true;
+        final boolean mustSetColor = false;
+        final boolean mustSetFont = false;
+        this.setBackingState(
+                mustSetClip,
+                null,
+                //
+                mustSetTransform,
+                transform,
+                //
+                mustSetColor,
+                0L,
+                //
+                mustSetFont,
+                null);
+    }
+    
+    /**
+     * Sets the backing color, if any.
+     */
     protected abstract void setBackingArgb64(long argb64);
     
+    /**
+     * A default implementation for setBackingArgb64(...).
+     * Delegates to the bulk method.
+     */
+    protected void setBackingArgb64DefaultImpl(long argb64)  {
+        final boolean mustSetClip = false;
+        final boolean mustSetTransform = false;
+        final boolean mustSetColor = true;
+        final boolean mustSetFont = false;
+        this.setBackingState(
+                mustSetClip,
+                null,
+                //
+                mustSetTransform,
+                null,
+                //
+                mustSetColor,
+                argb64,
+                //
+                mustSetFont,
+                null);
+    }
+    
+    /**
+     * Sets the backing font, if any.
+     */
     protected abstract void setBackingFont(InterfaceBwdFont font);
     
+    /**
+     * A default implementation for setBackingFont(...).
+     * Delegates to the bulk method.
+     */
+    protected void setBackingFontDefaultImpl(InterfaceBwdFont font) {
+        final boolean mustSetClip = false;
+        final boolean mustSetTransform = false;
+        final boolean mustSetColor = false;
+        final boolean mustSetFont = true;
+        this.setBackingState(
+                mustSetClip,
+                null,
+                //
+                mustSetTransform,
+                null,
+                //
+                mustSetColor,
+                0L,
+                //
+                mustSetFont,
+                font);
+    }
+    
+    /**
+     * Bulk version.
+     * Sets all or parts of the backing state, if any, at once.
+     * 
+     * @param mustSetClip If false, clip argument must be ignored, and might be null.
+     * @param mustSetTransform If false, transform argument must be ignored, and might be null.
+     * @param mustSetColor If false, color argument must be ignored.
+     * @param mustSetFont If false, font argument must be ignored, and might be null.
+     */
+    protected abstract void setBackingState(
+        boolean mustSetClip,
+        GRect clipInClient,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font);
+    
+    /**
+     * A default implementation for setBackingState(...).
+     * Delegates to individual methods.
+     */
+    protected void setBackingStateDefaultImpl(
+        boolean mustSetClip,
+        GRect clipInClient,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        if (mustSetClip) {
+            this.setBackingClip(clipInClient);
+        }
+        
+        if (mustSetTransform) {
+            this.setBackingTransform(transform);
+        }
+        
+        if (mustSetColor) {
+            this.setBackingArgb64(argb64);
+        }
+        
+        if (mustSetFont) {
+            this.setBackingFont(font);
+        }
+    }
+    
+    /*
+     * 
+     */
+
     /**
      * If you override all primitive operations, this method won't be used,
      * and can just be made to throw UOE for example.
@@ -953,10 +1133,25 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             GRect box,
             GRect baseClip) {
         LangUtils.requireNonNull(box);
-        // Implicit null check.
+        // Implicit null check on baseClip.
         if ((!baseClip.isEmpty()) && (!box.contains(baseClip))) {
-            throw new IllegalArgumentException("non-empty baseClip " + baseClip + " must be contained in box " + box);
+            throwIae_boxAndBaseClip(box, baseClip);
         }
+    }
+
+    private static void checkNotDisposed(InterfaceBwdImage image) {
+        // Implicit null check.
+        if (image.isDisposed()) {
+            throwIae_imageNotDisposed(image);
+        }
+    }
+
+    private static void throwIae_boxAndBaseClip(GRect box, GRect baseClip) {
+        throw new IllegalArgumentException("non-empty baseClip " + baseClip + " must be contained in box " + box);
+    }
+
+    private static void throwIae_imageNotDisposed(InterfaceBwdImage image) {
+        throw new IllegalArgumentException("image is disposed: " + image);
     }
 
     private void throwIaeIfNotUsable() {
@@ -979,12 +1174,5 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private void updateTransformedClips() {
         this.baseClipInUser = this.transform.rectIn2(this.baseClipInClient);
         this.clipInUser = this.transform.rectIn2(this.clipInClient);
-    }
-    
-    private static void checkNotDisposed(InterfaceBwdImage image) {
-        // Implicit null check.
-        if (image.isDisposed()) {
-            throw new IllegalArgumentException("image is disposed: " + image);
-        }
     }
 }

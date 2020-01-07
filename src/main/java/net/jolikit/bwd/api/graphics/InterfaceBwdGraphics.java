@@ -25,7 +25,7 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * are going down.
  * Also, (x,y) position corresponds to the center of the pixel of indexes (x,y),
  * not to its top-left corner as done in libraries such as AWT, and a figure
- * with a span of 3 means a 3-pixel wide figure (span = max - min + 1).
+ * with a span of 3 means a 3-pixels wide figure (span = max - min + 1).
  * We do that for the following reasons:
  * - By having an obvious bijection between coordinates and pixels,
  *   and an identity between spans and the number of pixels drawn,
@@ -53,8 +53,18 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * 
  * Children graphics:
  * A newChildGraphics(...) method allows for creation of a child graphics,
- * i.e. a graphics allowing to draw in a rectangular part of the client area
- * included in the base clip of its parent.
+ * i.e. a graphics allowing to draw in sub-part of its parent box.
+ * Such child graphics can be useful both for parallel painting of sub-parts of
+ * the client area, and also just to constraint sequentially called sub-painting
+ * treatments to paint in a specific sub-part, without possible leak due to
+ * corresponding base clip.
+ * NB: For this last usage, to make up for bindings for which child graphics
+ * creation is a bit heavy, it had been tried to reuse graphics instances
+ * by adding and using new "subInit(...)" and "subFinish()" methods,
+ * that can configure a graphics as a child graphics for a time,
+ * but it turned out the overhead was usually actually even larger,
+ * due to backing state being reset twice: once in subInit(...),
+ * and once in subFinish(). As a result this approach was abandoned.
  * 
  * Negative spans:
  * Unlike the API of GRect, which is strict, methods defined here accept
@@ -120,6 +130,10 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * Each graphics contains a current color, used by methods that draw or fill
  * primitives, or that draw text. The initial color for each graphics must be
  * opaque black (0xFF000000 32 bits ARGB).
+ * Having a current color in the graphics, instead of specifying one for each
+ * drawing method, allows for simpler methods signature, and to make more
+ * explicit that changing color can have an overhead on its own, depending on
+ * bindings implementations.
  * Note that bindings might only be able to use approximations of the colors
  * set by users, depending on their capabilities (for example most libraries
  * don't support 64 bits ARGB, only 32 bits, and some libraries might not
@@ -128,6 +142,10 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * Fonts:
  * Each graphics contains a current font, used by methods that draw text.
  * The initial font for each graphics must be font home's default font.
+ * Having a current font in the graphics, instead of specifying one to
+ * drawText(...) method, allows to draw text with default font without having
+ * to explicitly deal with fonts, and to make more explicit that changing font
+ * can have an overhead on its own, depending on bindings implementations.
  * 
  * Default pixels colors:
  * Pixels colors for pixels not yet painted with a BWD graphics
@@ -145,8 +163,8 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * client area. No such full dirty rectangle must be ensured at first
  * painting, since in this case the client should be aware that it didn't
  * paint anything yet and that everything needs to be painted.
- * Note that some bindings, such as Qt, do some unavoidable clear of the
- * whole client area at each painting, which means that they must specify
+ * Note that some bindings, such as with Qt, do some unavoidable clear of
+ * the whole client area at each painting, which means that they must specify
  * a full dirty rectangle at every painting.
  * Pixels colors for pixels that have only be painted with non fully opaque
  * colors, can be preserved until repaint too but that is not of much use
@@ -162,7 +180,7 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * 
  * Threading:
  * Graphics are by default not supposed to be thread-safe, but if the binding
- * supports parallel drawing, then the method newChildGraphics(...) must be
+ * supports parallel painting, then the method newChildGraphics(...) must be
  * callable concurrently while the graphics is not being modified.
  */
 public interface InterfaceBwdGraphics {
@@ -215,10 +233,17 @@ public interface InterfaceBwdGraphics {
      * This method must be usable as long as finish() has not been called,
      * and even before call to init().
      * 
+     * NB: If the backing library could allow for parallel painting,
+     * but creating child graphics usable concurrently with each other
+     * is too heavy, it is advised to make the binding no longer supporting
+     * parallel painting if it then allows to make child graphics creation
+     * overhead smaller, so as to optimize for the simple case of sequential
+     * painting.
+     * 
      * @param childBox The box, in client coordinates, for the child graphics
      *        to create.
      *        Not necessarily included in this graphics box (for example
-     *        in case of a component in a scroll pane).
+     *        in case of a component in a scroll pane). Can be empty.
      * @return A new child graphics with the specified box, and a base clip
      *         equal to the intersection of this graphics base clip with the
      *         specified box.
@@ -267,12 +292,13 @@ public interface InterfaceBwdGraphics {
      */
     
     /**
-     * The base clip is included in this box.
+     * Can be empty, for example when painting a non-visible part
+     * in order to obtain values useful for painting a visible part.
+     * 
+     * The base clip (if not empty) is included in this box (if not empty).
      * 
      * @return The box, in client coordinates, in which the visual object
-     *         this graphics is used for must be painted.
-     *         Must not be empty: if empty, the painting must not occur
-     *         in the first place.
+     *         this graphics is used for must be painted. Can be empty.
      */
     public GRect getBoxInClient();
 

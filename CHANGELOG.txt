@@ -66,6 +66,9 @@ Jolikit X.X, XXXX/XX/XX
 - Restored an actual parallelism for related test cases
   (config default had been changed to 1).
 
+- Optimized BWD bindings graphics creations and init,
+  and added BenchNewChildGBwdTestCase.
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################

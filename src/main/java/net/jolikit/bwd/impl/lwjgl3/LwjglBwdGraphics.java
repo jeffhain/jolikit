@@ -24,6 +24,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFont;
@@ -102,8 +103,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
          * Using a same pixel surface for all graphics,
          * which must be possible since even if case of concurrent painting,
          * each component or view must actually draw exclusive pixels,
-         * due to either clipping, or due to carefully designed parallel drawing
-         * within a same view.
+         * due to either clipping, or due to carefully designed parallel painting.
          */
         return new LwjglBwdGraphics(
                 this.getBinding(),
@@ -123,10 +123,42 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     protected void finishImpl() {
         // Nothing to do.
     }
+    
+    /*
+     * 
+     */
 
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         // We use AWT backed font stored in super.
+    }
+    
+    @Override
+    protected void setBackingState(
+        boolean mustSetClip,
+        GRect clip,
+        //
+        boolean mustSetTransform,
+        GTransform transform,
+        //
+        boolean mustSetColor,
+        long argb64,
+        //
+        boolean mustSetFont,
+        InterfaceBwdFont font) {
+        
+        this.setBackingStateDefaultImpl(
+                mustSetClip,
+                clip,
+                //
+                mustSetTransform,
+                transform,
+                //
+                mustSetColor,
+                argb64,
+                //
+                mustSetFont,
+                font);
     }
     
     /*
