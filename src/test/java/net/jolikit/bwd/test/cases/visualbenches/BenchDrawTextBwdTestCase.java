@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -215,7 +215,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
             final String comment =
                     nbrOfCalls + " calls, "
                             + text.length() + " chars, fontSize = "
-                            + font.fontSize() + ", tooks " + TestUtils.nsToSRounded(dtNs) + " s";
+                            + font.fontSize() + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
             g.drawText(0, y, comment);
             
             y += (2 * dh + fh);

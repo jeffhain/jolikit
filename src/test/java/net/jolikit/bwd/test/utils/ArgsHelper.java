@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -139,7 +139,8 @@ public class ArgsHelper {
     /**
      * @param args The arguments.
      * @param key A key.
-     * @param argNum The number of the argument corresponding to the key that must be returned.
+     * @param argNum The number of the argument corresponding to the key
+     *        that must be returned. Starts at 1.
      * @return The argNum'th argument corresponding to the specified key,
      *         or null if the key doesn't appear.
      * @throws NullPointerException if args or key is null.

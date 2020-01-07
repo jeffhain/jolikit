@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -214,7 +214,9 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 final long dtNs = endNs - startNs;
                 g.setFont(defaultFont);
                 final String comment =
-                        nbrOfCalls + " calls, hasAlpha = " + hasAlpha + ", shrinked = " + shrinked + ", tooks " + TestUtils.nsToSRounded(dtNs) + " s";
+                        nbrOfCalls + " calls, hasAlpha = " + hasAlpha
+                        + ", shrinked = " + shrinked
+                        + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
                 g.setColor(BwdColor.BLACK);
                 g.drawText(x, y, comment);
                 

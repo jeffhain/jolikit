@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -472,8 +472,8 @@ public class ClientWrapperForHost implements InterfaceBwdClient {
         } catch (Throwable t) {
             this.onThrowable(t);
             // Pretending everything was painted,
-            // so that we can see what was done
-            // before throwing.
+            // so that we can see what was painted
+            // before throwing occured.
             ret = GRect.DEFAULT_HUGE_IN_LIST;
         }
         return ret;
