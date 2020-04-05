@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -520,6 +520,10 @@ public abstract class AbstractRepeatableTask implements InterfaceCancellable {
                  * Doing cancellation now, in case not already done
                  * by the thread that requested cancellation
                  * (typically due to failing to acquire the lock).
+                 * 
+                 * NB : since mustRepeat is true, try always completed normally,
+                 * so there is no risk of an exception being suppressed
+                 * if onCancel() throws.
                  */
                 this.repRunnable.onCancel();
                 mustRepeat = false;

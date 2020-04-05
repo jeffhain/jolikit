@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,13 @@ public class AbztractRepeatableRunnableTest extends TestCase {
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
+    
+    private static class MyRuntimeException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+        public MyRuntimeException(String message) {
+            super("for test : " + message);
+        }
+    }
     
     private static class MyRepRunnable extends AbstractRepeatableRunnable {
         private boolean mustCancelInOnBegin = false;
@@ -77,7 +84,7 @@ public class AbztractRepeatableRunnableTest extends TestCase {
                 this.setNextTheoreticalTimeNs(nextTheoreticalTimeToUseNs);
             }
             if (mustThrowExceptionInOnBegin) {
-                throw new RuntimeException("for test");
+                throw new MyRuntimeException("from onBegin()");
             }
         }
         @Override
@@ -94,7 +101,7 @@ public class AbztractRepeatableRunnableTest extends TestCase {
                 onCancel();
             }
             if (mustThrowExceptionInOnEnd) {
-                throw new RuntimeException("for test");
+                throw new MyRuntimeException("from onEnd()");
             }
         }
         @Override
@@ -111,7 +118,7 @@ public class AbztractRepeatableRunnableTest extends TestCase {
                 onCancel();
             }
             if (mustThrowExceptionInOnDone) {
-                throw new RuntimeException("for test");
+                throw new MyRuntimeException("from onDone()");
             }
         }
         @Override
@@ -134,7 +141,7 @@ public class AbztractRepeatableRunnableTest extends TestCase {
                 this.setNextTheoreticalTimeNs(nextTheoreticalTimeToUseNs);
             }
             if (mustThrowExceptionInRunImpl) {
-                throw new RuntimeException("for test");
+                throw new MyRuntimeException("from runImpl()");
             }
         }
     }
@@ -1057,5 +1064,47 @@ public class AbztractRepeatableRunnableTest extends TestCase {
 
         assertSame(runnable, scheduler.get_execute_runnable());
         assertEquals(3L, lastRescheduleTimeNsRef.get());
+    }
+    
+    /*
+     * Anti-suppressions swallowings.
+     */
+
+    /**
+     * Tests both calls to swallowIfTryThrew(),
+     * in run() and in terminateIfNeeded().
+     */
+    public void test_antiSuppressionsSwallowings() {
+        final TestScheduler scheduler = new TestScheduler();
+        
+        for (int i = 0; i < 3; i++) {
+            for (int j = i + 1; j < 4; j++) {
+                final MyRepRunnable runnable = new MyRepRunnable(scheduler);
+              
+                runnable.mustThrowExceptionInOnBegin = (i == 0);
+                runnable.mustThrowExceptionInRunImpl = (i == 1) || (j == 1);
+                runnable.mustThrowExceptionInOnEnd = (i == 2) || (j == 2);
+                runnable.mustThrowExceptionInOnDone = (j == 3);
+                
+                Throwable catched = null;
+                try {
+                    runnable.run();
+                    fail();
+                } catch (MyRuntimeException e) {
+                    catched = e;
+                }
+
+                String expectedMethod = null;
+                switch (i) {
+                    case 0: expectedMethod = "onBegin()"; break;
+                    case 1: expectedMethod = "runImpl()"; break;
+                    case 2: expectedMethod = "onEnd()"; break;
+                    case 3: expectedMethod = "onDone()"; break;
+                    default:
+                        throw new AssertionError("" + i);
+                }
+                assertEquals("for test : from " + expectedMethod, catched.getMessage());
+            }
+        }
     }
 }

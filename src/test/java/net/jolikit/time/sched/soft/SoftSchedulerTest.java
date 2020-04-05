@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.time.sched.soft;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -111,9 +112,11 @@ public class SoftSchedulerTest extends TestCase {
         clock.setTimeNs(10L);
 
         for (boolean mustExecuteAsapSchedulesSynchronously : new boolean[]{false,true}) {
+            final UncaughtExceptionHandler exceptionHandler = null;
             final SoftScheduler scheduler = new SoftScheduler(
                     clock,
-                    mustExecuteAsapSchedulesSynchronously);
+                    mustExecuteAsapSchedulesSynchronously,
+                    exceptionHandler);
 
             final AtomicBoolean executed = new AtomicBoolean();
             final Runnable runnable = new Runnable() {
@@ -147,9 +150,11 @@ public class SoftSchedulerTest extends TestCase {
         clock.setTimeNs(10L);
 
         for (final boolean mustExecuteAsapSchedulesSynchronously : new boolean[]{false,true}) {
+            final UncaughtExceptionHandler exceptionHandler = null;
             final SoftScheduler scheduler = new SoftScheduler(
                     clock,
-                    mustExecuteAsapSchedulesSynchronously);
+                    mustExecuteAsapSchedulesSynchronously,
+                    exceptionHandler);
 
             final AtomicBoolean executed = new AtomicBoolean();
             

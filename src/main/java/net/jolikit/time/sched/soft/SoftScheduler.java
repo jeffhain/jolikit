@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.time.sched.soft;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.PriorityQueue;
@@ -23,6 +24,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
+import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.soft.InterfaceSoftClock;
@@ -119,6 +121,11 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     // FIELDS
     //--------------------------------------------------------------------------
 
+    /**
+     * Null to let exceptions go up and stop everything.
+     */
+    private static final UncaughtExceptionHandler DEFAULT_UEH = null;
+    
     private static final int INITIAL_QUEUE_CAPACITY = 100;
 
     /**
@@ -136,6 +143,11 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
      * False: execute(Runnable) executes runnables asynchronously (but still at current time).
      */
     private final boolean mustExecuteAsapSchedulesSynchronously;
+
+    /**
+     * Can be null.
+     */
+    private final UncaughtExceptionHandler exceptionHandler;
 
     /**
      * Optim: could be a bit faster to use an array for schedules at current time,
@@ -182,20 +194,24 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     public SoftScheduler(InterfaceSoftClock rootClock) {
         this(
                 rootClock,
-                DEFAULT_MUST_EXECUTE_ASAP_SCHEDULES_SYNCHRONOUSLY);
+                DEFAULT_MUST_EXECUTE_ASAP_SCHEDULES_SYNCHRONOUSLY,
+                DEFAULT_UEH);
     }
 
     /**
      * @param rootClock Soft clock which time is to be updated by this scheduler (only).
      * @param mustExecuteAsapSchedulesSynchronously True if execute(Runnable)
      *        must be synchronous, false otherwise.
+     * @param exceptionHandler Can be null, in which case exceptions are not catched.
      */
     public SoftScheduler(
             InterfaceSoftClock rootClock,
-            boolean mustExecuteAsapSchedulesSynchronously) {
+            boolean mustExecuteAsapSchedulesSynchronously,
+            UncaughtExceptionHandler exceptionHandler) {
         this.rootClock = rootClock;
         this.publicClock = new MyPublicClock();
         this.mustExecuteAsapSchedulesSynchronously = mustExecuteAsapSchedulesSynchronously;
+        this.exceptionHandler = exceptionHandler;
     }
 
     /*
@@ -229,11 +245,13 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
         // is a thread that just became the soft thread.
         try {
             if (this.futureSchedules.size() != 0) {
+                boolean tryCompletedNormally = false;
                 try {
                     // No problem if started/suspended are set concurrently with that.
                     this.started = true;
                     this.suspended = false;
                     this.myRun();
+                    tryCompletedNormally = true;
                 } finally {
                     // Clearing schedules in case wcheduler was stopped while working.
                     this.currentSchedules.clear();
@@ -246,6 +264,8 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
                     // Executing remaining alien runnables if any.
                     try {
                         this.executeAlienRunnablesIfAny();
+                    } catch (Throwable t) {
+                        ExceptionsUtils.swallowIfTryThrew(t, tryCompletedNormally);
                     } finally {
                         // Clearing it if any threw.
                         this.alienRunnables.clear();
@@ -433,7 +453,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     private void executeAlienRunnablesIfAny() {
         Runnable runnable;
         while ((runnable = this.alienRunnables.poll()) != null) {
-            runnable.run();
+            runRunnable(runnable);
         }
     }
 
@@ -560,9 +580,28 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
                 }
 
                 final Runnable runnable = schedule.getRunnable();
-                runnable.run();
+                runRunnable(runnable);
             } while (((schedule = this.currentSchedules.peek()) != null)
                     && (schedule.getTheoreticalTimeNs() == nowNs));
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Uses exceptionHandler if any.
+     */
+    private void runRunnable(Runnable runnable) {
+        if (this.exceptionHandler != null) {
+            try {
+                runnable.run();
+            } catch (Throwable t) {
+                this.exceptionHandler.uncaughtException(Thread.currentThread(), t);
+            }
+        } else {
+            runnable.run();
         }
     }
 }

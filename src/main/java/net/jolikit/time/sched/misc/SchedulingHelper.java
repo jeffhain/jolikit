@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.time.sched.misc;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +66,9 @@ public class SchedulingHelper {
     public enum SoftAsapExecutionType {
         /**
          * execute(Runnable) executes the specified runnable synchronously.
+         * Useful to debug, because can give more context (longer call stacks),
+         * but causes unusual treatments interleaving (not consistent with
+         * what can occur in hard scheduling).
          */
         SYNCHRONOUS,
         /**
@@ -89,7 +93,7 @@ public class SchedulingHelper {
                     1, // nbrOfThreads
                     Integer.MAX_VALUE, // asapQueueCapacity
                     Integer.MAX_VALUE, // timedQueueCapacity
-                    threadFactory);
+                    threadFactoryForHard);
         }
         private String getSchedulerFactoryNewThreadNamePrefix() {
             return SCHED_HELPER_THREAD_NAME_PREFIX
@@ -135,7 +139,7 @@ public class SchedulingHelper {
      * 
      */
     
-    private final ThreadFactory threadFactory;
+    private final ThreadFactory threadFactoryForHard;
 
     private final EnslavedControllableHardClock hardClock;
 
@@ -162,7 +166,9 @@ public class SchedulingHelper {
      * @param latenessThresholdNs See RootSoftClock class. Only relevant in case of SOFT_HARD_BASED scheduling.
      * @param initialTimeNs Initial time, in nanoseconds.
      * @param initialTimeSpeedIfNotAfap Initial time speed. Only relevant if scheduling is not SOFT_AFAP.
-     * @param threadFactory Thread factory to use. Only relevant in case of hard scheduling. Can be null.
+     * @param threadFactoryForHard Thread factory to use. Only relevant in case of hard scheduling. Can be null.
+     * @param exceptionHandlerForSoft Exception handler to use. Only relevant in case of soft scheduling
+     *        (for hard scheduling, that must be taken care of in thread factory). Can be null.
      */
     public SchedulingHelper(
             SchedulingType schedulingType,
@@ -170,7 +176,8 @@ public class SchedulingHelper {
             long latenessThresholdNs,
             long initialTimeNs,
             double initialTimeSpeedIfNotAfap,
-            ThreadFactory threadFactory) {
+            ThreadFactory threadFactoryForHard,
+            UncaughtExceptionHandler exceptionHandlerForSoft) {
         final EnslavedControllableHardClock hardClock;
         final RootSoftClock rootSoftClock;
         final SoftScheduler rootSoftScheduler;
@@ -218,7 +225,8 @@ public class SchedulingHelper {
             }
             rootSoftScheduler = new SoftScheduler(
                     rootSoftClock,
-                    mustExecuteAsapSchedulesSynchronously);
+                    mustExecuteAsapSchedulesSynchronously,
+                    exceptionHandlerForSoft);
 
             schedulerFactory = new MySoftSchedulerFactory();
 
@@ -235,7 +243,7 @@ public class SchedulingHelper {
             dataExecutor = new MyHardDataExecutor();
         }
 
-        this.threadFactory = threadFactory;
+        this.threadFactoryForHard = threadFactoryForHard;
 
         this.hardClock = hardClock;
 
@@ -384,7 +392,7 @@ public class SchedulingHelper {
                     nbrOfThreads,
                     asapQueueCapacity,
                     timedQueueCapacity,
-                    this.threadFactory);
+                    this.threadFactoryForHard);
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.time.sched;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.time.TimeUtils;
@@ -75,11 +76,21 @@ public abstract class AbstractProcess {
         }
         @Override
         protected void onBegin() {
+            boolean tryCompletedNormally = false;
             try {
                 // Making sure the past is buried before starting the present.
                 this.cancelPreviousIfNeeded();
+                tryCompletedNormally = true;
             } finally {
-                AbstractProcess.this.onBegin();
+                try {
+                    AbstractProcess.this.onBegin();
+                } catch (Throwable t) {
+                    // NB: Could reproduce the potential issue
+                    // when this is not done, but only after
+                    // billions of start/stop calls in related
+                    // concurrent test.
+                    ExceptionsUtils.swallowIfTryThrew(t, tryCompletedNormally);
+                }
             }
         }
         @Override
@@ -88,7 +99,8 @@ public abstract class AbstractProcess {
         }
         @Override
         protected void onDone() {
-            // Needed if cancelled before call to onBegin().
+            // Needed if cancelled before call to onBegin(),
+            // in which case onBegin() is not called.
             this.cancelPreviousIfNeeded();
         }
         @Override
@@ -114,10 +126,18 @@ public abstract class AbstractProcess {
         }
         private void cancelPreviousAndThisIfNeeded() {
             if(AZZERTIONS)LangUtils.azzert(this.isCancellationRequested());
+            boolean tryCompletedNormally = false;
             try {
                 this.cancelPreviousIfNeeded();
+                tryCompletedNormally = true;
             } finally {
-                super.onCancel();
+                try {
+                    super.onCancel();
+                } catch (Throwable t) {
+                    // NB: Can't seem to test this call,
+                    // but code looks good.
+                    ExceptionsUtils.swallowIfTryThrew(t, tryCompletedNormally);
+                }
             }
         }
     }

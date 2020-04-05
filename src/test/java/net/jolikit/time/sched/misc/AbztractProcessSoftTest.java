@@ -15,6 +15,8 @@
  */
 package net.jolikit.time.sched.misc;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -23,6 +25,8 @@ import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.AbstractRepeatableTask;
 import net.jolikit.time.sched.InterfaceScheduler;
+import net.jolikit.time.sched.misc.SchedulingHelper.SchedulingType;
+import net.jolikit.time.sched.misc.SchedulingHelper.SoftAsapExecutionType;
 
 /**
  * To test AbstractProcess, using soft scheduling.
@@ -48,8 +52,8 @@ public class AbztractProcessSoftTest extends TestCase {
     
     private static class MyRuntimeException extends RuntimeException {
         private static final long serialVersionUID = 1L;
-        public MyRuntimeException() {
-            super("for test");
+        public MyRuntimeException(String message) {
+            super("for test : " + message);
         }
     }
     
@@ -91,7 +95,7 @@ public class AbztractProcessSoftTest extends TestCase {
                 this.didLastCallThrow = this.mustThrow;
                 if (this.mustThrow) {
                     this.didLastCallThrow = true;
-                    throw new MyRuntimeException();
+                    throw new MyRuntimeException("from " + this.method);
                 }
             } finally {
                 this.beingCalled = false;
@@ -836,5 +840,79 @@ public class AbztractProcessSoftTest extends TestCase {
 
         final long stopTimeNs = whenNs + 1;
         helper.startNowAndStopAtNs(stopTimeNs);
+    }
+    
+    /*
+     * Anti-suppressions swallowings.
+     */
+    
+    /**
+     * Tests call to swallowIfTryThrew() in
+     * AbstractRepeatableRunnable.run().
+     */
+    public void test_antiSuppressionsSwallowings() {
+        final SchedulingType schedulingType =
+                SchedulingType.SOFT_AFAP;
+        final SoftAsapExecutionType softAsapExecutionType =
+                SoftAsapExecutionType.ASYNCHRONOUS;
+        final long initialTimeNs = 1000L;
+        final ArrayList<Throwable> catchedList = new ArrayList<Throwable>();
+        final UncaughtExceptionHandler exceptionHandler = new UncaughtExceptionHandler() {
+            @Override
+            public void uncaughtException(Thread t, Throwable e) {
+                catchedList.add(e);
+            }
+        };
+        final SoftTestHelper helper = new SoftTestHelper(
+                schedulingType,
+                softAsapExecutionType,
+                initialTimeNs,
+                exceptionHandler);
+        
+        final InterfaceScheduler scheduler = helper.getScheduler();
+        
+        final long whenNs = initialTimeNs;
+        
+        for (int i = 0; i < 2; i++) {
+            for (int j = i + 1; j < 3; j++) {
+                final MyProcess process = new MyProcess(scheduler);
+                process.process_helper.mustStop = true;
+              
+                process.onBegin_helper.mustThrow = (i == 0);
+                process.process_helper.mustThrow = (i == 1) || (j == 1);
+                process.onEnd_helper.mustThrow = (j == 2);
+
+                scheduler.executeAtNs(new Runnable() {
+                    @Override
+                    public void run() {
+                        process.start();
+                    }
+                }, whenNs);
+
+                /*
+                 * 
+                 */
+                
+                final long stopTimeNs = whenNs + 1;
+                helper.startNowAndStopAtNs(stopTimeNs);
+
+                assertEquals(1, catchedList.size());
+                
+                final Throwable firstCatched = catchedList.get(0);
+                
+                MyMethod expectedMethod = null;
+                switch (i) {
+                    case 0: expectedMethod = MyMethod.ON_BEGIN; break;
+                    case 1: expectedMethod = MyMethod.PROCESS; break;
+                    case 2: expectedMethod = MyMethod.ON_END; break;
+                    default:
+                        throw new AssertionError("" + i);
+                }
+                assertEquals("for test : from " + expectedMethod, firstCatched.getMessage());
+                
+                // Cleanup.
+                catchedList.clear();
+            }
+        }
     }
 }

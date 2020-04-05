@@ -10,7 +10,11 @@ Jolikit X.X, XXXX/XX/XX
   Possible workarounds were to call interruptWorkers() after shutdownNow(...),
   or to call stopAccepting() and then drain or cancellation methods before
   calling shutdownNow(...).
-   
+
+- Added exceptions handling in finally blocks to avoid exceptions thrown
+  from them to suppress exceptions thrown from the try block
+  (cf. the new ExceptionsUtils class).
+
 - Scheduling redesign:
 
   - Removed the over-engineering of InterfaceSchedulable and

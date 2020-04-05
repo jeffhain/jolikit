@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.time.sched.misc;
 
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.ThreadFactory;
 
 import net.jolikit.lang.LangUtils;
@@ -33,6 +34,11 @@ public class SoftTestHelper {
     // FIELDS
     //--------------------------------------------------------------------------
 
+    /**
+     * Null to let exceptions go up.
+     */
+    private static final UncaughtExceptionHandler DEFAULT_UEH = null;
+    
     /**
      * SOFT_AFAP for tests to run fast.
      */
@@ -61,7 +67,8 @@ public class SoftTestHelper {
         this(
                 DEFAULT_SCHEDULING_TYPE,
                 DEFAULT_SOFT_ASAP_EXECUTION_TYPE,
-                DEFAULT_INITIAL_TIME_NS);
+                DEFAULT_INITIAL_TIME_NS,
+                DEFAULT_UEH);
     }
     
     /**
@@ -69,11 +76,13 @@ public class SoftTestHelper {
      *        SOFT_HARD_BASED for more real time behavior.
      * @param softAsapExecutionType Must not be null.
      * @param initialTimeNs Initial clock time, in nanoseconds.
+     * @param exceptionHandler Can be null.
      */
     public SoftTestHelper(
             SchedulingType schedulingType,
             SoftAsapExecutionType softAsapExecutionType,
-            long initialTimeNs) {
+            long initialTimeNs,
+            UncaughtExceptionHandler exceptionHandler) {
         LangUtils.requireNonNull(schedulingType);
         LangUtils.requireNonNull(softAsapExecutionType);
         if (schedulingType == SchedulingType.HARD) {
@@ -82,14 +91,16 @@ public class SoftTestHelper {
         
         final long latenessThresholdNs = Long.MAX_VALUE;
         final double initialTimeSpeedIfNotAfap = 1.0;
-        final ThreadFactory threadFactory = null; // Unused.
+        final ThreadFactory threadFactoryForHard = null; // Unused.
+        final UncaughtExceptionHandler exceptionHandlerForSoft = exceptionHandler;
         final SchedulingHelper schedulingHelper = new SchedulingHelper(
                 schedulingType,
                 softAsapExecutionType,
                 latenessThresholdNs,
                 initialTimeNs,
                 initialTimeSpeedIfNotAfap,
-                threadFactory);
+                threadFactoryForHard,
+                exceptionHandlerForSoft);
         this.schedulingHelper = schedulingHelper;
     }
     

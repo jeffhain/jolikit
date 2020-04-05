@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package net.jolikit.time.sched.hard;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -30,7 +31,6 @@ import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.hard.ControllableSystemTimeClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
-import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
  * To test AbstractProcess, using hard scheduling.
@@ -74,8 +74,8 @@ public class AbztractProcessHardTest extends TestCase {
     
     private static class MyRuntimeException extends RuntimeException {
         private static final long serialVersionUID = 1L;
-        public MyRuntimeException() {
-            super("for test");
+        public MyRuntimeException(String message) {
+            super("for test : " + message);
         }
     }
     
@@ -86,6 +86,8 @@ public class AbztractProcessHardTest extends TestCase {
         boolean beingCalled;
         boolean mustThrow;
         boolean didLastCallThrow;
+        boolean mustStoreThrownIntoList;
+        ArrayList<Throwable> thrownList;
         public MyMethodHelper(
                 AbstractProcess owner,
                 AtomicReference<String> problem,
@@ -115,7 +117,11 @@ public class AbztractProcessHardTest extends TestCase {
 
                 this.didLastCallThrow = this.mustThrow;
                 if (this.mustThrow) {
-                    final MyRuntimeException exception = new MyRuntimeException();
+                    final MyRuntimeException exception = new MyRuntimeException(
+                            "from " + this.method);
+                    if (this.mustStoreThrownIntoList) {
+                        this.thrownList.add(exception);
+                    }
                     if (DEBUG) {
                         Dbg.log(this.method + " : throwing");
                     }
@@ -124,6 +130,14 @@ public class AbztractProcessHardTest extends TestCase {
             } finally {
                 this.beingCalled = false;
             }
+        }
+        void configureThrowing(
+                boolean mustThrow,
+                boolean mustStoreThrownIntoList,
+                ArrayList<Throwable> thrownList) {
+            this.mustThrow = mustThrow;
+            this.mustStoreThrownIntoList = mustStoreThrownIntoList;
+            this.thrownList = thrownList;
         }
         private void setProblemIfNull(String problem) {
             if (this.problem.compareAndSet(null, problem)) {
@@ -134,8 +148,19 @@ public class AbztractProcessHardTest extends TestCase {
     
     private class MyProcess extends AbstractProcess {
         
-        private final double exceptionProbability;
-        
+        private final double exceptionProbability_onBegin;
+        private final double exceptionProbability_onEnd;
+        private final double exceptionProbability_process;
+        private boolean mustStoreThrownToTlThrownList;
+
+        private final ThreadLocal<ArrayList<Throwable>> tlThrownList =
+                new ThreadLocal<ArrayList<Throwable>>() {
+            @Override
+            protected ArrayList<Throwable> initialValue() {
+                return new ArrayList<Throwable>();
+            }
+        };
+
         private final AtomicReference<String> problem = new AtomicReference<String>();
         
         private final MyMethodHelper onBegin_helper = new MyMethodHelper(this, problem, MyMethod.ON_BEGIN);
@@ -155,12 +180,26 @@ public class AbztractProcessHardTest extends TestCase {
         
         private volatile long last_theoreticalTimeNs;
         private volatile long last_actualTimeNs;
-        
+
         public MyProcess(
                 final InterfaceScheduler scheduler,
                 double exceptionProbability) {
+            this(
+                    scheduler,
+                    exceptionProbability,
+                    exceptionProbability,
+                    exceptionProbability);
+        }
+        
+        public MyProcess(
+                final InterfaceScheduler scheduler,
+                double exceptionProbability_onBegin,
+                double exceptionProbability_onEnd,
+                double exceptionProbability_process) {
             super(scheduler);
-            this.exceptionProbability = exceptionProbability;
+            this.exceptionProbability_onBegin = exceptionProbability_onBegin;
+            this.exceptionProbability_onEnd = exceptionProbability_onEnd;
+            this.exceptionProbability_process = exceptionProbability_process;
         }
         
         private void setProblemIfNull(String problem) {
@@ -169,13 +208,22 @@ public class AbztractProcessHardTest extends TestCase {
             }
         }
         
-        private boolean mustThrow() {
-            return random.nextDouble() < exceptionProbability;
+        private boolean computeTrueFalse(double exceptionProbability) {
+            final boolean ret;
+            if (exceptionProbability == 0.0) {
+                ret = false;
+            } else if (exceptionProbability == 1.0) {
+                ret = true;
+            } else {
+                ret = random.nextDouble() < exceptionProbability;
+            }
+            return ret;
         }
         
         @Override
         protected void onBegin() {
-            this.onBegin_helper.onCall(new Runnable() {
+            final MyMethodHelper myHelper = this.onBegin_helper;
+            myHelper.onCall(new Runnable() {
                 @Override
                 public void run() {
                     if (onEnd_helper.beingCalled) {
@@ -199,14 +247,19 @@ public class AbztractProcessHardTest extends TestCase {
                     }
                     lastCalled = MyMethod.ON_BEGIN;
                     
-                    onBegin_helper.mustThrow = mustThrow();
+                    final boolean mustThrow = computeTrueFalse(exceptionProbability_onBegin);
+                    myHelper.configureThrowing(
+                            mustThrow,
+                            mustStoreThrownToTlThrownList,
+                            tlThrownList.get());
                 }
             });
         }
         
         @Override
         protected void onEnd() {
-            this.onEnd_helper.onCall(new Runnable() {
+            final MyMethodHelper myHelper = this.onEnd_helper;
+            myHelper.onCall(new Runnable() {
                 @Override
                 public void run() {
                     if (onBegin_helper.beingCalled) {
@@ -227,14 +280,19 @@ public class AbztractProcessHardTest extends TestCase {
                     }
                     lastCalled = MyMethod.ON_END;
                     
-                    onEnd_helper.mustThrow = mustThrow();
+                    final boolean mustThrow = computeTrueFalse(exceptionProbability_onEnd);
+                    myHelper.configureThrowing(
+                            mustThrow,
+                            mustStoreThrownToTlThrownList,
+                            tlThrownList.get());
                 }
             });
         }
         
         @Override
         protected long process(final long theoreticalTimeNs, final long actualTimeNs) {
-            this.process_helper.onCall(new Runnable() {
+            final MyMethodHelper myHelper = this.process_helper;
+            myHelper.onCall(new Runnable() {
                 @Override
                 public void run() {
                     last_theoreticalTimeNs = theoreticalTimeNs;
@@ -265,7 +323,13 @@ public class AbztractProcessHardTest extends TestCase {
                     // or, in case of many successive PROCESS calls, we would always most likely end up
                     // with an exception, and never enter the case of a regular ON_END call after a
                     // treatment's stop.
-                    process_helper.mustThrow = (mustThrow() && (previousCalled != MyMethod.PROCESS));
+                    final boolean mustThrow =
+                            (previousCalled != MyMethod.PROCESS)
+                            && computeTrueFalse(exceptionProbability_process);
+                    myHelper.configureThrowing(
+                            mustThrow,
+                            mustStoreThrownToTlThrownList,
+                            tlThrownList.get());
                     
                     // For less risk of "while (true)" loop around calls to process,
                     // which could slow things down a lot.
@@ -411,15 +475,44 @@ public class AbztractProcessHardTest extends TestCase {
     }
 
     public void test_concurrentMess_noException() {
-        this.test_concurrentMess(0.0);
+        final double exceptionProbability = 0.0;
+        this.test_concurrentMess(exceptionProbability);
     }
 
     public void test_concurrentMess_someExceptions() {
-        this.test_concurrentMess(0.1);
+        final double exceptionProbability = 0.1;
+        this.test_concurrentMess(exceptionProbability);
     }
 
     public void test_concurrentMess_alwaysExceptions() {
-        this.test_concurrentMess(1.0);
+        final double exceptionProbability = 1.0;
+        this.test_concurrentMess(exceptionProbability);
+    }
+    
+    /*
+     * Anti-suppressions swallowings.
+     */
+    
+    /**
+     * Tests that (for each thread) exceptions that are thrown first
+     * are those that bubble up, without being suppressed by eventual exceptions
+     * thrown from finally blocks.
+     * 
+     * NB: This easily tests the handling done in
+     * AbstractRepeatableRunnable.run() method,
+     * but hardly those done in AbstractProcess
+     * (errors rare when commenting the handling out).
+     */
+    public void test_antiSuppressionsSwallowings() {
+        final double exceptionProbability_onBegin = 0.75;
+        final double exceptionProbability_onEnd = 0.75;
+        final double exceptionProbability_process = 0.25;
+        final boolean mustTestAntiSuppressionsSwallowings = true;
+        this.test_concurrentMess(
+                exceptionProbability_onBegin,
+                exceptionProbability_onEnd,
+                exceptionProbability_process,
+                mustTestAntiSuppressionsSwallowings);
     }
 
     //--------------------------------------------------------------------------
@@ -427,32 +520,90 @@ public class AbztractProcessHardTest extends TestCase {
     //--------------------------------------------------------------------------
     
     /**
+     * Uses mustTestAntiSuppressionsSwallowings = false.
+     */
+    private void test_concurrentMess(
+            double exceptionProbability) {
+        final boolean mustTestAntiSuppressionsSwallowings = false;
+        this.test_concurrentMess(
+                exceptionProbability,
+                exceptionProbability,
+                exceptionProbability,
+                mustTestAntiSuppressionsSwallowings);
+    }
+    
+    /**
      * Testing nothing goes wrong with concurrent non-FIFO scheduler,
      * and concurrent use of start/stop.
      */
-    private void test_concurrentMess(double exceptionProbability) {
+    private void test_concurrentMess(
+            double exceptionProbability_onBegin,
+            double exceptionProbability_process,
+            double exceptionProbability_onEnd,
+            boolean mustTestAntiSuppressionsSwallowings) {
         final ControllableSystemTimeClock clock = new ControllableSystemTimeClock();
         clock.setTimeSpeed(1.0);
         clock.setTimeNs(0L);
         
-        final ThreadFactory threadFactory = new DefaultThreadFactory(
-                null,
-                new UncaughtExceptionHandler() {
-                    @Override
-                    public void uncaughtException(Thread thread, Throwable throwable) {
-                        // quiet
+        final AtomicReference<MyProcess> processRef;
+        final UncaughtExceptionHandler exceptionHandler;
+        if (mustTestAntiSuppressionsSwallowings) {
+            processRef = new AtomicReference<MyProcess>();
+            exceptionHandler = new UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread throwingThread, Throwable caught) {
+                    final MyProcess process = processRef.get();
+                    final ArrayList<Throwable> thrownList = process.tlThrownList.get();
+                    if (thrownList.size() == 0) {
+                        process.setProblemIfNull("caught an exception, but none was thrown");
+                    } else {
+                        final Throwable firstThrown = thrownList.get(0);
+                        if (firstThrown != caught) {
+                            process.setProblemIfNull("caught exception is not first thrown");
+                            Dbg.log("caught:", caught);
+                            for (int i = 0; i < thrownList.size(); i++) {
+                                final Throwable thrown = thrownList.get(i);
+                                if (thrown == caught) {
+                                    Dbg.log("(next is caught one)");
+                                }
+                                Dbg.log("thrownList[" + i + "] =", thrown);
+                            }
+                        }
+                        // Cleanup for next check.
+                        thrownList.clear();
                     }
-                });
+                }
+            };
+        } else {
+            processRef = null;
+            exceptionHandler = new UncaughtExceptionHandler() {
+                @Override
+                public void uncaughtException(Thread thread, Throwable throwable) {
+                    // quiet
+                }
+            };
+        }
+        final boolean daemon = true;
+        final ThreadFactory backingThreadFactory = null;
+        final ThreadFactory threadFactory = new DefaultThreadFactory(
+                backingThreadFactory,
+                exceptionHandler);
         final HardScheduler scheduler = HardScheduler.newInstance(
                 clock,
                 "SCHEDULER",
-                true, // daemon
+                daemon,
                 NBR_OF_PROCESSING_THREADS,
                 threadFactory);
         
         final MyProcess process = new MyProcess(
                 scheduler,
-                exceptionProbability);
+                exceptionProbability_onBegin,
+                exceptionProbability_onEnd,
+                exceptionProbability_process);
+        if (mustTestAntiSuppressionsSwallowings) {
+            processRef.set(process);
+            process.mustStoreThrownToTlThrownList = true;
+        }
 
         /*
          * 
@@ -477,31 +628,23 @@ public class AbztractProcessHardTest extends TestCase {
         // assert equals, to have eventual problem to appear on JUnit report
         assertEquals(null, process.problem.get());
 
-        final boolean someExceptions = (exceptionProbability > 0.0);
-        final boolean alwaysExceptions = (exceptionProbability == 1.0);
-        
-        if (alwaysExceptions) {
-            assertFalse(process.process_calledAfterOnBeginWithoutException);
-            // process never called
-            assertFalse(process.onEnd_calledAfterProcessWithException);
-            assertFalse(process.onEnd_calledAfterProcessWithoutException);
-            assertTrue(process.onBegin_calledAfterOnEndWithException);
-            assertFalse(process.onBegin_calledAfterOnEndWithoutException);
-        } else {
-            if (someExceptions) {
-                assertTrue(process.process_calledAfterOnBeginWithoutException);
-                assertTrue(process.onEnd_calledAfterProcessWithException);
-                assertTrue(process.onEnd_calledAfterProcessWithoutException);
-                assertTrue(process.onBegin_calledAfterOnEndWithException);
-                assertTrue(process.onBegin_calledAfterOnEndWithoutException);
-            } else {
-                assertTrue(process.process_calledAfterOnBeginWithoutException);
-                assertFalse(process.onEnd_calledAfterProcessWithException);
-                assertTrue(process.onEnd_calledAfterProcessWithoutException);
-                assertFalse(process.onBegin_calledAfterOnEndWithException);
-                assertTrue(process.onBegin_calledAfterOnEndWithoutException);
-            }
-        }
+        assertEquals(
+                (exceptionProbability_onBegin < 1.0),
+                process.process_calledAfterOnBeginWithoutException);
+        assertEquals(
+                (exceptionProbability_onBegin < 1.0)
+                && (exceptionProbability_process > 0.0),
+                process.onEnd_calledAfterProcessWithException);
+        assertEquals(
+                (exceptionProbability_process < 1.0),
+                process.onEnd_calledAfterProcessWithoutException);
+
+        assertEquals(
+                (exceptionProbability_onEnd > 0.0),
+                process.onBegin_calledAfterOnEndWithException);
+        assertEquals(
+                (exceptionProbability_onEnd < 1.0),
+                process.onBegin_calledAfterOnEndWithoutException);
     }
     
     /*

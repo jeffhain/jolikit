@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.time.sched;
 
+import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -141,6 +142,7 @@ public abstract class AbstractRepeatableRunnable implements InterfaceCancellable
         }
         
         boolean mustRepeat = false;
+        boolean tryCompletedNormally = false;
         try {
             if (this.status == STATUS_FIRST_RUN_PENDING) {
                 this.status = STATUS_ON_BEGIN_CALL_INITIATED;
@@ -150,6 +152,7 @@ public abstract class AbstractRepeatableRunnable implements InterfaceCancellable
                     // Clearing theoretical time for consistency,
                     // in case user ever set it during onBegin() call.
                     this.clearTheoreticalTime();
+                    tryCompletedNormally = true;
                     return;
                 }
                 this.status = STATUS_REPEATING;
@@ -168,6 +171,8 @@ public abstract class AbstractRepeatableRunnable implements InterfaceCancellable
             this.runImpl(theoreticalTimeNs, actualTimeNs);
             
             mustRepeat = this.isTheoreticalTimeSet();
+            
+            tryCompletedNormally = true;
         } finally {
             if (mustRepeat) {
                 if (this.status == STATUS_DONE_CANCELLED) {
@@ -182,7 +187,11 @@ public abstract class AbstractRepeatableRunnable implements InterfaceCancellable
                     // Done already.
                 } else {
                     final boolean dueToCancellation = false;
-                    this.terminateIfNeeded(dueToCancellation);
+                    try {
+                        this.terminateIfNeeded(dueToCancellation);
+                    } catch (Throwable t) {
+                        ExceptionsUtils.swallowIfTryThrew(t, tryCompletedNormally);
+                    }
                 }
             }
         }
@@ -439,16 +448,20 @@ public abstract class AbstractRepeatableRunnable implements InterfaceCancellable
             return;
         }
         
+        boolean tryCompletedNormally = false;
         try {
             // Not just == STATUS_REPEATING, in case canceling from onBegin().
             if (this.status >= STATUS_ON_BEGIN_CALL_INITIATED) {
                 this.status = (dueToCancellation ? STATUS_ON_END_CALL_INITIATED_CANCELLED : STATUS_ON_END_CALL_INITIATED);
                 this.onEnd();
             }
+            tryCompletedNormally = true;
         } finally {
             this.status = (dueToCancellation ? STATUS_ON_DONE_CALL_INITIATED_CANCELLED : STATUS_ON_DONE_CALL_INITIATED);
             try {
                 this.onDone();
+            } catch (Throwable t) {
+                ExceptionsUtils.swallowIfTryThrew(t, tryCompletedNormally);
             } finally {
                 this.status = (dueToCancellation ? STATUS_DONE_CANCELLED : STATUS_DONE);
                 
