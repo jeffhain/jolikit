@@ -508,9 +508,9 @@ public abstract class AbstractRepeatableTask implements InterfaceCancellable {
         } finally {
             this.nullifyRunnerThread();
             
-            // Clearing interruption status, in case of interruption by cancel(boolean) method,
+            // Clearing interrupt status, in case of interrupt by cancel(boolean) method,
             // for it not to propagate further, before calling onCancel() method.
-            // Interruption status might also have been set in run() method, for whatever
+            // Interrupt status might also have been set in run() method, for whatever
             // reason, in which case we still clear it.
             Thread.interrupted();
             

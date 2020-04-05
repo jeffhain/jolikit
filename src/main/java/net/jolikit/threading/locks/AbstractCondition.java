@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,10 +49,9 @@ abstract class AbstractCondition extends AbstractCondition0 {
 
     @Override
     public final void awaitUninterruptibly() {
-        // Preferring to have an exception in case
-        // of interruption, than checking interruption
-        // status at start all the time (which is
-        // done by await() already).
+        // Preferring to have an exception in case of interrupt,
+        // than checking interrupt status at start all the time
+        // (which is done by await() already).
         boolean interrupted = false;
         while (true) {
             try {
@@ -62,14 +61,14 @@ abstract class AbstractCondition extends AbstractCondition0 {
                 // (or short wait due to getMaxBlockingWaitChunkNs(long))
                 break;
             } catch (InterruptedException e) {
-                // Not restoring interruption status here,
+                // Not restoring interrupt status here,
                 // else would keep spinning on InterruptedException
                 // being thrown.
                 interrupted = true;
             }
         }
         if (interrupted) {
-            // Restoring interruption status.
+            // Restoring interrupt status.
             Thread.currentThread().interrupt();
         }
     }

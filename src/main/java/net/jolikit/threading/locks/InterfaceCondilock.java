@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ import net.jolikit.lang.InterfaceBooleanCondition;
 public interface InterfaceCondilock extends Condition, InterfaceLocker {
     
     /*
-     * Reason for awaitXxxWhileFalseInLockXxx methods not to check interruption
-     * status if boolean condition is first evaluated as true:
-     * If the user does not want the cost of an interruption status check
+     * Reason for awaitXxxWhileFalseInLockXxx methods not to check
+     * interrupt status if boolean condition is first evaluated as true:
+     * If the user does not want the cost of an interrupt status check
      * when the boolean condition is true, he would need to check the
      * boolean condition himself first, which would always lead to a
-     * double evaluation if it's false (with interruption check in between).
-     * With current design, if the user wants interruption status check,
+     * double evaluation if it's false (with interrupt check in between).
+     * With current design, if the user wants interrupt status check,
      * he can still do it himself before calling the method.
      * 
      * Doing best effort to respect the naming conventions of Condition
@@ -100,8 +100,8 @@ public interface InterfaceCondilock extends Condition, InterfaceLocker {
     /**
      * Method to wait for a boolean condition to be true, uninterruptibly.
      * 
-     * If interruption of current thread is detected while waiting,
-     * interruption status is restored before returning.
+     * If interrupt of current thread is detected while waiting,
+     * interrupt status is restored before returning.
      * 
      * @param booleanCondition Condition waited to be true (waiting while it is false).
      */

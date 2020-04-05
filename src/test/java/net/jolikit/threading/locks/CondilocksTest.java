@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -245,7 +245,7 @@ public class CondilocksTest extends TestCase {
             });
         }
         /**
-         * @return Interruption time, in nanoseconds.
+         * @return Interrupt time, in nanoseconds.
          */
         public long interruptRunnerWhenKnown() {
             Thread runner;
@@ -432,28 +432,28 @@ public class CondilocksTest extends TestCase {
      * 
      */
 
-    public void testInterruptionStatusPreserved_NEG_SMALL_NS() {
-        testInterruptionStatusPreserved(-SMALL_NS);
+    public void testInterruptStatusPreserved_NEG_SMALL_NS() {
+        testInterruptStatusPreserved(-SMALL_NS);
     }
 
-    public void testInterruptionStatusPreserved_ZERO_NS() {
-        testInterruptionStatusPreserved(0L);
+    public void testInterruptStatusPreserved_ZERO_NS() {
+        testInterruptStatusPreserved(0L);
     }
 
-    public void testInterruptionStatusPreserved_ONE_NS() {
-        testInterruptionStatusPreserved(1L);
+    public void testInterruptStatusPreserved_ONE_NS() {
+        testInterruptStatusPreserved(1L);
     }
 
-    public void testInterruptionStatusPreserved_SMALL_NS() {
-        testInterruptionStatusPreserved(SMALL_NS);
+    public void testInterruptStatusPreserved_SMALL_NS() {
+        testInterruptStatusPreserved(SMALL_NS);
     }
 
     /**
      * Uninterruptible methods must preserve
      * (restore if they actually did wait)
-     * interruption status.
+     * interrupt status.
      */
-    public void testInterruptionStatusPreserved(long timeoutNs) {
+    public void testInterruptStatusPreserved(long timeoutNs) {
         for (MyCondilockWrapper cw : newCondilockWrapperList()) {
             for (MyMethod method : MyMethod.values()) {
                 if (method.interruptible) {
@@ -461,7 +461,7 @@ public class CondilocksTest extends TestCase {
                 }
 
                 for (boolean initiallyInterrupted : new boolean[]{false, true}) {
-                    testInterruptionStatusPreserved(
+                    testInterruptStatusPreserved(
                             new MyWaiter(cw, timeoutNs), method, initiallyInterrupted);
                 }
             }
@@ -504,19 +504,19 @@ public class CondilocksTest extends TestCase {
      * 
      */
 
-    public void testStoppedByInterruption_SMALL_NS() {
-        testStoppedByInterruption(SMALL_NS);
+    public void testStoppedByInterrupt_SMALL_NS() {
+        testStoppedByInterrupt(SMALL_NS);
     }
 
-    public void testStoppedByInterruption_BIG_NS() {
-        testStoppedByInterruption(BIG_NS);
+    public void testStoppedByInterrupt_BIG_NS() {
+        testStoppedByInterrupt(BIG_NS);
     }
 
-    public void testStoppedByInterruption_MAX_NS() {
-        testStoppedByInterruption(MAX_NS);
+    public void testStoppedByInterrupt_MAX_NS() {
+        testStoppedByInterrupt(MAX_NS);
     }
 
-    public void testStoppedByInterruption(long timeoutNs) {
+    public void testStoppedByInterrupt(long timeoutNs) {
         for (MyCondilockWrapper cw : newCondilockWrapperList()) {
             for (MyMethod method : MyMethod.values()) {
                 if (!method.interruptible) {
@@ -531,7 +531,7 @@ public class CondilocksTest extends TestCase {
 
                 final boolean possibleSpuriousWaitStop = (!method.waitingForBc);
 
-                testStoppedByInterruption(
+                testStoppedByInterrupt(
                         new MyWaiter(cw, timeoutNs), method, possibleSpuriousWaitStop);
             }
         }
@@ -541,19 +541,19 @@ public class CondilocksTest extends TestCase {
      * 
      */
 
-    public void testNotStoppedByInterruption_SMALL_NS() {
-        testNotStoppedByInterruption(SMALL_NS);
+    public void testNotStoppedByInterrupt_SMALL_NS() {
+        testNotStoppedByInterrupt(SMALL_NS);
     }
 
-    public void testNotStoppedByInterruption_BIG_NS() {
-        testNotStoppedByInterruption(BIG_NS);
+    public void testNotStoppedByInterrupt_BIG_NS() {
+        testNotStoppedByInterrupt(BIG_NS);
     }
 
-    public void testNotStoppedByInterruption_MAX_NS() {
-        testNotStoppedByInterruption(MAX_NS);
+    public void testNotStoppedByInterrupt_MAX_NS() {
+        testNotStoppedByInterrupt(MAX_NS);
     }
 
-    public void testNotStoppedByInterruption(long timeoutNs) {
+    public void testNotStoppedByInterrupt(long timeoutNs) {
         for (MyCondilockWrapper cw : newCondilockWrapperList()) {
             for (MyMethod method : MyMethod.values()) {
                 if (method.interruptible) {
@@ -568,7 +568,7 @@ public class CondilocksTest extends TestCase {
 
                 final boolean possibleSpuriousWaitStop = (!method.waitingForBc);
 
-                testNotStoppedByInterruption(
+                testNotStoppedByInterrupt(
                         new MyWaiter(cw, timeoutNs), method, possibleSpuriousWaitStop);
             }
         }
@@ -657,19 +657,19 @@ public class CondilocksTest extends TestCase {
 
         assertTrue(Math.abs(helper.getEndTimeNsBlocking() - stopTimeNs) <= TOLERANCE_NS);
 
-        assertFalse(helper.isInterruptedExceptionThrown()); // No interruption.
-        assertFalse(helper.isInterruptedStatusSetOnLastNormalWaitEnd()); // No interruption.
+        assertFalse(helper.isInterruptedExceptionThrown()); // No interrupt.
+        assertFalse(helper.isInterruptedStatusSetOnLastNormalWaitEnd()); // No interrupt.
 
         Unchecked.shutdownAndAwaitTermination(executor);
     }
 
-    private static void testInterruptionStatusPreserved(
+    private static void testInterruptStatusPreserved(
             MyWaiter waiter,
             MyMethod method,
             boolean initiallyInterrupted) {
 
         if (DEBUG) {
-            Dbg.log("testInterruptionStatusPreserved(" + waiter + ", " + method + ", " + initiallyInterrupted + ")");
+            Dbg.log("testInterruptStatusPreserved(" + waiter + ", " + method + ", " + initiallyInterrupted + ")");
         }
 
         final ExecutorService executor = Executors.newCachedThreadPool();
@@ -713,15 +713,15 @@ public class CondilocksTest extends TestCase {
     }
 
     /**
-     * Tests that interruption stops the wait, by making wait method throw InterruptedException.
+     * Tests that interrupt stops the wait, by making wait method throw InterruptedException.
      */
-    private static void testStoppedByInterruption(
+    private static void testStoppedByInterrupt(
             MyWaiter waiter,
             MyMethod method,
             boolean possibleSpuriousWaitStop) {
 
         if (DEBUG) {
-            Dbg.log("testStoppedByInterruption(" + waiter + ", " + method + ", " + possibleSpuriousWaitStop + ")");
+            Dbg.log("testStoppedByInterrupt(" + waiter + ", " + method + ", " + possibleSpuriousWaitStop + ")");
         }
 
         final ExecutorService executor = Executors.newCachedThreadPool();
@@ -744,7 +744,7 @@ public class CondilocksTest extends TestCase {
         assertTrue(helper.isInterruptedExceptionThrown());
         if (possibleSpuriousWaitStop) {
             // Can have waiting thread interrupted right after wait method (normally) ended,
-            // so having interruption status even though it has not been set by wait method after
+            // so having interrupt status even though it has not been set by wait method after
             // catching an InterruptedException (case of non-signalable condilocks,
             // or signalable condilocks not waiting for a boolean condition).
         } else {
@@ -755,16 +755,16 @@ public class CondilocksTest extends TestCase {
     }
 
     /**
-     * Tests that interruption doesn't end the wait,
-     * and that interruption status is restored before returning.
+     * Tests that interrupt doesn't end the wait,
+     * and that interrupt status is restored before returning.
      */
-    private static void testNotStoppedByInterruption(
+    private static void testNotStoppedByInterrupt(
             MyWaiter waiter,
             MyMethod method,
             boolean possibleSpuriousWaitStop) {
 
         if (DEBUG) {
-            Dbg.log("testNotStoppedByInterruption(" + waiter + ", " + method + ", " + possibleSpuriousWaitStop + ")");
+            Dbg.log("testNotStoppedByInterrupt(" + waiter + ", " + method + ", " + possibleSpuriousWaitStop + ")");
         }
 
         final ExecutorService executor = Executors.newCachedThreadPool();
@@ -772,7 +772,7 @@ public class CondilocksTest extends TestCase {
         final MyWaiterHelper helper = new MyWaiterHelper(waiter);
 
         helper.stopIfInterruptedOnNormalWaitEnd = true; // Our only way to stop.
-        helper.rewaitIfNormalWaitEndAndDidntStop = possibleSpuriousWaitStop; // In case of spurious wait stop before interruption.
+        helper.rewaitIfNormalWaitEndAndDidntStop = possibleSpuriousWaitStop; // In case of spurious wait stop before interrupt.
         helper.launchWait(method, executor);
 
         sleepNs(TOLERANCE_NS);
@@ -781,7 +781,7 @@ public class CondilocksTest extends TestCase {
             if (helper.isNormalWaitEndEncountered()) {
                 // Didn't interrupt yet.
                 assertFalse(helper.isInterruptedStatusSetOnLastNormalWaitEnd());
-                System.out.println("rare : waiting ended before interruption");
+                System.out.println("rare : waiting ended before interrupt");
                 return;
             }
         } else {
@@ -789,11 +789,11 @@ public class CondilocksTest extends TestCase {
         }
 
         /*
-         * Checking interruption doesn't stop the wait, with soft-check
+         * Checking interrupt doesn't stop the wait, with soft-check
          * in case of possible spurious wake-up, which we suppose rare,
          * else this test is irrelevant.
          * (Can have thread interrupted just after a spurious wait stop,
-         * which would look like having the wait being stopped by interruption.)
+         * which would look like having the wait being stopped by interrupt.)
          */
 
         helper.interruptRunnerWhenKnown();
@@ -803,7 +803,7 @@ public class CondilocksTest extends TestCase {
         assertFalse(helper.isInterruptedExceptionThrown());
         if (possibleSpuriousWaitStop) {
             if (helper.isNormalWaitEndEncountered()) {
-                System.out.println("rare : waiting ended after interruption");
+                System.out.println("rare : waiting ended after interrupt");
                 return;
             }
         } else {
@@ -812,7 +812,7 @@ public class CondilocksTest extends TestCase {
         }
 
         /*
-         * Stopping the wait, and checking interruption status has been restored.
+         * Stopping the wait, and checking interrupt status has been restored.
          */
 
         final long stopTimeNs = nowNs();

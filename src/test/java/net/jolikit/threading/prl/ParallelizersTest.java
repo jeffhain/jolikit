@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -516,7 +516,7 @@ public class ParallelizersTest extends TestCase {
     }
     
     /*
-     * For interruption test.
+     * For interrupt test.
      */
     
     private class MyInterruptingFiboSpm extends MyFiboSpm {
@@ -940,16 +940,16 @@ public class ParallelizersTest extends TestCase {
      * 
      */
     
-    public void test_interruption() {
+    public void test_interrupt() {
         for (InterfaceParallelizerForTests parallelizer : newParallelizerList()) {
-            test_interruption(parallelizer);
+            test_interrupt(parallelizer);
             parallelizer.shutdownAndWait();
         }
     }
     
-    public void test_interruption(InterfaceParallelizerForTests parallelizer) {
+    public void test_interrupt(InterfaceParallelizerForTests parallelizer) {
         if (DEBUG) {
-            Dbg.log("test_interruption(" + computeDescr(parallelizer) + ")");
+            Dbg.log("test_interrupt(" + computeDescr(parallelizer) + ")");
         }
 
         final int n = FIBO_MAX_N;
@@ -973,14 +973,14 @@ public class ParallelizersTest extends TestCase {
                     // Current thread got interrupted before
                     // parallelization started.
                     // Checking that parallelization didn't clear
-                    // interruption status.
+                    // interrupt status.
                     assertTrue(Thread.currentThread().isInterrupted());
                 } else {
-                    // {split/run/merge}, and therefore interruptions,
+                    // {split/run/merge}, and therefore interrupts,
                     // might have been done only in worker threads.
                 }
 
-                // Clearing eventual interruption status.
+                // Clearing eventual interrupt status.
                 Thread.interrupted();
 
                 final int actual = spm.result;

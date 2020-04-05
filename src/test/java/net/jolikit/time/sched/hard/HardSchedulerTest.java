@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1772,7 +1772,7 @@ public class HardSchedulerTest extends TestCase {
 
             scheduler.interruptWorkers();
 
-            // Letting time for interruption to propagate.
+            // Letting time for interrupt to propagate.
             sleepMS(REAL_TIME_TOLERANCE_MS);
 
             assertTrue(runnable1.runInterrupted);
@@ -1828,7 +1828,7 @@ public class HardSchedulerTest extends TestCase {
             
             scheduler.interruptWorkers();
 
-            // Letting time for interruption to propagate.
+            // Letting time for interrupt to propagate.
             sleepMS(REAL_TIME_TOLERANCE_MS);
 
             assertFalse(runnableToCancel.runInterrupted);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ public class RuntimeExecHelper {
                 throw new RethrowException(e);
             } finally {
                 synchronized (this.runnerNullificationMutex) {
-                    // Clearing eventual interruption status, that could
+                    // Clearing eventual interrupt status, that could
                     // have been set by call to interruptRunner(),
                     // and is no longer needed since reader is now completing.
                     // Note: This might clear an interrupt done by external

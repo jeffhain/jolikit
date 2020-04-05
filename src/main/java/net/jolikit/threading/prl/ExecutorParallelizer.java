@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,10 +54,10 @@ import net.jolikit.lang.RethrowException;
  * it could cause actual parallelism to quietly converge to one
  * and silently hurt performances.
  * 
- * Interruptions:
+ * Interrupts:
  * If the caller thread or a worker thread of the backing executor
  * is interrupted before or during the parallelization,
- * the interruption status is preserved by the parallelization.
+ * the interrupt status is preserved by the parallelization.
  */
 public class ExecutorParallelizer implements InterfaceParallelizer {
     
@@ -439,7 +439,7 @@ public class ExecutorParallelizer implements InterfaceParallelizer {
                                 /*
                                  * We don't want our wait to be interrupted,
                                  * but if current thread got interrupted,
-                                 * we restore interruption status after the wait,
+                                 * we restore interrupt status after the wait,
                                  * to make user code (in split runnables) aware of it.
                                  */
                                 interrupted = true;

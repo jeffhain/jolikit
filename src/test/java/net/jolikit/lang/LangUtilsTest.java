@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -570,7 +570,7 @@ public class LangUtilsTest extends TestCase {
         } catch (InterruptedException e) {
             // ok
         }
-        // Interruption status cleared before exception thrown.
+        // Interrupt status cleared before exception thrown.
         assertFalse(Thread.currentThread().isInterrupted());
     }
 
@@ -737,7 +737,7 @@ public class LangUtilsTest extends TestCase {
         assertFalse(Thread.currentThread().isInterrupted());
 
         // Interrupted (long duration).
-        // (No need to schedule a signal, due to interruption)
+        // (No need to schedule a signal, due to interrupt)
         Thread.currentThread().interrupt();
         try {
             synchronized (waitObject) {

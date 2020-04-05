@@ -73,6 +73,9 @@ Jolikit X.X, XXXX/XX/XX
 - Optimized BWD bindings graphics creations and init,
   and added BenchNewChildGBwdTestCase.
 
+- Comments/internals : now using "interrupt status" instead of
+  "interruption status", and related changes.
+
 - Obsolete comments, log and tests upgrades in net.jolikit.time.sched packages.
 
 ################################################################################
