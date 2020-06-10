@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -102,11 +102,7 @@ public class Argb32 {
      * @return A string of the form 0xAARRGGBB.
      */
     public static String toString(int argb32) {
-        // Using long, because int is signed.
-        final long argb32Long = ((long) argb32) & 0xFFFFFFFFL;
-        final int radix = 16;
-        final int paddingUpTo = 8;
-        return "0x" + NumbersUtils.toString(argb32Long, radix, paddingUpTo);
+        return NumbersUtils.toStringHex(argb32);
     }
 
     /*

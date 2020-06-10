@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -113,14 +113,7 @@ public class Argb64 {
      * @return A string of the form 0xAAAARRRRGGGGBBBB.
      */
     public static String toString(long argb64) {
-        // Need to split in two, because long is signed.
-        final long lsb32 = (argb64 & 0xFFFFFFFFL);
-        final long msb32 = ((argb64 >> 32) & 0xFFFFFFFFL);
-        final int radix = 16;
-        final int paddingUpTo = 16/2;
-        return "0x"
-                + NumbersUtils.toString(msb32, radix, paddingUpTo)
-                + NumbersUtils.toString(lsb32, radix, paddingUpTo);
+        return NumbersUtils.toStringHex(argb64);
     }
     
     /*

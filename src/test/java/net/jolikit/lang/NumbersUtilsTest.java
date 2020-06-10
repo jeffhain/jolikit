@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -3909,6 +3909,10 @@ public class NumbersUtilsTest extends TestCase {
         }
     }
     
+    /*
+     * 
+     */
+    
     public void test_toStringBits_byte() {
         assertEquals("00010010",NumbersUtils.toStringBits((byte)0x12));
         assertEquals("11110010",NumbersUtils.toStringBits((byte)0xF2));
@@ -3928,6 +3932,68 @@ public class NumbersUtilsTest extends TestCase {
         assertEquals("0001001000110100010101100111100000010011010101110010010001101000",NumbersUtils.toStringBits(0x1234567813572468L));
         assertEquals("1111001000110100010101100111100000010011010101110010010001101000",NumbersUtils.toStringBits(0xF234567813572468L));
     }
+    
+    /*
+     * 
+     */
+    
+    public void test_toStringHex_byte() {
+        assertEquals("0x00",NumbersUtils.toStringHex((byte)0x00));
+        assertEquals("0x01",NumbersUtils.toStringHex((byte)0x01));
+        assertEquals("0x80",NumbersUtils.toStringHex((byte)0x80));
+        //
+        assertEquals("0x02",NumbersUtils.toStringHex((byte)0x02));
+        assertEquals("0x10",NumbersUtils.toStringHex((byte)0x10));
+        //
+        assertEquals("0x12",NumbersUtils.toStringHex((byte)0x12));
+        assertEquals("0xF2",NumbersUtils.toStringHex((byte)0xF2));
+    }
+    
+    public void test_toStringHex_short() {
+        assertEquals("0x0000",NumbersUtils.toStringHex((short)0x0000));
+        assertEquals("0x0001",NumbersUtils.toStringHex((short)0x0001));
+        assertEquals("0x8000",NumbersUtils.toStringHex((short)0x8000));
+        assertEquals("0xFFFF",NumbersUtils.toStringHex((short)0xFFFF));
+        //
+        assertEquals("0x0034",NumbersUtils.toStringHex((short)0x0034));
+        assertEquals("0x0230",NumbersUtils.toStringHex((short)0x0230));
+        assertEquals("0x1200",NumbersUtils.toStringHex((short)0x1200));
+        //
+        assertEquals("0x1234",NumbersUtils.toStringHex((short)0x1234));
+        assertEquals("0xF234",NumbersUtils.toStringHex((short)0xF234));
+    }
+    
+    public void test_toStringHex_int() {
+        assertEquals("0x00000000",NumbersUtils.toStringHex(0x00000000));
+        assertEquals("0x00000001",NumbersUtils.toStringHex(0x00000001));
+        assertEquals("0x80000000",NumbersUtils.toStringHex(0x80000000));
+        assertEquals("0xFFFFFFFF",NumbersUtils.toStringHex(0xFFFFFFFF));
+        //
+        assertEquals("0x00005678",NumbersUtils.toStringHex(0x00005678));
+        assertEquals("0x00345600",NumbersUtils.toStringHex(0x00345600));
+        assertEquals("0x12340000",NumbersUtils.toStringHex(0x12340000));
+        //
+        assertEquals("0x12345678",NumbersUtils.toStringHex(0x12345678));
+        assertEquals("0xF2345678",NumbersUtils.toStringHex(0xF2345678));
+    }
+    
+    public void test_toStringHex_long() {
+        assertEquals("0x0000000000000000",NumbersUtils.toStringHex(0x0000000000000000L));
+        assertEquals("0x0000000000000001",NumbersUtils.toStringHex(0x0000000000000001L));
+        assertEquals("0x8000000000000000",NumbersUtils.toStringHex(0x8000000000000000L));
+        assertEquals("0xFFFFFFFFFFFFFFFF",NumbersUtils.toStringHex(0xFFFFFFFFFFFFFFFFL));
+        //
+        assertEquals("0x0000000013572468",NumbersUtils.toStringHex(0x0000000013572468L));
+        assertEquals("0x0000567813570000",NumbersUtils.toStringHex(0x0000567813570000L));
+        assertEquals("0x1234567800000000",NumbersUtils.toStringHex(0x1234567800000000L));
+        //
+        assertEquals("0x1234567813572468",NumbersUtils.toStringHex(0x1234567813572468L));
+        assertEquals("0xF234567813572468",NumbersUtils.toStringHex(0xF234567813572468L));
+    }
+    
+    /*
+     * 
+     */
 
     public void test_toStringBits_byte_2int_2boolean() {
         final byte bits = (byte)0x12;

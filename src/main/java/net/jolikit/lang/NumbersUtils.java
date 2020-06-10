@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@ package net.jolikit.lang;
 
 /**
  * TODO Copy-paste from Jafama 2.3.1, with some round/ceil/floor methods added
- * to avoid having to use and depend on FastMath just for these.
+ * to avoid having to use and depend on FastMath just for these,
+ * and toStringHex() methods.
  * See later if want to merge all of Jafama into this library (and in this
  * package), and make FastMath delegate to methods copied into NumbersUtils
  * (or not, due to eventual strictfp issues).
@@ -2496,55 +2497,79 @@ public final class NumbersUtils {
     public static boolean checkBitPositionsLong(int firstBitPos, int lastBitPosExcl) {
         return checkBitPositions(firstBitPos, lastBitPosExcl, 64);
     }
+    
+    /*
+     * 
+     */
 
     /**
      * @return String representation of specified bits, in big endian.
      */
     public static String toStringBits(byte bits) {
-        final char[] chars = new char[8];
-        int bitIndex = 8;
-        while (--bitIndex >= 0) {
-            chars[7-bitIndex] = (char)('0' + ((bits>>bitIndex)&1));
-        }
-        return new String(chars);
+        return toStringBits_internal(bits, 8);
     }
 
     /**
      * @return String representation of specified bits, in big endian.
      */
     public static String toStringBits(short bits) {
-        final char[] chars = new char[16];
-        int bitIndex = 16;
-        while (--bitIndex >= 0) {
-            chars[15-bitIndex] = (char)('0' + ((bits>>bitIndex)&1));
-        }
-        return new String(chars);
+        return toStringBits_internal(bits, 16);
     }
 
     /**
      * @return String representation of specified bits, in big endian.
      */
     public static String toStringBits(int bits) {
-        final char[] chars = new char[32];
-        int bitIndex = 32;
-        while (--bitIndex >= 0) {
-            chars[31-bitIndex] = (char)('0' + ((bits>>bitIndex)&1));
-        }
-        return new String(chars);
+        return toStringBits_internal(bits, 32);
     }
 
     /**
      * @return String representation of specified bits, in big endian.
      */
     public static String toStringBits(long bits) {
-        final char[] chars = new char[64];
-        int bitIndex = 64;
-        while (--bitIndex >= 0) {
-            chars[63-bitIndex] = (char)('0' + ((bits>>bitIndex)&1));
-        }
-        return new String(chars);
+        return toStringBits_internal(bits, 64);
     }
 
+    /*
+     * 
+     */
+    
+    /**
+     * @return String representation of specified bits,
+     *         in hexadecimal and in big endian.
+     */
+    public static String toStringHex(byte bits) {
+        return toStringHex_internal(bits, 2);
+    }
+
+    /**
+     * @return String representation of specified bits,
+     *         in hexadecimal and in big endian.
+     */
+    public static String toStringHex(short bits) {
+        return toStringHex_internal(bits, 4);
+    }
+
+    /**
+     * @return String representation of specified bits,
+     *         in hexadecimal and in big endian.
+     */
+    public static String toStringHex(int bits) {
+        return toStringHex_internal(bits, 8);
+    }
+
+    /**
+     * @return String representation of specified bits,
+     *         in hexadecimal and in big endian.
+     */
+    public static String toStringHex(long bits) {
+        return toStringHex_internal(bits, 16);
+    }
+
+    /*
+     * 
+     */
+    
     /**
      * @param firstBitPos First bit position (inclusive).
      * @param lastBitPosExcl Last bit position (exclusive).
@@ -2981,6 +3006,46 @@ public final class NumbersUtils {
     private static long maxSignedLongForBitSize_noCheck(int bitSize) {
         // i.e. (1L<<(bitSize-1))-1
         return (Long.MAX_VALUE>>(64-bitSize));
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Only considers low digits.
+     */
+    private static String toStringBits_internal(long bits, int nbrOfDigits) {
+        final int bitSize = nbrOfDigits;
+        final char[] chars = new char[nbrOfDigits];
+        int charIndex = 0;
+        int digitIndex = bitSize;
+        while (--digitIndex >= 0) {
+            final int digit = (((int) (bits >> digitIndex)) & 1);
+            chars[charIndex++] = (char) ('0' + digit);
+        }
+        return new String(chars);
+    }
+    
+    /*
+     * 
+     */
+
+    /**
+     * Only considers low digits.
+     */
+    private static String toStringHex_internal(long bits, int nbrOfDigits) {
+        final int bitSize = 4 * nbrOfDigits;
+        final char[] chars = new char[2 + nbrOfDigits];
+        chars[0] = '0';
+        chars[1] = 'x';
+        int charIndex = 2;
+        int digitIndex = bitSize;
+        while ((digitIndex -= 4) >= 0) {
+            final int digit = (((int) (bits >> digitIndex)) & 0xF);
+            chars[charIndex++] = CHAR_BY_DIGIT[digit];
+        }
+        return new String(chars);
     }
 
     /*
