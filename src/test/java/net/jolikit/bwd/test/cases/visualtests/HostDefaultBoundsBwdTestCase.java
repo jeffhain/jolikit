@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -323,7 +323,10 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
             g.drawRect(bBox);
             
             final String text = button.text;
-            drawTextCentered(g, bBox.x(), bBox.y(), bBox.xSpan(), bBox.ySpan(), text);
+            BwdTestUtils.drawTextCentered(
+                    g,
+                    bBox.x(), bBox.y(), bBox.xSpan(), bBox.ySpan(),
+                    text);
         }
 
         return GRect.DEFAULT_HUGE_IN_LIST;
@@ -397,19 +400,6 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
      * 
      */
     
-    private static void drawTextCentered(
-            InterfaceBwdGraphics g,
-            int x, int y, int xSpan, int ySpan,
-            String text) {
-        final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int textWidth = metrics.computeTextWidth(text);
-        final int textHeight = metrics.fontHeight();
-        final int textX = x + (xSpan - textWidth) / 2;
-        final int textY = y + (ySpan - textHeight) / 2;
-        g.drawText(textX, textY, text);
-    }
-
     private void updateNewHostControlPanel(
             InterfaceBwdGraphics g,
             GRect box,

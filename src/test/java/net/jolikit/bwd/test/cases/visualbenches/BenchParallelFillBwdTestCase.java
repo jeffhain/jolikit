@@ -28,6 +28,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.HertzHelper;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
@@ -286,13 +287,11 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
         
         final InterfaceBwdFont font = g.getFont();
         final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int textHeight = metrics.fontHeight();
         final int textWidth = metrics.computeTextWidth(textForWidth);
+        final int textHeight = metrics.fontHeight();
         
-        g.setColor(BwdColor.WHITE);
-        g.fillRect(textX, textY, textWidth, textHeight);
-
-        g.setColor(BwdColor.BLACK);
-        g.drawText(textX, textY, text);
+        BwdTestUtils.drawTextAndSpannedBg(
+                g, BwdColor.WHITE, BwdColor.BLACK,
+                textX, textY, text, textWidth, textHeight);
     }
 }

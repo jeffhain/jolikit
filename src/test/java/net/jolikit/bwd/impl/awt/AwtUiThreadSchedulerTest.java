@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,12 +21,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import junit.framework.TestCase;
 import net.jolikit.bwd.impl.utils.sched.HardClockTimeType;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.DefaultExceptionHandler;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ConcUnit;
-import net.jolikit.time.clocks.hard.InterfaceHardClock;
-import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.hard.HardScheduler;
@@ -143,12 +142,7 @@ public class AwtUiThreadSchedulerTest extends TestCase {
 
     @Override
     protected void setUp() {
-        final InterfaceHardClock clock = new NanoTimeClock();
-        final boolean daemon = true;
-        this.timingScheduler = HardScheduler.newSingleThreadedInstance(
-                clock,
-                "test",
-                daemon);
+        this.timingScheduler = BwdTestUtils.newHardScheduler(1);
         final boolean mustSwallowElseRethrow = true;
         final UncaughtExceptionHandler exceptionHandler =
                 new DefaultExceptionHandler(

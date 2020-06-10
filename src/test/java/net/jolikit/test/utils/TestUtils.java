@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,9 @@ public class TestUtils {
     
     private static final String JVM_INFO = readJVMInfo();
     
+    private static final String BLACK_HOLE_SIDE_EFFECT_MESSAGE =
+            "black hole spit out something big: not supposed to happen";
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -42,6 +45,62 @@ public class TestUtils {
     public static String getJVMInfo() {
         return JVM_INFO;
     }
+    
+    /*
+     * Black holes: Consume the specified value, without side effect
+     * other than consuming a few CPU cycles, but in such a way that
+     * the JVM should not optimize them away.
+     * 
+     * Small overhead, so that can be used in benches.
+     * 
+     * If compilers can figure out that these calls "could be removed",
+     * we are doomed.
+     */
+    
+    /**
+     * @param antiOptim A value.
+     */
+    public static void blackHole(int antiOptim) {
+        if (antiOptim + Math.PI == Math.E) {
+            System.out.println(BLACK_HOLE_SIDE_EFFECT_MESSAGE);
+        }
+    }
+
+    /**
+     * @param antiOptim A value.
+     */
+    public static void blackHole(long antiOptim) {
+        /*
+         * Conversion/promotion from long to double
+         * can be slow for huge values, so we just swallow
+         * the 32 LSBits.
+         */
+        blackHole((int) antiOptim);
+    }
+
+    /**
+     * @param antiOptim A value.
+     */
+    public static void blackHole(double antiOptim) {
+        /*
+         * Cast from double to int should always be fast.
+         */
+        blackHole((int) antiOptim);
+    }
+
+    /**
+     * @param antiOptim An object. Must not be null.
+     */
+    public static void blackHole(Object antiOptim) {
+        /*
+         * identityHashCode() should be fast.
+         */
+        blackHole(System.identityHashCode(antiOptim));
+    }
+    
+    /*
+     * 
+     */
     
     /**
      * @param s A duration in seconds.
@@ -59,6 +118,22 @@ public class TestUtils {
         return Math.round(ns/1e6)/1e3;
     }
     
+    /**
+     * @param ns A duration in nanoseconds.
+     * @return The specified duration in milliseconds, rounded to 3 digits past comma.
+     */
+    public static double nsToMsRounded(long ns) {
+        return Math.round(ns/1e3)/1e3;
+    }
+    
+    /**
+     * @param ns A duration in nanoseconds.
+     * @return The specified duration in microseconds.
+     */
+    public static double nsToUs(long ns) {
+        return ns/1e3;
+    }
+
     /**
      * Sleeps in chunks of 10ms, to prevent the risk of a GC
      * eating the whole sleeping duration, and not letting

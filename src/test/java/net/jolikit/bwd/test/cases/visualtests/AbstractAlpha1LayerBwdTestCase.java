@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
@@ -26,6 +25,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 
 /**
  * To implement 1-layer alpha painting, with opaque or transparent background.
@@ -156,13 +156,12 @@ public abstract class AbstractAlpha1LayerBwdTestCase extends AbstractBwdTestCase
                 
                 final String text = Argb32.toString(argb32);
                 
-                final boolean withBg = false;
-                drawStringCentered(
+                g.setColor(BwdColor.BLACK);
+                BwdTestUtils.drawTextCentered(
                         g,
                         cellX + CELL_WIDTH / 2,
                         cellY + CELL_HEIGHT / 2,
-                        text,
-                        withBg);
+                        text);
             }
         }
         
@@ -186,31 +185,5 @@ public abstract class AbstractAlpha1LayerBwdTestCase extends AbstractBwdTestCase
             
             return GRect.DEFAULT_HUGE_IN_LIST;
         }
-    }
-
-    //--------------------------------------------------------------------------
-    // PRIVATE METHODS
-    //--------------------------------------------------------------------------
-
-    private static void drawStringCentered(
-            InterfaceBwdGraphics g,
-            int centerX,
-            int centerY,
-            String text,
-            boolean withBg) {
-        final InterfaceBwdFont font = g.getFont();
-        final int textHeight = font.fontMetrics().fontHeight();
-        final int textWidth = font.fontMetrics().computeTextWidth(text);
-
-        final int textX = centerX - textWidth / 2;
-        final int textY = centerY - textHeight / 2;
-        
-        if (withBg) {
-            g.setColor(BwdColor.WHITE);
-            g.fillRect(textX, textY, textWidth, textHeight);
-        }
-
-        g.setColor(BwdColor.BLACK);
-        g.drawText(textX, textY, text);
     }
 }

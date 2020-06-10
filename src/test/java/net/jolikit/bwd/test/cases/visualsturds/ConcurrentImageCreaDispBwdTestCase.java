@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
@@ -30,6 +29,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.threading.prl.InterfaceParallelizer;
@@ -295,17 +295,9 @@ public class ConcurrentImageCreaDispBwdTestCase extends AbstractBwdTestCase {
         {
             final String text = "paint count = " + paintCount;
             
-            final InterfaceBwdFont font = g.getFont();
-            
-            g.setColor(BwdColor.WHITE);
-            g.fillRect(
-                    x,
-                    y,
-                    font.fontMetrics().computeTextWidth(text),
-                    font.fontMetrics().fontHeight());
-            
-            g.setColor(BwdColor.BLACK);
-            g.drawText(x, y, text);
+            BwdTestUtils.drawTextAndBg(
+                    g, BwdColor.WHITE, BwdColor.BLACK,
+                    x, y, text);
         }
         
         /*

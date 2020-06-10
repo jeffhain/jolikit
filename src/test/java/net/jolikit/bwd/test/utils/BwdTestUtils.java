@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,16 @@ import java.awt.GraphicsConfiguration;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.Rectangle;
+import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadFactory;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -32,9 +37,14 @@ import net.jolikit.bwd.impl.awt.AwtBwdBindingConfig;
 import net.jolikit.bwd.impl.utils.DefaultDefaultFontInfoComputer;
 import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
+import net.jolikit.lang.DefaultExceptionHandler;
+import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.test.JlkTestConfig;
+import net.jolikit.time.clocks.hard.InterfaceHardClock;
+import net.jolikit.time.clocks.hard.NanoTimeClock;
+import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
  * Utilities for BWD tests.
@@ -87,7 +97,8 @@ public class BwdTestUtils {
         BONUS_SYSTEM_FONT_FILE_PATH_LIST = Collections.unmodifiableList(list);
     }
     
-    public static final DefaultDefaultFontInfoComputer DEFAULT_FONT_INFO_COMPUTER = new DefaultDefaultFontInfoComputer();
+    public static final DefaultDefaultFontInfoComputer DEFAULT_FONT_INFO_COMPUTER =
+            new DefaultDefaultFontInfoComputer();
 
     /**
      * Default binding lazily created, so that tests can use this class
@@ -168,6 +179,50 @@ public class BwdTestUtils {
     
     public static boolean isSdlBinding(InterfaceBwdBinding binding) {
         return isXxxBinding(binding, "Sdl");
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * @param nbrOfThreads Must be >= 1.
+     */
+    public static HardScheduler newHardScheduler(int nbrOfThreads) {
+        final String testContext = null;
+        return newHardScheduler(testContext, nbrOfThreads);
+    }
+    
+    /**
+     * @param testContext Can be null.
+     * @param nbrOfThreads Must be >= 1.
+     */
+    public static HardScheduler newHardScheduler(
+            String testContext,
+            int nbrOfThreads) {
+        
+        // If swallowing, might not see the issue.
+        final boolean mustSwallowElseRethrow = true;
+        
+        final UncaughtExceptionHandler exceptionHandler =
+                new DefaultExceptionHandler(mustSwallowElseRethrow);
+        
+        final ThreadFactory backingThreadFactory = null;
+        final ThreadFactory threadFactory = new DefaultThreadFactory(
+                backingThreadFactory,
+                exceptionHandler);
+        
+        final InterfaceHardClock clock = NanoTimeClock.getDefaultInstance();
+        final String threadNamePrefix =
+                "BwdTest-BG" + ((testContext != null) ? "-" + testContext : "");
+        final boolean daemon = true;
+        
+        return HardScheduler.newInstance(
+                clock,
+                threadNamePrefix,
+                daemon,
+                nbrOfThreads,
+                threadFactory);
     }
     
     /*
@@ -307,6 +362,89 @@ public class BwdTestUtils {
         }
     }
     
+    /*
+     * 
+     */
+    
+    public static void drawTextCentered(
+            InterfaceBwdGraphics g,
+            int centerX, int centerY,
+            String text) {
+        final InterfaceBwdFont font = g.getFont();
+        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final int textWidth = metrics.computeTextWidth(text);
+        final int textHeight = metrics.fontHeight();
+        final int textX = centerX - (textWidth / 2);
+        final int textY = centerY - (textHeight / 2);
+        g.drawText(textX, textY, text);
+    }
+
+    public static void drawTextCentered(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan,
+            String text) {
+        final int centerX = x + xSpan / 2;
+        final int centerY = y + ySpan / 2;
+        drawTextCentered(g, centerX, centerY, text);
+    }
+
+    /**
+     * Restores graphics color before returning.
+     */
+    public static void drawTextAndBgXCentered(
+            InterfaceBwdGraphics g,
+            BwdColor bgColor,
+            BwdColor fgColor,
+            int centerX,
+            int y,
+            String text) {
+        final InterfaceBwdFont font = g.getFont();
+        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final int bgXSpan = metrics.computeTextWidth(text);
+        final int bgYSpan = metrics.fontHeight();
+        final int x = centerX - bgXSpan / 2;
+        drawTextAndSpannedBg(g, bgColor, fgColor, x, y, text, bgXSpan, bgYSpan);
+    }
+
+    /**
+     * Restores graphics color before returning.
+     */
+    public static void drawTextAndBg(
+            InterfaceBwdGraphics g,
+            BwdColor bgColor,
+            BwdColor fgColor,
+            int x,
+            int y,
+            String text) {
+        final InterfaceBwdFontMetrics fontMetrics = g.getFont().fontMetrics();
+        final int bgXSpan = fontMetrics.computeTextWidth(text);
+        final int bgYSpan = fontMetrics.fontHeight();
+        drawTextAndSpannedBg(g, bgColor, fgColor, x, y, text, bgXSpan, bgYSpan);
+    }
+
+    /**
+     * Restores graphics color before returning.
+     */
+    public static void drawTextAndSpannedBg(
+            InterfaceBwdGraphics g,
+            BwdColor bgColor,
+            BwdColor fgColor,
+            int x,
+            int y,
+            String text,
+            int bgXSpan,
+            int bgYSpan) {
+        final long oldArgb64 = g.getArgb64();
+        
+        g.setColor(bgColor);
+        g.fillRect(x, y, bgXSpan, bgYSpan);
+        
+        g.setColor(fgColor);
+        g.drawText(x, y, text);
+        
+        g.setArgb64(oldArgb64);
+    }
+
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,12 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.HertzHelper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
@@ -92,8 +92,6 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
     private static final int BG_IMAGE_XY_SCROLL_PER_PAINTING = 1;
     
     private static final double BG_IMAGE_SCALE_FACTOR = 0.5;
-    
-    private static final GRotation BG_IMAGE_ROTATION = GRotation.ROT_0;
     
     /*
      * Sprites, to bench dirty painting effect, and have Pac-Man.
@@ -404,11 +402,6 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
         
         final GRect box = g.getBoxInClient();
 
-        final GTransform rotTransform = GTransform.valueOf(BG_IMAGE_ROTATION, 0, 0);
-        g.setTransform(rotTransform);
-
-        final GRect rotBox = rotTransform.rectIn2(box);
-
         final InterfaceBwdImage bgImage = this.bgImage;
         final int srcImageWidth = bgImage.getWidth();
         final int srcImageHeight = bgImage.getHeight();
@@ -419,10 +412,10 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             this.yShift = (this.yShift + BG_IMAGE_XY_SCROLL_PER_PAINTING) % dstImageHeight;
         }
         
-        int tmpImageY = (rotBox.y() - dstImageHeight + 1) + this.yShift;
-        while (tmpImageY <= rotBox.yMax()) {
-            int tmpImageX = (rotBox.x() - dstImageWidth + 1) + this.xShift;
-            while (tmpImageX <= rotBox.xMax()) {
+        int tmpImageY = (box.y() - dstImageHeight + 1) + this.yShift;
+        while (tmpImageY <= box.yMax()) {
+            int tmpImageX = (box.x() - dstImageWidth + 1) + this.xShift;
+            while (tmpImageX <= box.xMax()) {
                 final GRect dstImageRect = GRect.valueOf(
                         tmpImageX, tmpImageY,
                         dstImageWidth, dstImageHeight);
@@ -498,21 +491,16 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
 
         final GRect box = g.getBoxInClient();
 
-        final GTransform rotTransform = GTransform.valueOf(BG_IMAGE_ROTATION, 0, 0);
-        g.setTransform(rotTransform);
-
-        final GRect rotBox = rotTransform.rectIn2(box);
-
         final InterfaceBwdImage bgImage = this.bgImage;
         final int srcImageWidth = bgImage.getWidth();
         final int srcImageHeight = bgImage.getHeight();
         final int dstImageWidth = (int) (srcImageWidth * BG_IMAGE_SCALE_FACTOR);
         final int dstImageHeight = (int) (srcImageHeight * BG_IMAGE_SCALE_FACTOR);
         
-        int tmpImageY = (rotBox.y() - dstImageHeight + 1) + this.yShift;
-        while (tmpImageY <= rotBox.yMax()) {
-            int tmpImageX = (rotBox.x() - dstImageWidth + 1) + this.xShift;
-            while (tmpImageX <= rotBox.xMax()) {
+        int tmpImageY = (box.y() - dstImageHeight + 1) + this.yShift;
+        while (tmpImageY <= box.yMax()) {
+            int tmpImageX = (box.x() - dstImageWidth + 1) + this.xShift;
+            while (tmpImageX <= box.xMax()) {
                 final GRect dstImageRect = GRect.valueOf(
                         tmpImageX, tmpImageY,
                         dstImageWidth, dstImageHeight);
@@ -712,11 +700,9 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
         final int textHeight = metrics.fontHeight();
         final int textWidth = metrics.computeTextWidth(textForWidth);
         
-        g.setColor(BwdColor.WHITE);
-        g.fillRect(textX, textY, textWidth, textHeight);
-
-        g.setColor(BwdColor.BLACK);
-        g.drawText(textX, textY, text);
+        BwdTestUtils.drawTextAndSpannedBg(
+                g, BwdColor.WHITE, BwdColor.BLACK,
+                textX, textY, text, textWidth, textHeight);
 
         if (mustScrollBackground) {
             // Already added box.

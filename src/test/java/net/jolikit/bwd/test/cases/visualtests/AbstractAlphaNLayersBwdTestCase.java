@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 
 /**
  * To implement N-layers alpha painting, with opaque or transparent background.
@@ -398,13 +399,13 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
         
         if (true) {
             final String text = this.getBinding().getClass().getSimpleName() + ", window alpha = " + WINDOW_ALPHA_FP;
-            final boolean withBg = true;
-            drawStringXCentered(
-                    g,
-                    xMin + xSpan/2,
-                    yMin,
-                    text,
-                    withBg);
+            final int centerX = xMin + xSpan/2;
+            final int textY = yMin;
+            BwdTestUtils.drawTextAndBgXCentered(
+                    g, BwdColor.BLACK, BwdColor.WHITE,
+                    centerX,
+                    textY,
+                    text);
         }
         
         return GRect.DEFAULT_HUGE_IN_LIST;
@@ -499,30 +500,5 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
             
             itemDrawer.drawItem(g, itemPos.x(), itemPos.y());
         }
-    }
-    
-    /*
-     * 
-     */
-    
-    private static void drawStringXCentered(
-            InterfaceBwdGraphics g,
-            int centerX,
-            int textY,
-            String text,
-            boolean withBg) {
-        final InterfaceBwdFont font = g.getFont();
-        final int textHeight = font.fontMetrics().fontHeight();
-        final int textWidth = font.fontMetrics().computeTextWidth(text);
-
-        final int textX = centerX - textWidth/2;
-        
-        if (withBg) {
-            g.setColor(BwdColor.WHITE);
-            g.fillRect(textX, textY, textWidth, textHeight);
-        }
-
-        g.setColor(BwdColor.BLACK);
-        g.drawText(textX, textY, text);
     }
 }

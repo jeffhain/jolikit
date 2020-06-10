@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     /**
      * Some rest time, else with some bindings no refresh is done until end.
      */
-    private static final double REST_TIME_BETWEEN_BENCHES_S = 0.5;
+    private static final double REST_TIME_BETWEEN_BENCHES_S = 0.1;
     
     private static final int INITIAL_WIDTH = 600;
     private static final int INITIAL_HEIGHT = 400;
@@ -234,23 +234,20 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                 
                 int antiOptim = 0;
                 {
-                    double dtS = 0.0;
                     final long a = System.nanoTime();
                     for (int cp = MIN_CP; cp <= MAX_CP; cp++) {
                         final Object res = callMethod(font, methodType, cp);
                         antiOptim += res.hashCode();
                     }
                     final long b = System.nanoTime();
-                    dtS = TestUtils.nsToSRounded(b - a);
+                    final double dtS = TestUtils.nsToSRounded(b - a);
                     final String report =
                             fontKind + ", h = " + metrics.fontHeight()
                             + ", " + NBR_OF_CALLS + " calls to " + methodType
                             + ", " + dtS + " s";
                     this.reportList.add(report);
                 }
-                if (antiOptim == 0) {
-                    this.getHost().ensurePendingClientPainting();
-                }
+                TestUtils.blackHole(antiOptim);
             } finally {
                 if (runIndex == NBR_OF_RUNS - 1) {
                     font.dispose();

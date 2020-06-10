@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,9 +100,7 @@ public class BindingCoordsUtilsPerf {
             System.out.println(nbrOfCalls + " calls to roundToInt(double), non-integer values up to " + maxMagnitude + ", took " + TestUtils.nsToSRounded(b-a) + " s");
         }
         
-        if (antiOptim == 0) {
-            System.out.println("anti optim");
-        }
+        TestUtils.blackHole(antiOptim);
     }
     
     private void bench_roundToInt_double_integers(int maxMagnitude) {
@@ -130,8 +128,6 @@ public class BindingCoordsUtilsPerf {
             System.out.println(nbrOfCalls + " calls to roundToInt(double), integer values up to " + maxMagnitude + ", took " + TestUtils.nsToSRounded(b-a) + " s");
         }
         
-        if (antiOptim == 0) {
-            System.out.println("anti optim");
-        }
+        TestUtils.blackHole(antiOptim);
     }
 }

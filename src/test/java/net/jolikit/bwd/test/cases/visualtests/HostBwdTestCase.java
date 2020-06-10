@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,13 +30,13 @@ import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
-import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdEventTestHelper;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
@@ -443,7 +443,10 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
             g.drawRect(bBox);
             
             final String text = button.text;
-            drawTextCentered(g, bBox.x(), bBox.y(), bBox.xSpan(), bBox.ySpan(), text);
+            BwdTestUtils.drawTextCentered(
+                    g,
+                    bBox.x(), bBox.y(), bBox.xSpan(), bBox.ySpan(),
+                    text);
         }
 
         return GRect.DEFAULT_HUGE_IN_LIST;
@@ -596,7 +599,10 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
         int tmpY = box.y();
         
         g.setColor(BwdColor.BLACK);
-        drawTextCentered(g, tmpX, tmpY, box.xSpan(), HEIGHT_STEP, title);
+        BwdTestUtils.drawTextCentered(
+                g,
+                tmpX, tmpY, box.xSpan(), HEIGHT_STEP,
+                title);
         tmpY += HEIGHT_STEP;
         
         final int hoiDelayS = HIDDEN_OR_ICONIFIED_DELAY_S;
@@ -767,19 +773,6 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
                 }
             }
         }, REPAINT_DELAY_S);
-    }
-    
-    private static void drawTextCentered(
-            InterfaceBwdGraphics g,
-            int x, int y, int xSpan, int ySpan,
-            String text) {
-        final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int textWidth = metrics.computeTextWidth(text);
-        final int textHeight = metrics.fontHeight();
-        final int textX = x + (xSpan - textWidth) / 2;
-        final int textY = y + (ySpan - textHeight) / 2;
-        g.drawText(textX, textY, text);
     }
     
     private static void drawStateMark(InterfaceBwdGraphics g, GRect rect, boolean state) {
