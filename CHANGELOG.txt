@@ -73,6 +73,9 @@ Jolikit X.X, XXXX/XX/XX
       - isConcurrentImageCreationAndDisposalSupported()
         renamed into
         isConcurrentImageManagementSupported()
+  - BwdWheelEvent/WHEEL_ROLLED: indicated that xRoll() and yRoll()
+    must not be both zero.
+  - InterfaceBwdFont: added spec for hashCode() and equals(Object).
   
 - BWD IMPLS:
   - BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
@@ -87,6 +90,9 @@ Jolikit X.X, XXXX/XX/XX
     and added BenchNewChildGBwdTestCase.
   - Moved file loading into image constructor for the few bindings
     for which that was not the case.
+  - AwtEventConverter: Now using getPreciseWheelRotation() only if available,
+    and best effort workaround against getWheelRotation() sometimes
+    returning zero on wheel roll direction change (on Windows at least).
 
 - Added finals for Java 7 (or less) source compatibility.
 

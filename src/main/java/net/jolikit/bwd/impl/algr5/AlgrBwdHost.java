@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -705,8 +705,10 @@ public class AlgrBwdHost extends AbstractBwdHost {
             }
         } finally {
             if (hasWheelDelta) {
-                final BwdWheelEvent event = this.eventConverter.newWheelEvent(backingEvent);
-                this.onBackingWheelEvent(event);
+                final BwdWheelEvent event = this.eventConverter.newWheelEventElseNull(backingEvent);
+                if (event != null) {
+                    this.onBackingWheelEvent(event);
+                }
             }
         }
     }

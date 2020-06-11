@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -105,7 +105,7 @@ public class QtjEventConverter extends AbstractEventConverter {
      *         for some other reason.
      */
     @Override
-    public BwdWheelEvent newWheelEvent(Object backingEvent) {
+    public BwdWheelEvent newWheelEventElseNull(Object backingEvent) {
         
         if (backingEvent instanceof QTouchEvent) {
             final QTouchEvent touchEvent = (QTouchEvent) backingEvent;
@@ -120,7 +120,7 @@ public class QtjEventConverter extends AbstractEventConverter {
             }
         }
         
-        return super.newWheelEvent(backingEvent);
+        return super.newWheelEventElseNull(backingEvent);
     }
 
     //--------------------------------------------------------------------------

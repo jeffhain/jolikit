@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,23 @@ package net.jolikit.bwd.api.fonts;
 public interface InterfaceBwdFont {
 
     /**
-     * @return The font id of this font, i.e. everything that defines it.
+     * @return An int value that is the same for all fonts from
+     *         a same font home that have equal font ids.
+     */
+    @Override
+    public int hashCode();
+
+    /**
+     * @param obj An object.
+     * @return True if the specified object is a font from the same font home
+     *         than this one and their font id are equal, false otherwise.
+     */
+    @Override
+    public boolean equals(Object obj);
+
+    /**
+     * @return The font id of this font, i.e. its identifier among fonts
+     *         of a same font home, i.e. everything that defines it.
      */
     public BwdFontId fontId();
     

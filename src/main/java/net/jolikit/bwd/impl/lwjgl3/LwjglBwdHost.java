@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -343,8 +343,10 @@ public class LwjglBwdHost extends AbstractBwdHost {
             
             final LwjglScrollEvent backingEvent = new LwjglScrollEvent(xoffset, yoffset);
             
-            final BwdWheelEvent event = eventConverter.newWheelEvent(backingEvent);
-            onBackingWheelEvent(event);
+            final BwdWheelEvent event = eventConverter.newWheelEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingWheelEvent(event);
+            }
         }
         
         /*

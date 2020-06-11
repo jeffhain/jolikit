@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,7 +43,11 @@ public interface InterfaceBwdClient extends InterfaceBwdEventListener {
      */
     
     /**
-     * To be called before painting client, not to buffer events across
+     * Useful for clients that buffer potentially spammy events,
+     * such as mouse moves, to reduce their frequency by undersampling
+     * them and only forwarding the latest one of each burst.
+     * 
+     * To be called before paintClient(), not to buffer events across
      * paintings, which would make it harder to grasp what's going on
      * and could cause some inconsistencies.
      * 

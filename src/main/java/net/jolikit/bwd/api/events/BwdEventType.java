@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -297,6 +297,8 @@ public enum BwdEventType {
     /**
      * Must be generated when the wheel, or mouse wheel if there is one,
      * is rolled, or when an equivalent scroll-like gesture is done.
+     * 
+     * xRoll() and yRoll() must not be both zero.
      * 
      * Precondition: (!closed).
      */

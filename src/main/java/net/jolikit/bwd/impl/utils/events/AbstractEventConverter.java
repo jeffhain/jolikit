@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,13 +152,25 @@ public abstract class AbstractEventConverter {
      * Wheel events.
      */
     
-    public BwdWheelEvent newWheelEvent(Object backingEvent) {
+    public BwdWheelEvent newWheelEventElseNull(Object backingEvent) {
         
         this.updateFromBackingEvent(backingEvent);
         
         final GPoint posInScreen = this.commonState.getMousePosInScreen();
         final GPoint posInClient = this.getMousePosInClient();
         
+        final int xRoll = this.getWheelXRoll(backingEvent);
+        final int yRoll = this.getWheelYRoll(backingEvent);
+        if ((xRoll == 0)
+                && (yRoll == 0)) {
+            /*
+             * Some bindings generate wheel events with zero roll amounts.
+             * Our spec says wheel events must not have zero roll amounts,
+             * so we just ignore them.
+             */
+            return null;
+        }
+
         return new BwdWheelEvent(
                 this.host,
                 //
@@ -167,8 +179,8 @@ public abstract class AbstractEventConverter {
                 posInClient.x(),
                 posInClient.y(),
                 //
-                this.getWheelXRoll(backingEvent),
-                this.getWheelYRoll(backingEvent),
+                xRoll,
+                yRoll,
                 //
                 this.commonState.getModifierKeyDownSet());
     }

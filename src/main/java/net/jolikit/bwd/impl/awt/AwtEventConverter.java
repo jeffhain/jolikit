@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.awt;
 
 import java.awt.AWTEvent;
 import java.awt.Insets;
+import java.awt.Panel;
 import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
@@ -31,6 +32,7 @@ import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.NumbersUtils;
 
 /**
  * For key events: KeyEvent
@@ -48,6 +50,31 @@ public class AwtEventConverter extends AbstractEventConverter {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
+    
+    /**
+     * Switch to be able to run with just Java6
+     * and not require Java7 just for this method.
+     */
+    private static final boolean PRECISE_WHEEL_ROTATION_AVAILABLE;
+    static {
+        // To check returned precise wheel rotation,
+        // to make "sure" the compiler doesn't optimize the call away.
+        final int expectedWheelRotation = 123;
+        final MouseWheelEvent event = new MouseWheelEvent(
+                new Panel(), 0, 0L, 0, 0, 0, 0,
+                false, 0, 0, expectedWheelRotation);
+        boolean couldCallIt = false;
+        try {
+            final double actualPwr = event.getPreciseWheelRotation();
+            couldCallIt = true;
+            if ((int) actualPwr != expectedWheelRotation) {
+                throw new AssertionError();
+            }
+        } catch (NoSuchMethodError e) {
+            // ignore
+        }
+        PRECISE_WHEEL_ROTATION_AVAILABLE = couldCallIt;
+    }
     
     private final AwtKeyConverter keyConverter = new AwtKeyConverter();
     
@@ -208,23 +235,46 @@ public class AwtEventConverter extends AbstractEventConverter {
     protected int getWheelYRoll(Object backingEvent) {
         final MouseWheelEvent mouseWheelEvent = (MouseWheelEvent) backingEvent;
         
-        final int backingWheelRotation = mouseWheelEvent.getWheelRotation();
-        final int wheelRotation;
-        if (OsUtils.isMac()
-                && (mouseWheelEvent.getPreciseWheelRotation() == 0.0)) {
-            /*
-             * TODO awt TODO mac On Mac when moving two fingers
-             * together on the touch pad, WHEEL_UNIT_SCROLL events generated
-             * when removing fingers have getWheelRotation() equal to 1,
-             * but getPreciseWheelRotation() equal to +-0.0.
-             * To avoid undesired scroll when removing fingers,
-             * we use zero wheel rotation whenever getPreciseWheelRotation()
-             * is positive or negative zero.
-             * On Windows, we don't want to do it, else the first roll
-             * after switching roll sign is 0. 
-             */
-            wheelRotation = 0;
+        /*
+         * Even though an int would suffice for us, we need to rely on
+         * getPreciseWheelRotation(), and not (only) on getWheelRotation(),
+         * for two reasons:
+         * - TODO awt TODO mac On Mac when moving two fingers
+         *   together on the touch pad, WHEEL_UNIT_SCROLL events generated
+         *   when removing fingers have getWheelRotation() equal to 1,
+         *   but getPreciseWheelRotation() equal to +-0.0.
+         *   To avoid undesired scroll when removing fingers,
+         *   we must use zero wheel rotation whenever getPreciseWheelRotation()
+         *   is positive or negative zero.
+         * - TODO awt On Windows at least, sometimes when changing wheel
+         *   turning direction, getWheelRotation() is zero,
+         *   while getPreciseWheelRotation() is +-1.0.
+         * What we do:
+         * - We primarily rely on getPreciseWheelRotation(), as it seems
+         *   more well behaved, unless it's not available (JDK < 7).
+         * - Still, other than on Mac, if getPreciseWheelRotation() is +-0.0,
+         *   to avoid the risk of missing a roll, we fall back to using
+         *   getWheelRotation().
+         */
+        
+        final double backingPreciseWheelRotation;
+        if (PRECISE_WHEEL_ROTATION_AVAILABLE) {
+            backingPreciseWheelRotation = mouseWheelEvent.getPreciseWheelRotation();
         } else {
+            backingPreciseWheelRotation = mouseWheelEvent.getWheelRotation();
+        }
+        
+        final int wheelRotation;
+        if (backingPreciseWheelRotation == 0.0) {
+            if (OsUtils.isMac()) {
+                wheelRotation = 0;
+            } else {
+                final int backingWheelRotation = mouseWheelEvent.getWheelRotation();
+                wheelRotation = backingWheelRotation;
+            }
+        } else {
+            final int backingPreciseWheelRotationRounded =
+                    NumbersUtils.roundToInt(backingPreciseWheelRotation);
             if (OsUtils.isMac()
                     && mouseWheelEvent.isShiftDown()) {
                 /*
@@ -234,9 +284,9 @@ public class AwtEventConverter extends AbstractEventConverter {
                  * which must be a weird bug since shift is never down then.
                  * This is a best effort workaround.
                  */
-                wheelRotation = -backingWheelRotation;
+                wheelRotation = -backingPreciseWheelRotationRounded;
             } else {
-                wheelRotation = backingWheelRotation;
+                wheelRotation = backingPreciseWheelRotationRounded;
             }
         }
         

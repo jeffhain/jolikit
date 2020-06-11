@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,8 @@ import java.util.SortedSet;
  * which must be done by the binding if needed.
  * Roll quantity is usually 1, but could be higher if buffering and merging
  * these events for some reason.
+ * 
+ * xRoll() and yRoll() must not be both zero.
  */
 public class BwdWheelEvent extends AbstractBwdModAwareEvent {
 
@@ -141,10 +143,18 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
      * 
      */
     
+    /**
+     * @return Signed roll quantity along x axis, in clicks if any, or about
+     *         three to four standard deviations of user-plus-device accuracy.
+     */
     public int xRoll() {
         return this.xRoll;
     }
 
+    /**
+     * @return Signed roll quantity along y axis, in clicks if any, or about
+     *         three to four standard deviations of user-plus-device accuracy.
+     */
     public int yRoll() {
         return this.yRoll;
     }
