@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
  */
 package net.jolikit.bwd.impl.swt;
 
-import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.graphics.AbstractIntGraphicBuffer;
-import net.jolikit.lang.LangUtils;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
+
+import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.graphics.AbstractIntGraphicBuffer;
+import net.jolikit.lang.LangUtils;
 
 /**
  * Resizable graphic buffer of pixels, using an hysteresis for spans of the
@@ -59,13 +59,18 @@ public class SwtGraphicBuffer extends AbstractIntGraphicBuffer<Image> {
      */
     public SwtGraphicBuffer(
             Display display,
-            boolean mustCopyOnImageResize) {
-        super(mustCopyOnImageResize);
+            boolean mustCopyOnImageResize,
+            boolean allowShrinking) {
+        super(
+                mustCopyOnImageResize,
+                allowShrinking);
 
         this.display = LangUtils.requireNonNull(display);
         
         final int initialStorageSpan = this.getInitialStorageSpan();
-        this.createStorage(initialStorageSpan, initialStorageSpan);
+        this.createInitialStorage(
+                initialStorageSpan,
+                initialStorageSpan);
     }
     
     /**
@@ -113,6 +118,11 @@ public class SwtGraphicBuffer extends AbstractIntGraphicBuffer<Image> {
     //--------------------------------------------------------------------------
 
     @Override
+    protected Image getStorage() {
+        return this.image;
+    }
+
+    @Override
     protected int getStorageWidth() {
         return this.imageWidth;
     }
@@ -123,8 +133,17 @@ public class SwtGraphicBuffer extends AbstractIntGraphicBuffer<Image> {
     }
 
     @Override
-    protected void createStorage(int newStorageWidth, int newStorageHeight) {
-        final Image image = new Image(this.display, newStorageWidth, newStorageHeight);
+    protected void createStorage(
+            int newStorageWidth,
+            int newStorageHeight,
+            //
+            Image oldStorageToCopy,
+            int widthToCopy,
+            int heightToCopy) {
+        final Image image = new Image(
+                this.display,
+                newStorageWidth,
+                newStorageHeight);
         final Rectangle bounds = image.getBounds();
         if ((bounds.x != 0)
                 || (bounds.y != 0)
@@ -137,35 +156,28 @@ public class SwtGraphicBuffer extends AbstractIntGraphicBuffer<Image> {
                             + " + bounds.width + " + ", " + " + bounds.height + "
                             + ")");
         }
+        
+        if (oldStorageToCopy != null) {
+            final GC g = this.createClippedGraphics();
+            try {
+                g.drawImage(
+                        oldStorageToCopy,
+                        0,
+                        0,
+                        widthToCopy,
+                        heightToCopy,
+                        0,
+                        0,
+                        widthToCopy,
+                        heightToCopy);
+            } finally {
+                g.dispose();
+            }
+        }
+        
         this.image = image;
         this.imageWidth = newStorageWidth;
         this.imageHeight = newStorageHeight;
-    }
-
-    @Override
-    protected Image getStorage() {
-        return this.image;
-    }
-
-    @Override
-    protected void copyFromStorage(Image storage, int widthToCopy, int heightToCopy) {
-        final Image imageToCopy = storage;
-        
-        final GC g = this.createClippedGraphics();
-        try {
-            g.drawImage(
-                    imageToCopy,
-                    0,
-                    0,
-                    widthToCopy,
-                    heightToCopy,
-                    0,
-                    0,
-                    widthToCopy,
-                    heightToCopy);
-        } finally {
-            g.dispose();
-        }
     }
 
     @Override

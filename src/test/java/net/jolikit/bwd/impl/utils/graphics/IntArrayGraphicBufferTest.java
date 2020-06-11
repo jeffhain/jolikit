@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,16 +34,20 @@ public class IntArrayGraphicBufferTest extends TestCase {
     }
     
     public void test_IntArrayGraphicBuffer_boolean(boolean mustCopyOnStorageResize) {
-        final IntArrayGraphicBuffer buffer = new IntArrayGraphicBuffer(mustCopyOnStorageResize);
+        final boolean allowShrinking = false;
+        final IntArrayGraphicBuffer buffer = new IntArrayGraphicBuffer(
+                mustCopyOnStorageResize,
+                allowShrinking);
         
         final int n = 10;
         buffer.setSize(n, n);
         
         final int[] oldArr = buffer.getPixelArr();
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                final int index = i * buffer.getScanlineStride() + j;
-                final int pos = i * n + j;
+        for (int j = 0; j < n; j++) {
+            final int lineOffset = j * buffer.getScanlineStride();
+            for (int i = 0; i < n; i++) {
+                final int index = lineOffset + i;
+                final int pos = j * n + i;
                 oldArr[index] = pos;
             }
         }
@@ -56,14 +60,16 @@ public class IntArrayGraphicBufferTest extends TestCase {
         if (newArr == oldArr) {
             throw new AssertionError();
         }
-        for (int i = 0; i < n; i++) {
-            for (int j = 0; j < n; j++) {
-                final int index = i * buffer.getScanlineStride() + j;
+        for (int j = 0; j < n; j++) {
+            final int lineOffset = j * buffer.getScanlineStride();
+            for (int i = 0; i < n; i++) {
+                final int index = lineOffset + i;
+                final int pixel = newArr[index];
                 if (mustCopyOnStorageResize) {
-                    final int pos = i * n + j;
-                    assertEquals(pos, newArr[index]);
+                    final int pos = j * n + i;
+                    assertEquals(pos, pixel);
                 } else {
-                    assertEquals(0, newArr[index]);
+                    assertEquals(0, pixel);
                 }
             }
         }

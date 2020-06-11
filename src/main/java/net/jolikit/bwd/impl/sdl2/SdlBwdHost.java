@@ -66,6 +66,8 @@ public class SdlBwdHost extends AbstractBwdHost {
     
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
     
+    private static final boolean ALLOW_OB_SHRINKING = true;
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -246,7 +248,9 @@ public class SdlBwdHost extends AbstractBwdHost {
          * 
          */
         
-        this.offscreenBuffer = new IntArrayGraphicBuffer(MUST_PRESERVE_OB_CONTENT_ON_RESIZE);
+        this.offscreenBuffer = new IntArrayGraphicBuffer(
+                MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                ALLOW_OB_SHRINKING);
 
         hostLifecycleListener.onHostCreated(this);
     }

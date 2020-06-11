@@ -43,7 +43,7 @@ public class ScaledRectUtils {
      *        Must not be empty.
      * @param oldPeerRect Old peer rectangle.
      * @return The rectangle corresponding to shrinking old peer rectangle
-     *         in the same way old rectangle was shrinked to obtain new rectangle.
+     *         in the same way old rectangle was shrunk to obtain new rectangle.
      * @throws IllegalArgumentException if oldRect.contains(newRect) is false.
      */
     public static GRect computeNewPeerRect(

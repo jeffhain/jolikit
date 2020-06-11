@@ -37,14 +37,14 @@
  *   are generated instead (as for other libraries), but then
  *   we replace Alt with AltGraph.
  * - On Mac, iconified windows are typically still visible,
- *   just weirdly moved and/or shrinked.
+ *   just weirdly moved and/or shrunk.
  * - For some reason, transparency doesn't work with NEWT:
  *   the background is always opaque (but it does work
  *   with all other jogl windowings).
  * - Sometimes, after growing a bit a large (1000*1000) window,
  *   everything ends up properly done and sized in logs,
  *   but the rendering into OpenGL only occupies the old spans
- *   (bottom-left cornered) of the client area (content appearing shrinked).
+ *   (bottom-left cornered) of the client area (content appearing shrunk).
  *   Can easily happen with maximization/demaximization.
  * - Not supporting "GLAutoDrawable Reconfiguration", to keep things simple
  *   ("One use case is where a window is being dragged to another screen with

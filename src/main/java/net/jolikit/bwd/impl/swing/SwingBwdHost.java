@@ -162,6 +162,8 @@ public class SwingBwdHost extends AbstractBwdHost {
      */
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
 
+    private static final boolean ALLOW_OB_SHRINKING = true;
+
     /**
      * Can make things faster in some cases
      * (even though these cases might no longer occur with current code).
@@ -771,6 +773,7 @@ public class SwingBwdHost extends AbstractBwdHost {
 
         this.offscreenBuffer = new AwtGraphicBuffer(
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
                 BUFFERED_IMAGE_TYPE);
         // To prevent buffer strategy to be created automatically.

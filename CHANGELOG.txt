@@ -93,6 +93,15 @@ Jolikit X.X, XXXX/XX/XX
   - AwtEventConverter: Now using getPreciseWheelRotation() only if available,
     and best effort workaround against getWheelRotation() sometimes
     returning zero on wheel roll direction change (on Windows at least).
+  - Factored/upgraded/optimized/simplified various internal utilities,
+    in particular:
+    BufferedImageHelper and other graphics buffer related classes,
+    snapshot utilities for JavaFX, OpenGL and pixel formats methods
+    in BindingColorUtils and PixelFormatHelper.
+    Related functional upgrades: smaller and shrinkable graphic buffers,
+    more pixel formats should be supported by Qtj4 binding,
+    and worked around an origin drift/offset issue in JavaFX
+    when drawing huge figures.
 
 - Added finals for Java 7 (or less) source compatibility.
 

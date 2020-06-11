@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,8 +37,10 @@ public class AwtGraphicBufferTest extends TestCase {
                     BufferedImage.TYPE_INT_RGB
             }) {
                 final boolean mustCopyOnImageResize = false;
+                final boolean allowShrinking = false;
                 final AwtGraphicBuffer buffer = new AwtGraphicBuffer(
                         mustCopyOnImageResize,
+                        allowShrinking,
                         mustUseIntArrayRaster,
                         bufferedImageType);
                 

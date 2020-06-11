@@ -30,11 +30,11 @@
  * - On Mac, can't get key events to occur.
  * - On Mac, messed-up native decoration top after programmatic resize.
  * - On Mac, if setting a window height larger than available screen height,
- *   window height gets shrinked to fit the screen, but it has no effect
+ *   window height gets shrunk to fit the screen, but it has no effect
  *   on programmatically retrieved heights, whether from SDL_GetWindowSize(...)
  *   or SDL_GetWindowSurface(...), causing flattening of displayed content.
  *   Resizing width span from decoration (and maybe also other kinds of spans
- *   modifications) fixes the inconsistency, with shrinked height becoming
+ *   modifications) fixes the inconsistency, with shrunk height becoming
  *   visible from code.
  * - On Mac, maximization disabled for undecorated windows,
  *   to avoid issues.

@@ -18,14 +18,13 @@ package net.jolikit.bwd.impl.lwjgl3;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImage;
+
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-
-import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBImage;
 
 /**
  * TODO lwjgl 1-bit BMPs are not supported.
@@ -141,12 +140,9 @@ public class LwjglBwdImage extends AbstractBwdImage {
             for (int pixelIndex = 0; pixelIndex < wh; pixelIndex++) {
                 final int color32 = data.getInt(byteIndex);
                 byteIndex += bytesPerPixel;
-                final int premulColor32;
-                if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-                    premulColor32 = BindingColorUtils.toPremulAxyz32(color32);
-                } else {
-                    premulColor32 = BindingColorUtils.toPremulXyza32(color32);
-                }
+                final int premulColor32 =
+                        BindingColorUtils.toPremulNativeRgba32(
+                                color32);
                 color32Arr[pixelIndex] = premulColor32;
             }
         } finally {

@@ -240,8 +240,8 @@ public class ScaledRectUtilsTest extends TestCase {
         final int dyMin = this.random_0_max(oldRect.ySpan() - 1);
         final int dyMax = -this.random_0_max(oldRect.ySpan() - dyMin);
 
-        final GRect shrinked = oldRect.withBordersDeltas(dxMin, dyMin, dxMax, dyMax);
-        return shrinked;
+        final GRect shrunk = oldRect.withBordersDeltas(dxMin, dyMin, dxMax, dyMax);
+        return shrunk;
     }
     
     /**

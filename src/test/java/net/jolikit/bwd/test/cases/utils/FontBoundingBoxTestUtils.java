@@ -253,9 +253,9 @@ public class FontBoundingBoxTestUtils {
         
         // Left to right.
         while (newRect.xSpan() > 0) {
-            final GRect shrinked = newRect.withBordersDeltas(1, 0, 0, 0);
-            if (!isDrawnOnTheLeft(g, shrinked)) {
-                newRect = shrinked;
+            final GRect shrunk = newRect.withBordersDeltas(1, 0, 0, 0);
+            if (!isDrawnOnTheLeft(g, shrunk)) {
+                newRect = shrunk;
             } else {
                 break;
             }
@@ -268,9 +268,9 @@ public class FontBoundingBoxTestUtils {
         
         // Right to left.
         while (newRect.xSpan() > 0) {
-            final GRect shrinked = newRect.withBordersDeltas(0, 0, -1, 0);
-            if (!isDrawnOnTheRight(g, shrinked)) {
-                newRect = shrinked;
+            final GRect shrunk = newRect.withBordersDeltas(0, 0, -1, 0);
+            if (!isDrawnOnTheRight(g, shrunk)) {
+                newRect = shrunk;
             } else {
                 break;
             }
@@ -278,9 +278,9 @@ public class FontBoundingBoxTestUtils {
         
         // Top to bottom.
         while (newRect.ySpan() > 0) {
-            final GRect shrinked = newRect.withBordersDeltas(0, 1, 0, 0);
-            if (!isDrawnOnTheTop(g, shrinked)) {
-                newRect = shrinked;
+            final GRect shrunk = newRect.withBordersDeltas(0, 1, 0, 0);
+            if (!isDrawnOnTheTop(g, shrunk)) {
+                newRect = shrunk;
             } else {
                 break;
             }
@@ -288,9 +288,9 @@ public class FontBoundingBoxTestUtils {
         
         // Bottom to top.
         while (newRect.ySpan() > 0) {
-            final GRect shrinked = newRect.withBordersDeltas(0, 0, 0, -1);
-            if (!isDrawnOnTheBottom(g, shrinked)) {
-                newRect = shrinked;
+            final GRect shrunk = newRect.withBordersDeltas(0, 0, 0, -1);
+            if (!isDrawnOnTheBottom(g, shrunk)) {
+                newRect = shrunk;
             } else {
                 break;
             }

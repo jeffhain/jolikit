@@ -29,12 +29,9 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFont;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
-
-import com.jogamp.newt.opengl.GLWindow;
 
 public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -58,12 +55,6 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
             this.maxTextRelativeRect = maxTextRelativeRect;
         }
     }
-
-    //--------------------------------------------------------------------------
-    // FIELDS
-    //--------------------------------------------------------------------------
-    
-    private final GLWindow window;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -76,7 +67,6 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
             InterfaceBwdBinding binding,
             GRect box,
             //
-            GLWindow window,
             int[] clientPixelArr,
             int clientPixelArrScanlineStride) {
         this(
@@ -84,7 +74,6 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
                 box,
                 box, // baseClip
                 //
-                window,
                 clientPixelArr,
                 clientPixelArrScanlineStride);
     }
@@ -112,7 +101,6 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
                 childBox,
                 childBaseClip,
                 //
-                this.window,
                 this.getClientPixelArr(),
                 this.getClientPixelArrScanlineStride());
     }
@@ -210,35 +198,12 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
         final int pixelCapacity = NumbersUtils.timesExact(maxTextWidth, maxTextHeight);
         final int[] textPixelArr = new int[pixelCapacity];
         
-        final boolean isRasterPremultiplied = true;
-        final int aIndex;
-        final int rIndex;
-        final int gIndex;
-        final int bIndex;
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // ABGR, which will give RGBA in little.
-            aIndex = 0;
-            bIndex = 1;
-            gIndex = 2;
-            rIndex = 3;
-        } else {
-            // RGBA.
-            rIndex = 0;
-            gIndex = 1;
-            bIndex = 2;
-            aIndex = 3;
-        }
-        final BufferedImage image = BufferedImageHelper.newBufferedImage(
+        final BufferedImage image = BufferedImageHelper.newBufferedImageWithIntArray(
                 textPixelArr,
                 maxTextWidth,
                 maxTextHeight,
-                //
-                isRasterPremultiplied,
-                aIndex,
-                //
-                rIndex,
-                gIndex,
-                bIndex);
+                BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
+                BufferedImageHelper.PREMUL);
         
         // Drawing the text in the image.
         final Graphics2D g2d = image.createGraphics();
@@ -326,7 +291,6 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
             GRect box,
             GRect baseClip,
             //
-            GLWindow window,
             int[] clientPixelArr,
             int clientPixelArrScanlineStride) {
         super(
@@ -336,7 +300,5 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
                 //
                 clientPixelArr,
                 clientPixelArrScanlineStride);
-
-        this.window = window;
     }
 }

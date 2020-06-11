@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,9 @@
 package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.Argb64;
+import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 
 /**
  * Utilities for blending:
@@ -52,10 +55,21 @@ public class BindingColorUtils {
      * (except due to window transparency, but it applies after client painting).
      */
     static final boolean CAN_ASSUME_THAT_DST_ALPHA_8_IS_255 = true;
-
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
+    
+    public static boolean isOpaque(int argb32, BwdColor colorElseNull) {
+        final boolean ret;
+        if (colorElseNull != null) {
+            final long argb64 = colorElseNull.toArgb64();
+            ret = Argb64.isOpaque(argb64);
+        } else {
+            ret = Argb32.isOpaque(argb32);
+        }
+        return ret;
+    }
     
     /**
      * @param a8 Must be in [0,255].
@@ -74,7 +88,26 @@ public class BindingColorUtils {
         i |= d8;
         return i;
     }
-    
+
+    public static int toArgb32FromPixelWithMasksAndShifts(
+            int pixel,
+            int aMask, int rMask, int gMask, int bMask,
+            int aShift, int rShift, int gShift, int bShift) {
+        final int alpha8;
+        if (aMask == 0) {
+            // "no alpha" in formats means always opaque
+            // (always transparent would be pointless).
+            alpha8 = 0xFF;
+        } else {
+            alpha8 = ((pixel & aMask) >>> aShift);
+        }
+        final int red8 = ((pixel & rMask) >>> rShift);
+        final int green8 = ((pixel & gMask) >>> gShift);
+        final int blue8 = ((pixel & bMask) >>> bShift);
+        
+        return toAbcd32_noCheck(alpha8, red8, green8, blue8);
+    }
+
     /**
      * @param cptFp Must be in [0,1].
      * @return The corresponding integer value in [0,255].
@@ -120,6 +153,128 @@ public class BindingColorUtils {
         return toInt8FromFp255_noCheck(premulCpt8 * oneOverAlphaFp);
     }
     
+    /*
+     * Conversions between ARGB, and ABGR or RGBA.
+     * These two last formats are useful to deal with
+     * OpenGL libraries in big or little endian.
+     */
+    
+    public static int toArgb32FromAbgr32(int abgr32) {
+        // A_G_ | _R__ | ___B
+        return (abgr32 & 0xFF00FF00) | ((abgr32 & 0x00000FF) << 16) | ((abgr32 & 0x00FF0000) >>> 16);
+    }
+    
+    public static int toAbgr32FromArgb32(int argb32) {
+        // A_G_ | _B__ | ___R
+        return (argb32 & 0xFF00FF00) | ((argb32 & 0x00000FF) << 16) | ((argb32 & 0x00FF0000) >>> 16);
+    }
+    
+    public static int toArgb32FromRgba32(int rgba32) {
+        // A___ | _RGB
+        return (rgba32 << 24) | (rgba32 >>> 8);
+    }
+    
+    public static int toRgba32FromArgb32(int argb32) {
+        // ___A | RGB_
+        return (argb32 >>> 24) | (argb32 << 8);
+    }
+    
+    /*
+     * More utilities for OpenGL libraries, or other libraries
+     * using native RGBA format.
+     */
+    
+    public static int toPremulNativeRgba32FromArgb32(int argb32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            // ARGB, in big (Java), to ABGR,
+            // which will give RGBA in little (native).
+            final int color32 = toAbgr32FromArgb32(argb32);
+            final int premulColor32 = toPremulAxyz32(color32);
+            return premulColor32;
+        } else {
+            // ARGB, in big (Java), to RGBA, in big (native).
+            final int color32 = toRgba32FromArgb32(argb32);
+            final int premulColor32 = toPremulXyza32(color32);
+            return premulColor32;
+        }
+    }
+    
+    public static int toArgb32FromPremulNativeRgba32(int premulNativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            final int color32 = toNonPremulAxyz32(premulNativeRgba32);
+            // ABGR, which gives RGBA in native, to ARGB.
+            return toArgb32FromAbgr32(color32);
+        } else {
+            final int color32 = toNonPremulXyza32(premulNativeRgba32);
+            // RGBA to ARGB.
+            return toArgb32FromRgba32(color32);
+        }
+    }
+
+    public static int toNativeRgba32FromArgb32(int argb32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            // ARGB, in big (Java), to ABGR,
+            // which will give RGBA in little (native).
+            return toAbgr32FromArgb32(argb32);
+        } else {
+            // ARGB, in big (Java), to RGBA, in big (native).
+            return toRgba32FromArgb32(argb32);
+        }
+    }
+    
+    public static int toArgb32FromNativeRgba32(int nativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            // ABGR, which gives RGBA in native, to ARGB.
+            return toArgb32FromAbgr32(nativeRgba32);
+        } else {
+            // RGBA to ARGB.
+            return toArgb32FromRgba32(nativeRgba32);
+        }
+    }
+
+    public static int toPremulNativeRgba32(int nativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            return toPremulAxyz32(nativeRgba32);
+        } else {
+            return toPremulXyza32(nativeRgba32);
+        }
+    }
+
+    public static int toInvertedPremulNativeRgba32(int premulNativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            return toInvertedPremulAxyz32_noCheck(premulNativeRgba32);
+        } else {
+            return toInvertedPremulXyza32_noCheck(premulNativeRgba32);
+        }
+    }
+    
+    /**
+     * @param nativeRgba32 Can be premul or not.
+     */
+    public static int getNativeRgba32Alpha8(int nativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            // Argb
+            return Argb32.getAlpha8(nativeRgba32);
+        } else {
+            // rgbA
+            return Argb32.getBlue8(nativeRgba32);
+        }
+    }
+    
+    public static int blendPremulNativeRgba32(
+            int srcPremulNativeRgba32,
+            int dstPremulNativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            return blendPremulAxyz32_srcOver(
+                    srcPremulNativeRgba32,
+                    dstPremulNativeRgba32);
+        } else {
+            return blendPremulXyza32_srcOver(
+                    srcPremulNativeRgba32,
+                    dstPremulNativeRgba32);
+        }
+    }
+
     /*
      * Non premul color to premul color.
      */

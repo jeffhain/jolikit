@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,20 +15,23 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.Color;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Window;
+import java.awt.geom.AffineTransform;
 
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GRotation;
 
 public class AwtUtils {
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-    
+
     /**
      * @param rect A backing rectangle.
      * @return Corresponding GRect.
@@ -79,6 +82,72 @@ public class AwtUtils {
                 height);
     }
     
+    /*
+     * 
+     */
+    
+    public static Color newColor(int argb32) {
+        // Called "rgba", but actually alpha is in MSBits.
+        final int rgba = argb32;
+        final boolean hasalpha = true;
+        return new Color(rgba, hasalpha);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Useful to cache backing transforms corresponding to rotations,
+     * because Graphics2D.transform(AffineTransform) is much faster
+     * than Graphics2D.rotate(double) (no sin/cos computation).
+     * 
+     * @return Backing transform corresponding to the GRotation
+     *         which ordinal is the index.
+     */
+    public static AffineTransform[] newRotationTransformArr() {
+        final GRotation[] rotations = GRotation.values();
+        final AffineTransform[] ret = new AffineTransform[rotations.length];
+        for (int i = 0; i < rotations.length; i++) {
+            final GRotation rotation = rotations[i];
+            final double angRad = Math.toRadians(rotation.angDeg());
+            final AffineTransform affineTransform = new AffineTransform();
+            affineTransform.rotate(angRad);
+            ret[i] = affineTransform;
+        }
+        return ret;
+    }
+    
+    /**
+     * @param rotation Rotation between base coordinates (frame 1)
+     *        and user coordinates (frame 2).
+     * @return Delta to (usually) add to user X coordinate to compute
+     *         corresponding backing graphics X coordinate.
+     */
+    public static int computeXShiftInUser(GRotation rotation) {
+        final int angDeg = rotation.angDeg();
+        if ((angDeg == 180) || (angDeg == 270)) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+    
+    /**
+     * @param rotation Rotation between base coordinates (frame 1)
+     *        and user coordinates (frame 2).
+     * @return Delta to (usually) add to user Y coordinate to compute
+     *         corresponding backing graphics Y coordinate.
+     */
+    public static int computeYShiftInUser(GRotation rotation) {
+        final int angDeg = rotation.angDeg();
+        if ((angDeg == 90) || (angDeg == 180)) {
+            return -1;
+        } else {
+            return 0;
+        }
+    }
+
     /*
      * 
      */

@@ -97,7 +97,7 @@ public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
         /*
          * TODO algr On Windows, need to call this after resize from native decoration
          * (which, luckily on Windows, generates a DISPLAY_RESIZE event at the end),
-         * else display appears shrinked or grown depending on resize.
+         * else display appears shrunk or grown depending on resize.
          */
         final boolean didIt = LIB.al_resize_display(
                 window,

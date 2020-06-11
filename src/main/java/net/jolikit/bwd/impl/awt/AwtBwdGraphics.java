@@ -162,24 +162,11 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * Caching backing transforms corresponding to rotations, because
-     * Graphics2D.transform(AffineTransform) is much faster than
-     * Graphics2D.rotate(double) (no sin/cos computation).
-     */
-    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL;
-    static {
-        final GRotation[] rotations = GRotation.values();
-        final AffineTransform[] arr = new AffineTransform[rotations.length];
-        for (int i = 0; i < rotations.length; i++) {
-            final GRotation rotation = rotations[i];
-            final double angRad = Math.toRadians(rotation.angDeg());
-            final AffineTransform affineTransform = new AffineTransform();
-            affineTransform.rotate(angRad);
-            arr[i] = affineTransform;
-        }
-        ROTATION_TRANSFORM_BY_ORDINAL = arr;
-    }
+    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
+            new AffineTransform();
+
+    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
+            AwtUtils.newRotationTransformArr();
     
     /*
      * 
@@ -193,8 +180,6 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     private final Graphics2D g;
     
     private final BufferedImage imageForRead;
-    
-    private final AffineTransform initialBackingTransform;
     
     /*
      * Common adjustments for some methods.
@@ -220,8 +205,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
                 g,
                 imageForRead,
                 box,
-                box, // baseClip
-                g.getTransform());
+                box); // baseClip
     }
 
     /**
@@ -235,15 +219,6 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".getBackingGraphics()");
         }
         return this.g;
-    }
-
-    /**
-     * @return The transform of the backing GraphicsContext before
-     *         eventually changing its transform for this object methods
-     *         purpose.
-     */
-    public AffineTransform getInitialBackingTransform() {
-        return this.initialBackingTransform;
     }
     
     /*
@@ -265,8 +240,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
                 subG,
                 this.imageForRead,
                 childBox,
-                childBaseClip,
-                this.initialBackingTransform);
+                childBaseClip);
     }
 
     /*
@@ -482,7 +456,6 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     
     @Override
     protected void finishImpl() {
-        this.restoreInitialBackingTransform();
     }
     
     /*
@@ -506,21 +479,16 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     protected void setBackingArgb64(long argb64) {
         final int argb32 = Argb3264.toArgb32(argb64);
         
-        final int alpha8 = Argb32.getAlpha8(argb32);
-        final int red8 = Argb32.getRed8(argb32);
-        final int green8 = Argb32.getGreen8(argb32);
-        final int blue8 = Argb32.getBlue8(argb32);
-        
-        final Color color = new Color(red8, green8, blue8, alpha8);
+        final Color color = AwtUtils.newColor(argb32);
         this.g.setColor(color);
         
         // Storing clear color as background,
         // even if we don't use backing graphics's clear method.
         final Color clearColor;
-        if (alpha8 == 0xFF) {
+        if (Argb32.isOpaque(argb32)) {
             clearColor = color;
         } else {
-            clearColor = new Color(red8, green8, blue8, 0xFF);
+            clearColor = AwtUtils.newColor(Argb32.toOpaque(argb32));
         }
         this.g.setBackground(clearColor);
     }
@@ -637,9 +605,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
             Graphics2D g,
             BufferedImage imageForRead,
             GRect boxInClient,
-            GRect clipInClient,
-            //
-            AffineTransform initialTransform) {
+            GRect clipInClient) {
         super(
                 binding,
                 boxInClient,
@@ -647,7 +613,6 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         
         this.g = LangUtils.requireNonNull(g);
         this.imageForRead = LangUtils.requireNonNull(imageForRead);
-        this.initialBackingTransform = initialTransform;
     }
     
     /**
@@ -671,43 +636,14 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     private void setBackingTransformToCurrent() {
         final GTransform transform = this.getTransform();
         
-        // Reset to initial transform.
-        this.restoreInitialBackingTransform();
+        this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
         
         final GRotation rotation = transform.rotation();
         this.g.translate(transform.frame2XIn1(), transform.frame2YIn1());
         this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
         
-        this.xShiftInUser = this.computeXShiftInUser();
-        this.yShiftInUser = this.computeYShiftInUser();
-    }
-    
-    private void restoreInitialBackingTransform() {
-        this.g.setTransform(this.initialBackingTransform);
-    }
-    
-    /*
-     * 
-     */
-    
-    private int computeXShiftInUser() {
-        final GRotation rotation = this.getTransform().rotation();
-        final int angDeg = rotation.angDeg();
-        if ((angDeg == 180) || (angDeg == 270)) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-    
-    private int computeYShiftInUser() {
-        final GRotation rotation = this.getTransform().rotation();
-        final int angDeg = rotation.angDeg();
-        if ((angDeg == 90) || (angDeg == 180)) {
-            return -1;
-        } else {
-            return 0;
-        }
+        this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
+        this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
     }
     
     /*

@@ -17,6 +17,13 @@ package net.jolikit.bwd.impl.lwjgl3;
 
 import java.util.List;
 
+import org.lwjgl.glfw.Callbacks;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.system.MemoryUtil;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdKeyEventPr;
@@ -44,13 +51,6 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
-import org.lwjgl.glfw.Callbacks;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GLCapabilities;
-import org.lwjgl.system.MemoryUtil;
-
 public class LwjglBwdHost extends AbstractBwdHost {
     
     /*
@@ -63,6 +63,8 @@ public class LwjglBwdHost extends AbstractBwdHost {
     //--------------------------------------------------------------------------
 
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
+
+    private static final boolean ALLOW_OB_SHRINKING = true;
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -566,7 +568,9 @@ public class LwjglBwdHost extends AbstractBwdHost {
         final boolean forwardCompatible = true;
         this.capabilities = GL.createCapabilities(forwardCompatible);
  
-        this.offscreenBuffer = new IntArrayGraphicBuffer(MUST_PRESERVE_OB_CONTENT_ON_RESIZE);
+        this.offscreenBuffer = new IntArrayGraphicBuffer(
+                MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                ALLOW_OB_SHRINKING);
         
         if (bindingConfig.getMustGenerateSyntheticMouseMovedEvents()) {
             this.synthMmeProcess = new MySynthMmeProcess(
@@ -721,7 +725,6 @@ public class LwjglBwdHost extends AbstractBwdHost {
                 this.binding,
                 box,
                 //
-                this.window,
                 clientPixelArr,
                 clientPixelArrScanlineStride);
 

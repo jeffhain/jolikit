@@ -103,6 +103,8 @@ public class AlgrBwdHost extends AbstractBwdHost {
 
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
 
+    private static final boolean ALLOW_OB_SHRINKING = true;
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -299,7 +301,9 @@ public class AlgrBwdHost extends AbstractBwdHost {
                 modal,
                 client);
 
-        this.offscreenBuffer = new IntArrayGraphicBuffer(MUST_PRESERVE_OB_CONTENT_ON_RESIZE);
+        this.offscreenBuffer = new IntArrayGraphicBuffer(
+                MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                ALLOW_OB_SHRINKING);
 
         // Started on show, and then only stopped on close,
         // for re-showings might not pass through our code.

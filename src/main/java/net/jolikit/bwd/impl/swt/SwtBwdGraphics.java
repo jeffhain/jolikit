@@ -15,6 +15,14 @@
  */
 package net.jolikit.bwd.impl.swt;
 
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Device;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.widgets.Display;
+
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -25,14 +33,6 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Color;
-import org.eclipse.swt.graphics.Device;
-import org.eclipse.swt.graphics.GC;
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.ImageData;
-import org.eclipse.swt.widgets.Display;
 
 public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -60,6 +60,14 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     private static final boolean DEBUG = false;
     
+    /**
+     * Drawn text spans can change a lot during painting,
+     * so shrinking could cause much GC.
+     * These storages are tied to root graphics,
+     * and will be garbaged once we are done with it.
+     */
+    private static final boolean ALLOW_TEXT_STORAGE_SHRINKING = false;
+
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -96,12 +104,8 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Created and disposed by root graphics,
      * and shared will all children graphics.
      */
-    private final Color backingColor_0xFF000000;
-    private final Color backingColor_0xFFFFFFFF;
-    
-    /*
-     * temps
-     */
+    private final Color backingColor_BLACK;
+    private final Color backingColor_WHITE;
     
     /**
      * Offscreen graphic buffer for drawing text.
@@ -113,7 +117,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      * 
      * NB: Drawing must therefore be single-threaded.
      */
-    private final SwtGraphicBuffer tmpGraphicBuffer;
+    private final SwtGraphicBuffer textGraphicBuffer;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -187,10 +191,10 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void finishImpl() {
         if (this.isRootGraphics) {
-            this.backingColor_0xFF000000.dispose();
-            this.backingColor_0xFFFFFFFF.dispose();
+            this.backingColor_BLACK.dispose();
+            this.backingColor_WHITE.dispose();
             
-            this.tmpGraphicBuffer.dispose();
+            this.textGraphicBuffer.dispose();
         }
     }
     
@@ -281,12 +285,12 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         final int maxTextWidth = maxTextRelativeRect.xSpan();
         final int maxTextHeight = maxTextRelativeRect.ySpan();
         
-        this.tmpGraphicBuffer.setSize(maxTextWidth, maxTextHeight);
+        this.textGraphicBuffer.setSize(maxTextWidth, maxTextHeight);
         
         final MyTextDataAccessor accessor;
 
         // Drawing the text in the image.
-        final GC textGc = this.tmpGraphicBuffer.createClippedGraphics();
+        final GC textGc = this.textGraphicBuffer.createClippedGraphics();
         try {
             if (false) {
                 // TODO swt Doesnt seem to work.
@@ -310,8 +314,8 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             final SwtBwdFont fontImpl = this.getFont();
             textGc.setFont(fontImpl.getBackingFont());
             
-            textGc.setBackground(this.backingColor_0xFF000000);
-            textGc.setForeground(this.backingColor_0xFFFFFFFF);
+            textGc.setBackground(this.backingColor_BLACK);
+            textGc.setForeground(this.backingColor_WHITE);
             
             // Uses background color.
             textGc.fillRectangle(0, 0, maxTextWidth, maxTextHeight);
@@ -339,7 +343,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             final boolean isTransparent = true;
             textGc.drawString(text, textX, textY, isTransparent);
             
-            final Image textImage = this.tmpGraphicBuffer.getImage();
+            final Image textImage = this.textGraphicBuffer.getImage();
             // This is slow: must only do it once.
             final ImageData textImageData = textImage.getImageData();
             
@@ -480,18 +484,21 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             
             final Device device = display;
             final int alpha8 = 0xFF;
-            this.backingColor_0xFF000000 = new Color(device, 0x00, 0x00, 0x00, alpha8);
-            this.backingColor_0xFFFFFFFF = new Color(device, 0xFF, 0xFF, 0xFF, alpha8);
+            this.backingColor_BLACK = SwtUtils.newColor(device, 0x00, 0x00, 0x00, alpha8);
+            this.backingColor_WHITE = SwtUtils.newColor(device, 0xFF, 0xFF, 0xFF, alpha8);
             
             final boolean mustCopyOnImageResize = false;
-            this.tmpGraphicBuffer = new SwtGraphicBuffer(display, mustCopyOnImageResize);
+            this.textGraphicBuffer = new SwtGraphicBuffer(
+                    display,
+                    mustCopyOnImageResize,
+                    ALLOW_TEXT_STORAGE_SHRINKING);
         } else {
             this.isRootGraphics = false;
             
-            this.backingColor_0xFF000000 = parentGraphics.backingColor_0xFF000000;
-            this.backingColor_0xFFFFFFFF = parentGraphics.backingColor_0xFFFFFFFF;
+            this.backingColor_BLACK = parentGraphics.backingColor_BLACK;
+            this.backingColor_WHITE = parentGraphics.backingColor_WHITE;
             
-            this.tmpGraphicBuffer = parentGraphics.tmpGraphicBuffer;
+            this.textGraphicBuffer = parentGraphics.textGraphicBuffer;
         }
     }
 }

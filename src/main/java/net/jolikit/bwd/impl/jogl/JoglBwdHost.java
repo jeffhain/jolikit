@@ -18,22 +18,6 @@ package net.jolikit.bwd.impl.jogl;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdClient;
-import net.jolikit.bwd.api.InterfaceBwdHost;
-import net.jolikit.bwd.api.events.BwdKeyEventPr;
-import net.jolikit.bwd.api.events.BwdKeyEventT;
-import net.jolikit.bwd.api.events.BwdMouseEvent;
-import net.jolikit.bwd.api.events.BwdWheelEvent;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
-import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
-import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
-import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.Dbg;
-import net.jolikit.lang.LangUtils;
-import net.jolikit.time.TimeUtils;
-
 import com.jogamp.newt.Screen;
 import com.jogamp.newt.event.KeyEvent;
 import com.jogamp.newt.event.KeyListener;
@@ -53,6 +37,22 @@ import com.jogamp.opengl.GLEventListener;
 import com.jogamp.opengl.GLException;
 import com.jogamp.opengl.GLProfile;
 
+import net.jolikit.bwd.api.InterfaceBwdClient;
+import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.events.BwdKeyEventPr;
+import net.jolikit.bwd.api.events.BwdKeyEventT;
+import net.jolikit.bwd.api.events.BwdMouseEvent;
+import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
+import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.lang.Dbg;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.time.TimeUtils;
+
 public class JoglBwdHost extends AbstractBwdHost {
 
     /*
@@ -68,6 +68,8 @@ public class JoglBwdHost extends AbstractBwdHost {
 
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
 
+    private static final boolean ALLOW_OB_SHRINKING = true;
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -617,7 +619,9 @@ public class JoglBwdHost extends AbstractBwdHost {
             window.addMouseListener(this.mouseListener);
         }
 
-        this.offscreenBuffer = new IntArrayGraphicBuffer(MUST_PRESERVE_OB_CONTENT_ON_RESIZE);
+        this.offscreenBuffer = new IntArrayGraphicBuffer(
+                MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                ALLOW_OB_SHRINKING);
 
         hostLifecycleListener.onHostCreated(this);
     }
@@ -1130,7 +1134,6 @@ public class JoglBwdHost extends AbstractBwdHost {
                 this.binding,
                 box,
                 //
-                this.window,
                 clientPixelArr,
                 clientPixelArrScanlineStride);
 

@@ -23,8 +23,6 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
-import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.NumbersUtils;
@@ -86,24 +84,15 @@ public class JoglBwdImage extends AbstractBwdImage {
 
         final int pixelCapacity = NumbersUtils.timesExact(width, height);
         final int[] color32Arr = new int[pixelCapacity];
+        final int color32ArrScanlineStride = width;
         
-        final BihPixelFormat pixelFormat;
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            pixelFormat = BihPixelFormat.ABGR32;
-        } else {
-            pixelFormat = BihPixelFormat.RGBA32;
-        }
-        final boolean premul = true;
-
-        BufferedImageHelper.copyImageIntoArray(
-                readImage,
-                //
-                pixelFormat,
-                premul,
-                //
+        final BufferedImageHelper bufferedImageHelper =
+                new BufferedImageHelper(readImage);
+        bufferedImageHelper.getPixelsInto(
                 color32Arr,
-                width,
-                height);
+                color32ArrScanlineStride,
+                BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
+                BufferedImageHelper.PREMUL);
         this.color32Arr = color32Arr;
     }
 

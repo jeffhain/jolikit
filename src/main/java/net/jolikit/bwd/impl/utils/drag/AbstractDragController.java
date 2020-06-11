@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,11 +111,11 @@ public abstract class AbstractDragController implements InterfaceDragController 
      * 
      * @return True if stopped drag, false otherwise.
      */
-    public boolean dragStoppingEventOccured() {
+    public boolean onDragStoppingEvent() {
         final boolean wasDragging = this.dragging;
         if (wasDragging) {
             if (DEBUG) {
-                Dbg.log("dragStoppingEventOccured : wasDragging");
+                Dbg.log("onDragStoppingEvent : wasDragging");
             }
             this.dragging = false;
             

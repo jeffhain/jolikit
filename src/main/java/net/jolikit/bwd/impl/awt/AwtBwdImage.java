@@ -22,7 +22,6 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
@@ -78,10 +77,7 @@ public class AwtBwdImage extends AbstractBwdImage {
     
     @Override
     protected int getArgb32AtImpl(int x, int y) {
-        return this.bufferedImageHelper.getPixelAt(
-                x,
-                y,
-                BihPixelFormat.ARGB32);
+        return this.bufferedImageHelper.getArgb32At(x, y);
     }
 
     @Override

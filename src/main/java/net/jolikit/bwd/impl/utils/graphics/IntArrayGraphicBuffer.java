@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,12 +60,20 @@ public class IntArrayGraphicBuffer extends AbstractIntGraphicBuffer<IntArrayGrap
     /**
      * @param mustCopyOnStorageResize If true, when a new backing array is
      *        created, copies pixels of previous array into it.
+     * @param allowShrinking If true, backing array can be renewed
+     *        when old one is too large for the new size.
      */
-    public IntArrayGraphicBuffer(boolean mustCopyOnStorageResize) {
-        super(mustCopyOnStorageResize);
+    public IntArrayGraphicBuffer(
+            boolean mustCopyOnStorageResize,
+            boolean allowShrinking) {
+        super(
+                mustCopyOnStorageResize,
+                allowShrinking);
         
         final int initialStorageSpan = this.getInitialStorageSpan();
-        this.createStorage(initialStorageSpan, initialStorageSpan);
+        this.createInitialStorage(
+                initialStorageSpan,
+                initialStorageSpan);
     }
     
     /**
@@ -120,6 +128,11 @@ public class IntArrayGraphicBuffer extends AbstractIntGraphicBuffer<IntArrayGrap
     //--------------------------------------------------------------------------
     
     @Override
+    protected MyStorage getStorage() {
+        return this.storage;
+    }
+
+    @Override
     protected int getStorageWidth() {
         return this.storage.storageWidth;
     }
@@ -130,32 +143,35 @@ public class IntArrayGraphicBuffer extends AbstractIntGraphicBuffer<IntArrayGrap
     }
 
     @Override
-    protected void createStorage(int newStorageWidth, int newStorageHeight) {
-        this.storage = new MyStorage(newStorageWidth, newStorageHeight);
-    }
-
-    @Override
-    protected MyStorage getStorage() {
-        return this.storage;
-    }
-
-    @Override
-    protected void copyFromStorage(MyStorage storage, int widthToCopy, int heightToCopy) {
-        final MyStorage storageToCopy = storage;
+    protected void createStorage(
+            int newStorageWidth,
+            int newStorageHeight,
+            //
+            MyStorage oldStorageToCopy,
+            int widthToCopy,
+            int heightToCopy) {
         
-        copyPixels_srcClipped_dstClipped(
-                storageToCopy.pixelArr,
-                storageToCopy.storageWidth,
-                0,
-                0,
-                //
-                this.storage.pixelArr,
-                this.storage.storageWidth,
-                0,
-                0,
-                //
-                widthToCopy,
-                heightToCopy);
+        final MyStorage storage = new MyStorage(
+                newStorageWidth,
+                newStorageHeight);
+        
+        if (oldStorageToCopy != null) {
+            copyPixels_srcClipped_dstClipped(
+                    oldStorageToCopy.pixelArr,
+                    oldStorageToCopy.storageWidth,
+                    0,
+                    0,
+                    //
+                    storage.pixelArr,
+                    storage.storageWidth,
+                    0,
+                    0,
+                    //
+                    widthToCopy,
+                    heightToCopy);
+        }
+
+        this.storage = storage;
     }
 
     @Override

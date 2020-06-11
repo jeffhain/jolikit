@@ -167,8 +167,8 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
             
             final boolean hasAlpha = (k == 1);
             
-            for (boolean shrinked : new boolean[]{false,true}) {
-                if (shrinked) {
+            for (boolean shrunk : new boolean[]{false,true}) {
+                if (shrunk) {
                     y -= (2 * dh + image.getHeight());
                     x = image.getWidth() + 1;
                 } else {
@@ -177,7 +177,7 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 
                 final int dstXSpan;
                 final int dstYSpan;
-                if (shrinked) {
+                if (shrunk) {
                     dstXSpan = (int) (image.getWidth() * IMAGE_SHRINK_FACTOR);
                     dstYSpan = (int) (image.getHeight() * IMAGE_SHRINK_FACTOR);
                 } else {
@@ -215,7 +215,7 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 g.setFont(defaultFont);
                 final String comment =
                         nbrOfCalls + " calls, hasAlpha = " + hasAlpha
-                        + ", shrinked = " + shrinked
+                        + ", shrunk = " + shrunk
                         + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
                 g.setColor(BwdColor.BLACK);
                 g.drawText(x, y, comment);

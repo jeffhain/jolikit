@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +18,6 @@ package net.jolikit.bwd.impl.lwjgl3;
 import java.nio.IntBuffer;
 import java.util.List;
 
-import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
-import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
-import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -35,6 +26,13 @@ import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GLCapabilities;
+
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
+import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 
 public class LwjglPaintHelper {
 
@@ -151,61 +149,16 @@ public class LwjglPaintHelper {
         }
     }
     
-    /**
-     * OpenGL expects native RGBA.
-     * Could be called toNativeBgra32.
-     * 
-     * @param argb32 ARGB in big endian (Java order).
-     * @return ABGR if native is little endian, else RGBA.
-     */
     public static int getArrayColor32FromArgb32(int argb32) {
-        /*
-         * Color to put in our int[], for direct use by OpenGL.
-         * When interpreted in native order, gives RGBA.
-         */
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // ARGB, in big (Java), to ABGR,
-            // which will give RGBA in little (native).
-            final int r = ((argb32 >> 16) & 0xFF);
-            final int b = (argb32 & 0xFF);
-            final int color32 = (argb32 & 0xFF00FF00) | (b << 16) | r;
-            final int premulColor32 = BindingColorUtils.toPremulAxyz32(color32);
-            return premulColor32;
-        } else {
-            // ARGB, in big (Java), to RGBA, in big (native).
-            final int a = ((argb32 >> 24) & 0xFF);
-            final int color32 = (argb32 << 8) | a;
-            final int premulColor32 = BindingColorUtils.toPremulXyza32(color32);
-            return premulColor32;
-        }
+        return BindingColorUtils.toPremulNativeRgba32FromArgb32(argb32);
     }
     
     public static int getArgb32FromArrayColor32(int premulColor32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            final int color32 = BindingColorUtils.toNonPremulAxyz32(premulColor32);
-            // ABGR, which gives RGBA in native, to ARGB.
-            final int r = (color32 & 0xFF);
-            final int b = ((color32 >> 16) & 0xFF);
-            return (color32 & 0xFF00FF00) | (r << 16) | b;
-        } else {
-            final int color32 = BindingColorUtils.toNonPremulXyza32(premulColor32);
-            // RGBA to ARGB.
-            final int a = (color32 & 0xFF);
-            return (a << 24) | (color32 >>> 8);
-        }
+        return BindingColorUtils.toArgb32FromPremulNativeRgba32(premulColor32);
     }
     
     public static int getArgb32FromNonPremulArrayColor32(int color32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // ABGR, which gives RGBA in native, to ARGB.
-            final int r = (color32 & 0xFF);
-            final int b = ((color32 >> 16) & 0xFF);
-            return (color32 & 0xFF00FF00) | (r << 16) | b;
-        } else {
-            // RGBA to ARGB.
-            final int a = (color32 & 0xFF);
-            return (a << 24) | (color32 >>> 8);
-        }
+        return BindingColorUtils.toArgb32FromNativeRgba32(color32);
     }
 
     /*
@@ -213,29 +166,15 @@ public class LwjglPaintHelper {
      */
     
     public static int toInvertedArrayColor32(int premulColor32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            return BindingColorUtils.toInvertedPremulAxyz32_noCheck(premulColor32);
-        } else {
-            return BindingColorUtils.toInvertedPremulXyza32_noCheck(premulColor32);
-        }
+        return BindingColorUtils.toInvertedPremulNativeRgba32(premulColor32);
     }
     
     public static int getArrayColorAlpha8(int premulColor32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // Argb
-            return Argb32.getAlpha8(premulColor32);
-        } else {
-            // rgbA
-            return Argb32.getBlue8(premulColor32);
-        }
+        return BindingColorUtils.getNativeRgba32Alpha8(premulColor32);
     }
     
     public static int blendArrayColor32(int srcPremulColor32, int dstPremulColor32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            return BindingColorUtils.blendPremulAxyz32_srcOver(srcPremulColor32, dstPremulColor32);
-        } else {
-            return BindingColorUtils.blendPremulXyza32_srcOver(srcPremulColor32, dstPremulColor32);
-        }
+        return BindingColorUtils.blendPremulNativeRgba32(srcPremulColor32, dstPremulColor32);
     }
 
     /*

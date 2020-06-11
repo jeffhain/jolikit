@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
  */
 package net.jolikit.bwd.impl.sdl2;
 
-import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Palette;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_PixelFormat;
@@ -47,44 +46,17 @@ public class SdlUtils {
      * For surfaces that have a palette.
      */
     public static int paletteColorToArgb32(int paletteColor32) {
-        final int alpha8;
-        final int red8;
-        final int green8;
-        final int blue8;
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // {R,G,B,A} bytes, that were read as ABGR int.
-            alpha8 = Argb32.getAlpha8(paletteColor32);
-            red8 = Argb32.getBlue8(paletteColor32);
-            green8 = Argb32.getGreen8(paletteColor32);
-            blue8 = Argb32.getRed8(paletteColor32);
-        } else {
-            // {R,G,B,A} bytes, that were read as RGBA int.
-            alpha8 = Argb32.getBlue8(paletteColor32);
-            red8 = Argb32.getAlpha8(paletteColor32);
-            green8 = Argb32.getRed8(paletteColor32);
-            blue8 = Argb32.getGreen8(paletteColor32);
-        }
-        final int argb32 = (alpha8 << 24) | (red8 << 16) | (green8 << 8) | (blue8 << 0);
-        return argb32;
+        return BindingColorUtils.toArgb32FromNativeRgba32(paletteColor32);
     }
 
     /**
      * For surfaces that don't have a palette.
      */
     public static int formattedPixelToArgb32(SDL_PixelFormat format, int surfPixel) {
-        final int alpha8;
-        if (format.Amask == 0) {
-            // No alpha mask (typical for always-opaque image formats):
-            // assuming alpha is 0xFF.
-            alpha8 = 0xFF;
-        } else {
-            alpha8 = ((surfPixel & format.Amask) >>> format.Ashift);
-        }
-        final int red8 = ((surfPixel & format.Rmask) >>> format.Rshift);
-        final int green8 = ((surfPixel & format.Gmask) >>> format.Gshift);
-        final int blue8 = ((surfPixel & format.Bmask) >>> format.Bshift);
-        final int argb32 = (alpha8 << 24) | (red8 << 16) | (green8 << 8) | (blue8 << 0);
-        return argb32;
+        return BindingColorUtils.toArgb32FromPixelWithMasksAndShifts(
+                surfPixel,
+                format.Amask, format.Rmask, format.Gmask, format.Bmask,
+                format.Ashift, format.Rshift, format.Gshift, format.Bshift);
     }
 
     /**
@@ -326,7 +298,7 @@ public class SdlUtils {
                             final int b3 = (tmpRowByteArr[indexFrom] & 0xFF);
                             final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
                             final int b1 = (tmpRowByteArr[indexFrom+2] & 0xFF);
-                            final int pixel = (b1 << 16) | (b2 << 8) | (b3 << 0);
+                            final int pixel = (b1 << 16) | (b2 << 8) | b3;
 
                             final int indexTo = x + w * y;
                             pixelArr[indexTo] = pixel;
@@ -337,7 +309,7 @@ public class SdlUtils {
                             final int b1 = (tmpRowByteArr[indexFrom] & 0xFF);
                             final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
                             final int b3 = (tmpRowByteArr[indexFrom+2] & 0xFF);
-                            final int pixel = (b1 << 16) | (b2 << 8) | (b3 << 0);
+                            final int pixel = (b1 << 16) | (b2 << 8) | b3;
 
                             final int indexTo = x + w * y;
                             pixelArr[indexTo] = pixel;
@@ -349,7 +321,7 @@ public class SdlUtils {
                             final int indexFrom = 2 * x;
                             final int b2 = (tmpRowByteArr[indexFrom] & 0xFF);
                             final int b1 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int pixel = (b1 << 8) | (b2 << 0);
+                            final int pixel = (b1 << 8) | b2;
 
                             final int indexTo = x + w * y;
                             pixelArr[indexTo] = pixel;
@@ -359,7 +331,7 @@ public class SdlUtils {
                             final int indexFrom = 2 * x;
                             final int b1 = (tmpRowByteArr[indexFrom] & 0xFF);
                             final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int pixel = (b1 << 8) | (b2 << 0);
+                            final int pixel = (b1 << 8) | b2;
 
                             final int indexTo = x + w * y;
                             pixelArr[indexTo] = pixel;

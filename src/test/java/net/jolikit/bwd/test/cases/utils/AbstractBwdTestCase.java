@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
         super.onWindowHidden(event);
         
         if (this.dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
     }
     
@@ -158,7 +158,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
         super.onWindowFocusLost(event);
         
         if (this.dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
     }
     
@@ -167,7 +167,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
         super.onWindowIconified(event);
         
         if (this.dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
     }
     
@@ -176,7 +176,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
         super.onWindowMaximized(event);
         
         if (this.dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
     }
     
@@ -185,7 +185,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
         super.onWindowDemaximized(event);
         
         if (this.dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
     }
 
@@ -301,7 +301,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
      */
     protected final void setDragOnLeftClickActivated(boolean dragOnLeftClickActivated) {
         if (!dragOnLeftClickActivated) {
-            this.dragHelper.dragStoppingEventOccured();
+            this.dragHelper.onDragStoppingEvent();
         }
         this.dragOnLeftClickActivated = dragOnLeftClickActivated;
     }

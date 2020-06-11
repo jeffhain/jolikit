@@ -18,19 +18,6 @@ package net.jolikit.bwd.impl.qtj4;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdClient;
-import net.jolikit.bwd.api.InterfaceBwdHost;
-import net.jolikit.bwd.api.events.BwdKeyEventPr;
-import net.jolikit.bwd.api.events.BwdKeyEventT;
-import net.jolikit.bwd.api.events.BwdMouseEvent;
-import net.jolikit.bwd.api.events.BwdWheelEvent;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
-import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.ObjectWrapper;
-
 import com.trolltech.qt.core.QEvent;
 import com.trolltech.qt.core.QEvent.Type;
 import com.trolltech.qt.core.QRect;
@@ -54,6 +41,19 @@ import com.trolltech.qt.gui.QSizePolicy.Policy;
 import com.trolltech.qt.gui.QStackedLayout;
 import com.trolltech.qt.gui.QWheelEvent;
 import com.trolltech.qt.gui.QWidget;
+
+import net.jolikit.bwd.api.InterfaceBwdClient;
+import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.events.BwdKeyEventPr;
+import net.jolikit.bwd.api.events.BwdKeyEventT;
+import net.jolikit.bwd.api.events.BwdMouseEvent;
+import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
+import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.ObjectWrapper;
 
 public class QtjBwdHost extends AbstractBwdHost {
     
@@ -87,6 +87,8 @@ public class QtjBwdHost extends AbstractBwdHost {
      * are left unpaint, if any.
      */
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
+    
+    private static final boolean ALLOW_OB_SHRINKING = true;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -992,8 +994,14 @@ public class QtjBwdHost extends AbstractBwdHost {
         final int oldWidthCap = oldImage.width();
         final int oldHeightCap = oldImage.height();
 
-        final int newWidthCap = BindingBasicsUtils.computeNewStorageSpan(oldWidthCap, minWidthCap);
-        final int newHeightCap = BindingBasicsUtils.computeNewStorageSpan(oldHeightCap, minHeightCap);
+        final int newWidthCap = BindingBasicsUtils.computeStorageSpan(
+                oldWidthCap,
+                minWidthCap,
+                ALLOW_OB_SHRINKING);
+        final int newHeightCap = BindingBasicsUtils.computeStorageSpan(
+                oldHeightCap,
+                minHeightCap,
+                ALLOW_OB_SHRINKING);
 
         final boolean needNewStorage =
                 (newWidthCap != oldWidthCap)

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,53 +44,97 @@ public class BindingBasicsUtils {
      */
 
     /**
-     * For offscreen images.
-     * 
      * Some storages can't be created with zero spans,
-     * but 1 should be OK, and fits out storage span values politics.
+     * but 1 should be OK.
      */
     public static final int MIN_STORAGE_SPAN = 1;
+    
+    /**
+     * Small enough not to waste more than 1.5 of actually used memory
+     * when growing.
+     * (sqrt() because surfaces are in 2D).
+     */
+    private static final double SPAN_GROWTH_FACTOR = Math.sqrt(1.5);
+    private static final double SPAN_SHRINK_FACTOR = 1.0/SPAN_GROWTH_FACTOR;
+
+    /**
+     * Small enough not to waste more than (1.5^2) of actually used memory
+     * when shrinking.
+     * Not using SPAN_SHRINK_FACTOR, for hysteresis, to avoid having
+     * storage span jump between K and K * FACTOR when used span
+     * oscillates around K.
+     */
+    private static final double SPAN_SHRINK_THRESHOLD = NumbersUtils.pow2(SPAN_SHRINK_FACTOR);
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
     /**
-     * For computing spans of offscreen images,
-     * as client area grows or shrinks.
+     * @param oldStorageSpan Old storage span. Must be >= 0.
+     *        (even though MIN_STORAGE_SPAN is 1, 0 is accepted here)
+     * @param newSpanToStore New span to store. Must be >= 0.
+     * @param allowShrinking If true, computed span can be smaller
+     *        than old span. Allows for example not to keep wasting memory
+     *        after some client area shrank a lot.
+     * @return Storage span to use, considering old storage span
+     *         and new span to store. Always >= MIN_STORAGE_SPAN.
      */
-    public static int computeNewStorageSpan(int oldStorageSpan, int newSpan) {
-        /*
-         * Hysteresis: new width/height capacities when new values
-         * are larger, or less than 4 times smaller.
-         * 
-         * Except for Integer.MAX_VALUE, capacity is computed as the
-         * ceiling power of two of new span, so dividing by 2 for
-         * the hysteresis would not be enough, since it could cause
-         * storage span reset with only 1-pixel back-and-forth resizes
-         * around a power of two limit, that's why we set our threshold
-         * to old storage span divided by 4.
-         * NB: This means that the pixel amount can be up to
-         * 4*4 = 16 times bigger than actually needed, but still,
-         * it will never be more than 2*2 = 4 times bigger than
-         * has ever been needed.
-         * 
-         * Using "<", not "<=", to avoid pointless storage change when
-         * old storage span is < divisor (so already small) and new span
-         * is 0 (like: divisor = 4, old storage span = 2, new span = 0).
-         */
+    public static int computeStorageSpan(
+            int oldStorageSpan,
+            int newSpanToStore,
+            boolean allowShrinking) {
         
-        final boolean needNewStorageSpan =
-                (newSpan > oldStorageSpan)
-                || (newSpan < (oldStorageSpan >> 2));
-        
-        final int newStorageSpan;
-        if (needNewStorageSpan) {
-            newStorageSpan = computeStorageSpan(newSpan);
-        } else {
-            newStorageSpan = oldStorageSpan;
+        if (oldStorageSpan < 0) {
+            throw new IllegalArgumentException("" + oldStorageSpan);
         }
-        return newStorageSpan;
+        
+        if (newSpanToStore < 0) {
+            throw new IllegalArgumentException("" + newSpanToStore);
+        }
+        
+        // Simplifies our code, and makes sure we don't return 0.
+        oldStorageSpan = Math.max(MIN_STORAGE_SPAN, oldStorageSpan);
+        
+        final int ret;
+        if (newSpanToStore < oldStorageSpan) {
+            if (allowShrinking) {
+                /*
+                 * NB: Since we work on one coordinate at a time (x or y),
+                 * we might uselessly re-create storage when a span shrinks
+                 * but the other grows, but if one spans shrinks a lot
+                 * the overall surface should not be too large so it shouldn't
+                 * hurt much, and these cases should not be too common.
+                 */
+                
+                final boolean mustShrink =
+                        (newSpanToStore < oldStorageSpan * SPAN_SHRINK_THRESHOLD);
+                if (mustShrink) {
+                    // Might not actually shrink for small old spans,
+                    // but it doesn't hurt.
+                    ret = (int) Math.max(MIN_STORAGE_SPAN, oldStorageSpan * SPAN_SHRINK_FACTOR);
+                } else {
+                    ret = oldStorageSpan;
+                }
+            } else {
+                ret = oldStorageSpan;
+            }
+            
+        } else if (newSpanToStore > oldStorageSpan) {
+            final boolean mustGrow =
+                    (newSpanToStore > oldStorageSpan);
+            if (mustGrow) {
+                // Always grows, even in case of small old span
+                // and small growth factor.
+                ret = (int) Math.max(newSpanToStore, oldStorageSpan * SPAN_GROWTH_FACTOR);
+            } else {
+                ret = oldStorageSpan;
+            }
+        } else {
+            ret = oldStorageSpan;
+        }
+        
+        return ret;
     }
     
     //--------------------------------------------------------------------------
@@ -98,14 +142,5 @@ public class BindingBasicsUtils {
     //--------------------------------------------------------------------------
     
     private BindingBasicsUtils() {
-    }
-    
-    private static int computeStorageSpan(int minSpan) {
-        if (minSpan > (1<<30)) {
-            // NB: Not a power of two.
-            return Integer.MAX_VALUE;
-        } else {
-            return Math.max(MIN_STORAGE_SPAN, NumbersUtils.ceilingPowerOfTwo(minSpan));
-        }
     }
 }

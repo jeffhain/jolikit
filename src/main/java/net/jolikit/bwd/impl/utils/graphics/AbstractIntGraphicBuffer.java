@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,6 +43,7 @@ public abstract class AbstractIntGraphicBuffer<S> {
     //--------------------------------------------------------------------------
     
     private final boolean mustCopyOnStorageResize;
+    private final boolean allowShrinking;
     
     private int width;
     private int height;
@@ -60,10 +61,14 @@ public abstract class AbstractIntGraphicBuffer<S> {
      * 
      * @param mustCopyOnStorageResize If true, when a new backing storage is
      *        created, copies pixels of previous storage into it.
+     * @param allowShrinking If true, backing array can be renewed
+     *        when old one is too large for the new size.
      */
     public AbstractIntGraphicBuffer(
-            boolean mustCopyOnStorageResize) {
+            boolean mustCopyOnStorageResize,
+            boolean allowShrinking) {
         this.mustCopyOnStorageResize = mustCopyOnStorageResize;
+        this.allowShrinking = allowShrinking;
         this.setSize_raw(0, 0);
     }
     
@@ -89,8 +94,14 @@ public abstract class AbstractIntGraphicBuffer<S> {
         final int oldStorageWidth = this.getStorageWidth();
         final int oldStorageHeight = this.getStorageHeight();
         
-        final int newStorageWidth = BindingBasicsUtils.computeNewStorageSpan(oldStorageWidth, newWidth);
-        final int newStorageHeight = BindingBasicsUtils.computeNewStorageSpan(oldStorageHeight, newHeight);
+        final int newStorageWidth = BindingBasicsUtils.computeStorageSpan(
+                oldStorageWidth,
+                newWidth,
+                this.allowShrinking);
+        final int newStorageHeight = BindingBasicsUtils.computeStorageSpan(
+                oldStorageHeight,
+                newHeight,
+                this.allowShrinking);
         
         final boolean needNewStorage =
                 (newStorageWidth != oldStorageWidth)
@@ -102,14 +113,26 @@ public abstract class AbstractIntGraphicBuffer<S> {
             final int oldWidth = this.getWidth();
             final int oldHeight = this.getHeight();
 
-            this.createStorage(newStorageWidth, newStorageHeight);
-            this.setSize_raw(newWidth, newHeight);
-
+            final S oldStorageToCopy;
+            final int widthToCopy;
+            final int heightToCopy;
             if (this.mustCopyOnStorageResize) {
-                final int widthToCopy = Math.min(oldWidth, newWidth);
-                final int heightToCopy = Math.min(oldHeight, newHeight);
-                this.copyFromStorage(oldStorage, widthToCopy, heightToCopy);
+                oldStorageToCopy = oldStorage;
+                widthToCopy = Math.min(oldWidth, newWidth);
+                heightToCopy = Math.min(oldHeight, newHeight);
+            } else {
+                oldStorageToCopy = null;
+                widthToCopy = 0;
+                heightToCopy = 0;
             }
+            this.createStorage(
+                    newStorageWidth,
+                    newStorageHeight,
+                    //
+                    oldStorageToCopy,
+                    widthToCopy,
+                    heightToCopy);
+            this.setSize_raw(newWidth, newHeight);
             
             this.disposeStorage(oldStorage);
         } else {
@@ -143,9 +166,29 @@ public abstract class AbstractIntGraphicBuffer<S> {
         return this.height;
     }
     
+    protected final void createInitialStorage(
+            int initialStorageWidth,
+            int initialStorageHeight) {
+        final S oldStorageToCopy = null;
+        final int widthToCopy = 0;
+        final int heightToCopy = 0;
+        this.createStorage(
+                initialStorageWidth,
+                initialStorageHeight,
+                //
+                oldStorageToCopy,
+                widthToCopy,
+                heightToCopy);
+    }
+
     /*
      * 
      */
+    
+    /**
+     * @return The current storage object.
+     */
+    protected abstract S getStorage();
     
     /**
      * This is the scan line stride for this buffer.
@@ -160,32 +203,22 @@ public abstract class AbstractIntGraphicBuffer<S> {
     protected abstract int getStorageHeight();
     
     /**
-     * Specified spans must be >= 0 (not supposed to be checked).
-     */
-    protected abstract void createStorage(int newStorageWidth, int newStorageHeight);
-    
-    /*
-     * Methods used to copy old storage pixels to a newly created current storage.
-     */
-    
-    /**
-     * @return The current storage object.
-     */
-    protected abstract S getStorage();
-    
-    /**
-     * Specified spans are in range of both current and specified storages.
+     * Specified new spans must be >= 0 (not supposed to be checked).
+     * Specified spans to copy are in range of both new and old storages.
      * 
-     * @param storage Storage object which pixels must be copied (not blended)
-     *        into current storage.
+     * @param oldStorageToCopy Storage object which pixels must be
+     *        copied (not blended) into the created storage.
+     *        Can be null.
      * @param widthToCopy Width to copy, from the start.
      * @param heightToCopy Height to copy, from the start.
      */
-    protected abstract void copyFromStorage(S storage, int widthToCopy, int heightToCopy);
-    
-    /*
-     * 
-     */
+    protected abstract void createStorage(
+            int newStorageWidth,
+            int newStorageHeight,
+            //
+            S oldStorageToCopy,
+            int widthToCopy,
+            int heightToCopy);
     
     /**
      * Called on no longer used storages.

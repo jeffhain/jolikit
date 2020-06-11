@@ -17,7 +17,6 @@ package net.jolikit.bwd.impl.jfx;
 
 import java.util.List;
 
-import javafx.geometry.NodeOrientation;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
@@ -97,6 +96,12 @@ public class JfxBwdHost extends AbstractBwdHost {
      * because they are not kept consistent right-away
      * (seems to need to wait for rendering or so).
      */
+    
+    //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+
+    private static final boolean ALLOW_OB_SHRINKING = true;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -388,7 +393,7 @@ public class JfxBwdHost extends AbstractBwdHost {
      */
     private final Canvas canvas;
     
-    private final JfxSnapshotHelper snapshotHelper;
+    private final JfxDirtySnapshotHelper dirtySnapshotHelper;
     
     private final JfxHostBoundsHelper hostBoundsHelper;
     
@@ -427,22 +432,17 @@ public class JfxBwdHost extends AbstractBwdHost {
                 modal,
                 client);
         
+        final JfxBwdBindingConfig bindingConfig = binding.getBindingConfig();
+        
         /*
          * Canvas.
          */
         
-        final Canvas canvas = new Canvas();
+        final Canvas canvas = JfxUtils.newCanvas(0, 0);
         this.canvas = canvas;
         
         // Else can't gain focus.
         canvas.setFocusTraversable(true);
-        
-        /**
-         * Making sure X axis goes to the right (Language-related orientation
-         * must be taken care of at a higher level. It could also be
-         * TOP_TO_BOTTOM, which JavaFX doesn't support).
-         */
-        canvas.setNodeOrientation(NodeOrientation.LEFT_TO_RIGHT);
         
         // Needs to be false else no mouse events.
         canvas.mouseTransparentProperty().set(false);
@@ -579,13 +579,19 @@ public class JfxBwdHost extends AbstractBwdHost {
         
         this.hostBoundsHelper = new JfxHostBoundsHelper(
                 host,
-                binding.getBindingConfig().getDecorationInsets(),
-                binding.getBindingConfig().getMinWindowWidthIfDecorated(),
-                binding.getBindingConfig().getMinWindowHeightIfDecorated());
+                bindingConfig.getDecorationInsets(),
+                bindingConfig.getMinWindowWidthIfDecorated(),
+                bindingConfig.getMinWindowHeightIfDecorated());
         
-        this.snapshotHelper = new JfxSnapshotHelper(
-                binding.getBindingConfig(),
-                canvas);
+        this.dirtySnapshotHelper =
+                new JfxDirtySnapshotHelper(
+                        canvas,
+                        ALLOW_OB_SHRINKING) {
+            @Override
+            protected boolean isDisabled() {
+                return !bindingConfig.getMustImplementBestEffortPixelReading();
+            }
+        };
         
         /*
          * 
@@ -709,7 +715,7 @@ public class JfxBwdHost extends AbstractBwdHost {
                 gc,
                 box,
                 //
-                this.snapshotHelper);
+                this.dirtySnapshotHelper);
 
         // No use for this list.
         @SuppressWarnings("unused")

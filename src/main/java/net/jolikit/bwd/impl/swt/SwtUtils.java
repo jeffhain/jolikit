@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@ package net.jolikit.bwd.impl.swt;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 
+import org.eclipse.swt.graphics.Color;
+import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 
@@ -37,6 +39,15 @@ public class SwtUtils {
                 rectangle.y,
                 rectangle.width,
                 rectangle.height);
+    }
+    
+    public static Color newColor(
+            Device device,
+            int red8,
+            int green8,
+            int blue8,
+            int alpha8) {
+        return new Color(device, red8, green8, blue8, alpha8);
     }
     
     //--------------------------------------------------------------------------
