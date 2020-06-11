@@ -221,7 +221,7 @@ public class ConcurrentImageCreaDispBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdBinding binding = this.getBinding();
         
         final InterfaceParallelizer parallelizer;
-        if (binding.isConcurrentImageCreationAndDisposalSupported()) {
+        if (binding.isConcurrentImageManagementSupported()) {
             parallelizer = binding.getParallelizer();
         } else {
             parallelizer = SequentialParallelizer.getDefault();

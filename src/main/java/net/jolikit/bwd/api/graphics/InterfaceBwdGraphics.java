@@ -369,6 +369,18 @@ public interface InterfaceBwdGraphics {
      *         or if finish() has been called.
      */
     public void removeAllAddedClips();
+    
+    /**
+     * Convenience method.
+     * Equivalent to "getClipInClient().isEmpty()"
+     * or "getClipInUser().isEmpty()".
+     * 
+     * Handy to quickly return at painting start if clip is empty
+     * and painting does not need to compute any side effect.
+     * 
+     * @return True if the current clip is empty, false otherwise.
+     */
+    public boolean isClipEmpty();
 
     /*
      * Transforms.

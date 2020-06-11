@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,12 +123,12 @@ public class AwtBwdBinding extends AbstractAwtBwdBinding {
     }
 
     @Override
-    public boolean isConcurrentFontCreationAndDisposalSupported() {
+    public boolean isConcurrentFontManagementSupported() {
         return true;
     }
 
     @Override
-    public boolean isConcurrentImageCreationAndDisposalSupported() {
+    public boolean isConcurrentImageManagementSupported() {
         return true;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,12 @@ package net.jolikit.bwd.impl.qtj4;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
+import com.trolltech.qt.core.QPoint;
+import com.trolltech.qt.core.QRect;
+import com.trolltech.qt.gui.QApplication;
+import com.trolltech.qt.gui.QCursor;
+import com.trolltech.qt.gui.QDesktopWidget;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -30,13 +36,6 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-
-import com.trolltech.qt.core.QPoint;
-import com.trolltech.qt.core.QRect;
-import com.trolltech.qt.gui.QApplication;
-import com.trolltech.qt.gui.QCursor;
-import com.trolltech.qt.gui.QDesktopWidget;
-import com.trolltech.qt.gui.QImage;
 
 public class QtjBwdBinding extends AbstractQtjBwdBinding {
 
@@ -171,12 +170,12 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     }
 
     @Override
-    public boolean isConcurrentFontCreationAndDisposalSupported() {
+    public boolean isConcurrentFontManagementSupported() {
         return true;
     }
 
     @Override
-    public boolean isConcurrentImageCreationAndDisposalSupported() {
+    public boolean isConcurrentImageManagementSupported() {
         return true;
     }
 
@@ -243,24 +242,8 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        
-        // TODO qtj Called fileName, but is actually a file path.
-        final String fileName = filePath;
-        final QImage image = new QImage(fileName);
-        
-        // Not supporting asynchronous image loads
-        // (for our UI API, asynchronous network load
-        // is not the job of the UI library).
-        if ((image.width() == 0)
-                || (image.height() == 0)) {
-            throw new IllegalArgumentException(
-                    "could not properly load image at "
-                            + filePath
-                            + " (zero width or height)");
-        }
-        
         return new QtjBwdImage(
-                image,
+                filePath,
                 disposalListener);
     }
     

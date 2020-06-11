@@ -18,6 +18,16 @@ package net.jolikit.bwd.impl.qtj4;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.trolltech.qt.core.Qt.BrushStyle;
+import com.trolltech.qt.core.Qt.GlobalColor;
+import com.trolltech.qt.gui.QBrush;
+import com.trolltech.qt.gui.QColor;
+import com.trolltech.qt.gui.QImage;
+import com.trolltech.qt.gui.QPainter;
+import com.trolltech.qt.gui.QPainter.CompositionMode;
+import com.trolltech.qt.gui.QPen;
+import com.trolltech.qt.gui.QTransform;
+
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -35,16 +45,6 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 import net.jolikit.lang.ObjectWrapper;
-
-import com.trolltech.qt.core.Qt.BrushStyle;
-import com.trolltech.qt.core.Qt.GlobalColor;
-import com.trolltech.qt.gui.QBrush;
-import com.trolltech.qt.gui.QColor;
-import com.trolltech.qt.gui.QImage;
-import com.trolltech.qt.gui.QPainter;
-import com.trolltech.qt.gui.QPainter.CompositionMode;
-import com.trolltech.qt.gui.QPen;
-import com.trolltech.qt.gui.QTransform;
 
 public class QtjBwdGraphics extends AbstractBwdGraphics {
 
@@ -594,7 +594,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         
         this.painter.setPen(this.qtStuffs.backingPen);
         
-        final int opaqueArgb32 = Argb32.withAlpha8(argb32, 0xFF);
+        final int opaqueArgb32 = Argb32.toOpaque(argb32);
         this.qtStuffs.clearColor.setRgb(opaqueArgb32);
     }
     

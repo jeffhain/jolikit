@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -390,6 +390,13 @@ public class GTransformTest extends TestCase {
         assertFalse(GTransform.valueOf(GRotation.ROT_0, 0, 1).isIdentity());
     }
     
+    public void test_areHorVerFlipped() {
+        assertFalse(GTransform.valueOf(GRotation.ROT_0, 0, 0).areHorVerFlipped());
+        assertTrue(GTransform.valueOf(GRotation.ROT_90, 0, 0).areHorVerFlipped());
+        assertFalse(GTransform.valueOf(GRotation.ROT_180, 0, 0).areHorVerFlipped());
+        assertTrue(GTransform.valueOf(GRotation.ROT_270, 0, 0).areHorVerFlipped());
+    }
+
     /*
      * 
      */

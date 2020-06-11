@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -162,6 +162,17 @@ public class GRotationTest extends TestCase {
         assertEquals(0, GRotation.ROT_90.cos());
         assertEquals(-1, GRotation.ROT_180.cos());
         assertEquals(0, GRotation.ROT_270.cos());
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_areHorVerFlipped() {
+        assertFalse(GRotation.ROT_0.areHorVerFlipped());
+        assertTrue(GRotation.ROT_90.areHorVerFlipped());
+        assertFalse(GRotation.ROT_180.areHorVerFlipped());
+        assertTrue(GRotation.ROT_270.areHorVerFlipped());
     }
     
     /*

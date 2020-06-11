@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package net.jolikit.bwd.impl.jfx;
 import java.lang.Thread.UncaughtExceptionHandler;
 
 import javafx.application.Platform;
-import javafx.scene.image.Image;
 import javafx.stage.Screen;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
@@ -162,12 +161,12 @@ java.lang.NullPointerException
     }
 
     @Override
-    public boolean isConcurrentFontCreationAndDisposalSupported() {
+    public boolean isConcurrentFontManagementSupported() {
         return true;
     }
 
     @Override
-    public boolean isConcurrentImageCreationAndDisposalSupported() {
+    public boolean isConcurrentImageManagementSupported() {
         return true;
     }
     
@@ -226,34 +225,8 @@ java.lang.NullPointerException
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        final Image image = new Image("file:" + filePath);
-        final Exception exception = image.getException();
-        if (exception != null) {
-            /*
-             * "com.sun.javafx.iio.ImageStorageException: No loader for image data"
-             */
-            throw new IllegalArgumentException(
-                    "could not load image at "
-                            + filePath, exception);
-        }
-        
-        /**
-         * TODO jfx For some images types, the backing image
-         * is properly created, but drawing does nothing.
-         * As it turns out, such backing images have width
-         * and height of zero.
-         * To detect these non-supported cases (for which we must throw),
-         * we just throw whenever width or height is 0.
-         */
-        if ((image.getWidth() == 0)
-                || (image.getHeight() == 0)) {
-            throw new IllegalArgumentException(
-                    "could not load image at "
-                            + filePath
-                            + " (zero width or height)");
-        }
         return new JfxBwdImage(
-                image,
+                filePath,
                 disposalListener);
     }
 

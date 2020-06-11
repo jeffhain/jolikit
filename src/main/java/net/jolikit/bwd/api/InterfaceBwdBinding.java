@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,14 +112,14 @@ public interface InterfaceBwdBinding {
      *         false otherwise, in which case it should only be
      *         done in UI thread (which could be required).
      */
-    public boolean isConcurrentFontCreationAndDisposalSupported();
+    public boolean isConcurrentFontManagementSupported();
 
     /**
      * @return True if images creation and disposal is thread-safe,
      *         false otherwise, in which case it should only be
      *         done in UI thread (which could be required).
      */
-    public boolean isConcurrentImageCreationAndDisposalSupported();
+    public boolean isConcurrentImageManagementSupported();
 
     /**
      * The parallelizer must be reentrant, which allows for parallelization

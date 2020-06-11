@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,13 @@ public interface InterfaceBwdImage {
      * @return Image height in pixels (>= 0).
      */
     public int getHeight();
+    
+    /**
+     * If this image has been disposed, the behavior is undefined.
+     * 
+     * @return A rectangle equal to (0,0,width,height).
+     */
+    public GRect getRect();
     
     /*
      * Colors.

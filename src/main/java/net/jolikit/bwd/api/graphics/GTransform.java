@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -373,6 +373,14 @@ public final class GTransform implements Comparable<GTransform> {
      */
     public boolean isIdentity() {
         return (this == IDENTITY);
+    }
+
+    /**
+     * @return True if rotation is such that horizontal/vertical lines
+     *         in on frame are vertical/horizontal lines in the other.
+     */
+    public boolean areHorVerFlipped() {
+        return this.rotation.areHorVerFlipped();
     }
 
     /*

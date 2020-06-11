@@ -201,7 +201,7 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdBinding binding = this.getBinding();
         
         final InterfaceParallelizer parallelizer;
-        if (binding.isConcurrentFontCreationAndDisposalSupported()) {
+        if (binding.isConcurrentFontManagementSupported()) {
             parallelizer = binding.getParallelizer();
         } else {
             parallelizer = SequentialParallelizer.getDefault();

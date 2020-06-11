@@ -245,6 +245,14 @@ public class Argb64 {
 
     /**
      * @param argb64 A 64 bits ARGB color.
+     * @return A 64 bits ARGB with same RGB as the specified color but opaque.
+     */
+    public static long toOpaque(long argb64) {
+        return 0xFFFF000000000000L | argb64;
+    }
+
+    /**
+     * @param argb64 A 64 bits ARGB color.
      * @param alpha16 Alpha component in [0,65535].
      * @return A 64 bits ARGB with same RGB as the specified color but with
      *         the specified alpha.

@@ -350,6 +350,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
     }
     
+    @Override
+    public boolean isClipEmpty() {
+        return this.getClipInClient().isEmpty();
+    }
+
     /*
      * 
      */
@@ -586,7 +591,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.getPrimitives().fillRect(
                 this.getClipInUser(),
                 x, y, xSpan, ySpan,
-                this.areHorVerflipped());
+                this.areHorVerFlipped());
     }
     
     @Override
@@ -619,7 +624,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.getPrimitives().fillOval(
                 this.getClipInUser(),
                 x, y, xSpan, ySpan,
-                this.areHorVerflipped());
+                this.areHorVerFlipped());
     }
     
     @Override
@@ -662,7 +667,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 this.getClipInUser(),
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
-                this.areHorVerflipped());
+                this.areHorVerFlipped());
     }
     
     @Override
@@ -832,8 +837,16 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
     
-    protected boolean areHorVerflipped() {
-        return this.getTransform().rotation().sin() != 0;
+    /**
+     * Useful to choose to fill rectangles with vertical lines rather than
+     * horizontal lines when being in user coordinates.
+     * 
+     * @return True if rotation is such that horizontal/vertical lines
+     *         in user coordinates are vertical/horizontal lines
+     *         in base coordinates. 
+     */
+    protected boolean areHorVerFlipped() {
+        return this.getTransform().areHorVerFlipped();
     }
 
     /*

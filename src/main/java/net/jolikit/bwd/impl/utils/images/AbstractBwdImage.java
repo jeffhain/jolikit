@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.lang.LangUtils;
 
 public abstract class AbstractBwdImage implements InterfaceBwdImage {
 
@@ -38,13 +39,14 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
     //--------------------------------------------------------------------------
     
     /**
-     * @param disposalListener Can be null, for the sake of this class,
-     *        but in practice for our bindings it must not be, since disposal
-     *        has the effect of making image rect empty, so bindings need to
-     *        keep track of which images still need disposal on shutdown.
+     * @param disposalListener Must not be null, so that bindings can keep track
+     *        of which images still need disposal on shutdown, so that
+     *        after shutdown all images consistently have an empty rect
+     *        (cf. dispose() code).
+     * @throws NullPointerException if disposalListener is null.
      */
     public AbstractBwdImage(InterfaceBwdImageDisposalListener disposalListener) {
-        this.disposalListener = disposalListener;
+        this.disposalListener = LangUtils.requireNonNull(disposalListener);
     }
     
     /*
@@ -59,6 +61,11 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
     @Override
     public int getHeight() {
         return this.imgRect.ySpan();
+    }
+    
+    @Override
+    public GRect getRect() {
+        return this.imgRect;
     }
     
     /*
@@ -115,9 +122,9 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
                  */
                 this.imgRect = GRect.DEFAULT_EMPTY;
                 
-                if (this.disposalListener != null) {
-                    this.disposalListener.onImageDisposed(this);
-                }
+                // Never null (since we mandate it, to be able
+                // to ensure all images rect emptying on shutdown).
+                this.disposalListener.onImageDisposed(this);
             }
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.SWTException;
-import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
@@ -187,7 +185,7 @@ org.eclipse.swt.SWTException: Invalid thread access
     }
 
     @Override
-    public boolean isConcurrentFontCreationAndDisposalSupported() {
+    public boolean isConcurrentFontManagementSupported() {
         /*
          * TODO swt We can't create fonts outside of UI thread,
          * for we have to use rendering to compute metrics,
@@ -207,7 +205,7 @@ org.eclipse.swt.SWTException: Invalid thread access
     }
 
     @Override
-    public boolean isConcurrentImageCreationAndDisposalSupported() {
+    public boolean isConcurrentImageManagementSupported() {
         return true;
     }
 
@@ -271,18 +269,9 @@ org.eclipse.swt.SWTException: Invalid thread access
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        
-        final Image backingImage;
-        try {
-            backingImage = new Image(this.display, filePath);
-        } catch (SWTException e) {
-            /*
-             * org.eclipse.swt.SWTException: Unsupported or unrecognized format
-             */
-            throw new IllegalArgumentException("", e);
-        }
         return new SwtBwdImage(
-                backingImage,
+                filePath,
+                this.display,
                 disposalListener);
     }
     

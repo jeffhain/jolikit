@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,12 @@
  */
 package net.jolikit.bwd.impl.qtj4;
 
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
-import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.LangUtils;
-
 import java.util.List;
 
 import com.trolltech.qt.gui.QImage;
+
+import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
+import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
 public class QtjBwdImage extends AbstractBwdImage {
     
@@ -37,31 +36,51 @@ public class QtjBwdImage extends AbstractBwdImage {
      * and backing image's pixel(...) value is the index to use in this table.
      * Else, this array is null.
      */
-    private final int[] argb32Arr;
+    private final int[] colorTableArgb32Arr;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    /**
+     * @param filePath Path of an image file.
+     * @param disposalListener Must not be null.
+     * @throws NullPointerException if filePath or disposalListener is null.
+     * @throws IllegalArgumentException if could not load the specified image.
+     */
     public QtjBwdImage(
-            QImage backingImage,
+            String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
-        this.backingImage = LangUtils.requireNonNull(backingImage);
+        
+        // TODO qtj Called fileName, but is actually a file path.
+        final String fileName = filePath;
+        final QImage backingImage = new QImage(fileName);
+        // Not supporting asynchronous image loads
+        // (for our UI API, asynchronous network load
+        // is not the job of the UI library).
+        if ((backingImage.width() == 0)
+                || (backingImage.height() == 0)) {
+            throw new IllegalArgumentException(
+                    "could not properly load image at "
+                            + filePath
+                            + " (zero width or height)");
+        }
+        this.backingImage = backingImage;
         
         final List<Integer> colorTable = backingImage.colorTable();
-        final int[] argb32Arr;
+        final int[] colorTableArgb32Arr;
         if ((colorTable != null)
                 && (colorTable.size() != 0)) {
             final int size = colorTable.size();
-            argb32Arr = new int[size];
+            colorTableArgb32Arr = new int[size];
             for (int i = 0; i < size; i++) {
-                argb32Arr[i] = colorTable.get(i);
+                colorTableArgb32Arr[i] = colorTable.get(i);
             }
         } else {
-            argb32Arr = null;
+            colorTableArgb32Arr = null;
         }
-        this.argb32Arr = argb32Arr;
+        this.colorTableArgb32Arr = colorTableArgb32Arr;
         
         this.setWidth_final(backingImage.width());
         this.setHeight_final(backingImage.height());
@@ -79,8 +98,8 @@ public class QtjBwdImage extends AbstractBwdImage {
     protected int getArgb32AtImpl(int x, int y) {
         final int pixel = this.backingImage.pixel(x, y);
         final int argb32;
-        if (this.argb32Arr != null) {
-            argb32 = this.argb32Arr[pixel];
+        if (this.colorTableArgb32Arr != null) {
+            argb32 = this.colorTableArgb32Arr[pixel];
         } else {
             argb32 = pixel;
         }

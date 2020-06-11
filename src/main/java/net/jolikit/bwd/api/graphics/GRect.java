@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -442,6 +442,24 @@ public final class GRect implements Comparable<GRect> {
      */
     public long yMidLong() {
         return this.y + (long) (this.ySpan >> 1);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * @return The mid x, as double, exact.
+     */
+    public double xMidFp() {
+        return this.x + ((this.xSpan - 1) * 0.5);
+    }
+    
+    /**
+     * @return The mid y, as double, exact.
+     */
+    public double yMidFp() {
+        return this.y + ((this.ySpan - 1) * 0.5);
     }
 
     /*

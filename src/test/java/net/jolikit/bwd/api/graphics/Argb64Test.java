@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -256,6 +256,12 @@ public class Argb64Test extends TestCase {
      * 
      */
     
+    public void test_toOpaque_long() {
+        checkEqualsArgb64(0xFFFF8123456789A1L, Argb64.toOpaque(0x00008123456789A1L));
+        checkEqualsArgb64(0xFFFF8123456789A1L, Argb64.toOpaque(0xFFFF8123456789A1L));
+        checkEqualsArgb64(0xFFFF8123456789A1L, Argb64.toOpaque(0x80018123456789A1L));
+    }
+
     public void test_withAlpha16_long_int() {
         for (int bad16 : BAD_INT16_ARR) {
             try {

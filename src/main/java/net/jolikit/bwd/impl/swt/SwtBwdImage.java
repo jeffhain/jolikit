@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,16 @@
  */
 package net.jolikit.bwd.impl.swt;
 
+import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Image;
+import org.eclipse.swt.graphics.ImageData;
+import org.eclipse.swt.widgets.Display;
+
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
+import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
-
-import org.eclipse.swt.graphics.Image;
-import org.eclipse.swt.graphics.ImageData;
 
 public class SwtBwdImage extends AbstractBwdImage {
     
@@ -36,13 +39,29 @@ public class SwtBwdImage extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     
     /**
-     * @param backingImage Is disposed after use inside this constructor.
+     * @param filePath Path of an image file.
+     * @param display Display to use for the image. Must not be null.
+     * @param disposalListener Must not be null.
+     * @throws IllegalArgumentException if could not load the specified image.
+     * @throws NullPointerException if filePath or display or disposalListener is null.
      */
     public SwtBwdImage(
-            Image backingImage,
+            String filePath,
+            Display display,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
+        LangUtils.requireNonNull(display);
         
+        final Image backingImage;
+        try {
+            backingImage = new Image(display, filePath);
+        } catch (SWTException e) {
+            /*
+             * org.eclipse.swt.SWTException: Unsupported or unrecognized format
+             */
+            throw new IllegalArgumentException("", e);
+        }
+
         /*
          * TODO swt Image.getImageData() is not just a simple "get" operation,
          * as this call stack shows:

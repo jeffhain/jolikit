@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,8 @@ public class AwtBwdImage extends AbstractBwdImage {
     
     /**
      * @param filePath Path of an image file.
-     * @throws NullPointerException if the specified path is null.
+     * @param disposalListener Must not be null.
+     * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
     public AwtBwdImage(

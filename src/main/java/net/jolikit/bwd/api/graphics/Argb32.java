@@ -197,6 +197,14 @@ public class Argb32 {
     
     /**
      * @param argb32 A 32 bits ARGB color.
+     * @return A 32 bits ARGB with same RGB as the specified color but opaque.
+     */
+    public static int toOpaque(int argb32) {
+        return 0xFF000000 | argb32;
+    }
+
+    /**
+     * @param argb32 A 32 bits ARGB color.
      * @param alpha8 Alpha component in [0,255].
      * @return A 32 bits ARGB with same RGB as the specified color but with
      *         the specified alpha.

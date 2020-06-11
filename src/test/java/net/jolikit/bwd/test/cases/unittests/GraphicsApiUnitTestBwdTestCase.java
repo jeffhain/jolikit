@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -629,6 +629,17 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         
         checkContains(box, baseClipInClient);
         checkContains(baseClipInClient, g.getClipInClient());
+        
+        /*
+         * Empty or not.
+         */
+        
+        {
+            checkFalse(g.isClipEmpty());
+            g.addClipInUser(GRect.DEFAULT_EMPTY);
+            checkTrue(g.isClipEmpty());
+            g.removeLastAddedClip();
+        }
         
         /*
          * Adds and removals.
@@ -1580,6 +1591,16 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
     }
 
+    private static void checkTrue(boolean actual) {
+        final boolean expected = true;
+        checkEqual(expected, actual);
+    }
+    
+    private static void checkFalse(boolean actual) {
+        final boolean expected = false;
+        checkEqual(expected, actual);
+    }
+    
     private static void checkEqual(Object expected, Object actual) {
         if (!actual.equals(expected)) {
             throw new AssertionError("expected " + expected + ", got " + actual);

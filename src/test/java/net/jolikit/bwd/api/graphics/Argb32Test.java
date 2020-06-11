@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -229,6 +229,12 @@ public class Argb32Test extends TestCase {
      * 
      */
     
+    public void test_toOpaque_int() {
+        checkEqualsArgb32(0xFF812341, Argb32.toOpaque(0x00812341));
+        checkEqualsArgb32(0xFF812341, Argb32.toOpaque(0xFF812341));
+        checkEqualsArgb32(0xFF812341, Argb32.toOpaque(0x81812341));
+    }
+
     public void test_withAlpha8_2int() {
         for (int bad8 : BAD_INT8_ARR) {
             try {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -623,6 +623,26 @@ public class GRectTest extends TestCase {
         for (GRect rect : RECT_LIST) {
             final long expected = rect.y() + (long) (rect.ySpan() / 2);
             final long actual = rect.yMidLong();
+            assertEquals(expected, actual);
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_xMidFp() {
+        for (GRect rect : RECT_LIST) {
+            final double expected = rect.x() + (rect.xMaxLong() - rect.x()) / 2.0;
+            final double actual = rect.xMidFp();
+            assertEquals(expected, actual);
+        }
+    }
+    
+    public void test_yMidFp() {
+        for (GRect rect : RECT_LIST) {
+            final double expected = rect.y() + (rect.yMaxLong() - rect.y()) / 2.0;
+            final double actual = rect.yMidFp();
             assertEquals(expected, actual);
         }
     }
