@@ -946,7 +946,7 @@ public class QtjBwdHost extends AbstractBwdHost {
 
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
         
-        this.ensureOffscreenImageCapacity(width, height);
+        this.updateOffscreenImageSize(width, height);
 
         final QPainter offscreenPainter = new QPainter(); 
         offscreenPainter.begin(this.offscreenImage);
@@ -982,7 +982,7 @@ public class QtjBwdHost extends AbstractBwdHost {
         }
     }
 
-    private void ensureOffscreenImageCapacity(int minWidthCap, int minHeightCap) {
+    private void updateOffscreenImageSize(int minWidthCap, int minHeightCap) {
         if (minWidthCap < 0) {
             throw new IllegalArgumentException("minWidthCap [" + minWidthCap + "] must be >= 0");
         }

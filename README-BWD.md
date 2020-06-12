@@ -226,7 +226,7 @@ or toolkits on top of which UIs can be built.
   uiThreadScheduler.execute(...) instead for that.
 
 - "For a simple API, why bother with parallel painting?"
-  Painting a grid of pixels is an embarrassingly parallel problem, and it
+  Painting a grid of pixels is an embarrassingly parallel task, and it
   doesn't cost much to make the API allow for it, so it would have been
   a pity not to make it possible.
   That said, a lot UI libraries, especially "advanced" ones, have a UI thread
@@ -261,7 +261,7 @@ or toolkits on top of which UIs can be built.
 
 - "Why is there no way to draw on an offscreen image?"
   Images creation in memory (not from a file), and drawing on images using
-  a graphics, could be added, but some libraries don't allowing for painting
+  a graphics, could be added, but some libraries don't allow for painting
   out of their UI thread, in which case preparing an image by drawing it
   offscreen would block events and regular painting.
   Also, some libraries don't provide graphics for their offscreen images,

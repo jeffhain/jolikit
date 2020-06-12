@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ public class AwtBwdFont extends AbstractBwdFont<Font> implements Comparable<AwtB
     static {
         // Don't need alpha for metrics.
         final BufferedImage bi = new BufferedImage(1, 1, BufferedImage.TYPE_INT_RGB);
-        G2D_FOR_METRICS = (Graphics2D) bi.getGraphics();
+        G2D_FOR_METRICS = bi.createGraphics();
     }
 
     private final AwtBwdFontMetrics metrics;

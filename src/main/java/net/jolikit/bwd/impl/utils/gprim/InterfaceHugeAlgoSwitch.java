@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package net.jolikit.bwd.impl.utils.gprim;
  * an algorithm specific for huge spans (typically iterating
  * on clip pixels and deciding whether they must be painted,
  * which should never take too long as clips are always smaller than
- * (because included in) the client area), instead of with
+ * (because included in) graphics box), instead of with
  * a regular figure drawing algorithm (typically iterating on points
  * of the curve to draw or fill, which can take too long if the figure
  * is too large).

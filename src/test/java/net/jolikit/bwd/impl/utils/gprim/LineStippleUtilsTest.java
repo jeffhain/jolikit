@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,8 +15,6 @@
  */
 package net.jolikit.bwd.impl.utils.gprim;
 
-import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
-import net.jolikit.bwd.impl.utils.gprim.LineStippleUtils;
 import junit.framework.TestCase;
 
 public class LineStippleUtilsTest extends TestCase {

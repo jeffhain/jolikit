@@ -115,6 +115,9 @@ Jolikit X.X, XXXX/XX/XX
     more pixel formats should be supported by Qtj4 binding,
     and worked around an origin drift/offset issue in JavaFX
     when drawing huge figures.
+  - AbstractBwdBinding: For the Executor backing the parallelizer,
+    now using a HardScheduler instead of a ThreadPoolExecutor,
+    to avoid spurious shutdown issues under stress.
 
 - Added finals for Java 7 (or less) source compatibility.
 

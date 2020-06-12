@@ -19,6 +19,8 @@ import java.io.PrintStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
+import com.sun.jna.Pointer;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -33,14 +35,14 @@ import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_MOUSE_STATE;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_TOUCH_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrEventKind;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrEventType;
-import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
-import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrAtExit;
-import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrTraceHandler;
-import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrUserMain;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibFont;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibImage;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibTtf;
+import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
+import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrAtExit;
+import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrTraceHandler;
+import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrUserMain;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.OsUtils;
@@ -49,8 +51,6 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-
-import com.sun.jna.Pointer;
 
 /**
  * Binding based on Allegro V5 (tested with V5.2).

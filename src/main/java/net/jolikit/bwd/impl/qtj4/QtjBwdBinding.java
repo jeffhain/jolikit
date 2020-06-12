@@ -166,6 +166,16 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
 
     @Override
     public boolean isParallelPaintingSupported() {
+        /*
+         * Parallel painting on a same painting device is not supported in Qt
+         * (cf. http://doc.qt.io/qt-4.8/threads-modules.html:
+         *  "Any number of threads can paint at any given time,
+         *  however only one thread at a time can paint on a given paint device
+         *  [QImage, QPrinter, or QPicture].")
+         * That means that a QPainter (used to paint on a device) can't be used
+         * in parallel, and that we can't parallelize painting on clients or
+         * on writable images.
+         */
         return false;
     }
 

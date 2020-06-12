@@ -684,19 +684,6 @@ public class SwingBwdHost extends AbstractBwdHost {
     
     private final AwtBwdCursorManager cursorManager;
     
-    /**
-     * Painting into an offscreen buffer (double buffering).
-     * Is slower, but causes less flickering, and allows for proper repaints
-     * when moving some hosts from a same JVM over each other (seems the JVM
-     * or other treatments then properly picks from data flushed from offscreen
-     * buffer, while without offscreen buffer paint data is not used for repaint
-     * of newly visible areas).
-     * Also, for some reason, if there is no offscreen buffer, on component move
-     * we need to make all dirty and call window.repaint(), to repaint
-     * proper areas when moving in/out of screen, or moving a window over.
-     * 
-     * Also useful for pixel reading.
-     */
     private final AwtGraphicBuffer offscreenBuffer;
     
     private final AwtPaintUtils paintUtils = new AwtPaintUtils();

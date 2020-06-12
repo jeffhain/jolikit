@@ -109,7 +109,7 @@ public abstract class AbstractDragController implements InterfaceDragController 
      * To call typically on window events that you want to stop drag,
      * like HIDDEN/ICONIFIED/MAXIMIZED/DEMAXIMIZED.
      * 
-     * @return True if stopped drag, false otherwise.
+     * @return True if was dragging (i.e. if drag stopped), false otherwise.
      */
     public boolean onDragStoppingEvent() {
         final boolean wasDragging = this.dragging;

@@ -190,12 +190,6 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             String text) {
         this.checkUsable();
         LangUtils.requireNonNull(text);
-
-        /*
-         * Derived from the generic image drawing method,
-         * with simplifications since here we don't scale,
-         * and don't take as many user arguments.
-         */
         
         final GTransform transform = this.getTransform();
         
@@ -356,7 +350,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int xInBase = transform.xIn1(x, y);
         final int yInBase = transform.yIn1(x, y);
         
-        final int index = xInBase + yInBase * this.pixelArrScanlineStride;
+        final int index = yInBase * this.pixelArrScanlineStride + xInBase;
         final int color32 = this.pixelArr[index];
         final int argb32 = this.getArgb32FromArrayColor32(color32);
         return argb32;
@@ -368,12 +362,12 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
     @Override
     protected void setBackingClip(GRect clipInBase) {
-        // No backing clip to update.
+        // Usually no backing clip to update.
     }
     
     @Override
     protected void setBackingTransform(GTransform transform) {
-        // No backing transform to update.
+        // Usually no backing transform to update.
     }
 
     /**
@@ -412,8 +406,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * 
      * @param theoTextWidth Result of metrics computeTextWidth(...).
      * @param theoTextHeight Font height.
-     * @param Max bounding box for text, relative to the (x,y) position
-     *        given to drawText(...) method.
+     * @param Max bounding box for text, in text coordinates,
+     *        i.e. relative to the (x,y) position given to drawText(...) method.
      */
     protected GRect computeMaxTextRelativeRect(
             int theoTextWidth,
@@ -471,7 +465,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         /*
          * 2) Rework clips according to each other, taking scaling into account.
          * There is no rotation between user and image frames.
-         * Transform to client frame is taken into account last.
+         * Transform to base frame is taken into account last.
          */
         
         final GRect srcRectInImg_userClipRework = ScaledRectUtils.computeNewPeerRect(
@@ -560,9 +554,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
                     final int color32 = this.getImageColor32(image, imageDataAccessor, srcX, srcY);
 
-                    final int bwtX = transform.xIn1(dstX, dstY);
-                    final int bwtY = transform.yIn1(dstX, dstY);
-                    final int dstIndex = bwtY * this.pixelArrScanlineStride + bwtX;
+                    final int xInBase = transform.xIn1(dstX, dstY);
+                    final int yInBase = transform.yIn1(dstX, dstY);
+                    final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
 
                     this.blendColor32(dstIndex, color32);
                 }
@@ -707,7 +701,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
     private void fillRectInClip_raw(
             int x, int y, int xSpan, int ySpan,
-            boolean isClear) {
+            boolean mustUseOpaqueColor) {
         if ((xSpan <= 0) || (ySpan <= 0)) {
             // Not wasting time looping on some coordinate.
             return;
@@ -729,7 +723,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         
         final int scanlineStride = this.pixelArrScanlineStride;
         final int color32;
-        if (isClear) {
+        if (mustUseOpaqueColor) {
             color32 = this.arrColorOpaque;
         } else {
             color32 = this.arrColor;

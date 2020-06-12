@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,6 @@ import java.util.TreeSet;
 import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
-import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
-import net.jolikit.bwd.impl.utils.gprim.LineStippleUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
 

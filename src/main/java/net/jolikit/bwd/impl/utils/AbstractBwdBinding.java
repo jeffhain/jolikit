@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
@@ -43,8 +44,10 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
+import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
+import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
  * Optional abstract class for bindings implementations.
@@ -56,7 +59,17 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
     //--------------------------------------------------------------------------
     
     private static final boolean DEBUG = false;
-    
+
+    /**
+     * Using a HardScheduler instead of a ThreadPoolExecutor.
+     * 
+     * We don't need HardScheduler advanced capabilities,
+     * but we want to avoid spurious ThreadPoolExecutor
+     * shutdown and RejectedExecutionException throwings
+     * that seem to occur under stress for some reason.
+     */
+    private static final boolean MUST_USE_HARD_SCHED_FOR_PRLIZER_EXECUTOR = true;
+
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -288,18 +301,28 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         if (parallelism == 1) {
             this.parallelizer = SequentialParallelizer.getDefault();
         } else {
-            final ExecutorService executor = Executors.newFixedThreadPool(
-                    parallelism,
-                    new ThreadFactory() {
-                        final AtomicInteger threadNum = new AtomicInteger();
-                        @Override
-                        public Thread newThread(Runnable runnable) {
-                            Thread thread = new Thread(runnable);
-                            thread.setName(getThreadsBaseName() + "-UI_PRLZR-" + this.threadNum.incrementAndGet());
-                            thread.setDaemon(true);
-                            return thread;
-                        }
-                    });
+            final Executor executor;
+            if (MUST_USE_HARD_SCHED_FOR_PRLIZER_EXECUTOR) {
+                executor = HardScheduler.newInstance(
+                        NanoTimeClock.getDefaultInstance(),
+                        getThreadsBaseName() + "-UI_PRLZR",
+                        true, // daemon
+                        parallelism,
+                        null);
+            } else {
+                executor = Executors.newFixedThreadPool(
+                        parallelism,
+                        new ThreadFactory() {
+                            final AtomicInteger threadNum = new AtomicInteger();
+                            @Override
+                            public Thread newThread(Runnable runnable) {
+                                Thread thread = new Thread(runnable);
+                                thread.setName(getThreadsBaseName() + "-UI_PRLZR-" + this.threadNum.incrementAndGet());
+                                thread.setDaemon(true);
+                                return thread;
+                            }
+                        });
+            }
             
             // Max value, because painters splits unbalance is not bounded.
             final int maxDepth = Integer.MAX_VALUE;
@@ -602,11 +625,27 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
      */
     
     private void shutdownParallelizerNow() {
+        /*
+         * Best effort.
+         */
         if (this.parallelizer instanceof ExecutorParallelizer) {
-            // Means we created an executor service for it.
             final ExecutorParallelizer prlzrImpl = (ExecutorParallelizer) this.parallelizer;
-            final ExecutorService executor = (ExecutorService) prlzrImpl.getExecutor();
-            executor.shutdownNow();
+            final Executor executor = prlzrImpl.getExecutor();
+            
+            if (executor instanceof ExecutorService) {
+                final ExecutorService es = (ExecutorService) executor;
+                es.shutdownNow();
+                
+            } else if (executor instanceof HardScheduler) {
+                final HardScheduler scheduler = (HardScheduler) executor;
+                final boolean mustInterruptWorkingWorkers = false;
+                scheduler.shutdownNow(mustInterruptWorkingWorkers);
+                
+            } else {
+                // Unknown executor.
+            }
+        } else {
+            // Unknown parallelizer.
         }
     }
     

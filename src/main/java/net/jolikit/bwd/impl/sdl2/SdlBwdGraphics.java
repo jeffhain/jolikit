@@ -67,7 +67,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
      * TODO sdl Using TTF_RenderGlyph_XXX(...) rather than
      * TTF_RenderText_XXX(...), else we can't seem to render code points
      * above 255 (Java/C string issue?), and the NUL character (cp = 0)
-     * causes following characters not to be drawn.
+     * causes subsequent characters not to be drawn.
      * Seems only about twice slower than using TTF_RenderText_XXX(...).
      * 
      * NB: If using TTF_RenderGlyph_XXX(...), characters (*) for which there is

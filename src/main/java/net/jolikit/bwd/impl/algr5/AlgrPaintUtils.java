@@ -18,11 +18,12 @@ package net.jolikit.bwd.impl.algr5;
 import java.io.PrintStream;
 import java.util.List;
 
+import com.sun.jna.Pointer;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_LOCKED_REGION;
-import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
+import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
@@ -30,8 +31,6 @@ import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.InterfaceScaledRowPartDrawer;
 import net.jolikit.lang.NumbersUtils;
-
-import com.sun.jna.Pointer;
 
 public class AlgrPaintUtils {
     
@@ -105,24 +104,6 @@ public class AlgrPaintUtils {
     //--------------------------------------------------------------------------
 
     public AlgrPaintUtils() {
-    }
-
-    /**
-     * OpenGL expects native RGBA.
-     * @param argb32 ARGB in big endian (Java order).
-     * @return ABGR if native is little endian, else RGBA.
-     */
-    public static int toNativeBgra32(int argb32) {
-        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            // ARGB, in big, to ABGR, which will give RGBA in little.
-            final int r = ((argb32 >> 16) & 0xFF);
-            final int b = (argb32 & 0xFF);
-            return (argb32 & 0xFF00FF00) | (b << 16) | r;
-        } else {
-            // ARGB, in big, to RGBA.
-            final int a = ((argb32 >> 24) & 0xFF);
-            return (argb32 << 8) | a;
-        }
     }
     
     /*

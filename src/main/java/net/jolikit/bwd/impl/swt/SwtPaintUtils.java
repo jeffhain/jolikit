@@ -15,18 +15,18 @@
  */
 package net.jolikit.bwd.impl.swt;
 
-import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
-
 import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.GC;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.graphics.PaletteData;
 import org.eclipse.swt.graphics.RGB;
+
+import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NumbersUtils;
 
 public class SwtPaintUtils {
 

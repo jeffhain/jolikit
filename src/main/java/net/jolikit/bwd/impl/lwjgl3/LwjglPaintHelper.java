@@ -93,7 +93,6 @@ public class LwjglPaintHelper {
      */
     
     private static final int Float_BYTES = 4;
-    private static final int Integer_BYTES = 4;
     
     /*
      * 

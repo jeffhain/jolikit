@@ -19,7 +19,6 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
@@ -150,7 +149,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void setBackingArgb64(long argb64) {
         super.setBackingArgb64(argb64);
-        this.backingColor = algrColorOf(argb64);
+        this.backingColor = AlgrUtils.newColor(argb64);
     }
     
     @Override
@@ -416,26 +415,5 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                 //
                 pixelArr,
                 pixelArrScanlineStride);
-    }
-    
-    /*
-     * 
-     */
-    
-    private static ALLEGRO_COLOR algrColorOf(long argb64) {
-        final float red = (float) Argb64.getRedFp(argb64);
-        final float green = (float) Argb64.getGreenFp(argb64);
-        final float blue = (float) Argb64.getBlueFp(argb64);
-        final float alpha = (float) Argb64.getAlphaFp(argb64);
-        return algrColorOf(red, green, blue, alpha);
-    }
-    
-    private static ALLEGRO_COLOR algrColorOf(float red, float green, float blue, float alpha) {
-        final ALLEGRO_COLOR color = new ALLEGRO_COLOR();
-        color.r = red;
-        color.g = green;
-        color.b = blue;
-        color.a = alpha;
-        return color;
     }
 }

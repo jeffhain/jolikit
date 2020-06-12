@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import java.util.TreeSet;
 import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedPointDrawer;
 import net.jolikit.lang.Dbg;
 
 /**
@@ -262,10 +261,10 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
         final SortedMap<GPoint,TestPixelStatus> statusByPixel =
                 new TreeMap<GPoint,TestPixelStatus>();
         
-        for (int i = 0; i < drawingBBox.ySpan(); i++) {
-            final int y = drawingBBox.y() + i;
-            for (int j = 0; j < drawingBBox.xSpan(); j++) {
-                final int x = drawingBBox.x() + j;
+        for (int j = 0; j < drawingBBox.ySpan(); j++) {
+            final int y = drawingBBox.y() + j;
+            for (int i = 0; i < drawingBBox.xSpan(); i++) {
+                final int x = drawingBBox.x() + i;
                 final GPoint pixel = GPoint.valueOf(x, y);
                 
                 final boolean pixelInClip = clip.contains(pixel.x(), pixel.y());
@@ -438,8 +437,8 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
             final TreeSet<GPoint> neighbors = new TreeSet<GPoint>();
             final int x = pixel.x();
             final int y = pixel.y();
-            for (int i = -1; i <= 1; i++) {
-                for (int j = -1; j <= 1; j++) {
+            for (int j = -1; j <= 1; j++) {
+                for (int i = -1; i <= 1; i++) {
                     if ((i != 0) || (j != 0)) {
                         // No need to bother with overflows,
                         // since drawn are done in clips.

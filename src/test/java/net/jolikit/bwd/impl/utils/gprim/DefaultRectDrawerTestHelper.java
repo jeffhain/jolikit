@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,6 @@ import java.util.Random;
 
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.gprim.DefaultClippedLineDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultClippedRectDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultRectDrawer;
-import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedPointDrawer;
 
 class DefaultRectDrawerTestHelper extends AbstractDrawerTestHelper<GRect> {
     

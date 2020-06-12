@@ -147,8 +147,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     public AbstractBwdGraphics(
             InterfaceBwdBinding binding,
             GRect box,
-            GRect clipInBase) {
-        checkGraphicsBoxAndInitialClip(box, clipInBase);
+            GRect initialClip) {
+        checkGraphicsBoxAndInitialClip(box, initialClip);
         
         // Implicit null check.
         final InterfaceBwdFont defaultFont = binding.getFontHome().getDefaultFont();
@@ -156,11 +156,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.binding = binding;
         
         this.box = box;
-        this.initialClipInBase = clipInBase;
+        this.initialClipInBase = initialClip;
         
-        this.initialClipInUser = clipInBase;
-        this.clipInBase = clipInBase;
-        this.clipInUser = clipInBase;
+        this.initialClipInUser = initialClip;
+        this.clipInBase = initialClip;
+        this.clipInUser = initialClip;
         
         if (this.clipsBeforeLastAdd != null) {
             this.clipsBeforeLastAdd.clear();

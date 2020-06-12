@@ -138,7 +138,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     };
     
     /**
-     * Qt objects, in which some of the backing state is held,
+     * Qt objects, in which some of the backing graphics state is held,
      * that are pooled because they are heavy to create.
      */
     private static class MyQtStuffs {
@@ -186,10 +186,16 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     private final MyPrimitives primitives = new MyPrimitives();
     
-    /*
+    /**
      * Shared with parent graphics.
+     * 
+     * For a same device, at most one QPainter can be bound to it
+     * (between QPainter.begin(device) and QPainter.end()) at a time,
+     * else we get the error:
+     * "QPainter::begin: A paint device can only be painted by one painter at a time."
+     * That means that we must share a same QPainter between root graphics
+     * and its descendants.
      */
-    
     private final QPainter painter;
     
     /**
@@ -278,15 +284,6 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
-        /*
-         * Parallel painting on a same painting device is not supported in Qt
-         * (cf. http://doc.qt.io/qt-4.8/threads-modules.html:
-         *  "Any number of threads can paint at any given time,
-         *  however only one thread at a time can paint on a given paint device
-         *  [QImage, QPrinter, or QPicture].")
-         * and we don't want to mess with multiple painting devices,
-         * so we can just use the same QPainter for all our graphics.
-         */
         final QPainter subG = this.painter;
         return new QtjBwdGraphics(
                 this.getBinding(),
@@ -795,8 +792,11 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      * Sets backing clip to be current clip.
      */
     private void setBackingClipToCurrent() {
-        // Must apply transformed clip (and adjusting deltas),
-        // since the backing graphics has transform applied.
+        /*
+         * Must apply transformed clip (and adjusting deltas),
+         * since the backing graphics has transform applied.
+         */
+
         final GRect clip = this.getClipInUser();
 
         final int _x = clip.x() + this.xShiftInUser;
