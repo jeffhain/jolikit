@@ -31,7 +31,7 @@ import com.trolltech.qt.gui.QTransform;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.Argb3264;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -151,10 +151,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         private final QTransform backingTransform = new QTransform();
         
         private final QColor backingColor = new QColor();
+        private final QColor backingColorOpaque = new QColor();
         
         private final QPen backingPen = new QPen();
-        
-        private final QColor clearColor = new QColor();
         
         /*
          * Temps.
@@ -314,7 +313,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.checkUsable();
         
         // Relying on backing clipping.
-        this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.clearColor);
+        this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.backingColorOpaque);
     }
 
     /*
@@ -489,38 +488,10 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             return;
         }
 
-        this.painter.setPen(WHITE_PEN);
-        
-        this.painter.setCompositionMode(CompositionMode.RasterOp_SourceXorDestination);
-        try {
-            /*
-             * TODO qtj Can't use QPainter.fillRect(...),
-             * because it uses a specified color,
-             * without using custom composition mode,
-             * so we have to resort to line drawing.
-             * NB: If rotation is 90 or 270, should go faster
-             * with drawing vertical (in user) lines.
-             */
-            
-            final GRect clip = this.getClipInUser();
-            
-            final int xClipped = GRect.intersectedPos(clip.x(), x);
-            final int yClipped = GRect.intersectedPos(clip.y(), y);
-            
-            final int xSpanClipped = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
-            final int ySpanClipped = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
-            
-            final int xMaxClipped = xClipped + xSpanClipped - 1;
-            
-            for (int j = 0; j < ySpanClipped; j++) {
-                final int lineY = yClipped + j;
-                this.drawLine(xClipped, lineY, xMaxClipped, lineY);
-            }
-        } finally {
-            this.painter.setPen(this.qtStuffs.backingPen);
-            
-            this.painter.setCompositionMode(CompositionMode.CompositionMode_SourceOver);
-        }
+        this.fillRectWithCompositionModeAndPen(
+                x, y, xSpan, ySpan,
+                CompositionMode.RasterOp_SourceXorDestination,
+                WHITE_PEN);
     }
 
     /*
@@ -581,9 +552,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     }
 
     @Override
-    protected void setBackingArgb64(long argb64) {
-        final int argb32 = Argb3264.toArgb32(argb64);
-        
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
         // TODO qtj Says rgba, but needs argb.
         this.qtStuffs.backingColor.setRgba(argb32);
         
@@ -592,7 +561,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.painter.setPen(this.qtStuffs.backingPen);
         
         final int opaqueArgb32 = Argb32.toOpaque(argb32);
-        this.qtStuffs.clearColor.setRgb(opaqueArgb32);
+        this.qtStuffs.backingColorOpaque.setRgb(opaqueArgb32);
     }
     
     @Override
@@ -610,7 +579,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -627,7 +597,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         }
         
         if (mustSetColor) {
-            this.setBackingArgb64(argb64);
+            this.setBackingArgb(argb32, colorElseNull);
         }
         
         if (mustSetFont) {
@@ -930,5 +900,65 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int _x = x + this.xShiftInUser;
         final int _y = y + this.yShiftInUser;
         this.painter.fillRect(_x, _y, xSpan, ySpan, color);
+    }
+    
+    private void fillRectWithCompositionModeAndPen(
+            int x, int y, int xSpan, int ySpan,
+            CompositionMode compositionMode,
+            QPen pen) {
+        
+        final QPainter painter = this.painter;
+        
+        painter.setPen(pen);
+        try {
+            this.fillRectWithCompositionMode(
+                    x, y, xSpan, ySpan,
+                    compositionMode);
+        } finally {
+            painter.setPen(this.qtStuffs.backingPen);
+        }
+    }
+    
+    private void fillRectWithCompositionMode(
+            int x, int y, int xSpan, int ySpan,
+            CompositionMode compositionMode) {
+        
+        final QPainter painter = this.painter;
+        
+        painter.setCompositionMode(compositionMode);
+        try {
+            /*
+             * TODO qtj Can't use QPainter.fillRect(...),
+             * because it uses a specified color,
+             * without using custom composition mode,
+             * so we have to resort to line drawing.
+             * NB: If rotation is 90 or 270, should go faster
+             * with drawing vertical (in user) lines.
+             */
+            
+            final GRect clip = this.getClipInUser();
+            
+            final int xClipped = GRect.intersectedPos(clip.x(), x);
+            final int yClipped = GRect.intersectedPos(clip.y(), y);
+            
+            final int xSpanClipped = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
+            final int ySpanClipped = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
+            
+            if (this.areHorVerFlipped()) {
+                final int yMaxClipped = yClipped + ySpanClipped - 1;
+                for (int i = 0; i < xSpanClipped; i++) {
+                    final int lineX = xClipped + i;
+                    this.drawLine(lineX, yClipped, lineX, yMaxClipped);
+                }
+            } else {
+                final int xMaxClipped = xClipped + xSpanClipped - 1;
+                for (int j = 0; j < ySpanClipped; j++) {
+                    final int lineY = yClipped + j;
+                    this.drawLine(xClipped, lineY, xMaxClipped, lineY);
+                }
+            }
+        } finally {
+            painter.setCompositionMode(CompositionMode.CompositionMode_SourceOver);
+        }
     }
 }

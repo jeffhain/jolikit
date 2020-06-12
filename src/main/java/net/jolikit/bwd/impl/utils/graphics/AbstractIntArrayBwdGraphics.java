@@ -18,7 +18,8 @@ package net.jolikit.bwd.impl.utils.graphics;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
-import net.jolikit.bwd.api.graphics.Argb3264;
+import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -75,10 +76,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         public void fillRectInClip(
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
-            final boolean isClear = false;
+            final boolean mustUseOpaqueColor = false;
             fillRectInClip_raw(
                     x, y, xSpan, ySpan,
-                    isClear);
+                    mustUseOpaqueColor);
         }
     };
     
@@ -89,7 +90,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     private final MyPrimitives primitives = new MyPrimitives();
     
     /**
-     * Pixels corresponding to the client area, which top-left corner is (0,0).
+     * Pixels corresponding to the base area, which top-left corner is (0,0).
      * index = y * xSpan + x.
      * Can be larger than needed, to allow for reusing a same array.
      * 
@@ -171,13 +172,13 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int clippedXSpan = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
         final int clippedYSpan = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
         
-        final boolean isClear = true;
+        final boolean mustUseOpaqueColor = true;
         fillRectInClip_raw(
                 clippedX,
                 clippedY,
                 clippedXSpan,
                 clippedYSpan,
-                isClear);
+                mustUseOpaqueColor);
     }
 
     /*
@@ -374,10 +375,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * Overriding implementations must call this one.
      */
     @Override
-    protected void setBackingArgb64(long argb64) {
-        final int argb32 = Argb3264.toArgb32(argb64);
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
         this.arrColor = this.getArrayColor32FromArgb32(argb32);
-        this.arrColorOpaque = this.getArrayColor32FromArgb32(0xFF000000 | argb32);
+        this.arrColorOpaque = this.getArrayColor32FromArgb32(Argb32.toOpaque(argb32));
     }
     
     /*
@@ -687,16 +687,16 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int x = Math.min(x1, x2);
         final int xSpan = Math.abs(x2 - x1) + 1;
         final int ySpan = 1;
-        final boolean isClear = false;
-        fillRectInClip_raw(x, y, xSpan, ySpan, isClear);
+        final boolean mustUseOpaqueColor = false;
+        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor);
     }
     
     private void drawVerticalLineInClip_raw(int x, int y1, int y2) {
         final int y = Math.min(y1, y2);
         final int xSpan = 1;
         final int ySpan = Math.abs(y2 - y1) + 1;
-        final boolean isClear = false;
-        fillRectInClip_raw(x, y, xSpan, ySpan, isClear);
+        final boolean mustUseOpaqueColor = false;
+        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor);
     }
 
     private void fillRectInClip_raw(

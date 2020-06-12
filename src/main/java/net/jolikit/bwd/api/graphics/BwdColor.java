@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ public final class BwdColor implements Comparable<BwdColor> {
     
     private static final int DEFAULT_ALPHA_8 = 0xFF;
     private static final int DEFAULT_ALPHA_16 = 0xFFFF;
-    private static final double DEFAULT_ALPHA = 1.0;
+    private static final double DEFAULT_ALPHA_FP = 1.0;
 
     /*
      * Named colors.
@@ -945,6 +945,11 @@ public final class BwdColor implements Comparable<BwdColor> {
     
     private final long argb64;
     
+    /**
+     * To make toArgb32() fast.
+     */
+    private final int argb32;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -971,7 +976,9 @@ public final class BwdColor implements Comparable<BwdColor> {
      * @return A color object corresponding to the specified value.
      */
     public static BwdColor valueOfArgb32(int argb32) {
-        return valueOfArgb64(Argb3264.toArgb64(argb32));
+        return new BwdColor(
+                Argb3264.toArgb64(argb32),
+                argb32);
     }
     
     /**
@@ -979,7 +986,9 @@ public final class BwdColor implements Comparable<BwdColor> {
      * @return A color object corresponding to the specified value.
      */
     public static BwdColor valueOfArgb64(long argb64) {
-        return new BwdColor(argb64);
+        return new BwdColor(
+                argb64,
+                Argb3264.toArgb32(argb64));
     }
     
     /*
@@ -1020,7 +1029,7 @@ public final class BwdColor implements Comparable<BwdColor> {
      */
     public static BwdColor valueOfRgbFp(double redFp, double greenFp, double blueFp) {
         checkRgbFp(redFp, greenFp, blueFp);
-        return valueOfArgb64(toArgb64FromArgbFp_noCheck(DEFAULT_ALPHA, redFp, greenFp, blueFp));
+        return valueOfArgb64(toArgb64FromArgbFp_noCheck(DEFAULT_ALPHA_FP, redFp, greenFp, blueFp));
     }
 
     /*
@@ -1179,7 +1188,7 @@ public final class BwdColor implements Comparable<BwdColor> {
      * @return The corresponding 32 bits ARGB.
      */
     public int toArgb32() {
-        return Argb3264.toArgb32(this.argb64);
+        return this.argb32;
     }
 
     /**
@@ -1302,8 +1311,11 @@ public final class BwdColor implements Comparable<BwdColor> {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private BwdColor(long argb64) {
+    private BwdColor(
+            long argb64,
+            int argb32) {
         this.argb64 = argb64;
+        this.argb32 = argb32;
     }
 
     /*

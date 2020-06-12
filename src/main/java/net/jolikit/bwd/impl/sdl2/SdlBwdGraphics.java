@@ -21,6 +21,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
@@ -192,7 +193,8 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -205,7 +207,8 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
                 transform,
                 //
                 mustSetColor,
-                argb64,
+                argb32,
+                colorElseNull,
                 //
                 mustSetFont,
                 font);

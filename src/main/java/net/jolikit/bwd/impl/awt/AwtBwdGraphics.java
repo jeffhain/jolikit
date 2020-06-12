@@ -24,7 +24,7 @@ import java.awt.image.ImageObserver;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.Argb3264;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -179,6 +179,11 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
      */
     private final Graphics2D g;
     
+    /**
+     * Lazily computed.
+     */
+    private Color backingColorOpaque = null;
+
     private final BufferedImage imageForRead;
     
     /*
@@ -260,6 +265,8 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
+        final int argb32 = this.getArgb32();
+
         /*
          * From clearRect(...) javadoc:
          * "Beginning with Java 1.1, the background color
@@ -267,17 +274,28 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
          * Applications should use setColor(...) followed by
          * fillRect(...) to ensure that an offscreen image
          * is cleared to a specific color."
-         * ===> We obey.
          */
-        final Color userColor = this.g.getColor();
-        // We store clear color as "background".
-        final Color clearColor = this.g.getBackground();
-        this.g.setColor(clearColor);
+        final Color color = this.g.getColor();
+
+        Color colorOpaque = this.backingColorOpaque;
+        if (colorOpaque == null) {
+            if (Argb32.getAlpha8(argb32) == 0xFF) {
+                colorOpaque = color;
+            } else {
+                final int argb32Opaque = Argb32.toOpaque(argb32);
+                colorOpaque = AwtUtils.newColor(argb32Opaque);
+            }
+            this.backingColorOpaque = colorOpaque;
+        }
+
+        this.g.setColor(colorOpaque);
         try {
             // Relying on backing clipping.
-            fillRect_raw(x, y, xSpan, ySpan);
+            final int _x = x + this.xShiftInUser;
+            final int _y = y + this.yShiftInUser;
+            this.g.fillRect(_x, _y, xSpan, ySpan);
         } finally {
-            this.g.setColor(userColor);
+            this.g.setColor(color);
         }
     }
 
@@ -476,21 +494,19 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     }
 
     @Override
-    protected void setBackingArgb64(long argb64) {
-        final int argb32 = Argb3264.toArgb32(argb64);
-        
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
+        /*
+         * Not bothering with 64 bits color,
+         * for consistency and optimization.
+         */
         final Color color = AwtUtils.newColor(argb32);
         this.g.setColor(color);
-        
-        // Storing clear color as background,
-        // even if we don't use backing graphics's clear method.
-        final Color clearColor;
-        if (Argb32.isOpaque(argb32)) {
-            clearColor = color;
-        } else {
-            clearColor = AwtUtils.newColor(Argb32.toOpaque(argb32));
-        }
-        this.g.setBackground(clearColor);
+        /*
+         * Not computing opaque color, at least not here:
+         * for the rare cases where it would be needed,
+         * if would be best to compute it lazily as needed.
+         */
+        this.backingColorOpaque = null;
     }
 
     @Override
@@ -508,7 +524,8 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -525,7 +542,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         }
         
         if (mustSetColor) {
-            this.setBackingArgb64(argb64);
+            this.setBackingArgb(argb32, colorElseNull);
         }
         
         if (mustSetFont) {

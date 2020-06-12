@@ -50,6 +50,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private static final InterfaceParallelizer SEQUENTIAL_PARALLELIZER = new SequentialParallelizer();
     
     private static final BwdColor DEFAULT_COLOR = BwdColor.BLACK;
+    private static final int DEFAULT_ARGB_32 = DEFAULT_COLOR.toArgb32();
     
     private static final int SMALL_ARRAY_LIST_CAPACITY = 1;
     
@@ -100,7 +101,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * Never using the transform of the backing graphics,
      * for simplicity and consistency across bindings.
      */
-    private GTransform transform;
+    private GTransform transform = GTransform.IDENTITY;
     
     /**
      * Lazily created.
@@ -108,15 +109,31 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     private ArrayList<GTransform> transformsBeforeLastAdd = null;
     
-    /**
-     * The reference color.
+    /*
+     * Color.
+     * If user uses argb32 rather than argb64, that could be for performances,
+     * so we optimize for this case:
+     * - We always keep an argb32 value up to date.
+     * - We use the field of type BwdColor to contain the 64 bits
+     *   information if specified or needed by the user.
      */
-    private long argb64;
+    
+    private int argb32 = DEFAULT_ARGB_32;
     
     /**
-     * Lazily initialized after argb64 modification.
+     * For optimization, because bindings often need it.
      */
-    private BwdColor colorLazy;
+    private int premulArgb32 = BindingColorUtils.toPremulAxyz32(DEFAULT_ARGB_32);
+
+    /**
+     * Set lazily on retrieval, or when user specifies
+     * a color with 64 bits precision.
+     */
+    private BwdColor colorElseNull = DEFAULT_COLOR;
+    
+    /*
+     * 
+     */
     
     private InterfaceBwdFont font;
     
@@ -162,19 +179,6 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.clipInBase = initialClip;
         this.clipInUser = initialClip;
         
-        if (this.clipsBeforeLastAdd != null) {
-            this.clipsBeforeLastAdd.clear();
-        }
-        
-        this.transform = GTransform.IDENTITY;
-        
-        if (this.transformsBeforeLastAdd != null) {
-            this.transformsBeforeLastAdd.clear();
-        }
-
-        this.argb64 = DEFAULT_COLOR.toArgb64();
-        this.colorLazy = DEFAULT_COLOR;
-
         this.font = defaultFont;
     }
     
@@ -189,7 +193,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 + ", clipInUser = "
                 + this.clipInUser
                 + ", color = "
-                + Argb64.toString(this.argb64)
+                + Argb64.toString(this.getArgb64())
                 + ", font = "
                 + this.font
                 + "]";
@@ -459,51 +463,49 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public BwdColor getColor() {
-        BwdColor color = this.colorLazy;
+        BwdColor color = this.colorElseNull;
         if (color == null) {
-            color = BwdColor.valueOfArgb64(this.argb64);
-            this.colorLazy = color;
+            color = BwdColor.valueOfArgb32(this.argb32);
+            this.colorElseNull = color;
         }
         return color;
     }
 
     @Override
     public void setColor(BwdColor color) {
-        this.checkUsable();
-        
-        this.colorLazy = color;
-        final long argb64 = color.toArgb64();
-        
-        if (argb64 != this.argb64) {
-            this.argb64 = argb64;
-            this.setBackingArgb64(argb64);
-        }
+        this.updateColorsIfNeeded(
+                color.toArgb32(),
+                color);
     }
     
     @Override
     public long getArgb64() {
-        return this.argb64;
+        BwdColor color = this.colorElseNull;
+        if (color == null) {
+            color = BwdColor.valueOfArgb32(this.argb32);
+            this.colorElseNull = color;
+        }
+        return color.toArgb64();
     }
 
     @Override
     public void setArgb64(long argb64) {
-        this.checkUsable();
-        
-        if (argb64 != this.argb64) {
-            this.argb64 = argb64;
-            this.colorLazy = null;
-            this.setBackingArgb64(argb64);
-        }
+        this.updateColorsIfNeeded(
+                Argb3264.toArgb32(argb64),
+                BwdColor.valueOfArgb64(argb64));
     }
 
     @Override
     public int getArgb32() {
-        return Argb3264.toArgb32(this.argb64);
+        return this.argb32;
     }
 
     @Override
     public void setArgb32(int argb32) {
-        this.setArgb64(Argb3264.toArgb64(argb32));
+        final BwdColor colorElseNull = null;
+        this.updateColorsIfNeeded(
+                argb32,
+                colorElseNull);
     }
 
     /*
@@ -855,6 +857,16 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         return this.getTransform().areHorVerFlipped();
     }
 
+    /**
+     * Useful for performances when you only need
+     * the alpha premultiplied flavor.
+     * 
+     * @return The alpha premultiplied flavor of current argb32.
+     */
+    protected int getPremulArgb32() {
+        return this.premulArgb32;
+    }
+
     /*
      * 
      */
@@ -907,7 +919,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 this.transform,
                 //
                 mustSetColor,
-                this.argb64,
+                this.argb32,
+                this.colorElseNull,
                 //
                 mustSetFont,
                 this.font);
@@ -961,7 +974,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 null,
                 //
                 mustSetColor,
-                0L,
+                0,
+                null,
                 //
                 mustSetFont,
                 null);
@@ -991,7 +1005,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 transform,
                 //
                 mustSetColor,
-                0L,
+                0,
+                null,
                 //
                 mustSetFont,
                 null);
@@ -999,14 +1014,17 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     /**
      * Sets the backing color, if any.
+     * 
+     * @param colorElseNull Can be null. Non null if color has 64 bits precision,
+     *        or if has already been computed from 32 bits precision color.
      */
-    protected abstract void setBackingArgb64(long argb64);
+    protected abstract void setBackingArgb(int argb32, BwdColor colorElseNull);
     
     /**
-     * A default implementation for setBackingArgb64(...).
+     * A default implementation for setBackingArgb(...).
      * Delegates to the bulk method.
      */
-    protected void setBackingArgb64DefaultImpl(long argb64)  {
+    protected void setBackingArgbDefaultImpl(int argb32, BwdColor colorElseNull)  {
         final boolean mustSetClip = false;
         final boolean mustSetTransform = false;
         final boolean mustSetColor = true;
@@ -1019,7 +1037,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 null,
                 //
                 mustSetColor,
-                argb64,
+                argb32,
+                colorElseNull,
                 //
                 mustSetFont,
                 null);
@@ -1047,7 +1066,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 null,
                 //
                 mustSetColor,
-                0L,
+                0,
+                null,
                 //
                 mustSetFont,
                 font);
@@ -1059,7 +1079,9 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * 
      * @param mustSetClip If false, clip argument must be ignored, and might be null.
      * @param mustSetTransform If false, transform argument must be ignored, and might be null.
-     * @param mustSetColor If false, color argument must be ignored.
+     * @param mustSetColor If false, color arguments must be ignored.
+     * @param colorElseNull Can be null. Non null if color has 64 bits precision,
+     *        or if has already been computed from 32 bits precision color.
      * @param mustSetFont If false, font argument must be ignored, and might be null.
      */
     protected abstract void setBackingState(
@@ -1070,7 +1092,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font);
@@ -1087,7 +1110,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -1101,7 +1125,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
         
         if (mustSetColor) {
-            this.setBackingArgb64(argb64);
+            this.setBackingArgb(argb32, colorElseNull);
         }
         
         if (mustSetFont) {
@@ -1195,5 +1219,57 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private void updateTransformedClips() {
         this.initialClipInUser = this.transform.rectIn2(this.initialClipInBase);
         this.clipInUser = this.transform.rectIn2(this.clipInBase);
+    }
+    
+    /**
+     * If newColorElseNull is not null, argb32 must be
+     * the same as newColorElseNull.toArgb32().
+     */
+    private void updateColorsIfNeeded(int newArgb32, BwdColor newColorElseNull) {
+        this.checkUsable();
+        
+        final int oldArgb32 = this.argb32;
+        final BwdColor oldColorElseNull = this.colorElseNull;
+        
+        final boolean mustUpdateColors;
+        if (oldColorElseNull != null) {
+            if (newColorElseNull != null) {
+                /*
+                 * 64 bits representation changed: must update.
+                 */
+                mustUpdateColors = (!newColorElseNull.equals(oldColorElseNull));
+            } else {
+                /*
+                 * No new 64 bits representation: we only want to update
+                 * if old 64 bits representation no longer corresponds
+                 * to new 32 bits representation converted to 64 bits
+                 * (for example to make sure that someone setting
+                 * full black as argb32 doesn't end up with something
+                 * almost but not quite black in 64 bits representation).
+                 */
+                final long newArgb64 = Argb3264.toArgb64(newArgb32);
+                mustUpdateColors = (oldColorElseNull.toArgb64() != newArgb64);
+            }
+        } else {
+            /*
+             * No old 64 bits representation: must only update
+             * if 32 bits representation changed.
+             */
+            mustUpdateColors = (newArgb32 != oldArgb32);
+        }
+        if (mustUpdateColors) {
+            this.argb32 = newArgb32;
+            this.premulArgb32 = BindingColorUtils.toPremulAxyz32(newArgb32);
+            this.colorElseNull = newColorElseNull;
+            this.setBackingArgb(newArgb32, newColorElseNull);
+        } else {
+            if (newColorElseNull != null) {
+                /*
+                 * Not required, but updating it here,
+                 * to avoid eventual lazy update later.
+                 */
+                this.colorElseNull = newColorElseNull;
+            }
+        }
     }
 }

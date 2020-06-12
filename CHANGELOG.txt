@@ -120,6 +120,11 @@ Jolikit X.X, XXXX/XX/XX
   - AbstractBwdBinding: For the Executor backing the parallelizer,
     now using a HardScheduler instead of a ThreadPoolExecutor,
     to avoid spurious shutdown issues under stress.
+  - Graphics: minimized color setting overhead, especially
+    for setArgb32(), by computing backing and/or associated
+    64 bits and opaque colors when needed (lazily).
+    Also added an argb32 field in BwdColor, to make
+    BwdColor.toArgb32() much faster.
 
 - Added finals for Java 7 (or less) source compatibility.
 

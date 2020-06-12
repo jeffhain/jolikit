@@ -29,6 +29,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb64;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -190,7 +191,10 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      * 
      */
     
-    private Color clearColor;
+    /**
+     * Lazily computed.
+     */
+    private Color backingColorOpaque = null;
     
     /*
      * Common adjustments for some methods.
@@ -276,11 +280,21 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         /*
          * Implicit dirtySnapshotHelper calls.
          */
-        
+
         final Color backingColor = (Color) this.gc.getStroke();
-        
-        final Color clearColor = this.clearColor;
-        this.gc.setFill(clearColor);
+
+        Color backingColorOpaque = this.backingColorOpaque;
+        if (backingColorOpaque == null) {
+            final long argb64 = this.getArgb64();
+            if (Argb64.isOpaque(argb64)) {
+                backingColorOpaque = backingColor;
+            } else {
+                backingColorOpaque = JfxUtils.newColor(Argb64.toOpaque(argb64));
+            }
+            this.backingColorOpaque = backingColorOpaque;
+        }
+
+        this.gc.setFill(backingColorOpaque);
         try {
             this.fillRect(x, y, xSpan, ySpan);
         } finally {
@@ -575,20 +589,24 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
     }
 
     @Override
-    protected void setBackingArgb64(long argb64) {
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
         
-        final Color color = JfxUtils.newColor(argb64);
+        final Color color;
+        if (colorElseNull != null) {
+            color = JfxUtils.newColor(colorElseNull.toArgb64());
+        } else {
+            color = JfxUtils.newColor(argb32);
+        }
 
         this.gc.setFill(color);
         this.gc.setStroke(color);
         
-        final Color clearColor;
-        if (Argb64.isOpaque(argb64)) {
-            clearColor = color;
-        } else {
-            clearColor = JfxUtils.newColor(Argb64.toOpaque(argb64));
-        }
-        this.clearColor = clearColor;
+        /*
+         * Not computing opaque color, at least not here:
+         * for the rare cases where it would be needed,
+         * if would be best to compute it lazily as needed.
+         */
+        this.backingColorOpaque = null;
     }
 
     @Override
@@ -606,7 +624,8 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -622,7 +641,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         }
         
         if (mustSetColor) {
-            this.setBackingArgb64(argb64);
+            this.setBackingArgb(argb32, colorElseNull);
         } else {
             if (didResetBackingState) {
                 // Restoring backing color.

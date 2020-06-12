@@ -19,6 +19,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
@@ -80,6 +81,11 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      * 
      */
     
+    /**
+     * Costly to compute, and only used for text drawing,
+     * so nullifying it on color setting,
+     * and computing it before text drawing if needed (lazily).
+     */
     private ALLEGRO_COLOR backingColor;
 
     //--------------------------------------------------------------------------
@@ -147,9 +153,9 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     
     @Override
-    protected void setBackingArgb64(long argb64) {
-        super.setBackingArgb64(argb64);
-        this.backingColor = AlgrUtils.newColor(argb64);
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
+        super.setBackingArgb(argb32, colorElseNull);
+        this.backingColor = null;
     }
     
     @Override
@@ -166,7 +172,8 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
         GTransform transform,
         //
         boolean mustSetColor,
-        long argb64,
+        int argb32,
+        BwdColor colorElseNull,
         //
         boolean mustSetFont,
         InterfaceBwdFont font) {
@@ -179,7 +186,8 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                 transform,
                 //
                 mustSetColor,
-                argb64,
+                argb32,
+                colorElseNull,
                 //
                 mustSetFont,
                 font);
@@ -251,6 +259,11 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
             if (textRegionPtr == null) {
                 throw new BindingError("could not lock bitmap: " + LIB.al_get_errno());
             }
+            
+            if (this.backingColor == null) {
+                this.backingColor = AlgrUtils.newColor(this.getArgb64());
+            }
+            
             try {
                 final ALLEGRO_LOCKED_REGION region = AlgrJnaUtils.newAndRead(
                         ALLEGRO_LOCKED_REGION.class,
