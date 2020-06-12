@@ -32,7 +32,6 @@ import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.HertzHelper;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
-import net.jolikit.lang.NumbersUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplittable;
 
@@ -80,9 +79,7 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
         }
         @Override
         public boolean worthToSplit() {
-            final GRect box = this.fillBox;
-            final int area = NumbersUtils.timesBounded(box.xSpan(),box.ySpan());
-            return area > AREA_SPLIT_THRESHOLD;
+            return (this.fillBox.area() > AREA_SPLIT_THRESHOLD);
         }
         @Override
         public InterfaceSplittable split() {

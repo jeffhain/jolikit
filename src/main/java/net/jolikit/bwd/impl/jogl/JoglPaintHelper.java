@@ -457,7 +457,7 @@ public class JoglPaintHelper {
         if (areAllColumnsInClip) {
             mustUseInternalArr = false;
         } else {
-            final int pixelCountInClip = NumbersUtils.timesExact(clip.xSpan(), clip.ySpan());
+            final int pixelCountInClip = clip.area();
 
             int[] internalArr = this.tmpTexturePixelArr;
             if (internalArr.length >= pixelCountInClip) {
@@ -499,7 +499,7 @@ public class JoglPaintHelper {
             /*
              * 
              */
-            final int length = clip.xSpan() * clip.ySpan();
+            final int length = clip.area();
             texturePixelsBuffer = IntBuffer.wrap(internalArr, 0, length);
             texturePixelsScanlineStride = clip.xSpan();
             textureRect = clip;

@@ -33,7 +33,6 @@ import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.NumbersUtils;
 
 public class LwjglPaintHelper {
 
@@ -357,7 +356,7 @@ public class LwjglPaintHelper {
         if (clipIsFull) {
             directIbToUse = null;
         } else {
-            final int pixelCountInClip = NumbersUtils.timesExact(clip.xSpan(), clip.ySpan());
+            final int pixelCountInClip = clip.area();
             final IntBuffer directIB = DirectBuffers.getThreadLocalDirectIntBuffer_1024_sq_nativeOrder();
             if (directIB.capacity() >= pixelCountInClip) {
                 directIbToUse = directIB;

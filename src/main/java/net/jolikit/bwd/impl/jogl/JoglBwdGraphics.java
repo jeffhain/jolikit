@@ -31,7 +31,6 @@ import net.jolikit.bwd.impl.awt.AwtBwdFont;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
 
 public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -189,7 +188,7 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
         final int maxTextWidth = maxTextRelativeRect.xSpan();
         final int maxTextHeight = maxTextRelativeRect.ySpan();
         
-        final int pixelCapacity = NumbersUtils.timesExact(maxTextWidth, maxTextHeight);
+        final int pixelCapacity = maxTextRelativeRect.area();
         final int[] textPixelArr = new int[pixelCapacity];
         
         final BufferedImage image = BufferedImageHelper.newBufferedImageWithIntArray(

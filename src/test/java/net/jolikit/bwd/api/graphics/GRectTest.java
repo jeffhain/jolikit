@@ -724,6 +724,36 @@ public class GRectTest extends TestCase {
             assertEquals(expected, actual);
         }
     }
+    
+    /*
+     * 
+     */
+    
+    public void test_area() {
+        for (GRect rect : RECT_LIST) {
+            final long prod = rect.xSpan() * (long) rect.ySpan();
+            if (prod <= Integer.MAX_VALUE) {
+                final int expected = (int) prod;
+                final int actual = rect.area();
+                assertEquals(expected, actual);
+            } else {
+                try {
+                    rect.area();
+                    fail();
+                } catch (ArithmeticException e) {
+                    // ok
+                }
+            }
+        }
+    }
+    
+    public void test_areaLong() {
+        for (GRect rect : RECT_LIST) {
+            final long expected = rect.xSpan() * (long) rect.ySpan();
+            final long actual = rect.areaLong();
+            assertEquals(expected, actual);
+        }
+    }
 
     /*
      * 

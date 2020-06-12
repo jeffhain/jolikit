@@ -102,7 +102,7 @@ public class SwtPaintUtils {
         final int rectHeight = paintedRect.ySpan();
 
         final int bytesPerPixel = 3;
-        final int rectSize = rectWidth * rectHeight;
+        final int rectSize = paintedRect.area();
         final int rectByteSize = NumbersUtils.timesExact(bytesPerPixel, rectSize);
 
         byte[] byteArr = this.tmpByteArr;

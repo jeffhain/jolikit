@@ -19,6 +19,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import net.jolikit.lang.NumbersUtils;
+
 /**
  * A graphical rectangle, defined as (x,y,xSpan,ySpan),
  * but can also be used to represent borders spans,
@@ -522,6 +524,24 @@ public final class GRect implements Comparable<GRect> {
         return this.y + (long) this.ySpan - 1;
     }
 
+    /*
+     * Area.
+     */
+    
+    /**
+     * @return xSpan * ySpan, as an int.
+     * @throws ArithmeticException if the product overflows.
+     */
+    public int area() {
+        return NumbersUtils.timesExact(this.xSpan, this.ySpan);
+    }
+    
+    /**
+     * @return xSpan * ySpan, as a long (can't overflow).
+     */
+    public long areaLong() {
+        return this.xSpan * (long) this.ySpan;
+    }
 
     /*
      * Computations.
