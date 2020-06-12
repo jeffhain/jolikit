@@ -65,6 +65,7 @@ Jolikit X.X, XXXX/XX/XX
     - GTransform.areHorVerFlipped().
     - InterfaceBwdGraphics.isClipEmpty().
     - InterfaceBwdImage.getRect().
+    - AbstractBwdClient class.
   - Modifications:
     - To allows for use of graphics for writable (offscreen) images,
       "base clip" is now referred to as "initial clip",

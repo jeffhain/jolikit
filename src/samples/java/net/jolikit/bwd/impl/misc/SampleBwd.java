@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.misc;
 
 import java.util.List;
 
+import net.jolikit.bwd.api.AbstractBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
@@ -24,7 +25,6 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
-import net.jolikit.bwd.api.events.NoOpBwdEventListener;
 import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -59,9 +59,8 @@ public class SampleBwd {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private static class MyClient extends NoOpBwdEventListener implements InterfaceBwdClient {
+    private static class MyClient extends AbstractBwdClient {
         private final InterfaceBwdBinding binding;
-        private InterfaceBwdHost host = null;
         private InterfaceBwdFont myFont = null;
         /**
          * (0,0) and not null by default.
@@ -103,14 +102,10 @@ public class SampleBwd {
             };
         }
         @Override
-        public void setHost(Object host) {
-            this.host = (InterfaceBwdHost) host;
-        }
-        @Override
         public void onWindowShown(BwdWindowEvent event) {
             System.out.println(event);
             
-            if (!this.host.isIconified()) {
+            if (!this.getHost().isIconified()) {
                 this.mousePoll.start();
             }
         }
@@ -154,7 +149,7 @@ public class SampleBwd {
                  * we want to terminate all the "app".
                  */
                 if (false) {
-                    this.host.close();
+                    this.getHost().close();
                 } else {
                     this.binding.shutdownAbruptly();
                 }
@@ -167,9 +162,6 @@ public class SampleBwd {
                     event.yInScreen());
             
             onNewMousePos();
-        }
-        @Override
-        public void processEventualBufferedEvents() {
         }
         @Override
         public List<GRect> paintClient(
@@ -245,7 +237,7 @@ public class SampleBwd {
         }
         private void onNewMousePos() {
             
-            final GRect clientBounds = this.host.getClientBounds();
+            final GRect clientBounds = this.getHost().getClientBounds();
             if (DEBUG) {
                 System.out.println("onNewMousePos() : clientBounds = " + clientBounds);
             }
@@ -281,12 +273,12 @@ public class SampleBwd {
                         if (DEBUG) {
                             System.out.println("host.setClientBounds(" + targetClientBounds + ")");
                         }
-                        host.setClientBounds(targetClientBounds);
+                        getHost().setClientBounds(targetClientBounds);
                         
                         if (false) {
                             // No need to do that, because bounds setting
                             // should ensure painting already.
-                            host.ensurePendingClientPainting();
+                            getHost().ensurePendingClientPainting();
                         }
                     }
                 });

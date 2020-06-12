@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,14 +91,16 @@ public class SampleBwdWithJavaFxMain {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    /**
+     * Main to run first, which will run JavaFxMain.main().
+     */
     public static void main(String[] args) {
 
         final String JAVA_PATH = JlkBinConfig.getJavaPath();
         final String cmd =
                 JAVA_PATH
                 + " -cp " + CLASSES_DIR + " "
-                + SampleBwdWithJavaFxMain.JavaFxMain.class.getName()
-                + " antiRelaunchArg";
+                + SampleBwdWithJavaFxMain.JavaFxMain.class.getName();
 
         System.out.println("relaunching");
 
