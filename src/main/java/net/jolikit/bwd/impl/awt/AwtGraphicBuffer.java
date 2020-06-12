@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.awt;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
-import net.jolikit.bwd.impl.utils.graphics.AbstractIntGraphicBuffer;
+import net.jolikit.bwd.impl.utils.graphics.AbstractGraphicBuffer;
 import net.jolikit.lang.NumbersUtils;
 
 /**
@@ -28,7 +28,7 @@ import net.jolikit.lang.NumbersUtils;
  * 
  * This implementation uses an AWT Image as backing storage.
  */
-public class AwtGraphicBuffer extends AbstractIntGraphicBuffer<BufferedImage> {
+public class AwtGraphicBuffer extends AbstractGraphicBuffer<BufferedImage> {
     
     //--------------------------------------------------------------------------
     // FIELDS

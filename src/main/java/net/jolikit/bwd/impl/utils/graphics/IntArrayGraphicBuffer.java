@@ -27,7 +27,7 @@ import net.jolikit.lang.NumbersUtils;
  * 
  * Works for any pixel format.
  */
-public class IntArrayGraphicBuffer extends AbstractIntGraphicBuffer<IntArrayGraphicBuffer.MyStorage> {
+public class IntArrayGraphicBuffer extends AbstractGraphicBuffer<IntArrayGraphicBuffer.MyStorage> {
 
     //--------------------------------------------------------------------------
     // PACKAGE-PRIVATE CLASSES

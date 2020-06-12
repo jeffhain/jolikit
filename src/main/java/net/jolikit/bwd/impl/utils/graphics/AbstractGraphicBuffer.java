@@ -25,7 +25,7 @@ import net.jolikit.lang.LangUtils;
  * 
  * @param S Type for the storage.
  */
-public abstract class AbstractIntGraphicBuffer<S> {
+public abstract class AbstractGraphicBuffer<S> {
 
     /*
      * TODO optim We use powers of two capacities when possible, in case backing
@@ -64,7 +64,7 @@ public abstract class AbstractIntGraphicBuffer<S> {
      * @param allowShrinking If true, backing array can be renewed
      *        when old one is too large for the new size.
      */
-    public AbstractIntGraphicBuffer(
+    public AbstractGraphicBuffer(
             boolean mustCopyOnStorageResize,
             boolean allowShrinking) {
         this.mustCopyOnStorageResize = mustCopyOnStorageResize;

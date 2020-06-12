@@ -22,7 +22,7 @@ import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Display;
 
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.graphics.AbstractIntGraphicBuffer;
+import net.jolikit.bwd.impl.utils.graphics.AbstractGraphicBuffer;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -37,7 +37,7 @@ import net.jolikit.lang.LangUtils;
  * on some operating systems these may be scarce, such as Windows 98 that
  * only allows 5 GC objects to be created before it runs out resources."
  */
-public class SwtGraphicBuffer extends AbstractIntGraphicBuffer<Image> {
+public class SwtGraphicBuffer extends AbstractGraphicBuffer<Image> {
     
     //--------------------------------------------------------------------------
     // FIELDS
