@@ -205,7 +205,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
                 g,
                 imageForRead,
                 box,
-                box); // baseClip
+                box); // initialClip
     }
 
     /**
@@ -232,7 +232,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         // create() useful in case of parallel painting.
         final Graphics2D subG = (Graphics2D) this.g.create();
         return new AwtBwdGraphics(
@@ -240,7 +240,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
                 subG,
                 this.imageForRead,
                 childBox,
-                childBaseClip);
+                childInitialClip);
     }
 
     /*
@@ -257,7 +257,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
      */
     
     @Override
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan) {
+    public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
         /*
@@ -443,10 +443,10 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         super.getArgb32At(x, y);
         
         final GTransform transform = this.getTransform();
-        final int xInClient = transform.xIn1(x, y);
-        final int yInClient = transform.yIn1(x, y);
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
         
-        final int argb32 = this.imageForRead.getRGB(xInClient, yInClient);
+        final int argb32 = this.imageForRead.getRGB(xInBase, yInBase);
         return argb32;
     }
 
@@ -463,7 +463,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    protected void setBackingClip(GRect clipInClient) {
+    protected void setBackingClip(GRect clipInBase) {
         this.setBackingClipToCurrent();
     }
     
@@ -502,7 +502,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clipInClient,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -520,7 +520,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
             }
         } else {
             if (mustSetClip) {
-                this.setBackingClip(clipInClient);
+                this.setBackingClip(clipInBase);
             }
         }
         
@@ -604,12 +604,12 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
             InterfaceBwdBinding binding,
             Graphics2D g,
             BufferedImage imageForRead,
-            GRect boxInClient,
-            GRect clipInClient) {
+            GRect box,
+            GRect clipInBase) {
         super(
                 binding,
-                boxInClient,
-                clipInClient);
+                box,
+                clipInBase);
         
         this.g = LangUtils.requireNonNull(g);
         this.imageForRead = LangUtils.requireNonNull(imageForRead);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -117,7 +117,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
                 InterfaceBwdGraphics g,
                 GRect dirtyRect) {
 
-            final GRect gBox = g.getBoxInClient();
+            final GRect gBox = g.getBox();
             
             final InterfaceBwdHost host = this.getHost();
             final MyHostData data = dataByHost.get(host);
@@ -178,8 +178,8 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             
             if (expectedClientBounds != null) {
                 // To check that figure fits exactly in actual client bounds.
-                final GRect clientInClient = expectedClientBounds.withPos(0, 0);
-                drawFigureInRect(g, clientInClient);
+                final GRect clientInBase = expectedClientBounds.withPos(0, 0);
+                drawFigureInRect(g, clientInBase);
             }
             
             if (expectedClientBounds != null) {
@@ -307,7 +307,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final GRect gBox = g.getBoxInClient();
+        final GRect gBox = g.getBox();
 
         g.setColor(BwdColor.WHITE);
         g.fillRect(gBox);

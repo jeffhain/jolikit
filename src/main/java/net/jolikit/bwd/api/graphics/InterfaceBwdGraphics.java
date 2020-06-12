@@ -20,7 +20,7 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
  * Coordinates system:
- * In BWD, (0,0) is the top-left corner of the client area, and, as usual
+ * In BWD, (0,0) is the top-left corner of the client/base area, and, as usual
  * in UI libraries, x positive values are going right and y positive values
  * are going down.
  * Also, (x,y) position corresponds to the center of the pixel of indexes (x,y),
@@ -43,28 +43,27 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  *   on rotations, unless of course rotations are taken into account when
  *   using them, which complicates the drawing treatments).
  * 
+ * Frames of reference:
+ * The base frame of reference is the one with (0,0) at the top-left corner
+ * of the client, and a transform allows to define another one relatively
+ * to it, called the user frame of reference, which is used by drawing methods.
+ * 
+ * Box:
+ * The rectangle in which the graphics is made to draw on is called its box,
+ * and can be larger than initial clip (that is, initial clip can be smaller).
+ * 
  * Coordinates ranges and transforms:
  * The x and y coordinates of figures to draw must be contained in the
  * [Integer.MIN,VALUE,Integer.MAX_VALUE] range (i.e. if x = Integer.MAX_VALUE,
  * xSpan can only be 0 or 1), both in user frame of reference and once
- * transformed into client frame of reference.
+ * transformed into base frame of reference.
  * A good practice would be to avoid both coordinates and translations
  * to remain inferior in magnitude to Integer.MAX_VALUE/4.
  * 
  * Children graphics:
  * A newChildGraphics(...) method allows for creation of a child graphics,
- * i.e. a graphics allowing to draw in sub-part of its parent box.
- * Such child graphics can be useful both for parallel painting of sub-parts of
- * the client area, and also just to constraint sequentially called sub-painting
- * treatments to paint in a specific sub-part, without possible leak due to
- * corresponding base clip.
- * NB: For this last usage, to make up for bindings for which child graphics
- * creation is a bit heavy, it had been tried to reuse graphics instances
- * by adding and using new "subInit(...)" and "subFinish()" methods,
- * that can configure a graphics as a child graphics for a time,
- * but it turned out the overhead was usually actually even larger,
- * due to backing state being reset twice: once in subInit(...),
- * and once in subFinish(). As a result this approach was abandoned.
+ * i.e. a graphics allowing to draw in bounded sub-part of its parent box,
+ * possibly in parallel with one thread for each child graphics.
  * 
  * Negative spans:
  * Unlike the API of GRect, which is strict, methods defined here accept
@@ -92,7 +91,7 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * (possibly none).
  * 
  * Clips and transforms:
- * We use the client coordinates for all graphics (initial one or descendants
+ * We use the base coordinates for all graphics (root one or descendants
  * of it). This makes events coordinates usable in all children graphics
  * without need for an offset, and makes figuring out what happens and
  * debugging easier.
@@ -102,11 +101,8 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * transforms is stored in each graphics. These transforms are not inherited
  * by children graphics.
  * Transformed coordinates are called user coordinates.
- * Similarly, a stack of clips can be added over the base clip.
+ * Similarly, a stack of clips can be added over the initial clip.
  * Getters are provided for these transforms and clips properties.
- * Clips are always specified in client coordinates, but it's easy to compute
- * a clip in client coordinates from a clip in user coordinates using
- * GTransform.rectIn1(clipInUser).
  * 
  * Clipping:
  * How primitive drawing computes clipping is undefined. For example,
@@ -124,7 +120,8 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * All methods must draw using SRC_OVER blending (which corresponds to drawing
  * new color on top of previous one) ("the fundamental image compositing
  * operator" dixit Ray Smith), except of course clear method(s) which use
- * SRC blending (new color erasing previous one).
+ * COPY (or SRC) blending (new color erasing previous one).
+ * (cf. https://www.w3.org/TR/compositing)
  * 
  * Colors:
  * Each graphics contains a current color, used by methods that draw or fill
@@ -171,12 +168,13 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * since they did blend with undefined colors, and are therefore also
  * undefined.
  * Furthermore, you can't count on blending with colors preserved from
- * previous paintings, in a cumulative manner, without a prior call to
- * clearRectOpaque(...) during the painting, due to the binding
- * eventually clearing the whole client area at each painting.
+ * previous paintings, in a cumulative manner, without a prior clearing
+ * (or filling with a fully opaque color) during the painting,
+ * due to the binding eventually clearing the whole client area
+ * (in an undefined way) before each painting.
  * As a result, for consistency across paintings, every non fully opaque
- * painting should take place over an area previously cleared (i.e. with
- * a fully opaque color) during that painting.
+ * painting should take place over an area previously cleared (or filled
+ * with a fully opaque color) during that painting.
  * 
  * Threading:
  * Graphics are by default not supposed to be thread-safe, but if the binding
@@ -217,14 +215,14 @@ public interface InterfaceBwdGraphics {
 
     /**
      * Children graphics allow:
-     * - to give treatments designed to paint only a sub part of the client area
+     * - to give treatments designed to paint only a sub part of the surface
      *   (such as a component's view) a graphics that makes sure they won't leak
      *   out of it,
      * - for parallel painting (for bindings that support it), in which case
      *   a child graphics must be created before switching to the thread
      *   that uses it for init/drawing/finish.
      * Children graphics don't inherit any state from their parent, except
-     * that their base clip must be included in their parent's base clip.
+     * that their initial clip must be included in their parent's initial clip.
      * If a same pixel is painted with multiple graphics (like a graphics and
      * a child of it, or two overlapping (dangerous practice) children graphics),
      * its resulting color is undefined (for example it might
@@ -240,12 +238,12 @@ public interface InterfaceBwdGraphics {
      * overhead smaller, so as to optimize for the simple case of sequential
      * painting.
      * 
-     * @param childBox The box, in client coordinates, for the child graphics
+     * @param childBox The box, in base coordinates, for the child graphics
      *        to create.
      *        Not necessarily included in this graphics box (for example
      *        in case of a component in a scroll pane). Can be empty.
-     * @return A new child graphics with the specified box, and a base clip
-     *         equal to the intersection of this graphics base clip with the
+     * @return A new child graphics with the specified box, and an initial clip
+     *         equal to the intersection of this graphics initial clip with the
      *         specified box.
      * @throws NullPointerException if the specified box is null.
      * @throws IllegalStateException if finish() has been called.
@@ -261,18 +259,10 @@ public interface InterfaceBwdGraphics {
      * Not requiring graphics to be initialized by default,
      * for some implementations might only have a single backing graphics
      * per binding (such as JavaFX GraphicsContext), which therefore
-     * needs to be initialized properly before each use with a BWT graphics.
-     * 
-     * Must not be called after this graphics has been modified
-     * (color, transform, etc), so that implementations can use it
-     * to save the backing initial state to restore on finish().
+     * needs to be initialized properly before each use with a BWD graphics.
      * 
      * Must do nothing if already called and finish() has not been called yet,
      * to allow for efficient {n * init(), (painting), n * finish()} calls.
-     * 
-     * Not requiring drawing methods to throw IllegalStateException
-     * if used before init() or after finish(), for performances reasons,
-     * but they could do that.
      * 
      * @throws IllegalStateException if finish() has been called already
      *         (even if it did nothing due to init() not having been called yet).
@@ -280,8 +270,9 @@ public interface InterfaceBwdGraphics {
     public void init();
     
     /**
-     * Must be called after graphics usage, because depending on the implementation,
-     * not calling it properly could cause some resources not to be released.
+     * Must be called after graphics usage, because depending on
+     * the implementation, not calling it properly could cause drawings
+     * not to be flushed or some resources not to be released.
      * 
      * Must do nothing if already called.
      */
@@ -295,12 +286,12 @@ public interface InterfaceBwdGraphics {
      * Can be empty, for example when painting a non-visible part
      * in order to obtain values useful for painting a visible part.
      * 
-     * The base clip (if not empty) is included in this box (if not empty).
+     * The initial clip (if not empty) is included in this box (if not empty).
      * 
-     * @return The box, in client coordinates, in which the visual object
+     * @return The box, in base coordinates, in which the visual object
      *         this graphics is used for must be painted. Can be empty.
      */
-    public GRect getBoxInClient();
+    public GRect getBox();
 
     /*
      * Clips.
@@ -312,19 +303,19 @@ public interface InterfaceBwdGraphics {
      * 
      * If not empty, this clip is included in this graphics box.
      * 
-     * @return The base clip for this graphics, in client coordinates.
+     * @return The initial clip for this graphics, in base coordinates.
      */
-    public GRect getBaseClipInClient();
+    public GRect getInitialClipInBase();
 
     /**
-     * @return The base clip for this graphics, in user coordinates.
+     * @return The initial clip for this graphics, in user coordinates.
      */
-    public GRect getBaseClipInUser();
+    public GRect getInitialClipInUser();
 
     /**
-     * @return The current clip, in client coordinates.
+     * @return The current clip, in base coordinates.
      */
-    public GRect getClipInClient();
+    public GRect getClipInBase();
     
     /**
      * @return The current clip, in user coordinates.
@@ -332,18 +323,18 @@ public interface InterfaceBwdGraphics {
     public GRect getClipInUser();
 
     /**
-     * Adds the specified clip over base clip and any already added clip.
+     * Adds the specified clip over initial clip and any already added clip.
      * 
-     * @param clip Clip to add to current clip, in client coordinates.
+     * @param clip Clip to add to current clip, in base coordinates.
      * @throws NullPointerException if the specified clip is null.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
-    public void addClipInClient(GRect clip);
+    public void addClipInBase(GRect clip);
     
     /**
      * Convenience method.
-     * Equivalent to "addClipInClient(transform.rectIn1(clip))".
+     * Equivalent to "addClipInBase(transform.rectIn1(clip))".
      * 
      * @param clip Clip to add to current clip, in user coordinates.
      * @throws NullPointerException if the specified clip is null.
@@ -354,7 +345,7 @@ public interface InterfaceBwdGraphics {
     
     /**
      * Removes last added clip if any.
-     * If there is no added clip, does nothing, i.e. clip remains base clip.
+     * If there is no added clip, does nothing, i.e. clip remains initial clip.
      * 
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
@@ -363,7 +354,7 @@ public interface InterfaceBwdGraphics {
     
     /**
      * Removes all added clips if any.
-     * If there is no added clip, does nothing, i.e. clip remains base clip.
+     * If there is no added clip, does nothing, i.e. clip remains initial clip.
      * 
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
@@ -372,7 +363,7 @@ public interface InterfaceBwdGraphics {
     
     /**
      * Convenience method.
-     * Equivalent to "getClipInClient().isEmpty()"
+     * Equivalent to "getClipInBase().isEmpty()"
      * or "getClipInUser().isEmpty()".
      * 
      * Handy to quickly return at painting start if clip is empty
@@ -389,7 +380,7 @@ public interface InterfaceBwdGraphics {
     /**
      * Initial value for any graphics must be identity.
      * 
-     * @return The current transform between client coordinates (frame 1)
+     * @return The current transform between base coordinates (frame 1)
      *         to user coordinates (frame 2).
      */
     public GTransform getTransform();
@@ -401,7 +392,7 @@ public interface InterfaceBwdGraphics {
      * 
      * Using identity transform resets this graphics transform state.
      * 
-     * @param transform The transform to use between client coordinates
+     * @param transform The transform to use between base coordinates
      *        (frame 1) and user coordinates (frame 2).
      * @throws NullPointerException if the specified transform is null.
      * @throws IllegalStateException if init() has not been called
@@ -524,25 +515,22 @@ public interface InterfaceBwdGraphics {
      */
     
     /**
-     * Clears the specified rectangle, with the current color.
+     * Clearing means filling but with erasing (COPY (or SRC) (not CLEAR!)
+     * compositing operator) instead of blending (SRC_OVER for us).
+     * 
+     * Clearing must be done with the fully opaque variant
+     * of current color, because most libraries don't handle non-fully opaque
+     * clearings properly (ex.: JavaFX, Qt4, Allegro5 and SDL2 seem to interpret
+     * 0x80FFFFFF background as grey, instead of fully black), and a fully
+     * transparent clear color can be ambiguous (especially when
+     * alpha-premultiplied) (and often translates to either black or white)
+     * for libraries not supporting truly (independently of window alpha)
+     * transparent windows, which is the case for all those I used
+     * for the design of this API.
+     * 
      * The rectangle can cover pixels outside of the clip,
      * in which case they must not be modified.
      * Must clear nothing if any span is <= 0.
-     * 
-     * Clearing means filling using SRC blend mode, with a fully opaque color
-     * using {r,g,b} components of current color.
-     * 
-     * We don't provide a way to clear with semi or fully transparent colors,
-     * because some libraries don't handle non-fully opaque clearings properly
-     * (ex.: JavaFX, Qt4, Allegro5 and SDL2 seem to interpret 0x80FFFFFF
-     * background as grey, instead of fully black), and a fully transparent
-     * clear color is ambiguous (and often translates to either black or white)
-     * for libraries not supporting truly (independently of window alpha)
-     * transparent windows, which is the case for all those I used for the
-     * design of this API.
-     * 
-     * Note that this method is a convenience method, since setting an opaque
-     * color and calling fillRect(...) must yield the same result.
      * 
      * @param x X position, in user coordinates.
      * @param y Y position, in user coordinates.
@@ -551,18 +539,18 @@ public interface InterfaceBwdGraphics {
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan);
+    public void clearRect(int x, int y, int xSpan, int ySpan);
 
     /**
      * Convenience method.
-     * Equivalent to clearRectOpaque(rect.x(),rect.y(),rect.xSpan(),rect.ySpan()).
+     * Equivalent to clearRect(rect.x(),rect.y(),rect.xSpan(),rect.ySpan()).
      * 
      * @param rect Rectangle to clear, in user coordinates.
      * @throws NullPointerException if the specified rectangle is null.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
-    public void clearRectOpaque(GRect rect);
+    public void clearRect(GRect rect);
 
     /*
      * Points.
@@ -1014,7 +1002,8 @@ public interface InterfaceBwdGraphics {
      * @param rect Destination rectangle. Must not be null.
      * @param image Image to draw. Must not be null.
      * @param sRect Source rectangle. Must not be null.
-     * @throws NullPointerException if the any of the specified rectangles or image is null.
+     * @throws NullPointerException if any of the specified rectangles
+     *         or image is null.
      * @throws IllegalArgumentException if the specified image is disposed.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
@@ -1090,7 +1079,7 @@ public interface InterfaceBwdGraphics {
      * @return The current 64 bits ARGB at the specified location,
      *         or 0 (fully transparent color) if it can't be computed.
      * @throws IllegalArgumentException if the specified coordinates are out of
-     *         the base clip of this graphics.
+     *         the initial clip of this graphics.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
@@ -1104,7 +1093,7 @@ public interface InterfaceBwdGraphics {
      * @return The current 32 bits ARGB at the specified location,
      *         or 0 (fully transparent color) if it can't be computed.
      * @throws IllegalArgumentException if the specified coordinates are out of
-     *         the base clip of this graphics.
+     *         the initial clip of this graphics.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */

@@ -101,7 +101,7 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         final InterfaceBwdFontHome fontHome = getBinding().getFontHome(); 
         final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
@@ -201,7 +201,7 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 // to avoid over-blended result and make the alpha obvious.
                 if (hasAlpha) {
                     g.setColor(BwdColor.WHITE);
-                    g.clearRectOpaque(x, y, dstXSpan, dstYSpan);
+                    g.clearRect(x, y, dstXSpan, dstYSpan);
                     g.drawImage(x, y, dstXSpan, dstYSpan, image);
                 }
                 

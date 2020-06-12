@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,8 +88,8 @@ public class SwtPaintUtils {
     }
 
     public void drawRectOnG(
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride,
+            int[] pixelArr,
+            int pixelArrScanlineStride,
             GRect paintedRect,
             Device device,
             GC backingG) {
@@ -113,7 +113,7 @@ public class SwtPaintUtils {
                  * NB: Could also just do that, i.e. piggybacking
                  * on client pixel array size smart growing logic.
                  */
-                newByteArrLength = NumbersUtils.timesExact(bytesPerPixel, clientPixelArr.length);
+                newByteArrLength = NumbersUtils.timesExact(bytesPerPixel, pixelArr.length);
             } else {
                 newByteArrLength = LangUtils.increasedArrayLength(byteArr.length, rectByteSize);
             }
@@ -137,10 +137,10 @@ public class SwtPaintUtils {
 
         int byteIndex = 0;
         for (int y = paintedRect.y(); y <= paintedRect.yMax(); y++) {
-            final int lineOffset = y * clientPixelArrScanlineStride;
+            final int lineOffset = y * pixelArrScanlineStride;
             for (int x = paintedRect.x(); x <= paintedRect.xMax(); x++) {
                 final int pixelIndex = lineOffset + x;
-                final int premulArgb32 = clientPixelArr[pixelIndex];
+                final int premulArgb32 = pixelArr[pixelIndex];
                 /*
                  * Only computing non-premul {r,g,b} if premul {a,r,g,b} changed.
                  * NB: Could optimize further, by inlining.

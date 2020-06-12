@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,12 +66,12 @@ public class ClientPainterNoRec {
         if (this.clientPaintBeingCalled.compareAndSet(false, true)) {
             try {
                 // Input clipping (mandatory, easier to deal with for clients).
-                dirtyRect = g.getBoxInClient().intersected(dirtyRect);
+                dirtyRect = g.getBox().intersected(dirtyRect);
                 
                 List<GRect> paintedRectList = this.client.paintClient(g, dirtyRect);
 
                 // Output clipping (easier to deal with for bindings).
-                paintedRectList = BindingCoordsUtils.clippedRectList(g.getBoxInClient(), paintedRectList);
+                paintedRectList = BindingCoordsUtils.clippedRectList(g.getBox(), paintedRectList);
                 
                 return paintedRectList;
             } finally {

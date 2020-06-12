@@ -32,6 +32,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.lang.NumbersUtils;
 
 public class JoglPaintHelper {
     
@@ -270,8 +271,8 @@ public class JoglPaintHelper {
          * 
          */
         
-        final int[] clientPixelArr = offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
 
         final int clientWidth = offscreenBuffer.getWidth();
         final int clientHeight = offscreenBuffer.getHeight();
@@ -310,8 +311,8 @@ public class JoglPaintHelper {
              */
 
             final MyTextureData textureData = computeTextureData(
-                    clientPixelArr,
-                    clientPixelArrScanlineStride,
+                    pixelArr,
+                    pixelArrScanlineStride,
                     clientWidth,
                     clientHeight,
                     clip);
@@ -429,10 +430,10 @@ public class JoglPaintHelper {
      */
     
     private MyTextureData computeTextureData(
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride,
-            int clientWidth,
-            int clientHeight,
+            int[] pixelArr,
+            int pixelArrScanlineStride,
+            int width,
+            int height,
             GRect clip) {
         
         final IntBuffer texturePixelsBuffer;
@@ -452,17 +453,17 @@ public class JoglPaintHelper {
 
         final boolean mustUseInternalArr;
 
-        final boolean areAllColumnsInClip = (clip.xSpan() == clientWidth);
+        final boolean areAllColumnsInClip = (clip.xSpan() == width);
         if (areAllColumnsInClip) {
             mustUseInternalArr = false;
         } else {
-            final int pixelCountInClip = clip.xSpan() * clip.ySpan();
+            final int pixelCountInClip = NumbersUtils.timesExact(clip.xSpan(), clip.ySpan());
 
             int[] internalArr = this.tmpTexturePixelArr;
             if (internalArr.length >= pixelCountInClip) {
                 mustUseInternalArr = true;
             } else {
-                final int pixelCountInClient = clientWidth * clientHeight;
+                final int pixelCountInClient = NumbersUtils.timesExact(width, height);
                 final double ratio = pixelCountInClip / (double) pixelCountInClient;
                 if (ratio <= TEXTURE_ARRAY_RATIO_THRESHOLD) {
                     // Creating large enough array.
@@ -486,10 +487,10 @@ public class JoglPaintHelper {
              */
             final int texXSpan = clip.xSpan();
             for (int y = clip.y(); y <= clip.yMax(); y++) {
-                final int srcOffset = clip.x() + y * clientPixelArrScanlineStride;
+                final int srcOffset = clip.x() + y * pixelArrScanlineStride;
                 final int dstOffset = (y - clip.y()) * texXSpan;
                 System.arraycopy(
-                        clientPixelArr,
+                        pixelArr,
                         srcOffset,
                         internalArr,
                         dstOffset,
@@ -503,14 +504,14 @@ public class JoglPaintHelper {
             texturePixelsScanlineStride = clip.xSpan();
             textureRect = clip;
         } else {
-            final int offset = clip.y() * clientPixelArrScanlineStride;
-            final int length = clientPixelArrScanlineStride * clip.ySpan();
-            texturePixelsBuffer = IntBuffer.wrap(clientPixelArr, offset, length);
-            texturePixelsScanlineStride = clientPixelArrScanlineStride;
+            final int offset = clip.y() * pixelArrScanlineStride;
+            final int length = pixelArrScanlineStride * clip.ySpan();
+            texturePixelsBuffer = IntBuffer.wrap(pixelArr, offset, length);
+            texturePixelsScanlineStride = pixelArrScanlineStride;
             textureRect = GRect.valueOf(
                     0,
                     clip.y(),
-                    clientWidth,
+                    width,
                     clip.ySpan());
         }
 

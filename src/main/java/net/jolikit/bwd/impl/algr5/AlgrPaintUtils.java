@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.InterfaceScaledRowPartDrawer;
+import net.jolikit.lang.NumbersUtils;
 
 import com.sun.jna.Pointer;
 
@@ -139,8 +140,8 @@ public class AlgrPaintUtils {
             throw new BindingError("" + format);
         }
         
-        final int pixelLength = width * height;
-        final int[] argb32Arr = new int[pixelLength];
+        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final int[] argb32Arr = new int[pixelCapacity];
         
         for (int y = 0; y < height; y++) {
             // Pitch is in bytes.
@@ -171,8 +172,8 @@ public class AlgrPaintUtils {
 
         final int clientWidth = offscreenBuffer.getWidth();
         final int clientHeight = offscreenBuffer.getHeight();
-        final int[] clientPixelArr = offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
 
         final Pointer windowBitmap = LIB.al_get_backbuffer(display);
         LIB.al_set_target_bitmap(windowBitmap);
@@ -189,10 +190,10 @@ public class AlgrPaintUtils {
          * the whole client area and Allegro does format conversion.
          * ===> Maybe could just get away with NOT locking?
          */
-        final boolean mustJustLockBaseClipRegion = true;
+        final boolean mustJustLockInitialClipRegion = true;
         Pointer regionPtr = null;
         ALLEGRO_LOCKED_REGION region = null;
-        if (!mustJustLockBaseClipRegion) {
+        if (!mustJustLockInitialClipRegion) {
             regionPtr = LIB.al_lock_bitmap(
                     windowBitmap,
                     windowBitmapLockFormat,
@@ -211,8 +212,8 @@ public class AlgrPaintUtils {
             final IntArrSrcPixels inputPixels = new IntArrSrcPixels(
                     clientWidth,
                     clientHeight,
-                    clientPixelArr,
-                    clientPixelArrScanlineStride);
+                    pixelArr,
+                    pixelArrScanlineStride);
 
             final int bw = LIB.al_get_bitmap_width(windowBitmap);
             final int bh = LIB.al_get_bitmap_height(windowBitmap);
@@ -230,7 +231,7 @@ public class AlgrPaintUtils {
                 final int regionWidth = Math.min(bw - regionX, pixelCoordsConverter.computeXSpanInDevicePixel(width));
                 final int regionHeight = Math.min(bh - regionY, pixelCoordsConverter.computeYSpanInDevicePixel(height));
                 
-                if (mustJustLockBaseClipRegion) {
+                if (mustJustLockInitialClipRegion) {
                     regionPtr = LIB.al_lock_bitmap_region(
                             windowBitmap,
                             regionX,
@@ -249,14 +250,14 @@ public class AlgrPaintUtils {
                     }
                 }
                 try {
-                    if (mustJustLockBaseClipRegion) {
+                    if (mustJustLockInitialClipRegion) {
                         region = AlgrJnaUtils.newAndRead(ALLEGRO_LOCKED_REGION.class, regionPtr);
                     }
                     final Pointer dataPtr = region.data;
                     
                     final int regionXInLocked;
                     final int regionYInLocked;
-                    if (mustJustLockBaseClipRegion) {
+                    if (mustJustLockInitialClipRegion) {
                         regionXInLocked = 0;
                         regionYInLocked = 0;
                     } else {
@@ -277,9 +278,9 @@ public class AlgrPaintUtils {
                          */
                         for (int j = 0; j < height; j++) {
                             final long offset = regionXInLocked * region.pixel_size + region.pitch * (regionYInLocked + j);
-                            final int index = x + clientPixelArrScanlineStride * (y + j);
+                            final int index = x + pixelArrScanlineStride * (y + j);
                             final int length = width;
-                            dataPtr.write(offset, clientPixelArr, index, length);
+                            dataPtr.write(offset, pixelArr, index, length);
                         }
                     }
                     this.scaledRowPartDrawer.configure(region, dataPtr);
@@ -298,13 +299,13 @@ public class AlgrPaintUtils {
                             //
                             this.scaledRowPartDrawer);
                 } finally {
-                    if (mustJustLockBaseClipRegion) {
+                    if (mustJustLockInitialClipRegion) {
                         LIB.al_unlock_bitmap(windowBitmap);
                     }
                 }
             }
         } finally {
-            if (!mustJustLockBaseClipRegion) {
+            if (!mustJustLockInitialClipRegion) {
                 LIB.al_unlock_bitmap(windowBitmap);
             }
         }

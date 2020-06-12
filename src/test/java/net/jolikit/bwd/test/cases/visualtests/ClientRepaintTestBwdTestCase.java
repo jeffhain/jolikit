@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
              * during or after resizes, after show-up, and after focus gain
              * or focus loss).
              */
-            g.addClipInClient(dirtyRect);
+            g.addClipInBase(dirtyRect);
             paintedRectList.add(dirtyRect);
         }
         
@@ -119,7 +119,7 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
          * 
          */
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         /*
          * Background.
@@ -182,11 +182,11 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
             final int screenCenterYInScreen = (screenBounds.yMax() - screenBounds.y()) / 2;
             
             final GRect clientBounds = this.getHost().getClientBounds();
-            final int screenCenterXInClient = screenCenterXInScreen - clientBounds.x();
-            final int screenCenterYInClient = screenCenterYInScreen - clientBounds.y();
+            final int screenCenterXInBase = screenCenterXInScreen - clientBounds.x();
+            final int screenCenterYInBase = screenCenterYInScreen - clientBounds.y();
             
-            final int boxCenterToScreenCenterDx = screenCenterXInClient - boxCenterX;
-            final int boxCenterToScreenCenterDy = screenCenterYInClient - boxCenterY;
+            final int boxCenterToScreenCenterDx = screenCenterXInBase - boxCenterX;
+            final int boxCenterToScreenCenterDy = screenCenterYInBase - boxCenterY;
             final int boxCenterToScreenCenterDelta = (int) Math.sqrt(
                     pow2(boxCenterToScreenCenterDx)
                     + pow2(boxCenterToScreenCenterDy));

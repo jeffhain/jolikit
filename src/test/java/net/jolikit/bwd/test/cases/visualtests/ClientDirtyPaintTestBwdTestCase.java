@@ -1,3 +1,18 @@
+/*
+ * Copyright 2019-2020 Jeff Hain
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package net.jolikit.bwd.test.cases.visualtests;
 
 import java.util.ArrayList;
@@ -15,7 +30,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To check that only dirty areas are properly propagated to the client
- * through base clip, and that only them are paint when the client
+ * through initial clip, and that only them are paint when the client
  * only paints them.
  * 
  * Dividing the client area in cells.
@@ -128,7 +143,7 @@ public class ClientDirtyPaintTestBwdTestCase extends AbstractBwdTestCase {
              * during or after resizes, after show-up, and after focus gain
              * or focus loss).
              */
-            g.addClipInClient(dirtyRect);
+            g.addClipInBase(dirtyRect);
             paintedRectList.add(dirtyRect);
         }
 
@@ -140,7 +155,7 @@ public class ClientDirtyPaintTestBwdTestCase extends AbstractBwdTestCase {
         final BwdColor color = COLORS[(pc - 1) % COLORS.length];
         g.setColor(color);
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         g.fillRect(box);
 
         /*

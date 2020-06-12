@@ -718,15 +718,15 @@ public class LwjglBwdHost extends AbstractBwdHost {
          */
         
         this.offscreenBuffer.setSize(width, height);
-        final int[] clientPixelArr = this.offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
 
         final LwjglBwdGraphics g = new LwjglBwdGraphics(
                 this.binding,
                 box,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
 
         final List<GRect> paintedRectList = this.getClientPainterNoRec().paintClientAndClipRects(
                 g,

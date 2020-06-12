@@ -25,7 +25,6 @@ import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
-import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
@@ -103,10 +102,10 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
                 InterfaceBwdGraphics g,
                 GRect dirtyRect) {
             
-            final GRect box = g.getBoxInClient();
+            final GRect box = g.getBox();
             
             g.setColor(BwdColor.WHITE);
-            g.clearRectOpaque(box);
+            g.clearRect(box);
             
             g.setColor(BwdColor.BLACK);
             BwdTestUtils.drawRectStipple(g, box);
@@ -290,7 +289,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
         }
         g.setFont(this.font);
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         /*
          * 
@@ -298,7 +297,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
         
         final BwdColor bgColor = BwdColor.WHITE;
         g.setColor(bgColor);
-        g.clearRectOpaque(box);
+        g.clearRect(box);
         
         /*
          * 

@@ -134,7 +134,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
             GRect dirtyRect) {
         
         if (this.dragOnLeftClickActivated) {
-            this.dragController.setGripPaintedBox(g.getBoxInClient());
+            this.dragController.setGripPaintedBox(g.getBox());
         }
 
         return super.paintClient(g, dirtyRect);

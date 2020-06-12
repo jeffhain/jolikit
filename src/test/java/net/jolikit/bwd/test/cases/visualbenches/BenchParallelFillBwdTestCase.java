@@ -224,7 +224,7 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
         } else {
             parallelism = 1;
             
-            fillBox_inInitFinish(g, g.getBoxInClient());
+            fillBox_inInitFinish(g, g.getBox());
         }
         
         /*
@@ -274,7 +274,7 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
             int parallelism,
             int pps) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         final String prlHead = FILL_COUNT_PER_PAINT + " fills/paint, Parallelism = ";
         final String ppsHead = ", Paints Per Pecond = ";

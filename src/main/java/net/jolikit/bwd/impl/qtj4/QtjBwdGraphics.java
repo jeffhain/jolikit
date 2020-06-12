@@ -238,7 +238,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 painter,
                 imageForRead,
                 box,
-                box, // baseClip
+                box, // initialClip
                 //
                 painter.combinedTransform(),
                 getOrCreateQtStuffsPool(hostGraphicsQtStuffsPoolRef));
@@ -277,7 +277,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         /*
          * Parallel painting on a same painting device is not supported in Qt
          * (cf. http://doc.qt.io/qt-4.8/threads-modules.html:
@@ -293,7 +293,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 subG,
                 this.imageForRead,
                 childBox,
-                childBaseClip,
+                childInitialClip,
                 //
                 this.initialBackingTransform,
                 this.qtStuffsPool);
@@ -313,7 +313,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
     
     @Override
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan) {
+    public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
         // Relying on backing clipping.
@@ -539,10 +539,10 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         }
         
         final GTransform transform = this.getTransform();
-        final int xInClient = transform.xIn1(x, y);
-        final int yInClient = transform.yIn1(x, y);
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
         
-        final int arb32 = this.imageForRead.pixel(xInClient, yInClient);
+        final int arb32 = this.imageForRead.pixel(xInBase, yInBase);
         return arb32;
     }
 
@@ -571,7 +571,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    protected void setBackingClip(GRect clipInClient) {
+    protected void setBackingClip(GRect clipInBase) {
         this.setBackingClipToCurrent();
     }
     
@@ -607,7 +607,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clipInClient,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -625,7 +625,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             }
         } else {
             if (mustSetClip) {
-                this.setBackingClip(clipInClient);
+                this.setBackingClip(clipInBase);
             }
         }
         
@@ -740,14 +740,14 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             QPainter painter,
             QImage imageForRead,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
             QTransform initialBackingTransform,
             ArrayList<MyQtStuffs> qtStuffsPool) {
         super(
                 binding,
                 box,
-                baseClip);
+                initialClip);
         
         this.painter = LangUtils.requireNonNull(painter);
         

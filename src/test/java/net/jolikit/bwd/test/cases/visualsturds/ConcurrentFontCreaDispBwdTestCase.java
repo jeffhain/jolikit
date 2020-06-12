@@ -194,7 +194,7 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
         
         final long paintCount = ++this.paintCounter;
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int x = box.x();
         final int y = box.y();
 

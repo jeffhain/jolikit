@@ -57,22 +57,22 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
-    public GRect getBoxInClient() {
+    public GRect getBox() {
         throw new UnsupportedOperationException();
     }
     
     @Override
-    public GRect getBaseClipInClient() {
+    public GRect getInitialClipInBase() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public GRect getBaseClipInUser() {
+    public GRect getInitialClipInUser() {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public GRect getClipInClient() {
+    public GRect getClipInBase() {
         throw new UnsupportedOperationException();
     }
     
@@ -82,7 +82,7 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
-    public void addClipInClient(GRect clip) {
+    public void addClipInBase(GRect clip) {
         throw new UnsupportedOperationException();
     }
 
@@ -172,12 +172,12 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan) {
+    public void clearRect(int x, int y, int xSpan, int ySpan) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public void clearRectOpaque(GRect rect) {
+    public void clearRect(GRect rect) {
         throw new UnsupportedOperationException();
     }
 

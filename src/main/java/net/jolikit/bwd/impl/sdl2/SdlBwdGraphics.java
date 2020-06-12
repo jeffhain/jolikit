@@ -125,15 +125,15 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
             InterfaceBwdBinding binding,
             GRect box,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         this(
                 binding,
                 box,
-                box, // baseClip
+                box, // initialClip
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
     }
 
     /*
@@ -147,14 +147,14 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new SdlBwdGraphics(
                 this.getBinding(),
                 childBox,
-                childBaseClip,
+                childInitialClip,
                 //
-                this.getClientPixelArr(),
-                this.getClientPixelArrScanlineStride());
+                this.getPixelArr(),
+                this.getPixelArrScanlineStride());
     }
 
     /*
@@ -186,7 +186,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clip,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -199,7 +199,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         
         this.setBackingStateDefaultImpl(
                 mustSetClip,
-                clip,
+                clipInBase,
                 //
                 mustSetTransform,
                 transform,
@@ -353,17 +353,17 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     private SdlBwdGraphics(
             InterfaceBwdBinding binding,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         super(
                 binding,
                 box,
-                baseClip,
+                initialClip,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
     }
     
     /*

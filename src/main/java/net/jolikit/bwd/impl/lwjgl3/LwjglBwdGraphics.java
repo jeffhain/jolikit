@@ -67,15 +67,15 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
             InterfaceBwdBinding binding,
             GRect box,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         this(
                 binding,
                 box,
-                box, // baseClip
+                box, // initialClip
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
     }
 
     /*
@@ -89,20 +89,14 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
-        /*
-         * Using a same pixel surface for all graphics,
-         * which must be possible since even if case of concurrent painting,
-         * each component or view must actually draw exclusive pixels,
-         * due to either clipping, or due to carefully designed parallel painting.
-         */
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new LwjglBwdGraphics(
                 this.getBinding(),
                 childBox,
-                childBaseClip,
+                childInitialClip,
                 //
-                this.getClientPixelArr(),
-                this.getClientPixelArrScanlineStride());
+                this.getPixelArr(),
+                this.getPixelArrScanlineStride());
     }
 
     //--------------------------------------------------------------------------
@@ -126,7 +120,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clip,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -139,7 +133,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
         
         this.setBackingStateDefaultImpl(
                 mustSetClip,
-                clip,
+                clipInBase,
                 //
                 mustSetTransform,
                 transform,
@@ -289,16 +283,16 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     private LwjglBwdGraphics(
             InterfaceBwdBinding binding,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         super(
                 binding,
                 box,
-                baseClip,
+                initialClip,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
     }
 }

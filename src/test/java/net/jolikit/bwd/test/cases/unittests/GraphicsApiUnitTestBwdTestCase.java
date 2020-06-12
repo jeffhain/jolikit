@@ -237,10 +237,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 this.getHost().ensurePendingClientPainting();
             }
 
-            final GRect box = g.getBoxInClient();
+            final GRect box = g.getBox();
 
             g.setColor(BwdColor.WHITE);
-            g.clearRectOpaque(box);
+            g.clearRect(box);
 
             g.setColor(BwdColor.BLACK);
             final int dy = 1 + g.getFont().fontMetrics().fontHeight();
@@ -330,7 +330,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          * 
          */
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         /*
          * Nested calls.
@@ -395,7 +395,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                  * 
                  */
                 try {
-                    childG.addClipInClient(box);
+                    childG.addClipInBase(box);
                     fail();
                 } catch (IllegalStateException ok) {}
                 try {
@@ -455,11 +455,11 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                  * 
                  */
                 try {
-                    childG.clearRectOpaque(0, 0, 1, 1);
+                    childG.clearRect(0, 0, 1, 1);
                     fail();
                 } catch (IllegalStateException ok) {}
                 try {
-                    childG.clearRectOpaque(GRect.DEFAULT_HUGE);
+                    childG.clearRect(GRect.DEFAULT_HUGE);
                     fail();
                 } catch (IllegalStateException ok) {}
                 /*
@@ -602,16 +602,16 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             System.out.println("test_clips(...)");
         }
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
-        final GRect baseClipInClient = g.getBaseClipInClient();
+        final GRect initialClipInBase = g.getInitialClipInBase();
         
         /*
          * NPE
          */
         
         try {
-            g.addClipInClient(null);
+            g.addClipInBase(null);
             fail();
         } catch (NullPointerException e) {
             // ok
@@ -627,8 +627,8 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          * Invariants.
          */
         
-        checkContains(box, baseClipInClient);
-        checkContains(baseClipInClient, g.getClipInClient());
+        checkContains(box, initialClipInBase);
+        checkContains(initialClipInBase, g.getClipInBase());
         
         /*
          * Empty or not.
@@ -646,15 +646,15 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
         
         {
-            final GRect clip0 = g.getClipInClient();
+            final GRect clip0 = g.getClipInBase();
             GRect oldClip = clip0;
             for (int i = 0; i < 10; i++) {
                 // Shrinking.
                 final GRect addedClip = oldClip.withPosDeltas(1, 1);
-                g.addClipInClient(addedClip);
+                g.addClipInBase(addedClip);
                 final GRect expectedClip = oldClip.intersected(addedClip);
 
-                final GRect actualClip = g.getClipInClient();
+                final GRect actualClip = g.getClipInBase();
                 checkEqual(expectedClip, actualClip);
                 
                 oldClip = actualClip;
@@ -664,7 +664,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 g.removeLastAddedClip();
                 final GRect expectedClip = oldClip.withBordersDeltas(-1, -1, 0, 0);
                 
-                final GRect actualClip = g.getClipInClient();
+                final GRect actualClip = g.getClipInBase();
                 checkEqual(expectedClip, actualClip);
                 
                 oldClip = actualClip;
@@ -674,7 +674,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 g.removeAllAddedClips();
                 final GRect expectedClip = oldClip.withBordersDeltas(-5, -5, 0, 0);
                 
-                final GRect actualClip = g.getClipInClient();
+                final GRect actualClip = g.getClipInBase();
                 checkEqual(expectedClip, actualClip);
                 
                 oldClip = actualClip;
@@ -686,52 +686,52 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
         
         {
-            final GRect clip0 = g.getClipInClient();
+            final GRect clip0 = g.getClipInBase();
             final GRect clip1 = clip0.withPosDeltas(1, 1);
             final GRect clip1And0 = clip1.intersected(clip0);
             final GRect clipEmptyCustom = clip1And0.withSpans(clip1And0.xSpan(), 0);
 
-            g.addClipInClient(clip1);
+            g.addClipInBase(clip1);
             // Adding same.
-            g.addClipInClient(clip1);
+            g.addClipInBase(clip1);
             // Adding equals.
-            g.addClipInClient(GRect.valueOf(clip1.x(), clip1.y(), clip1.xSpan(), clip1.ySpan()));
+            g.addClipInBase(GRect.valueOf(clip1.x(), clip1.y(), clip1.xSpan(), clip1.ySpan()));
             // Adding containing small.
-            g.addClipInClient(clip0);
+            g.addClipInBase(clip0);
             // Adding containing huge.
-            g.addClipInClient(GRect.DEFAULT_HUGE);
+            g.addClipInBase(GRect.DEFAULT_HUGE);
             // Adding empty custom.
-            g.addClipInClient(clipEmptyCustom);
+            g.addClipInBase(clipEmptyCustom);
             // Adding empty default.
-            g.addClipInClient(GRect.DEFAULT_EMPTY);
+            g.addClipInBase(GRect.DEFAULT_EMPTY);
             
             // Our bindings preserve information of empty clips.
             // Empty custom's position preserved,
             // but spans were zeroized by EMPTY_DEFAULT.
-            checkEqual(clipEmptyCustom.withSpans(0, 0), g.getClipInClient());
+            checkEqual(clipEmptyCustom.withSpans(0, 0), g.getClipInBase());
             
             // Removing empty default.
             g.removeLastAddedClip();
             // Our bindings preserve information of empty clips.
-            checkEqual(clipEmptyCustom, g.getClipInClient());
+            checkEqual(clipEmptyCustom, g.getClipInBase());
             // Removing empty custom.
             g.removeLastAddedClip();
-            checkEqual(clip1And0, g.getClipInClient());
+            checkEqual(clip1And0, g.getClipInBase());
             // Removing containing huge.
             g.removeLastAddedClip();
-            checkEqual(clip1And0, g.getClipInClient());
+            checkEqual(clip1And0, g.getClipInBase());
             // Removing containing small.
             g.removeLastAddedClip();
-            checkEqual(clip1And0, g.getClipInClient());
+            checkEqual(clip1And0, g.getClipInBase());
             // Removing equals.
             g.removeLastAddedClip();
-            checkEqual(clip1And0, g.getClipInClient());
+            checkEqual(clip1And0, g.getClipInBase());
             // Removing same.
             g.removeLastAddedClip();
-            checkEqual(clip1And0, g.getClipInClient());
+            checkEqual(clip1And0, g.getClipInBase());
             // Removing first.
             g.removeLastAddedClip();
-            checkEqual(clip0, g.getClipInClient());
+            checkEqual(clip0, g.getClipInBase());
         }
         
         /*
@@ -739,8 +739,8 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
         
         {
-            g.addClipInClient(baseClipInClient.withPosDeltas(baseClipInClient.xSpan()/2, baseClipInClient.ySpan()/2));
-            final GRect userClipInClient = g.getClipInClient();
+            g.addClipInBase(initialClipInBase.withPosDeltas(initialClipInBase.xSpan()/2, initialClipInBase.ySpan()/2));
+            final GRect userClipInBase = g.getClipInBase();
             for (GRotation rotation : GRotation.values()) {
                 final GTransform transform = GTransform.valueOf(
                         rotation,
@@ -748,11 +748,11 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                         2 * rotation.ordinal());
                 g.setTransform(transform);
                 
-                checkEqual(baseClipInClient, g.getBaseClipInClient());
-                checkEqual(userClipInClient, g.getClipInClient());
+                checkEqual(initialClipInBase, g.getInitialClipInBase());
+                checkEqual(userClipInBase, g.getClipInBase());
                 
-                checkConsistent(baseClipInClient, transform, g.getBaseClipInUser());
-                checkConsistent(userClipInClient, transform, g.getClipInUser());
+                checkConsistent(initialClipInBase, transform, g.getInitialClipInUser());
+                checkConsistent(userClipInBase, transform, g.getClipInUser());
             }
         }
     }
@@ -1550,7 +1550,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             System.out.println("test_colors_reading(...)");
         }
 
-        final GRect clip = g.getBaseClipInUser();
+        final GRect clip = g.getInitialClipInUser();
         
         for (int x : POS_ANY_ARR) {
             for (int y : POS_ANY_ARR) {
@@ -1622,10 +1622,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     }
     
     private static void checkConsistent(
-            GRect rectInClient,
+            GRect rectInBase,
             GTransform transform,
             GRect rectInUser) {
-        final GRect expectedRectInUser = transform.rectIn2(rectInClient);
+        final GRect expectedRectInUser = transform.rectIn2(rectInBase);
         if (!rectInUser.equals(expectedRectInUser)) {
             throw new AssertionError(
                     "expected " + expectedRectInUser

@@ -63,18 +63,25 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * 
      */
     
-    private final GRect boxInClient;
-    private final GRect baseClipInClient;
+    /**
+     * Box in base coordinates.
+     */
+    private final GRect box;
     
     /**
-     * Base clip in user coordinates.
+     * Initial clip in base coordinates.
      */
-    private GRect baseClipInUser;
+    private final GRect initialClipInBase;
     
     /**
-     * Clip in client coordinates.
+     * Initial clip in user coordinates.
      */
-    private GRect clipInClient;
+    private GRect initialClipInUser;
+    
+    /**
+     * Clip in base coordinates.
+     */
+    private GRect clipInBase;
     
     /**
      * Clip in user coordinates.
@@ -87,7 +94,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private ArrayList<GRect> clipsBeforeLastAdd = null;
     
     /**
-     * Transform between client coordinates (frame 1)
+     * Transform between base coordinates (frame 1)
      * and user coordinates (frame 2).
      * 
      * Never using the transform of the backing graphics,
@@ -139,21 +146,21 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     public AbstractBwdGraphics(
             InterfaceBwdBinding binding,
-            GRect boxInClient,
-            GRect clipInClient) {
-        checkGraphicsInitialBoxAndClip(boxInClient, clipInClient);
+            GRect box,
+            GRect clipInBase) {
+        checkGraphicsBoxAndInitialClip(box, clipInBase);
         
         // Implicit null check.
         final InterfaceBwdFont defaultFont = binding.getFontHome().getDefaultFont();
         
         this.binding = binding;
         
-        this.boxInClient = boxInClient;
-        this.baseClipInClient = clipInClient;
+        this.box = box;
+        this.initialClipInBase = clipInBase;
         
-        this.baseClipInUser = clipInClient;
-        this.clipInClient = clipInClient;
-        this.clipInUser = clipInClient;
+        this.initialClipInUser = clipInBase;
+        this.clipInBase = clipInBase;
+        this.clipInUser = clipInBase;
         
         if (this.clipsBeforeLastAdd != null) {
             this.clipsBeforeLastAdd.clear();
@@ -173,16 +180,14 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public String toString() {
-        return "[boxInClient = "
-                + this.boxInClient
-                + ", clipInClient = "
-                + this.clipInClient
-                + ", baseClipInUser = "
-                + this.baseClipInUser
-                + ", clipInUser = "
-                + this.clipInUser
+        return "[box = "
+                + this.box
+                + ", initialClipInBase = "
+                + this.initialClipInBase
                 + ", transform = "
                 + this.transform
+                + ", clipInUser = "
+                + this.clipInUser
                 + ", color = "
                 + Argb64.toString(this.argb64)
                 + ", font = "
@@ -254,8 +259,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
 
     @Override
-    public GRect getBoxInClient() {
-        return this.boxInClient;
+    public GRect getBox() {
+        return this.box;
     }
     
     /*
@@ -263,18 +268,18 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
 
     @Override
-    public GRect getBaseClipInClient() {
-        return this.baseClipInClient;
+    public GRect getInitialClipInBase() {
+        return this.initialClipInBase;
     }
     
     @Override
-    public GRect getBaseClipInUser() {
-        return this.baseClipInUser;
+    public GRect getInitialClipInUser() {
+        return this.initialClipInUser;
     }
 
     @Override
-    public GRect getClipInClient() {
-        return this.clipInClient;
+    public GRect getClipInBase() {
+        return this.clipInBase;
     }
     
     @Override
@@ -283,10 +288,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     }
 
     @Override
-    public void addClipInClient(GRect clip) {
+    public void addClipInBase(GRect clip) {
         this.checkUsable();
         
-        final GRect oldClip = this.clipInClient;
+        final GRect oldClip = this.clipInBase;
         // Implicit null check.
         final GRect newClip = oldClip.intersected(clip);
         
@@ -298,7 +303,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         preList.add(oldClip);
         
         if (!newClip.equals(oldClip)) {
-            this.clipInClient = newClip;
+            this.clipInBase = newClip;
             this.updateTransformedClips();
             this.setBackingClip(newClip);
         }
@@ -306,8 +311,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
 
     @Override
     public void addClipInUser(GRect clip) {
-        final GRect clipInClient = this.getTransform().rectIn1(clip);
-        this.addClipInClient(clipInClient);
+        final GRect clipInBase = this.getTransform().rectIn1(clip);
+        this.addClipInBase(clipInBase);
     }
     
     @Override
@@ -321,11 +326,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             return;
         }
         
-        final GRect oldClip = this.clipInClient;
+        final GRect oldClip = this.clipInBase;
         final GRect newClip = preList.remove(size-1);
         
         if (!newClip.equals(oldClip)) {
-            this.clipInClient = newClip;
+            this.clipInBase = newClip;
             this.updateTransformedClips();
             this.setBackingClip(newClip);
         }
@@ -340,11 +345,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             preList.clear();
         }
         
-        final GRect oldClip = this.clipInClient;
-        final GRect newClip = this.baseClipInClient;
+        final GRect oldClip = this.clipInBase;
+        final GRect newClip = this.initialClipInBase;
         
         if (!newClip.equals(oldClip)) {
-            this.clipInClient = newClip;
+            this.clipInBase = newClip;
             this.updateTransformedClips();
             this.setBackingClip(newClip);
         }
@@ -352,7 +357,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public boolean isClipEmpty() {
-        return this.getClipInClient().isEmpty();
+        return this.getClipInBase().isEmpty();
     }
 
     /*
@@ -523,8 +528,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     @Override
-    public void clearRectOpaque(GRect rect) {
-        this.clearRectOpaque(rect.x(), rect.y(), rect.xSpan(), rect.ySpan());
+    public void clearRect(GRect rect) {
+        this.clearRect(rect.x(), rect.y(), rect.xSpan(), rect.ySpan());
     }
     
     /*
@@ -826,9 +831,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     public int getArgb32At(int x, int y) {
         this.checkUsable();
         
-        final GRect baseClip = this.getBaseClipInUser();
-        if (!baseClip.contains(x, y)) {
-            throw new IllegalArgumentException("position (" + x + "," + y + ") out of base clip " + baseClip);
+        final GRect initialClip = this.getInitialClipInUser();
+        if (!initialClip.contains(x, y)) {
+            throw new IllegalArgumentException(
+                    "position (" + x + "," + y + ") out of initial clip " + initialClip);
         }
         return 0;
     }
@@ -895,7 +901,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final boolean mustSetFont = true;
         this.setBackingState(
                 mustSetClip,
-                this.baseClipInClient,
+                this.initialClipInBase,
                 //
                 mustSetTransform,
                 this.transform,
@@ -936,20 +942,20 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     /**
      * Sets the backing clip, if any.
      */
-    protected abstract void setBackingClip(GRect clipInClient);
+    protected abstract void setBackingClip(GRect clipInBase);
     
     /**
      * A default implementation for setBackingClip(...).
      * Delegates to the bulk method.
      */
-    protected void setBackingClipDefaultImpl(GRect clipInClient) {
+    protected void setBackingClipDefaultImpl(GRect clipInBase) {
         final boolean mustSetClip = true;
         final boolean mustSetTransform = false;
         final boolean mustSetColor = false;
         final boolean mustSetFont = false;
         this.setBackingState(
                 mustSetClip,
-                clipInClient,
+                clipInBase,
                 //
                 mustSetTransform,
                 null,
@@ -1058,7 +1064,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     protected abstract void setBackingState(
         boolean mustSetClip,
-        GRect clipInClient,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -1075,7 +1081,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     protected void setBackingStateDefaultImpl(
         boolean mustSetClip,
-        GRect clipInClient,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -1087,7 +1093,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         InterfaceBwdFont font) {
         
         if (mustSetClip) {
-            this.setBackingClip(clipInClient);
+            this.setBackingClip(clipInBase);
         }
         
         if (mustSetTransform) {
@@ -1139,16 +1145,16 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     /**
      * Checks for graphics creation.
-     * @throws IllegalArgumentException if the specified base clip is not empty
-     *         and not contained in the specified box.
+     * @throws IllegalArgumentException if the specified initial clip
+     *         is not empty and not contained in the specified box.
      */
-    private static void checkGraphicsInitialBoxAndClip(
+    private static void checkGraphicsBoxAndInitialClip(
             GRect box,
-            GRect baseClip) {
+            GRect initialClip) {
         LangUtils.requireNonNull(box);
-        // Implicit null check on baseClip.
-        if ((!baseClip.isEmpty()) && (!box.contains(baseClip))) {
-            throwIae_boxAndBaseClip(box, baseClip);
+        // Implicit null check on initialClip.
+        if ((!initialClip.isEmpty()) && (!box.contains(initialClip))) {
+            throwIae_boxAndInitialClip(box, initialClip);
         }
     }
 
@@ -1159,8 +1165,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
     }
 
-    private static void throwIae_boxAndBaseClip(GRect box, GRect baseClip) {
-        throw new IllegalArgumentException("non-empty baseClip " + baseClip + " must be contained in box " + box);
+    private static void throwIae_boxAndInitialClip(GRect box, GRect initialClip) {
+        throw new IllegalArgumentException(
+                "non-empty initialClip " + initialClip
+                + " must be contained in box " + box);
     }
 
     private static void throwIae_imageNotDisposed(InterfaceBwdImage image) {
@@ -1185,7 +1193,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     }
 
     private void updateTransformedClips() {
-        this.baseClipInUser = this.transform.rectIn2(this.baseClipInClient);
-        this.clipInUser = this.transform.rectIn2(this.clipInClient);
+        this.initialClipInUser = this.transform.rectIn2(this.initialClipInBase);
+        this.clipInUser = this.transform.rectIn2(this.clipInBase);
     }
 }

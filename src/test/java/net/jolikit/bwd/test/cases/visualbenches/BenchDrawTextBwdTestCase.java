@@ -124,7 +124,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         final InterfaceBwdFontHome fontHome = getBinding().getFontHome(); 
         final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();

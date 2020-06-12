@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public class UiSchedulerTimedBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int x = box.x();
         final int y = box.y();
 

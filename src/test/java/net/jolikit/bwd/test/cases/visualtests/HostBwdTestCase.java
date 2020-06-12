@@ -405,7 +405,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
         }
         g.setFont(this.font);
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         /*
          * 
@@ -418,7 +418,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
             bgColor = COLOR_BG_HOST_NOT_FOCUSED;
         }
         g.setColor(bgColor);
-        g.clearRectOpaque(box);
+        g.clearRect(box);
         
         /*
          * 

@@ -261,7 +261,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
         
         final ArrayList<GRect> paintedRectList = new ArrayList<GRect>();
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         final boolean allIsDirty = dirtyRect.contains(box);
         
@@ -385,13 +385,13 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
         final GRect clearRectLeft = clearRect.intersected(clientLeft);
         if (!clearRectLeft.isEmpty()) {
             g.setArgb32(CLEAR_BG_RGB32_LEFT);
-            g.clearRectOpaque(clearRectLeft);
+            g.clearRect(clearRectLeft);
         }
         
         final GRect clearRectRight = clearRect.intersected(clientRight);
         if (!clearRectRight.isEmpty()) {
             g.setArgb32(CLEAR_BG_RGB32_RIGHT);
-            g.clearRectOpaque(clearRectRight);
+            g.clearRect(clearRectRight);
         }
     }
     
@@ -400,7 +400,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             boolean mustPaintAll,
             List<GRect> paintedRectList) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         final InterfaceBwdImage bgImage = this.bgImage;
         final int srcImageWidth = bgImage.getWidth();
@@ -489,7 +489,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
          * to prepare background for new one.
          */
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         final InterfaceBwdImage bgImage = this.bgImage;
         final int srcImageWidth = bgImage.getWidth();
@@ -537,7 +537,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             InterfaceBwdGraphics g,
             List<MySpriteInfo> spriteInfoList) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         // Spans of at least 2, to allow for moves.
         final GRect spritesMovingBox = GRect.valueOf(
@@ -685,7 +685,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             boolean mustScrollBackground,
             List<GRect> paintedRectList) {
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
 
         final String ppsHead = "Paints Per Second = ";
         // To avoid digits of obsolete values to be visible.

@@ -135,16 +135,16 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             Display display,
             GRect box,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         this(
                 binding,
                 display,
                 box,
-                box, // baseClip
+                box, // initialClip
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride,
+                pixelArr,
+                pixelArrScanlineStride,
                 //
                 null); // parentGraphics
     }
@@ -160,17 +160,17 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         
         final SwtBwdGraphics parentGraphics = this;
         return new SwtBwdGraphics(
                 this.getBinding(),
                 this.display,
                 childBox,
-                childBaseClip,
+                childInitialClip,
                 //
-                this.getClientPixelArr(),
-                this.getClientPixelArrScanlineStride(),
+                this.getPixelArr(),
+                this.getPixelArrScanlineStride(),
                 //
                 parentGraphics);
     }
@@ -210,7 +210,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clip,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -223,7 +223,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         
         this.setBackingStateDefaultImpl(
                 mustSetClip,
-                clip,
+                clipInBase,
                 //
                 mustSetTransform,
                 transform,
@@ -463,19 +463,19 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             InterfaceBwdBinding binding,
             Display display,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride,
+            int[] pixelArr,
+            int pixelArrScanlineStride,
             //
             SwtBwdGraphics parentGraphics) {
         super(
                 binding,
                 box,
-                baseClip,
+                initialClip,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
         
         this.display = LangUtils.requireNonNull(display);
         

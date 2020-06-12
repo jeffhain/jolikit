@@ -66,6 +66,19 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdGraphics.isClipEmpty().
     - InterfaceBwdImage.getRect().
   - Modifications:
+    - To allows for use of graphics for writable (offscreen) images,
+      "base clip" is now referred to as "initial clip",
+      and "client area/coordinates" as "base area/coordinates"
+      when they could correspond to the box of a writable image.
+      Also removed "opaque" from clear methods name,
+      to allow for non-opaque clearing in case of writable images.
+    - InterfaceBwdGraphics:
+      - getBoxInClient() renamed into getBox().
+      - getBaseClipInClient() renamed into getInitialClipInBase().
+      - getBaseClipInUser() renamed into getInitialClipInUser().
+      - getClipInClient() renamed into getClipInBase().
+      - addClipInClient() renamed into addClipInBase().
+      - clearRectOpaque() renamed into clearRect().
     - InterfaceBwdBinding:
       - isConcurrentFontCreationAndDisposalSupported()
         renamed into

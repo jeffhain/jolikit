@@ -100,12 +100,12 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * should not be written or read concurrently, so it still allows for
      * parallel painting.
      */
-    private final int[] clientPixelArr;
+    private final int[] pixelArr;
     
     /**
      * Scanline stride, in pixels.
      */
-    private final int clientPixelArrScanlineStride;
+    private final int pixelArrScanlineStride;
     
     /**
      * The color to use for drawing in the array of pixels.
@@ -132,28 +132,28 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     public AbstractIntArrayBwdGraphics(
             InterfaceBwdBinding binding,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride) {
+            int[] pixelArr,
+            int pixelArrScanlineStride) {
         super(
                 binding,
                 box,
-                baseClip);
+                initialClip);
 
-        this.clientPixelArr = LangUtils.requireNonNull(clientPixelArr);
-        this.clientPixelArrScanlineStride = clientPixelArrScanlineStride;
+        this.pixelArr = LangUtils.requireNonNull(pixelArr);
+        this.pixelArrScanlineStride = pixelArrScanlineStride;
     }
 
     /**
-     * @return The array of pixels on which client drawing takes places.
+     * @return The array of pixels on which drawing takes places.
      */
-    public int[] getClientPixelArr() {
-        return this.clientPixelArr;
+    public int[] getPixelArr() {
+        return this.pixelArr;
     }
 
-    public int getClientPixelArrScanlineStride() {
-        return this.clientPixelArrScanlineStride;
+    public int getPixelArrScanlineStride() {
+        return this.pixelArrScanlineStride;
     }
     
     /*
@@ -161,7 +161,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
     
     @Override
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan) {
+    public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
         final GRect clip = this.getClipInUser();
@@ -287,9 +287,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                         continue;
                     }
 
-                    final int xInClient = transform.xIn1(dstX, dstY);
-                    final int yInClient = transform.yIn1(dstX, dstY);
-                    final int dstIndex = yInClient * this.clientPixelArrScanlineStride + xInClient;
+                    final int xInBase = transform.xIn1(dstX, dstY);
+                    final int yInBase = transform.yIn1(dstX, dstY);
+                    final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
 
                     this.blendColor32(dstIndex, color32);
                 }
@@ -314,30 +314,30 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final GTransform transform = this.getTransform();
         
         final GRect rectInUser = GRect.valueOf(x, y, xSpan, ySpan);
-        final GRect rectInClient = transform.rectIn1(rectInUser);
+        final GRect rectInBase = transform.rectIn1(rectInUser);
         
-        final GRect clipInClient = this.getClipInClient();
-        final GRect rectInClientClipped = rectInClient.intersected(clipInClient);
+        final GRect clipInBase = this.getClipInBase();
+        final GRect rectInBaseClipped = rectInBase.intersected(clipInBase);
         
-        final int xInClientClipped = rectInClientClipped.x();
-        final int yInClientClipped = rectInClientClipped.y();
-        final int xSpanInClientClipped = rectInClientClipped.xSpan();
-        final int ySpanInClientClipped = rectInClientClipped.ySpan();
+        final int xInBaseClipped = rectInBaseClipped.x();
+        final int yInBaseClipped = rectInBaseClipped.y();
+        final int xSpanInBaseClipped = rectInBaseClipped.xSpan();
+        final int ySpanInBaseClipped = rectInBaseClipped.ySpan();
         
         /*
          * Taking care to loop on lines first
-         * (true lines, i.e. in client coordinates,
+         * (true lines, i.e. in base coordinates,
          * which might be verticals in user coordinates).
          */
         
-        final int[] clientPixelArr = this.clientPixelArr;
+        final int[] pixelArr = this.pixelArr;
         
-        for (int j = 0; j < ySpanInClientClipped; j++) {
-            int index = (yInClientClipped + j) * this.clientPixelArrScanlineStride + xInClientClipped;
-            for (int i = 0; i < xSpanInClientClipped; i++) {
-                final int color32_from = clientPixelArr[index];
+        for (int j = 0; j < ySpanInBaseClipped; j++) {
+            int index = (yInBaseClipped + j) * this.pixelArrScanlineStride + xInBaseClipped;
+            for (int i = 0; i < xSpanInBaseClipped; i++) {
+                final int color32_from = pixelArr[index];
                 final int color32_to = toInvertedArrayColor32(color32_from);
-                clientPixelArr[index] = color32_to;
+                pixelArr[index] = color32_to;
                 ++index;
             }
         }
@@ -353,11 +353,11 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         super.getArgb32At(x, y);
         
         final GTransform transform = this.getTransform();
-        final int xInClient = transform.xIn1(x, y);
-        final int yInClient = transform.yIn1(x, y);
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
         
-        final int index = xInClient + yInClient * this.clientPixelArrScanlineStride;
-        final int color32 = this.clientPixelArr[index];
+        final int index = xInBase + yInBase * this.pixelArrScanlineStride;
+        final int color32 = this.pixelArr[index];
         final int argb32 = this.getArgb32FromArrayColor32(color32);
         return argb32;
     }
@@ -367,7 +367,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
 
     @Override
-    protected void setBackingClip(GRect clipInClient) {
+    protected void setBackingClip(GRect clipInBase) {
         // No backing clip to update.
     }
     
@@ -562,7 +562,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
                     final int bwtX = transform.xIn1(dstX, dstY);
                     final int bwtY = transform.yIn1(dstX, dstY);
-                    final int dstIndex = bwtY * this.clientPixelArrScanlineStride + bwtX;
+                    final int dstIndex = bwtY * this.pixelArrScanlineStride + bwtX;
 
                     this.blendColor32(dstIndex, color32);
                 }
@@ -670,9 +670,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private void blendColor32(int index, int srcColor32) {
-        final int dstColor32 = this.clientPixelArr[index];
+        final int dstColor32 = this.pixelArr[index];
         final int newColor32 = this.blendArrayColor32(srcColor32, dstColor32);
-        this.clientPixelArr[index] = newColor32;
+        this.pixelArr[index] = newColor32;
     }
     
     /*
@@ -681,10 +681,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     
     private void drawPointInClip_raw(int x, int y) {
         final GTransform transform = this.getTransform();
-        final int xInClient = transform.xIn1(x, y);
-        final int yInClient = transform.yIn1(x, y);
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
         
-        final int index = yInClient * this.clientPixelArrScanlineStride + xInClient;
+        final int index = yInBase * this.pixelArrScanlineStride + xInBase;
         
         this.blendColor32(index, this.arrColor);
     }
@@ -716,18 +716,18 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final GTransform transform = this.getTransform();
         final GRotation rotation = transform.rotation();
         
-        final int xInClient = transform.minXIn1(x, y, xSpan, ySpan);
-        final int yInClient = transform.minYIn1(x, y, xSpan, ySpan);
-        final int xSpanInClient = rotation.xSpanInOther(xSpan, ySpan);
-        final int ySpanInClient = rotation.ySpanInOther(xSpan, ySpan);
+        final int xInBase = transform.minXIn1(x, y, xSpan, ySpan);
+        final int yInBase = transform.minYIn1(x, y, xSpan, ySpan);
+        final int xSpanInBase = rotation.xSpanInOther(xSpan, ySpan);
+        final int ySpanInBase = rotation.ySpanInOther(xSpan, ySpan);
         
         /*
          * Taking care to loop on lines first
-         * (true lines, i.e. in client coordinates,
+         * (true lines, i.e. in base coordinates,
          * which might be verticals in user coordinates).
          */
         
-        final int scanlineStride = this.clientPixelArrScanlineStride;
+        final int scanlineStride = this.pixelArrScanlineStride;
         final int color32;
         if (isClear) {
             color32 = this.arrColorOpaque;
@@ -736,25 +736,25 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         }
 
         // Hack: "-1" so that we can do "++index" instead of "index++".
-        int index = yInClient * scanlineStride + xInClient - 1;
+        int index = yInBase * scanlineStride + xInBase - 1;
 
-        // To optimize for the case where xSpanInClient is small.
-        final int indexJump = scanlineStride - xSpanInClient;
+        // To optimize for the case where xSpanInBase is small.
+        final int indexJump = scanlineStride - xSpanInBase;
 
         final int alpha8 = this.getArrayColorAlpha8(color32);
         if (alpha8 == 0xFF) {
             /*
              * Optimization for fully opaque colors.
              */
-            for (int j = 0; j < ySpanInClient; j++) {
-                for (int i = 0; i < xSpanInClient; i++) {
-                    this.clientPixelArr[++index] = color32;
+            for (int j = 0; j < ySpanInBase; j++) {
+                for (int i = 0; i < xSpanInBase; i++) {
+                    this.pixelArr[++index] = color32;
                 }
                 index += indexJump;
             }
         } else {
-            for (int j = 0; j < ySpanInClient; j++) {
-                for (int i = 0; i < xSpanInClient; i++) {
+            for (int j = 0; j < ySpanInBase; j++) {
+                for (int i = 0; i < xSpanInBase; i++) {
                     this.blendColor32(++index, color32);
                 }
                 index += indexJump;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,7 +138,7 @@ public class ClippingBwdTestCase extends AbstractBwdTestCase {
         drawerList.add(new MyInterfaceDrawer() {
             @Override
             public void drawIt(InterfaceBwdGraphics g) {
-                g.clearRectOpaque(DRAW_BOX_IN_USER);
+                g.clearRect(DRAW_BOX_IN_USER);
             }
         });
         
@@ -293,7 +293,7 @@ public class ClippingBwdTestCase extends AbstractBwdTestCase {
          * Painting using the drawers.
          */
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int x = box.x();
         final int y = box.y();
 

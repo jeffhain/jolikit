@@ -153,7 +153,7 @@ public class BenchNewChildGBwdTestCase extends AbstractBwdTestCase {
         
         final int pNum = ++this.paintingNum;
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         {
             g.setColor(BwdColor.BLACK);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,14 +112,14 @@ public class TextWidthBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final GRect clientBox = g.getBoxInClient();
+        final GRect clientBox = g.getBox();
         
         /*
          * 
          */
         
         g.setColor(BwdColor.WHITE);
-        g.clearRectOpaque(clientBox);
+        g.clearRect(clientBox);
         
         /*
          * 

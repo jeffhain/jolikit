@@ -95,7 +95,7 @@ public abstract class AbstractAlpha1LayerBwdTestCase extends AbstractBwdTestCase
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int xMin = box.x();
         final int yMin = box.y();
         
@@ -105,7 +105,7 @@ public abstract class AbstractAlpha1LayerBwdTestCase extends AbstractBwdTestCase
         
         if (isDirtyPainting) {
             // Making sure we only paint the dirty rect.
-            g.addClipInClient(dirtyRect);
+            g.addClipInBase(dirtyRect);
         }
 
         /*
@@ -143,7 +143,7 @@ public abstract class AbstractAlpha1LayerBwdTestCase extends AbstractBwdTestCase
                     
                     // Alpha not used, so not bothering.
                     g.setArgb32(0x4080C0);
-                    g.clearRectOpaque(clearX, clearY, clearXSpan, clearYSpan);
+                    g.clearRect(clearX, clearY, clearXSpan, clearYSpan);
                 }
                 
                 final int argb32 = Argb32.withAlpha8(rgb32, alpha8);

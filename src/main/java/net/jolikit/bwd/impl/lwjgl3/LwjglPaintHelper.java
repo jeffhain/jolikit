@@ -33,6 +33,7 @@ import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.lang.NumbersUtils;
 
 public class LwjglPaintHelper {
 
@@ -188,8 +189,8 @@ public class LwjglPaintHelper {
             long window,
             GLCapabilities capabilities) {
         
-        final int[] clientPixelArr = offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
 
         final int clientWidth = offscreenBuffer.getWidth();
         final int clientHeight = offscreenBuffer.getHeight();
@@ -240,8 +241,8 @@ public class LwjglPaintHelper {
              */
             
             final MyTextureData textureData = computeTextureData(
-                    clientPixelArr,
-                    clientPixelArrScanlineStride,
+                    pixelArr,
+                    pixelArrScanlineStride,
                     clientWidth,
                     clientHeight,
                     clip);
@@ -339,8 +340,8 @@ public class LwjglPaintHelper {
      * @param clip Clip in client coordinates.
      */
     private static MyTextureData computeTextureData(
-            int[] clientPixelArr,
-            int clientPixelArrScanlineStride,
+            int[] pixelArr,
+            int pixelArrScanlineStride,
             int clientWidth,
             int clientHeight,
             GRect clip) {
@@ -357,7 +358,7 @@ public class LwjglPaintHelper {
         if (clipIsFull) {
             directIbToUse = null;
         } else {
-            final int pixelCountInClip = clip.xSpan() * clip.ySpan();
+            final int pixelCountInClip = NumbersUtils.timesExact(clip.xSpan(), clip.ySpan());
             final IntBuffer directIB = DirectBuffers.getThreadLocalDirectIntBuffer_1024_sq_nativeOrder();
             if (directIB.capacity() >= pixelCountInClip) {
                 directIbToUse = directIB;
@@ -374,8 +375,8 @@ public class LwjglPaintHelper {
              final int texXSpan = clip.xSpan();
              directIb.clear();
              for (int y = clip.y(); y <= clip.yMax(); y++) {
-                 final int srcOffset = clip.x() + y * clientPixelArrScanlineStride;
-                 directIb.put(clientPixelArr, srcOffset, texXSpan);
+                 final int srcOffset = clip.x() + y * pixelArrScanlineStride;
+                 directIb.put(pixelArr, srcOffset, texXSpan);
              }
              directIb.flip();
              /*
@@ -385,8 +386,8 @@ public class LwjglPaintHelper {
              texturePixelsScanlineStride = clip.xSpan();
              textureRect = clip;
         } else {
-            texturePixels = clientPixelArr;
-            texturePixelsScanlineStride = clientPixelArrScanlineStride;
+            texturePixels = pixelArr;
+            texturePixelsScanlineStride = pixelArrScanlineStride;
             textureRect = GRect.valueOf(
                     0,
                     0,

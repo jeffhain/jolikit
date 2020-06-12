@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ public class BenchRepaint_0s_BwdTestCase extends AbstractBwdTestCase {
             Dbg.log("paintNum = " + (this.paintCounter + 1));
         }
 
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         this.ppsHelper.onEvent();
         final int pps = this.ppsHelper.getFrequencyHzRounded();

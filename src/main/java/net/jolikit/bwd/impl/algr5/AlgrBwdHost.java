@@ -815,15 +815,15 @@ public class AlgrBwdHost extends AbstractBwdHost {
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
 
         this.offscreenBuffer.setSize(width, height);
-        final int[] clientPixelArr = this.offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
 
         final AlgrBwdGraphics g = new AlgrBwdGraphics(
                 this.getBinding(),
                 box,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
 
         final List<GRect> paintedRectList =
                 this.getClientPainterNoRec().paintClientAndClipRects(

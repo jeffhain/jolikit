@@ -70,7 +70,7 @@ public class ParallelDrawingBwdTestCase extends AbstractBwdTestCase {
     private class MySplittable implements InterfaceSplittable {
         /**
          * Creating a new graphics for this splittable at each split,
-         * and storing the draw box to use as its box and base clip,
+         * and storing the draw box to use as its box and initial clip,
          * which allows to make sure we won't leak outside of it while drawing.
          */
         private InterfaceBwdGraphics g;
@@ -93,7 +93,7 @@ public class ParallelDrawingBwdTestCase extends AbstractBwdTestCase {
         public InterfaceSplittable split() {
             final InterfaceBwdGraphics g = this.g;
             
-            final GRect drawBox = g.getBaseClipInClient();
+            final GRect drawBox = g.getInitialClipInBase();
             final int x = drawBox.x();
             final int y = drawBox.y();
             final int xSpan = drawBox.xSpan();
@@ -257,7 +257,7 @@ public class ParallelDrawingBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
     
     private void drawInBox_inInitFinish(InterfaceBwdGraphics g) {
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         final int x = box.x();
         final int y = box.y();

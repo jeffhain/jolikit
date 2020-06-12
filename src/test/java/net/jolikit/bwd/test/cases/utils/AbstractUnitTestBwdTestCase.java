@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,10 +152,10 @@ public abstract class AbstractUnitTestBwdTestCase extends AbstractBwdTestCase {
         // For tests that test initial color.
         final BwdColor initialColor = g.getColor();
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         g.setColor(this.getClearColor());
-        g.clearRectOpaque(box);
+        g.clearRect(box);
         
         g.setColor(initialColor);
         

@@ -224,7 +224,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
                 binding,
                 gc,
                 box,
-                box, // baseClip
+                box, // initialClip
                 //
                 dirtySnapshotHelper);
     }
@@ -247,12 +247,12 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
     public JfxBwdGraphics newChildGraphics(GRect childBox) {
         this.checkFinishNotCalled();
         
-        final GRect childBaseClip = this.getBaseClipInClient().intersected(childBox);
+        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new JfxBwdGraphics(
                 this.getBinding(),
                 this.gc,
                 childBox,
-                childBaseClip,
+                childInitialClip,
                 this.dirtySnapshotHelper);
     }
     
@@ -270,7 +270,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      */
     
     @Override
-    public void clearRectOpaque(int x, int y, int xSpan, int ySpan) {
+    public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
         /*
@@ -503,19 +503,19 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         final int defaultRes = super.getArgb32At(x, y);
         
         final GTransform transform = this.getTransform();
-        final int xInClient = transform.xIn1(x, y);
-        final int yInClient = transform.yIn1(x, y);
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
         
-        this.dirtySnapshotHelper.beforePixelReading(xInClient, yInClient);
+        this.dirtySnapshotHelper.beforePixelReading(xInBase, yInBase);
         final GRect snapshotBox = this.dirtySnapshotHelper.getSnapshotBox();
-        if (!snapshotBox.contains(xInClient, yInClient)) {
+        if (!snapshotBox.contains(xInBase, yInBase)) {
             return defaultRes;
         }
         
         final int[] snapshotPremulArgb32Arr = this.dirtySnapshotHelper.getSnapshotPremulArgb32Arr();
         final int snapshotScanlineStride = this.dirtySnapshotHelper.getSnapshotScanlineStride();
         
-        final int index = yInClient * snapshotScanlineStride + xInClient;
+        final int index = yInBase * snapshotScanlineStride + xInBase;
         final int premulArgb32 = snapshotPremulArgb32Arr[index];
         final int argb32 = BindingColorUtils.toNonPremulAxyz32(premulArgb32);
         return argb32;
@@ -565,7 +565,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    protected void setBackingClip(GRect clipInClient) {
+    protected void setBackingClip(GRect clipInBase) {
         this.setBackingClipAndTransformToCurrent();
     }
     
@@ -600,7 +600,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
     @Override
     protected void setBackingState(
         boolean mustSetClip,
-        GRect clip,
+        GRect clipInBase,
         //
         boolean mustSetTransform,
         GTransform transform,
@@ -711,13 +711,13 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
             InterfaceBwdBinding binding,
             GraphicsContext gc,
             GRect box,
-            GRect baseClip,
+            GRect initialClip,
             //
             JfxDirtySnapshotHelper dirtySnapshotHelper) {
         super(
                 binding,
                 box,
-                baseClip);
+                initialClip);
         
         this.gc = LangUtils.requireNonNull(gc);
         
@@ -767,7 +767,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      * i.e. before init() call.
      */
     private void addCurrentClipToBacking() {
-        final GRect clip = this.getClipInClient();
+        final GRect clip = this.getClipInBase();
         final int x = clip.x();
         final int y = clip.y();
         final int xSpan = clip.xSpan();

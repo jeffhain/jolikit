@@ -31,8 +31,8 @@ public class JfxUtils {
     //--------------------------------------------------------------------------
 
     /**
-     * True for having the 0.5 offset (integer client coordinates being centered on
-     * pixels, not pixels borders) in the transform itself.
+     * True for having the 0.5 offset (integer BWD coordinates being centered on
+     * pixels, not pixels borders as in JavaFX) in the transform itself.
      * TODO jfx For some reason, some rotated Strings are more badly rendered
      * when it is true, so we keep it false.
      */

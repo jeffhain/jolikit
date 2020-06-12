@@ -334,13 +334,13 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
 
         final InterfaceBwdBinding binding = this.getBinding();
         
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int xMin = box.x();
         final int yMin = box.y();
         final int xSpan = box.xSpan();
         
         g.setColor(BwdColor.BLACK);
-        g.clearRectOpaque(box);
+        g.clearRect(box);
         
         paintCells(g);
         
@@ -420,7 +420,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
      */
     private static int cellX(InterfaceBwdGraphics g, int cellIndex) {
         final int column = cellIndex % NBR_OF_COLUMNS;
-        return g.getBoxInClient().x() + column * (CELL_X_SPAN + 1) + 1;
+        return g.getBox().x() + column * (CELL_X_SPAN + 1) + 1;
     }
     
     /**
@@ -428,7 +428,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
      */
     private static int cellY(InterfaceBwdGraphics g, int cellIndex) {
         final int row = cellIndex / NBR_OF_COLUMNS;
-        return g.getBoxInClient().y() + row * (CELL_Y_SPAN + 1) + 1;
+        return g.getBox().y() + row * (CELL_Y_SPAN + 1) + 1;
     }
     
     private static GPoint itemPos(int cellX, int cellY, int itemIndex) {
@@ -461,7 +461,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
     }
 
     private void paintCells(InterfaceBwdGraphics g) {
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int x = box.x();
         final int y = box.y();
         final int xSpan = AREA_X_SPAN;

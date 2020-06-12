@@ -683,16 +683,16 @@ public class SwtBwdHost extends AbstractBwdHost {
 
         this.offscreenBuffer.setSize(width, height);
 
-        final int[] clientPixelArr = this.offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
 
         final SwtBwdGraphics g = new SwtBwdGraphics(
                 this.binding,
                 this.binding.getDisplay(),
                 box,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
 
         final List<GRect> paintedRectList =
                 this.getClientPainterNoRec().paintClientAndClipRects(
@@ -709,8 +709,8 @@ public class SwtBwdHost extends AbstractBwdHost {
 
                 for (GRect paintedRect : paintedRectList) {
                     this.paintUtils.drawRectOnG(
-                            clientPixelArr,
-                            clientPixelArrScanlineStride,
+                            pixelArr,
+                            pixelArrScanlineStride,
                             paintedRect,
                             device,
                             backingG);

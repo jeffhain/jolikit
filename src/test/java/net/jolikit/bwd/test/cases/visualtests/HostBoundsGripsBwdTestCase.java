@@ -181,7 +181,7 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
             GRect dirtyRect) {
         
         // Graphics box is client box.
-        final GRect clientBox = g.getBoxInClient();
+        final GRect clientBox = g.getBox();
         
         /*
          * Updating grips boxes,

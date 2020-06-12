@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public class DrawingMethodsBwdMockPainter {
          * Clearing.
          */
         
-        clearRectsOpaque(g, cellIndex++);
+        clearRects(g, cellIndex++);
         
         /*
          * Geometry.
@@ -274,12 +274,12 @@ public class DrawingMethodsBwdMockPainter {
     
     private static int cellCenterX(InterfaceBwdGraphics g, int cellIndex) {
         final int column = cellIndex % NBR_OF_COLUMNS;
-        return g.getBoxInClient().x() + (CELL_INNER_SPAN + 1)/2 + column * (CELL_INNER_SPAN + 1);
+        return g.getBox().x() + (CELL_INNER_SPAN + 1)/2 + column * (CELL_INNER_SPAN + 1);
     }
     
     private static int cellCenterY(InterfaceBwdGraphics g, int cellIndex) {
         final int row = cellIndex / NBR_OF_COLUMNS;
-        return g.getBoxInClient().y() + (CELL_INNER_SPAN + 1)/2 + row * (CELL_INNER_SPAN + 1);
+        return g.getBox().y() + (CELL_INNER_SPAN + 1)/2 + row * (CELL_INNER_SPAN + 1);
     }
     
     /**
@@ -300,7 +300,7 @@ public class DrawingMethodsBwdMockPainter {
      */
     
     private void paintCells(InterfaceBwdGraphics g) {
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         final int x = box.x();
         final int y = box.y();
         final int xSpan = AREA_X_SPAN;
@@ -368,7 +368,7 @@ public class DrawingMethodsBwdMockPainter {
      * 
      */
     
-    private void clearRectsOpaque(InterfaceBwdGraphics g, int cellIndex) {
+    private void clearRects(InterfaceBwdGraphics g, int cellIndex) {
         resetColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
@@ -377,13 +377,13 @@ public class DrawingMethodsBwdMockPainter {
         final int ySpan = CELL_QUARTER_INNER_SPAN;
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            clearRectOpaque(g, LOCAL_OFFSET, LOCAL_OFFSET, xSpan, ySpan, transform);
+            clearRect(g, LOCAL_OFFSET, LOCAL_OFFSET, xSpan, ySpan, transform);
         }
     }
 
-    private void clearRectOpaque(InterfaceBwdGraphics g, int x, int y, int xSpan, int ySpan, GTransform transform) {
+    private void clearRect(InterfaceBwdGraphics g, int x, int y, int xSpan, int ySpan, GTransform transform) {
         g.setTransform(transform);
-        g.clearRectOpaque(x, y, xSpan, ySpan);
+        g.clearRect(x, y, xSpan, ySpan);
     }
 
     /*
@@ -1066,7 +1066,7 @@ public class DrawingMethodsBwdMockPainter {
         final GRect tClip = GRect.valueOf(x, y, xSpan, ySpan);
         g.setTransform(transform);
         g.removeAllAddedClips();
-        g.addClipInClient(transform.rectIn1(tClip));
+        g.addClipInBase(transform.rectIn1(tClip));
         // Must not be drawn.
         g.drawRect(tClip.x()-1, tClip.y()-1, tClip.xSpan()+2, tClip.ySpan()+2);
         // Must be drawn.

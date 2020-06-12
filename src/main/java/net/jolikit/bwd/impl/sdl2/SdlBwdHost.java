@@ -1026,15 +1026,15 @@ public class SdlBwdHost extends AbstractBwdHost {
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
 
         this.offscreenBuffer.setSize(width, height);
-        final int[] clientPixelArr = this.offscreenBuffer.getPixelArr();
-        final int clientPixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
+        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
 
         final SdlBwdGraphics g = new SdlBwdGraphics(
                 this.binding,
                 box,
                 //
-                clientPixelArr,
-                clientPixelArrScanlineStride);
+                pixelArr,
+                pixelArrScanlineStride);
 
         final List<GRect> paintedRectList = this.getClientPainterNoRec().paintClientAndClipRects(
                 g,
@@ -1057,8 +1057,8 @@ public class SdlBwdHost extends AbstractBwdHost {
                 try {
                     for (GRect paintedRect : paintedRectList) {
                         SdlUtils.copyPixels(
-                                clientPixelArr,
-                                clientPixelArrScanlineStride,
+                                pixelArr,
+                                pixelArrScanlineStride,
                                 paintedRect,
                                 surface);
                     }

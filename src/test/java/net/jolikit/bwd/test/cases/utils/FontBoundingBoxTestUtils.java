@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,14 +51,14 @@ public class FontBoundingBoxTestUtils {
      * Uses the whole client box as start rectangle.
      */
     public GRect computeDrawnRect(InterfaceBwdGraphics g) {
-        return this.computeDrawnRect(g, g.getBoxInClient());
+        return this.computeDrawnRect(g, g.getBox());
     }
     
     public GRect computeCpBoundingBox(
             InterfaceBwdGraphics g,
             InterfaceBwdFont font,
             int codePoint) {
-        final GRect box = g.getBoxInClient();
+        final GRect box = g.getBox();
         
         final String text = LangUtils.stringOfCodePoint(codePoint);
         
@@ -114,7 +114,7 @@ public class FontBoundingBoxTestUtils {
         
         final List<GRect> bbList = new ArrayList<GRect>();
         
-        final GRect clientBox = g.getBoxInClient();
+        final GRect clientBox = g.getBox();
         
         final int fontHeight = font.fontMetrics().fontHeight();
         final int textTheoHeight = fontHeight;
@@ -377,7 +377,7 @@ public class FontBoundingBoxTestUtils {
             InterfaceBwdGraphics g,
             int x,
             int y) {
-        if (!g.getBoxInClient().contains(x, y)) {
+        if (!g.getBox().contains(x, y)) {
             // Not throwing, since we can,
             // to simplify loops conditions.
             return false;
