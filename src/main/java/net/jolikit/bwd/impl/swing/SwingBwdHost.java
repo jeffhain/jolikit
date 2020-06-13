@@ -1106,7 +1106,7 @@ public class SwingBwdHost extends AbstractBwdHost {
         this.paintUtils.paintClientOnObThenG(
                 this.getBinding(),
                 this.window,
-                this.getClientPainterNoRec(),
+                this.getPaintClientHelper(),
                 this.offscreenBuffer,
                 this.dirtyRectProvider,
                 backingGContainer,

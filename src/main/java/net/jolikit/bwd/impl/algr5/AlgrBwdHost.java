@@ -828,7 +828,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
                 pixelArrScanlineStride);
 
         final List<GRect> paintedRectList =
-                this.getClientPainterNoRec().paintClientAndClipRects(
+                this.getPaintClientHelper().initPaintFinish(
                         g,
                         dirtyRect);
 

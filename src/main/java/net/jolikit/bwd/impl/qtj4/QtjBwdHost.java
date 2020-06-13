@@ -960,7 +960,7 @@ public class QtjBwdHost extends AbstractBwdHost {
         // No use for this list.
         @SuppressWarnings("unused")
         final List<GRect> paintedRectList =
-        this.getClientPainterNoRec().paintClientAndClipRects(
+        this.getPaintClientHelper().initPaintFinish(
                 g,
                 dirtyRect);
 

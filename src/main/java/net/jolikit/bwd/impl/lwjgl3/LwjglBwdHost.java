@@ -730,9 +730,10 @@ public class LwjglBwdHost extends AbstractBwdHost {
                 pixelArr,
                 pixelArrScanlineStride);
 
-        final List<GRect> paintedRectList = this.getClientPainterNoRec().paintClientAndClipRects(
-                g,
-                dirtyRect);
+        final List<GRect> paintedRectList =
+                this.getPaintClientHelper().initPaintFinish(
+                        g,
+                        dirtyRect);
         
         /*
          * Copying offscreen buffer into OpenGL.

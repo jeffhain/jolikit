@@ -75,8 +75,9 @@ public interface InterfaceBwdClient extends InterfaceBwdEventListener {
      * Second, the list would most often only contain a single dirty rectangle.
      * Third, it's much easier to deal with on the client side.
      * 
-     * @param g Graphics to use, not yet initialized, with clip equal to its box,
-     *        which is itself equal to client area here.
+     * @param g The root graphics for drawing on the client,
+     *        with box and initial clip identical to client area,
+     *        and already initialized.
      * @param dirtyRect A rectangle that is dirty and must be repaint even if
      *        things to display in it didn't change on client side.
      *        Must not cover pixels outside client area, to make it easier
@@ -84,10 +85,9 @@ public interface InterfaceBwdClient extends InterfaceBwdEventListener {
      *        Must not be null, but can be empty (the general case).
      * @return A list of rectangles corresponding to the areas that were
      *         actually painted, to indicate to the binding which pixels
-     *         might have changed, in case it could help optimizing rendering.
-     *         Should cover the pixels of the dirty rectangle if it's not empty
-     *         (unless for tests or other cases for which you wouldn't care
-     *         about painting dirty regions), and possibly more.
+     *         might have changed, in case that could help to optimize rendering.
+     *         Should cover the pixels of the dirty rectangle if it's not empty,
+     *         and possibly more.
      *         Can cover pixels outside client area, which allows for using
      *         default all-covering values like GRect.DEFAULT_HUGE.
      *         Must not be null, but can be empty (if dirtyRect was empty,

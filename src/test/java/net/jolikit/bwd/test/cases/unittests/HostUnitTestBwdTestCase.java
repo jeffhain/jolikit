@@ -563,7 +563,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
             this.setMustCallOnEventError(true);
         }
         @Override
-        protected List<GRect> paint_initDone(
+        protected List<GRect> paintClientImpl(
                 InterfaceBwdGraphics g,
                 GRect dirtyRect) {
 

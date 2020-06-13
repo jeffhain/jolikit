@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -134,7 +134,7 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
 
     @Override
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         

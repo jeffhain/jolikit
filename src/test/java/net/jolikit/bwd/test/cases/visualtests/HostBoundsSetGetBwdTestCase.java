@@ -113,7 +113,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             removeHost(this.getHost());
         }
         @Override
-        protected List<GRect> paint_initDone(
+        protected List<GRect> paintClientImpl(
                 InterfaceBwdGraphics g,
                 GRect dirtyRect) {
 
@@ -303,7 +303,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
 
     @Override
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         

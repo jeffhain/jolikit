@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -646,7 +646,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      */
     private final ClientWrapperForHost clientWrapper;
 
-    private final ClientPainterNoRec clientPainterNoRec;
+    private final PaintClientHelper paintClientHelper;
 
     private boolean closed_nonVolatile = false;
 
@@ -897,7 +897,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         
         this.clientWrapper = clientWrapper;
 
-        this.clientPainterNoRec = new ClientPainterNoRec(clientWrapper);
+        this.paintClientHelper = new PaintClientHelper(clientWrapper);
 
         final InterfaceDoubleSupplier keyRepetitionTriggerDelaySSupplier =
                 new InterfaceDoubleSupplier() {
@@ -2194,8 +2194,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         return this.keyRepetitionHelper;
     }
 
-    protected ClientPainterNoRec getClientPainterNoRec() {
-        return this.clientPainterNoRec;
+    /**
+     * @return A helper class to call client's paintClient() method.
+     */
+    protected PaintClientHelper getPaintClientHelper() {
+        return this.paintClientHelper;
     }
 
     /*

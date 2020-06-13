@@ -1038,9 +1038,10 @@ public class SdlBwdHost extends AbstractBwdHost {
                 pixelArr,
                 pixelArrScanlineStride);
 
-        final List<GRect> paintedRectList = this.getClientPainterNoRec().paintClientAndClipRects(
-                g,
-                dirtyRect);
+        final List<GRect> paintedRectList =
+                this.getPaintClientHelper().initPaintFinish(
+                        g,
+                        dirtyRect);
 
         if (paintedRectList.size() != 0) {
             if (this.canPaintClientNow()) {

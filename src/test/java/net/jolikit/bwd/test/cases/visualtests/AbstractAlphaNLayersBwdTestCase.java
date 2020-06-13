@@ -328,7 +328,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
 
     @Override
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
 

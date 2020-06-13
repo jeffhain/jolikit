@@ -547,7 +547,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         // not to damage result client area.
         final BwdClientMock testClient = new BwdClientMock() {
             @Override
-            protected List<GRect> paint_initDone(
+            protected List<GRect> paintClientImpl(
                     InterfaceBwdGraphics g,
                     GRect dirtyRect) {
 

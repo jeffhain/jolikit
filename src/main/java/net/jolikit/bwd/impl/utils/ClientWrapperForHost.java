@@ -473,7 +473,7 @@ public class ClientWrapperForHost implements InterfaceBwdClient {
             this.onThrowable(t);
             // Pretending everything was painted,
             // so that we can see what was painted
-            // before throwing occured.
+            // before throwing occurred.
             ret = GRect.DEFAULT_HUGE_IN_LIST;
         }
         return ret;

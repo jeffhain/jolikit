@@ -71,6 +71,11 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
   - Modifications:
+    - Bindings must now call client's paintClient() method
+      within calls to graphics init() and finish(),
+      so that clients don't have to bother with these
+      (NB: this is a backward-compatible change, since calling
+      init() and finish() multiple times is allowed).
     - To allows for use of graphics for writable (offscreen) images,
       "base clip" is now referred to as "initial clip",
       and "client area/coordinates" as "base area/coordinates"

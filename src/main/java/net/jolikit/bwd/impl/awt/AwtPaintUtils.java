@@ -25,7 +25,7 @@ import java.awt.image.BufferedImage;
 import java.util.List;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.ClientPainterNoRec;
+import net.jolikit.bwd.impl.utils.PaintClientHelper;
 import net.jolikit.lang.InterfaceFactory;
 
 public class AwtPaintUtils {
@@ -90,7 +90,7 @@ public class AwtPaintUtils {
     public void paintClientOnObThenG(
             AbstractAwtBwdBinding binding,
             Window window,
-            ClientPainterNoRec clientPainterNoRec,
+            PaintClientHelper paintClientHelper,
             AwtGraphicBuffer offscreenBuffer,
             InterfaceFactory<GRect> dirtyRectProvider,
             Container backingGContainer,
@@ -128,7 +128,7 @@ public class AwtPaintUtils {
                     //
                     offscreenImage);
 
-            paintedRectList = clientPainterNoRec.paintClientAndClipRects(
+            paintedRectList = paintClientHelper.initPaintFinish(
                     g,
                     dirtyRect);
         } else {
@@ -139,7 +139,7 @@ public class AwtPaintUtils {
                     //
                     offscreenImage);
 
-            paintedRectList = clientPainterNoRec.paintClientAndClipRects(
+            paintedRectList = paintClientHelper.initPaintFinish(
                     g,
                     dirtyRect);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -106,14 +106,10 @@ public class BwdClientMock extends BwdClientEventListenerMock implements Interfa
             GRect dirtyRect) {
         
         this.callCount_paint++;
-        g.init();
-        try {
-            return this.paint_initDone(
-                    g,
-                    dirtyRect);
-        } finally {
-            g.finish();
-        }
+        
+        return this.paintClientImpl(
+                g,
+                dirtyRect);
     }
     
     //--------------------------------------------------------------------------
@@ -129,11 +125,9 @@ public class BwdClientMock extends BwdClientEventListenerMock implements Interfa
     }
     
     /**
-     * Called within init/close.
-     * 
      * Override it to implement your painting.
      */
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         return GRect.DEFAULT_HUGE_IN_LIST;

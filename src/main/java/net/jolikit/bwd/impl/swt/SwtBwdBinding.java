@@ -200,8 +200,6 @@ org.eclipse.swt.SWTException: Invalid thread access
     at org.eclipse.swt.widgets.Widget.checkWidget(Unknown Source)
     at org.eclipse.swt.widgets.Text.setFont(Unknown Source)
     at net.jolikit.bwd.impl.swt.SwtFontMetricsHelper.computeWidth(SwtFontMetricsHelper.java:87)
-    at net.jolikit.bwd.impl.swt.SwtBwdFontMetrics.<init>(SwtBwdFontMetrics.java:62)
-    at net.jolikit.bwd.impl.swt.SwtBwdFont.<init>(SwtBwdFont.java:42)
          */
         return false;
     }
@@ -223,16 +221,6 @@ Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thr
     at org.eclipse.swt.widgets.Widget.checkWidget(Unknown Source)
     at org.eclipse.swt.widgets.Text.setFont(Unknown Source)
     at net.jolikit.bwd.impl.swt.SwtFontMetricsHelper.computeTextWidth(SwtFontMetricsHelper.java:131)
-    at net.jolikit.bwd.impl.swt.SwtBwdFontMetrics.backingTextWidth(SwtBwdFontMetrics.java:90)
-    at net.jolikit.bwd.impl.swt.SwtBwdFontMetrics.computeTextWidth_twoOrMoreCp(SwtBwdFontMetrics.java:82)
-    at net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontMetrics.computeTextWidth(AbstractBwdFontMetrics.java:107)
-    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase.newDrawnWritableImage(WritableImageBwdTestCase.java:351)
-    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase.access$1(WritableImageBwdTestCase.java:326)
-    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase$MyBgRunnable.run(WritableImageBwdTestCase.java:83)
-    at net.jolikit.time.sched.hard.HardScheduler.workerRun(HardScheduler.java:1780)
-    at net.jolikit.time.sched.hard.HardScheduler.access$9(HardScheduler.java:1695)
-    at net.jolikit.time.sched.hard.HardScheduler$MyWorkerRunnable.run(HardScheduler.java:229)
-    at java.lang.Thread.run(Thread.java:748)
          */
         return false;
     }

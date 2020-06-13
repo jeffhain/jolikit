@@ -1139,7 +1139,7 @@ public class JoglBwdHost extends AbstractBwdHost {
                 pixelArr,
                 pixelArrScanlineStride);
 
-        return this.getClientPainterNoRec().paintClientAndClipRects(
+        return this.getPaintClientHelper().initPaintFinish(
                 g,
                 dirtyRect);
     }

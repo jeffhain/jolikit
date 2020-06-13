@@ -79,7 +79,7 @@ public class DefaultFontBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
 
     @Override
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
 

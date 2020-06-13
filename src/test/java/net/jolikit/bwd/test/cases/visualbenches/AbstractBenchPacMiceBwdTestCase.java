@@ -255,7 +255,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
 
     @Override
-    protected List<GRect> paint_initDone(
+    protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         

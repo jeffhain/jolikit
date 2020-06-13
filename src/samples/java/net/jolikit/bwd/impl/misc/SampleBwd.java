@@ -168,17 +168,6 @@ public class SampleBwd {
                 InterfaceBwdGraphics g,
                 GRect dirtyRect) {
             
-            g.init();
-            try {
-                paintClient_gInitDone(g);
-            } finally {
-                g.finish();
-            }
-            
-            return GRect.DEFAULT_HUGE_IN_LIST;
-        }
-        private void paintClient_gInitDone(InterfaceBwdGraphics g) {
-            
             final GRect clientBox = g.getBox();
             if (DEBUG) {
                 System.out.println("paintClient_gInitDone(...) : clientBox = " + clientBox);
@@ -234,6 +223,8 @@ public class SampleBwd {
                     2,
                     2 + (defaultFontHeight + 1),
                     text);
+            
+            return GRect.DEFAULT_HUGE_IN_LIST;
         }
         private void onNewMousePos() {
             

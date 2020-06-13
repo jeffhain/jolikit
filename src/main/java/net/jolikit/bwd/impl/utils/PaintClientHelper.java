@@ -24,13 +24,9 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 
 /**
- * Utility to ensure that a client's painting method is never called
- * recursively, and which works if all paintings for a same client
- * are done using a same instance.
- * 
- * Also takes care of clipping input and output rectangles to graphics box.
+ * Helper to make calling client's paintClient() method simpler.
  */
-public class ClientPainterNoRec {
+public class PaintClientHelper {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -48,19 +44,25 @@ public class ClientPainterNoRec {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ClientPainterNoRec(InterfaceBwdClient client) {
+    public PaintClientHelper(InterfaceBwdClient client) {
         this.client = client;
     }
 
     /**
-     * Calls client's painting method.
+     * Takes care of:
+     * - Calling graphics init()/finish() around call to paintClient().
+     * - Clipping input dirty rectangle (mandatory)
+     *   and output rectangles (handy) to graphics box.
+     * - Ensuring that a client's painting method is never called
+     *   recursively, assuming that all paintings for a same client
+     *   are done using a same instance of this class.
      * 
      * Also takes care of clipping input and output rectangles to graphics box.
      * 
      * @throws IllegalStateException if client's painting method
      *         is already being called by this instance.
      */
-    public List<GRect> paintClientAndClipRects(
+    public List<GRect> initPaintFinish(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         if (this.clientPaintBeingCalled.compareAndSet(false, true)) {
@@ -68,8 +70,14 @@ public class ClientPainterNoRec {
                 // Input clipping (mandatory, easier to deal with for clients).
                 dirtyRect = g.getBox().intersected(dirtyRect);
                 
-                List<GRect> paintedRectList = this.client.paintClient(g, dirtyRect);
-
+                List<GRect> paintedRectList = null;
+                g.init();
+                try {
+                    paintedRectList = this.client.paintClient(g, dirtyRect);
+                } finally {
+                    g.finish();
+                }
+                
                 // Output clipping (easier to deal with for bindings).
                 paintedRectList = BindingCoordsUtils.clippedRectList(g.getBox(), paintedRectList);
                 
