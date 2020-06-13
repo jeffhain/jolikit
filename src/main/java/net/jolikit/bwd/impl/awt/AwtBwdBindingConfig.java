@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,16 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
     //--------------------------------------------------------------------------
 
     private Locale locale = Locale.ENGLISH;
+    
+    /**
+     * True because never slower and often much faster.
+     */
+    private boolean mustUseIntArrayGraphicsForClients = true;
+    
+    /**
+     * True because never slower and often much faster.
+     */
+    private boolean mustUseIntArrayGraphicsForWritableImages = true;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -82,5 +92,21 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
 
     public void setLocale(Locale locale) {
         this.locale = locale;
+    }
+
+    public boolean getMustUseIntArrayGraphicsForClients() {
+        return this.mustUseIntArrayGraphicsForClients;
+    }
+
+    public void setMustUseIntArrayGraphicsForClients(boolean mustUseIntArrayGraphicsForClients) {
+        this.mustUseIntArrayGraphicsForClients = mustUseIntArrayGraphicsForClients;
+    }
+
+    public boolean getMustUseIntArrayGraphicsForWritableImages() {
+        return this.mustUseIntArrayGraphicsForWritableImages;
+    }
+
+    public void setMustUseIntArrayGraphicsForWritableImages(boolean mustUseIntArrayGraphicsForWritableImages) {
+        this.mustUseIntArrayGraphicsForWritableImages = mustUseIntArrayGraphicsForWritableImages;
     }
 }

@@ -24,6 +24,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.Argb64;
@@ -34,6 +35,7 @@ import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.api.utils.BwdUnicode;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
@@ -59,9 +61,18 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     /*
      * 
      */
-    
-    private static final int INITIAL_WIDTH = 200;
-    private static final int INITIAL_HEIGHT = 160;
+
+    /**
+     * Left part of client for client graphics result,
+     * right part of client for image graphics results.
+     */
+    private static final int WIDTH_PER_GRAPHICS_RESULTS = 200;
+    private static final int HEIGHT_PER_GRAPHICS_RESULTS = 200;
+
+    private static final int NBR_OF_GRAPHICS = 2;
+
+    private static final int INITIAL_WIDTH = NBR_OF_GRAPHICS * WIDTH_PER_GRAPHICS_RESULTS;
+    private static final int INITIAL_HEIGHT = HEIGHT_PER_GRAPHICS_RESULTS;
 
     private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
@@ -169,9 +180,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     
     private boolean mustTest = false;
     
-    private int nextTextIndex = 0;
+    private int nextTextOrdinal = 0;
     
-    private final Boolean[] testPassedByIndex = new Boolean[MyTest_VALUES.length];
+    private final Boolean[] testPassedByOrdinal_client = new Boolean[MyTest_VALUES.length];
+    private final Boolean[] testPassedByOrdinal_image = new Boolean[MyTest_VALUES.length];
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -210,7 +222,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     @Override
     protected long testSome(long nowNs) {
         
-        if (this.nextTextIndex == MyTest_VALUES.length) {
+        if (this.nextTextOrdinal == MyTest_VALUES.length) {
             this.mustTest = false;
             return Long.MAX_VALUE;
         } else {
@@ -224,31 +236,73 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
 
     @Override
     protected void drawCurrentState(InterfaceBwdGraphics g) {
+        
+        final InterfaceBwdWritableImage image = this.getBinding().newWritableImage(
+                WIDTH_PER_GRAPHICS_RESULTS,
+                HEIGHT_PER_GRAPHICS_RESULTS);
+        
         try {
             if (this.mustTest) {
-                this.runNextTest(g);
+                final int testOrdinal = this.nextTextOrdinal++;
+                if (DEBUG) {
+                    System.out.println("testOrdinal = " + testOrdinal);
+                }
+                final MyTest test = MyTest_VALUES[testOrdinal];
+                if (DEBUG) {
+                    System.out.println("test = " + test);
+                }
+
+                /*
+                 * Client graphics.
+                 */
+
+                if (DEBUG) {
+                    System.out.println("testing on client graphics");
+                }
+                this.runNextTest(
+                        g,
+                        testOrdinal,
+                        this.testPassedByOrdinal_client);
+                
+                /*
+                 * Image graphics.
+                 * 
+                 * Drawing image graphics results on image graphics
+                 * (as we draw client graphics results on client graphics),
+                 * and then drawing image on client,
+                 * which allows to test that each graphics actually
+                 * allows to draw at least a bit.
+                 */
+                
+                if (DEBUG) {
+                    System.out.println("testing on image graphics");
+                }
+                this.runNextTest(
+                        image.getGraphics(),
+                        testOrdinal,
+                        this.testPassedByOrdinal_image);
             }
         } finally {
-            if (this.nextTextIndex == MyTest_VALUES.length) {
+            if (this.nextTextOrdinal == MyTest_VALUES.length) {
                 this.mustTest = false;
             } else {
                 // Next test ASAP.
                 this.getHost().ensurePendingClientPainting();
             }
 
-            final GRect box = g.getBox();
-
-            g.setColor(BwdColor.WHITE);
-            g.clearRect(box);
-
-            g.setColor(BwdColor.BLACK);
-            final int dy = 1 + g.getFont().fontMetrics().fontHeight();
-            for (int i = 0; i < MyTest_VALUES.length; i++) {
-                final MyTest test = MyTest_VALUES[i];
-                final Boolean bRef = this.testPassedByIndex[i];
-                final String res = ((bRef == null) ? "" : (bRef ? "ok" : "---KO---"));
-                g.drawText(10, 10 + i * dy, "" + test + " : " + res);
-            }
+            drawGraphicsResults(
+                    g,
+                    "Client graphics:",
+                    this.testPassedByOrdinal_client);
+            
+            drawGraphicsResults(
+                    image.getGraphics(),
+                    "Image graphics:",
+                    this.testPassedByOrdinal_image);
+            
+            g.drawImage(WIDTH_PER_GRAPHICS_RESULTS, 0, image);
+            
+            image.dispose();
         }
     }
     
@@ -256,17 +310,52 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private void runNextTest(InterfaceBwdGraphics g) {
-        final int testIndex = this.nextTextIndex++;
-        if (DEBUG) {
-            System.out.println("testIndex = " + testIndex);
-        }
+    /**
+     * Clears the whole graphics box
+     * and then draws results.
+     * 
+     * @param graphicsDescrStr Description of the tested graphics.
+     * @param testPassedByOrdinal (in)
+     */
+    private static void drawGraphicsResults(
+            InterfaceBwdGraphics g,
+            String graphicsDescrStr,
+            Boolean[] testPassedByOrdinal) {
+        
+        g.setColor(BwdColor.WHITE);
+        g.clearRect(g.getBox());
 
-        final MyTest test = MyTest_VALUES[testIndex];
-        if (DEBUG) {
-            System.out.println("test = " + test);
-        }
+        g.setColor(BwdColor.BLACK);
+        
+        final InterfaceBwdFontMetrics fontMetrics = g.getFont().fontMetrics();
+        final int dy = 1 + fontMetrics.fontHeight();
+        
+        int tmpY = 10;
+        g.drawText(10, tmpY, graphicsDescrStr);
+        tmpY += dy;
 
+        g.drawLine(10, tmpY, 10 + fontMetrics.computeTextWidth(graphicsDescrStr), tmpY);
+        tmpY += dy;
+
+        for (int i = 0; i < MyTest_VALUES.length; i++) {
+            final MyTest test = MyTest_VALUES[i];
+            final Boolean bRef = testPassedByOrdinal[i];
+            final String res = ((bRef == null) ? "" : (bRef ? "ok" : "---KO---"));
+            g.drawText(10, tmpY, "" + test + " : " + res);
+            tmpY += dy;
+        }
+    }
+    
+    /**
+     * @param testPassedByOrdinal (in,out)
+     */
+    private void runNextTest(
+            InterfaceBwdGraphics g,
+            int testOrdinal,
+            Boolean[] testPassedByOrdinal) {
+        
+        final MyTest test = MyTest_VALUES[testOrdinal];
+        
         boolean completedNormally = false;
         try {
             switch (test) {
@@ -305,7 +394,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             }
             completedNormally = true;
         } finally {
-            this.testPassedByIndex[testIndex] = completedNormally;
+            testPassedByOrdinal[testOrdinal] = completedNormally;
         }
     }
     
@@ -398,7 +487,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 childG.finish();
             }
         }
-
+        
         /*
          * IllegalStateException,
          * typically when not called between init() and finish().
@@ -1434,124 +1523,184 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             System.out.println("test_images(...)");
         }
         
-        final InterfaceBwdImage image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
-        
-        /*
-         * NullPointerException
-         */
-        
-        try {
-            g.drawImage(0, 0, null);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        
-        try {
-            g.drawImage(0, 0, 0, 0, null);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        
-        try {
-            g.drawImage(null, image);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        try {
-            g.drawImage(GRect.DEFAULT_EMPTY, null);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        
-        try {
-            g.drawImage(0, 0, 0, 0, null, 0, 0, 0, 0);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
+        for (boolean isWritableImage : new boolean[] {false, true}) {
+            final InterfaceBwdImage image;
+            if (isWritableImage) {
+                final int width = 200;
+                final int height = 100;
+                image = getBinding().newWritableImage(width, height);
+            } else {
+                image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
+            }
+            
+            /*
+             * NullPointerException
+             */
 
-        try {
-            g.drawImage(null, image, GRect.DEFAULT_EMPTY);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        try {
-            g.drawImage(GRect.DEFAULT_EMPTY, null, GRect.DEFAULT_EMPTY);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
-        try {
-            g.drawImage(GRect.DEFAULT_EMPTY, image, null);
-            fail();
-        } catch (NullPointerException e) {
-            // ok
-        }
+            try {
+                g.drawImage(0, 0, null);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
 
-        /*
-         * 
-         */
-        
-        g.drawImage(0, 0, image);
+            try {
+                g.drawImage(0, 0, 0, 0, null);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
 
-        g.drawImage(0, 0, 100, 100, image);
-        g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
-        
-        g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
-        g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
-        
-        /*
-         * Disposing image.
-         */
-        
-        image.dispose();
-        
-        /*
-         * IllegalArgumentException
-         */
-        
-        try {
+            try {
+                g.drawImage(null, image);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+            try {
+                g.drawImage(GRect.DEFAULT_EMPTY, null);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+
+            try {
+                g.drawImage(0, 0, 0, 0, null, 0, 0, 0, 0);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+
+            try {
+                g.drawImage(null, image, GRect.DEFAULT_EMPTY);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+            try {
+                g.drawImage(GRect.DEFAULT_EMPTY, null, GRect.DEFAULT_EMPTY);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+            try {
+                g.drawImage(GRect.DEFAULT_EMPTY, image, null);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+
+            /*
+             * 
+             */
+
             g.drawImage(0, 0, image);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // ok
-        }
-        
-        try {
+
             g.drawImage(0, 0, 100, 100, image);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // ok
-        }
-        try {
             g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // ok
-        }
-        
-        try {
-            g.drawImage(
-                    0, 0, 100, 100,
-                    image,
-                    0, 0, 10, 10);
-            fail();
-        } catch (IllegalArgumentException e) {
-            // ok
-        }
-        try {
-            g.drawImage(
-                    GRect.valueOf(0, 0, 100, 100),
-                    image,
-                    GRect.valueOf(0, 0, 10, 10));
-            fail();
-        } catch (IllegalArgumentException e) {
-            // ok
+
+            g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
+            g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+            
+            /*
+             * Can't draw a writable image in itself.
+             */
+            
+            if (isWritableImage) {
+                final InterfaceBwdWritableImage wi =
+                        (InterfaceBwdWritableImage) image;
+                final InterfaceBwdGraphics wig = wi.getGraphics();
+                wig.init();
+                try {
+                    try {
+                        wig.drawImage(0, 0, image);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                    try {
+                        wig.drawImage(0, 0, 100, 100, image);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                    try {
+                        wig.drawImage(GRect.valueOf(0, 0, 100, 100), image);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                    try {
+                        wig.drawImage(
+                                0, 0, 100, 100,
+                                image,
+                                0, 0, 10, 10);
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                    try {
+                        wig.drawImage(
+                                GRect.valueOf(0, 0, 100, 100),
+                                image,
+                                GRect.valueOf(0, 0, 10, 10));
+                        fail();
+                    } catch (IllegalArgumentException e) {
+                        // ok
+                    }
+                } finally {
+                    wig.finish();
+                }
+            }
+
+            /*
+             * Disposing image.
+             */
+
+            image.dispose();
+
+            /*
+             * IllegalArgumentException
+             */
+
+            try {
+                g.drawImage(0, 0, image);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+
+            try {
+                g.drawImage(0, 0, 100, 100, image);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+            try {
+                g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+
+            try {
+                g.drawImage(
+                        0, 0, 100, 100,
+                        image,
+                        0, 0, 10, 10);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+            try {
+                g.drawImage(
+                        GRect.valueOf(0, 0, 100, 100),
+                        image,
+                        GRect.valueOf(0, 0, 10, 10));
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
         }
     }
 

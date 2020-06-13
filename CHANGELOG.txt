@@ -67,6 +67,8 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdGraphics.reset().
     - InterfaceBwdGraphics.isClipEmpty().
     - InterfaceBwdImage.getRect().
+    - InterfaceBwdWritableImage class.
+    - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
   - Modifications:
     - To allows for use of graphics for writable (offscreen) images,
@@ -87,8 +89,10 @@ Jolikit X.X, XXXX/XX/XX
         renamed into
         isConcurrentFontManagementSupported()
       - isConcurrentImageCreationAndDisposalSupported()
-        renamed into
-        isConcurrentImageManagementSupported()
+        split into
+        isConcurrentImageFromFileManagementSupported()
+        and
+        isConcurrentWritableImageManagementSupported()
   - BwdWheelEvent/WHEEL_ROLLED: indicated that xRoll() and yRoll()
     must not be both zero.
   - InterfaceBwdFont: added spec for hashCode() and equals(Object).

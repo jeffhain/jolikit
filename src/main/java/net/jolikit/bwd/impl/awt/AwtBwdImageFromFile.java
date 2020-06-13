@@ -22,23 +22,24 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
+import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
+import net.jolikit.lang.NumbersUtils;
 
-public class AwtBwdImageFromFile extends AbstractBwdImage {
-    
+public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-    
-    private final BufferedImage backingImage;
-    
+
     private final BufferedImageHelper bufferedImageHelper;
-    
+
+    private final int[] premulArgb32Arr;
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-    
+
     /**
      * @param filePath Path of an image file.
      * @param disposalListener Must not be null.
@@ -49,39 +50,60 @@ public class AwtBwdImageFromFile extends AbstractBwdImage {
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
+
         final File file = new File(filePath);
-        final BufferedImage backingImage;
+        final BufferedImage readImage;
         try {
-            backingImage = ImageIO.read(file);
+            readImage = ImageIO.read(file);
         } catch (IOException e) {
             throw new IllegalArgumentException("could not load image at " + filePath, e);
         }
-        if (backingImage == null) {
+        if (readImage == null) {
             // Can happen.
             throw new IllegalArgumentException("could not load image at " + filePath);
         }
-        this.backingImage = backingImage;
-        this.bufferedImageHelper = new BufferedImageHelper(backingImage);
+        this.bufferedImageHelper = new BufferedImageHelper(readImage);
+
         final ImageObserver observer = null;
-        this.setWidth_final(backingImage.getWidth(observer));
-        this.setHeight_final(backingImage.getHeight(observer));
+        final int width = readImage.getWidth(observer);
+        final int height = readImage.getHeight(observer);
+        this.setWidth_final(width);
+        this.setHeight_final(height);
+
+        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final int[] color32Arr = new int[pixelCapacity];
+        final int color32ArrScanlineStride = width;
+
+        final BihPixelFormat pixelFormat = BihPixelFormat.ARGB32;
+        final boolean premul = true;
+        this.bufferedImageHelper.getPixelsInto(
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormat,
+                premul);
+        this.premulArgb32Arr = color32Arr;
     }
-    
-    public BufferedImage getBackingImage() {
-        return this.backingImage;
+
+    @Override
+    public BufferedImage getBufferedImage() {
+        return this.bufferedImageHelper.getImage();
     }
-    
+
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
-    @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        return this.bufferedImageHelper.getArgb32At(x, y);
-    }
 
     @Override
     protected void disposeImpl() {
         // Nothing to do.
+    }
+
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+
+    @Override
+    int[] getPremulArgb32Arr() {
+        return this.premulArgb32Arr;
     }
 }

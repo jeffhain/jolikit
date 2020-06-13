@@ -709,6 +709,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
             return;
         }
 
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
 
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
@@ -723,6 +724,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
 
         final LwjglBwdGraphics g = new LwjglBwdGraphics(
                 this.binding,
+                isImageGraphics,
                 box,
                 //
                 pixelArr,

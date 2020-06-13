@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,44 +21,48 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
-public class DrawingMethodsBwdTestCase extends AbstractBwdTestCase {
+/**
+ * Draws using writable image graphics.
+ */
+public class DrawingMethodsWiBwdTestCase extends AbstractBwdTestCase {
     
     //--------------------------------------------------------------------------
-    // CONFIGURATION
+    // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final int INITIAL_WIDTH = DrawingMethodsBwdMockPainter.AREA_X_SPAN + 28;
-    private static final int INITIAL_HEIGHT = DrawingMethodsBwdMockPainter.AREA_Y_SPAN + 60;
-    private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
-
+    private final DrawingMethodsBwdPainter painter;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DrawingMethodsBwdTestCase() {
+    public DrawingMethodsWiBwdTestCase() {
+        this.painter = null;
     }
 
-    public DrawingMethodsBwdTestCase(InterfaceBwdBinding binding) {
+    public DrawingMethodsWiBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
+        this.painter = new DrawingMethodsBwdPainter(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new DrawingMethodsBwdTestCase(binding);
+        return new DrawingMethodsWiBwdTestCase(binding);
     }
 
     @Override
     public InterfaceBwdTestCaseClient newClient() {
-        return new DrawingMethodsBwdTestCase(this.getBinding());
+        return new DrawingMethodsWiBwdTestCase(this.getBinding());
     }
 
     @Override
     public GPoint getInitialClientSpans() {
-        return INITIAL_CLIENT_SPANS;
+        return DrawingMethodsBwdPainter.INITIAL_CLIENT_SPANS;
     }
 
     //--------------------------------------------------------------------------
@@ -72,9 +76,16 @@ public class DrawingMethodsBwdTestCase extends AbstractBwdTestCase {
         
         final InterfaceBwdBinding binding = this.getBinding();
         
-        final DrawingMethodsBwdMockPainter painter = new DrawingMethodsBwdMockPainter(binding);
-
-        painter.paint(g);
+        final InterfaceBwdWritableImage wi = binding.newWritableImage(
+                getInitialClientSpans().x(),
+                getInitialClientSpans().y());
+        
+        {
+            final InterfaceBwdGraphics wig = wi.getGraphics();
+            this.painter.paint(wig);
+        }
+        
+        g.drawImage(0, 0, wi);
         
         return GRect.DEFAULT_HUGE_IN_LIST;
     }

@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -166,10 +167,21 @@ java.lang.NullPointerException
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
         return true;
     }
     
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
+        /*
+         * False since for writable images, even though we use
+         * an int array based graphics, we still use a GC
+         * and snapshot for text drawing, which requires
+         * to be called in UI thread.
+         */
+        return false;
+    }
+
     /*
      * Graphics.
      */
@@ -227,6 +239,19 @@ java.lang.NullPointerException
             InterfaceBwdImageDisposalListener disposalListener) {
         return new JfxBwdImageFromFile(
                 filePath,
+                disposalListener);
+    }
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final AbstractJfxBwdBinding binding = this;
+        return new JfxBwdWritableImage(
+                binding,
+                width,
+                height,
                 disposalListener);
     }
 

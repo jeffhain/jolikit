@@ -20,12 +20,14 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 
+import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Event;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Rect;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlHint;
@@ -322,7 +324,7 @@ java.lang.Error: Invalid memory access
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
         /*
          * TODO sdl Can have issues when loading images with SDL concurrently
          * (did not encounter any issue with non-concurrent usages),
@@ -414,6 +416,46 @@ palette = JnaLibSdl$SDL_Palette$ByReference(native@0x6c86dcb0) (24 bytes) {
   int version@10=6c86dcb0
   int refcount@14=0
 }
+         */
+        return false;
+    }
+    
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
+        /*
+         * TODO sdl2 False else we can get:
+Exception in thread "main" java.lang.Error: Invalid memory access
+    at com.sun.jna.Native.invokePointer(Native Method)
+    at com.sun.jna.Function.invokePointer(Function.java:490)
+    at com.sun.jna.Function.invoke(Function.java:434)
+    at com.sun.jna.Function.invoke(Function.java:354)
+    at com.sun.jna.Library$Handler.invoke(Library.java:244)
+    at com.sun.proxy.$Proxy1.TTF_RenderGlyph_Blended(Unknown Source)
+    at net.jolikit.bwd.impl.sdl2.SdlBwdGraphics.newTextDataAccessor_RenderGlyph_Blended(SdlBwdGraphics.java:405)
+    at net.jolikit.bwd.impl.sdl2.SdlBwdGraphics.getTextDataAccessor(SdlBwdGraphics.java:282)
+    at net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics.drawText(AbstractIntArrayBwdGraphics.java:243)
+    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase.paint_initDone(WritableImageBwdTestCase.java:194)
+    at net.jolikit.bwd.test.utils.BwdClientMock.paintClient(BwdClientMock.java:111)
+    at net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase.paintClient(AbstractBwdTestCase.java:140)
+    at net.jolikit.bwd.impl.utils.ClientWrapperForHost.paintClient(ClientWrapperForHost.java:471)
+    at net.jolikit.bwd.impl.utils.ClientPainterNoRec.paintClientAndClipRects(ClientPainterNoRec.java:71)
+    at net.jolikit.bwd.impl.sdl2.SdlBwdHost.paintClientOnObThenSurface(SdlBwdHost.java:1033)
+    at net.jolikit.bwd.impl.sdl2.SdlBwdHost.paintClientNowOrLater(SdlBwdHost.java:729)
+    at net.jolikit.bwd.impl.utils.AbstractBwdHost$MyPaintProcess.process(AbstractBwdHost.java:430)
+    at net.jolikit.time.sched.AbstractProcess$MyRepTask.runImpl(AbstractProcess.java:96)
+    at net.jolikit.time.sched.AbstractRepeatableTask$MyRepRunnable.runImpl(AbstractRepeatableTask.java:105)
+    at net.jolikit.time.sched.AbstractRepeatableRunnable.run(AbstractRepeatableRunnable.java:168)
+    at net.jolikit.time.sched.AbstractRepeatableTask$MyRepRunnable.run(AbstractRepeatableTask.java:80)
+    at net.jolikit.time.sched.AbstractRepeatableTask.run_locked(AbstractRepeatableTask.java:506)
+    at net.jolikit.time.sched.AbstractRepeatableTask.run(AbstractRepeatableTask.java:190)
+    at net.jolikit.time.sched.hard.HardScheduler.workerRun(HardScheduler.java:1780)
+    at net.jolikit.time.sched.hard.HardScheduler.access$9(HardScheduler.java:1695)
+    at net.jolikit.time.sched.hard.HardScheduler$MyWorkerRunnable.run(HardScheduler.java:229)
+    at net.jolikit.time.sched.hard.HardScheduler.startAndWorkInCurrentThread(HardScheduler.java:943)
+    at net.jolikit.bwd.impl.sdl2.SdlUiThreadScheduler.processUntilShutdownUninterruptibly(SdlUiThreadScheduler.java:323)
+    at net.jolikit.bwd.impl.sdl2.SdlBwdBinding.processUntilShutdownUninterruptibly(SdlBwdBinding.java:257)
+    at net.jolikit.bwd.test.mains.Sdl2BoundBwdMain.launchTheBindingWithTestCaseFromArgs(Sdl2BoundBwdMain.java:129)
+    at net.jolikit.bwd.test.mains.Sdl2BoundBwdMain.main(Sdl2BoundBwdMain.java:77)
          */
         return false;
     }
@@ -532,7 +574,20 @@ palette = JnaLibSdl$SDL_Palette$ByReference(native@0x6c86dcb0) (24 bytes) {
                 filePath,
                 disposalListener);
     }
-    
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBinding binding = this;
+        return new SdlBwdWritableImage(
+                binding,
+                width,
+                height,
+                disposalListener);
+    }
+
     /*
      * Shutdown.
      */

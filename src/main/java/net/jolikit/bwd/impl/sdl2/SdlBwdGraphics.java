@@ -150,12 +150,14 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     public SdlBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             //
             int[] pixelArr,
             int pixelArrScanlineStride) {
         this(
                 binding,
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -177,6 +179,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new SdlBwdGraphics(
                 this.getBinding(),
+                this.isImageGraphics(),
                 childBox,
                 childInitialClip,
                 //
@@ -357,7 +360,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final SdlBwdImageFromFile imageImpl = (SdlBwdImageFromFile) image;
+        final AbstractSdlBwdImage imageImpl = (AbstractSdlBwdImage) image;
         return imageImpl.getPremulArgb32Arr();
     }
 
@@ -383,6 +386,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     private SdlBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -390,6 +394,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
             int pixelArrScanlineStride) {
         super(
                 binding,
+                isImageGraphics,
                 box,
                 initialClip,
                 //

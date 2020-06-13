@@ -186,6 +186,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     private final MyPrimitives primitives = new MyPrimitives();
     
+    private final boolean isImageGraphics;
+    
     private final boolean isRootGraphics;
     
     /**
@@ -240,6 +242,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
     public QtjBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             //
             QImage backingImage,
@@ -248,6 +251,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this(
                 binding,
                 new QPainter(),
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -274,6 +278,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         return new QtjBwdGraphics(
                 this.getBinding(),
                 this.painter,
+                this.isImageGraphics,
                 childBox,
                 childInitialClip,
                 //
@@ -301,8 +306,14 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
-        // Relying on backing clipping.
-        this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.backingColorOpaque);
+        if (this.isImageGraphics) {
+            this.fillRectWithCompositionMode(
+                    x, y, xSpan, ySpan,
+                    CompositionMode.CompositionMode_Source);
+        } else {
+            // Relying on backing clipping.
+            this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.backingColorOpaque);
+        }
     }
 
     /*
@@ -493,10 +504,59 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             return;
         }
 
-        this.fillRectWithCompositionModeAndPen(
-                x, y, xSpan, ySpan,
-                CompositionMode.RasterOp_SourceXorDestination,
-                WHITE_PEN);
+        /*
+         * TODO qtj CompositionMode.RasterOp_SourceXorDestination
+         * doesn't seem to work with transparent background,
+         * for it causes non alpha-premultiplied pixels in our
+         * Format.Format_ARGB32_Premultiplied image:
+         * "AssertionError: premul axyz = 128, 239, 223, 127".
+         * As a result, for writable images,
+         * we use a more brutal way.
+         */
+        
+        if (this.isImageGraphics) {
+            /*
+             * Staying in use coordinates,
+             * since backing transform is aligned
+             * on current transform.
+             */
+            
+            final GRect clip = this.getClipInUser();
+            
+            final int xClipped = GRect.intersectedPos(clip.x(), x);
+            final int yClipped = GRect.intersectedPos(clip.y(), y);
+            
+            final int xSpanClipped = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
+            final int ySpanClipped = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
+            
+            final QPainter painter = this.getConfiguredPainter();
+            
+            /*
+             * In some way, Source should be equivalent to Clear,
+             * but here CompositionMode_Clear doesn't work for writable images,
+             * so we use CompositionMode_Source.
+             */
+            painter.setCompositionMode(CompositionMode.CompositionMode_Source);
+            try {
+                for (int j = 0; j < ySpanClipped; j++) {
+                    for (int i = 0; i < xSpanClipped; i++) {
+                        final int px = xClipped + i;
+                        final int py = yClipped + j;
+                        final int argb32 = this.getArgb32At(px, py);
+                        final int invertedArgb32 = Argb32.inverted(argb32);
+                        this.setArgb32(invertedArgb32);
+                        this.drawPoint_raw(px, py);
+                    }
+                }
+            } finally {
+                painter.setCompositionMode(CompositionMode.CompositionMode_SourceOver);
+            }
+        } else {
+            this.fillRectWithCompositionModeAndPen(
+                    x, y, xSpan, ySpan,
+                    CompositionMode.RasterOp_SourceXorDestination,
+                    WHITE_PEN);
+        }
     }
 
     /*
@@ -642,7 +702,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
 
-        final QtjBwdImageFromFile imageImpl = (QtjBwdImageFromFile) image;
+        final AbstractQtjBwdImage imageImpl = (AbstractQtjBwdImage) image;
         final QImage backingImage = imageImpl.getBackingImage();
         
         final GTransform transform = this.getTransform();
@@ -722,6 +782,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     private QtjBwdGraphics(
             InterfaceBwdBinding binding,
             QPainter painter,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -748,6 +809,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.painter = LangUtils.requireNonNull(painter);
         
         this.backingImage = LangUtils.requireNonNull(backingImage);
+
+        this.isImageGraphics = isImageGraphics;
         
         this.isRootGraphics = isRootGraphics;
         

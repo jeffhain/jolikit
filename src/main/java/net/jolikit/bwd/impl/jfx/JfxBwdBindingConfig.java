@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,7 +79,29 @@ public class JfxBwdBindingConfig extends BaseBwdBindingConfig {
      * so it's better to use the internal API instead.
      */
     private boolean mustUseInternalApiForFontMetrics = true;
+
+    /**
+     * We could use in array graphics here, but it's already configured
+     * for writable images, so using GraphicsContext based graphics
+     * here allows for more versatility, and faster text drawing
+     * on client (which should be useful, in particular for text editors,
+     * which usually draw directly on client to minimize latency).
+     * To use the best of both graphics, some background could also
+     * be computed on a writable image using an int array graphics,
+     * the image drawn on client, and then text be drawn on top of that.
+     */
+    private boolean mustUseIntArrayGraphicsForClients = false;
     
+    /**
+     * Needed to allow for transparency (initial, and with g.clearRect(...)).
+     * Some tests will fail if using GraphicsContext based graphics
+     * here instead.
+     * Also a good idea to have a graphics with very fast primitives
+     * for offscreen drawings, especially with drawPoint(),
+     * for example if wanting to draw some fractals.
+     */
+    private boolean mustUseIntArrayGraphicsForWritableImages = true;
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -162,5 +184,21 @@ public class JfxBwdBindingConfig extends BaseBwdBindingConfig {
 
     public void setMustUseInternalApiForFontMetrics(boolean mustUseInternalApiForFontMetrics) {
         this.mustUseInternalApiForFontMetrics = mustUseInternalApiForFontMetrics;
+    }
+
+    public boolean getMustUseIntArrayGraphicsForClients() {
+        return this.mustUseIntArrayGraphicsForClients;
+    }
+
+    public void setMustUseIntArrayGraphicsForClients(boolean mustUseIntArrayGraphicsForClients) {
+        this.mustUseIntArrayGraphicsForClients = mustUseIntArrayGraphicsForClients;
+    }
+
+    public boolean getMustUseIntArrayGraphicsForWritableImages() {
+        return this.mustUseIntArrayGraphicsForWritableImages;
+    }
+
+    public void setMustUseIntArrayGraphicsForWritableImages(boolean mustUseIntArrayGraphicsForWritableImages) {
+        this.mustUseIntArrayGraphicsForWritableImages = mustUseIntArrayGraphicsForWritableImages;
     }
 }

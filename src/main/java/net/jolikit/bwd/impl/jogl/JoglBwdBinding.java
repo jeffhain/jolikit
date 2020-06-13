@@ -17,12 +17,14 @@ package net.jolikit.bwd.impl.jogl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 
+import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFontHome;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
@@ -195,7 +197,12 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
+        return true;
+    }
+    
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
         return true;
     }
 
@@ -261,6 +268,19 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
             InterfaceBwdImageDisposalListener disposalListener) {
         return new JoglBwdImageFromFile(
                 filePath,
+                disposalListener);
+    }
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBinding binding = this;
+        return new JoglBwdWritableImage(
+                binding,
+                width,
+                height,
                 disposalListener);
     }
 

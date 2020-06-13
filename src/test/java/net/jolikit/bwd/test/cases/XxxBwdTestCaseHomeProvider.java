@@ -26,16 +26,19 @@ import net.jolikit.bwd.test.cases.unitbenches.FontMethodsBenchBwdTestCase;
 import net.jolikit.bwd.test.cases.unitbenches.UiSchedulerAsapBwdTestCase;
 import net.jolikit.bwd.test.cases.unitbenches.UiSchedulerTimedBwdTestCase;
 import net.jolikit.bwd.test.cases.unitsturds.NoLeakBwdTestCase;
+import net.jolikit.bwd.test.cases.unittests.DrawingBenchBwdTestCase;
+import net.jolikit.bwd.test.cases.unittests.DrawingCheckAndOverheadBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.FontApiUnitTestBwdTestCase;
-import net.jolikit.bwd.test.cases.unittests.FontMetricsApiUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.FontHomeApiWchUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.FontHomeApiWsUnitTestBwdTestCase;
+import net.jolikit.bwd.test.cases.unittests.FontMetricsApiUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.GraphicsApiUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.HostUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchNewChildGBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgTranspFgBwdTestCase;
@@ -45,7 +48,6 @@ import net.jolikit.bwd.test.cases.visualbenches.BenchParallelFillBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_0s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over30s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over60s_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentFontCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentImageCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ParallelDrawingBwdTestCase;
@@ -55,28 +57,32 @@ import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinOpaqueBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ArcDrawFillBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.CursorManagerBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ClippingBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.DefaultFontBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ClearBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClientDirtyPaintTestBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ClientRepaintTestBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ClippingBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.CursorManagerBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DefaultFontBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DrawOrderingBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsCliBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.FontGlyphTableBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HelloBindingBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostBoundsGripsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostCoordsHugeBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.KeyEventsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextCasesBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextClippingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextWidthBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HelloBindingBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostBoundsGripsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostCoordsHugeBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.KeyEventsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ClientRepaintTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TheoreticalOvalOnGridBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.UnicodeBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestCaseHomesColumn;
@@ -129,7 +135,10 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              * Drawing (no alpha).
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new DrawingMethodsBwdTestCase(),
+                    new ClearBwdTestCase(),
+                    new DrawingMethodsCliBwdTestCase(),
+                    new DrawingMethodsWiBwdTestCase(),
+                    new DrawOrderingBwdTestCase(),
                     new ArcDrawFillBwdTestCase(),
                     new ClippingBwdTestCase(),
                     new TheoreticalOvalOnGridBwdTestCase(),
@@ -176,10 +185,17 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
 
             /*
-             * Images formats.
+             * Images from files formats.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new ImageFormatsBwdTestCase(),
+            });
+            
+            /*
+             * Writable images.
+             */
+            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                    new MandelbrotBwdTestCase(),
             });
         }
         {
@@ -243,6 +259,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new GraphicsApiUnitTestBwdTestCase(),
+                    new DrawingCheckAndOverheadBwdTestCase(),
+                    new DrawingBenchBwdTestCase(),
             });
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{

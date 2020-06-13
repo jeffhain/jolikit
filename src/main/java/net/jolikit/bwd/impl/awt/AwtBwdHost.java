@@ -36,7 +36,6 @@ import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
-import java.awt.image.BufferedImage;
 import java.io.PrintStream;
 
 import net.jolikit.bwd.api.InterfaceBwdClient;
@@ -49,7 +48,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingCallIfExistsUtils;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.InterfaceFactory;
 
@@ -93,34 +91,6 @@ public class AwtBwdHost extends AbstractBwdHost {
      */
     private static final boolean MUST_USE_INT_ARRAY_RASTER = true;
 
-    /**
-     * TODO awt We want to support semi-transparent painting,
-     * so we should theoretically use TYPE_INT_ARGB here, but on Mac,
-     * it can cause painting to visibly show up only after some delay,
-     * or if we use a lot of drawXxx() primitives on window graphics
-     * (like when painting pixels one by one) (this seems to only work
-     * if client area height is above about 210), or to never show up
-     * in case of painting frenzy such as in benches.
-     * I now say "it can cause", because lately I can't reproduce it,
-     * i.e. with TYPE_INT_ARGB things look fine on Mac.
-     * 
-     * As a result, on Mac, we use TYPE_INT_RGB instead, which for some reason
-     * doesn't prevent us from doing semi-transparent painting.
-     * Else, we use TYPE_INT_ARGB, which can make things much faster
-     * (most likely because of no conversion needed between "ARGB" and "RGB_").
-     * 
-     * NB: Another workaround for this issue on Mac is to do all of these:
-     * - have repaint() call super.repaint()
-     * - have paint() call paintComponentNowOnG()
-     *   and/or have paintComponents() call paintComponentNowOnG()
-     * - have paintClientNowOrLater() call window.repaint()
-     * 
-     * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB,
-     * and black if using BufferedImage.TYPE_INT_RGB.
-     */
-    private static final int BUFFERED_IMAGE_TYPE =
-            (OsUtils.isMac() ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB);
-    
     /**
      * TODO awt Allows to avoid a useless fillRect.
      */
@@ -680,7 +650,7 @@ public class AwtBwdHost extends AbstractBwdHost {
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
-                BUFFERED_IMAGE_TYPE);
+                AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_CLIENT_G_DRAWING);
 
         /*
          * 

@@ -15,30 +15,22 @@
  */
 package net.jolikit.bwd.impl.sdl2;
 
+import net.jolikit.bwd.impl.sdl2.jlib.SDL_Surface;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLibImage;
-import net.jolikit.bwd.impl.sdl2.jlib.SDL_Surface;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaUtils;
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.LangUtils;
 
 import com.sun.jna.Pointer;
 
-public class SdlBwdImageFromFile extends AbstractBwdImage {
+public class SdlBwdImageFromFile extends AbstractSdlBwdImage {
     
     /*
      * TODO sdl For 1-bit, 8-bits and 16-bits BMP images,
      * format is messed-up (color masks are 0, BPP is always 1, etc.),
      * but bytes content look fine.
      * As a result since color masks are 0, all these BMP appear black.
-     */
-    
-    /*
-     * Storing image as an int array of pixels, to avoid, at each drawing,
-     * the JNA overhead of reading pixels one by one or even in bulk,
-     * and the overhead of pixel format conversion.
      */
     
     //--------------------------------------------------------------------------
@@ -48,9 +40,6 @@ public class SdlBwdImageFromFile extends AbstractBwdImage {
     private static final SdlJnaLib LIB = SdlJnaLib.INSTANCE;
     private static final SdlJnaLibImage LIB_IMG = SdlJnaLibImage.INSTANCE;
     
-    /**
-     * Image pixels, as a sequence of rows.
-     */
     private final int[] premulArgb32Arr;
     
     //--------------------------------------------------------------------------
@@ -93,13 +82,6 @@ public class SdlBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     
     @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final int index = y * this.getWidth() + x;
-        final int premulArgb32 = this.premulArgb32Arr[index];
-        return BindingColorUtils.toNonPremulAxyz32(premulArgb32);
-    }
-
-    @Override
     protected void disposeImpl() {
         // Nothing to do.
     }
@@ -108,6 +90,7 @@ public class SdlBwdImageFromFile extends AbstractBwdImage {
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
 
+    @Override
     int[] getPremulArgb32Arr() {
         return this.premulArgb32Arr;
     }

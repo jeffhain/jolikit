@@ -677,6 +677,7 @@ public class SwtBwdHost extends AbstractBwdHost {
             return;
         }
         
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
 
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
@@ -689,6 +690,7 @@ public class SwtBwdHost extends AbstractBwdHost {
         final SwtBwdGraphics g = new SwtBwdGraphics(
                 this.binding,
                 this.binding.getDisplay(),
+                isImageGraphics,
                 box,
                 //
                 pixelArr,

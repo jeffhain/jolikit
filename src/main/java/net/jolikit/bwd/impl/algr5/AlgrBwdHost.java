@@ -810,6 +810,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
             return;
         }
         
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
         
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
@@ -820,6 +821,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
 
         final AlgrBwdGraphics g = new AlgrBwdGraphics(
                 this.getBinding(),
+                isImageGraphics,
                 box,
                 //
                 pixelArr,

@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 
@@ -100,9 +101,13 @@ public interface InterfaceBwdBinding {
     public InterfaceWorkerAwareScheduler getUiThreadScheduler();
     
     /**
-     * @return True if graphics descending from a same root graphics
-     *         (and root graphics itself) can be used in parallel to paint
-     *         non-overlapping areas, possibly using fonts and images,
+     * Not splitting it into two booleans, one for clients
+     * and one for writable images, because in practice
+     * they have strong reasons to be the same.
+     * 
+     * @return True if graphics (for clients and for writable images)
+     *         descending from a same root graphics (and root graphics itself)
+     *         can be used in parallel to paint non-overlapping areas,
      *         false otherwise.
      */
     public boolean isParallelPaintingSupported();
@@ -115,11 +120,18 @@ public interface InterfaceBwdBinding {
     public boolean isConcurrentFontManagementSupported();
 
     /**
-     * @return True if images creation and disposal is thread-safe,
+     * @return True if images from file creation and disposal is thread-safe,
      *         false otherwise, in which case it should only be
      *         done in UI thread (which could be required).
      */
-    public boolean isConcurrentImageManagementSupported();
+    public boolean isConcurrentImageFromFileManagementSupported();
+    
+    /**
+     * @return True if writable images can be created, drawn (graphics usage)
+     *         and disposed from another thread than UI thread,
+     *         false otherwise.
+     */
+    public boolean isConcurrentWritableImageManagementSupported();
 
     /**
      * The parallelizer must be reentrant, which allows for parallelization
@@ -204,6 +216,16 @@ public interface InterfaceBwdBinding {
      *         an error).
      */
     public InterfaceBwdImage newImage(String filePath);
+    
+    /**
+     * The created image has its graphics initialized by default,
+     * and the initial color of its pixels is zero (fully transparent).
+     * 
+     * @param width Width for the image to create. Must be > 0.
+     * @param height Height for the image to create. Must be > 0.
+     * @return A new writable image with the specified width and height.
+     */
+    public InterfaceBwdWritableImage newWritableImage(int width, int height);
     
     /*
      * Mouse info.

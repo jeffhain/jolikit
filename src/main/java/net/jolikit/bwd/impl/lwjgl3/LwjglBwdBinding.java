@@ -19,12 +19,14 @@ import java.io.PrintStream;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
+import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFontHome;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
@@ -266,7 +268,12 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
+        return true;
+    }
+    
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
         return true;
     }
 
@@ -339,6 +346,19 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
             InterfaceBwdImageDisposalListener disposalListener) {
         return new LwjglBwdImageFromFile(
                 filePath,
+                disposalListener);
+    }
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBinding binding = this;
+        return new LwjglBwdWritableImage(
+                binding,
+                width,
+                height,
                 disposalListener);
     }
     

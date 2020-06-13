@@ -51,10 +51,12 @@ public class BindingColorUtils {
     private static final boolean AZZERTIONS = true;
     
     /**
-     * True because our backgrounds are always fully opaque
+     * False since we added writable images, which preferably contain
+     * fully transparent pixels by default, otherwise could be true
+     * since client area background is always fully opaque
      * (except due to window transparency, but it applies after client painting).
      */
-    static final boolean CAN_ASSUME_THAT_DST_ALPHA_8_IS_255 = true;
+    static final boolean CAN_ASSUME_THAT_DST_ALPHA_8_IS_255 = false;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

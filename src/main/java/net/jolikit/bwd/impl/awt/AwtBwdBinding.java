@@ -31,6 +31,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
@@ -128,7 +129,12 @@ public class AwtBwdBinding extends AbstractAwtBwdBinding {
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
+        return true;
+    }
+    
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
         return true;
     }
 
@@ -220,6 +226,19 @@ public class AwtBwdBinding extends AbstractAwtBwdBinding {
             InterfaceBwdImageDisposalListener disposalListener) {
         return new AwtBwdImageFromFile(
                 filePath,
+                disposalListener);
+    }
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final AbstractAwtBwdBinding binding = this;
+        return new AwtBwdWritableImage(
+                binding,
+                width,
+                height,
                 disposalListener);
     }
     

@@ -17,14 +17,11 @@ package net.jolikit.bwd.impl.qtj4;
 
 import java.util.List;
 
-import com.trolltech.qt.gui.QImage;
-import com.trolltech.qt.gui.QImage.Format;
-
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
-public class QtjBwdImageFromFile extends AbstractBwdImage {
+import com.trolltech.qt.gui.QImage;
+
+public class QtjBwdImageFromFile extends AbstractQtjBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -84,10 +81,13 @@ public class QtjBwdImageFromFile extends AbstractBwdImage {
         }
         this.colorTableArgb32Arr = colorTableArgb32Arr;
         
-        this.setWidth_final(backingImage.width());
-        this.setHeight_final(backingImage.height());
+        final int width = backingImage.width();
+        final int height = backingImage.height();
+        this.setWidth_final(width);
+        this.setHeight_final(height);
     }
     
+    @Override
     public QImage getBackingImage() {
         return this.backingImage;
     }
@@ -95,38 +95,17 @@ public class QtjBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
+
     @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final QImage backingImage = this.getBackingImage();
-        final int pixelOrIndex = backingImage.pixel(x, y);
-        final int[] colorTableArgb32Arr = this.colorTableArgb32Arr;
-        /*
-         * TODO qtj For 4 bits BMP images (at least), can have a color table,
-         * but QImage.pixel(int,int) returning an actual color (from the table)
-         * instead of an index for the table.
-         * As best effort workaround, if the value is out of color table bounds,
-         * we assume it's a pixel value.
-         */
-        final int pixel;
-        if ((colorTableArgb32Arr != null)
-                && (pixelOrIndex >= 0)
-                && (pixelOrIndex < colorTableArgb32Arr.length)) {
-            pixel = colorTableArgb32Arr[pixelOrIndex];
-        } else {
-            pixel = pixelOrIndex;
-        }
-        final Format format = backingImage.format();
-        final int backingArgb32 = QtjPixelFormatUtils.toArgb32(format, pixel);
-        final int argb32;
-        if (QtjPixelFormatUtils.isAlphaPremultiplied(format)) {
-            argb32 = BindingColorUtils.toNonPremulAxyz32(backingArgb32);
-        } else {
-            argb32 = backingArgb32;
-        }
-        return argb32;
+    protected int[] getPremulArgb32ArrElseNull() {
+        return null;
     }
 
+    @Override
+    protected int[] getColorTableArgb32ArrElseNull() {
+        return this.colorTableArgb32Arr;
+    }
+    
     @Override
     protected void disposeImpl() {
         this.backingImage.dispose();

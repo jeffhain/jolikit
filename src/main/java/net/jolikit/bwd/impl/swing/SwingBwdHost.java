@@ -36,7 +36,6 @@ import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
-import java.awt.image.BufferedImage;
 import java.io.PrintStream;
 
 import javax.swing.JDialog;
@@ -61,7 +60,6 @@ import net.jolikit.bwd.impl.awt.AwtUtils;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingCallIfExistsUtils;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.InterfaceFactory;
 
@@ -163,19 +161,13 @@ public class SwingBwdHost extends AbstractBwdHost {
     private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
 
     private static final boolean ALLOW_OB_SHRINKING = true;
-
+    
     /**
      * Can make things faster in some cases
      * (even though these cases might no longer occur with current code).
      */
     private static final boolean MUST_USE_INT_ARRAY_RASTER = true;
 
-    /**
-     * TODO swing Doing as for AWT (cf. same constant in AwtBwdHost).
-     */
-    private static final int BUFFERED_IMAGE_TYPE =
-            (OsUtils.isMac() ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB);
-    
     /**
      * TODO swing Allows to avoid a useless fillRect.
      */
@@ -762,7 +754,8 @@ public class SwingBwdHost extends AbstractBwdHost {
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
-                BUFFERED_IMAGE_TYPE);
+                AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_CLIENT_G_DRAWING);
+        
         // To prevent buffer strategy to be created automatically.
         if (isDialog) {
             this.windowAsJDialog.getRootPane().setDoubleBuffered(false);

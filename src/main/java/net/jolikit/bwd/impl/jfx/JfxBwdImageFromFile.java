@@ -17,10 +17,9 @@ package net.jolikit.bwd.impl.jfx;
 
 import javafx.scene.image.Image;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
-public class JfxBwdImageFromFile extends AbstractBwdImage {
+public class JfxBwdImageFromFile extends AbstractJfxBwdImage {
     
     /*
      * Storing pixels as original Image, not as an int array of pixels,
@@ -60,7 +59,7 @@ public class JfxBwdImageFromFile extends AbstractBwdImage {
                     "could not load image at "
                             + filePath, exception);
         }
-
+        
         /**
          * TODO jfx For some images types, the backing image
          * is properly created, but drawing does nothing.
@@ -87,7 +86,7 @@ public class JfxBwdImageFromFile extends AbstractBwdImage {
     public Image getBackingImage() {
         return this.backingImage;
     }
-    
+
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
@@ -100,5 +99,24 @@ public class JfxBwdImageFromFile extends AbstractBwdImage {
     @Override
     protected void disposeImpl() {
         // Nothing to do.
+    }
+
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    @Override
+    int[] getPremulArgb32ArrElseNull() {
+        return null;
+    }
+    
+    @Override
+    Image getBackingImageElseNull() {
+        return this.backingImage;
+    }
+    
+    @Override
+    Image getBackingImageForGcDrawOrRead() {
+        return this.backingImage;
     }
 }

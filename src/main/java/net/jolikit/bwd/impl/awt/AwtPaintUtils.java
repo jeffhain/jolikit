@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.ClientPainterNoRec;
 import net.jolikit.lang.InterfaceFactory;
@@ -34,12 +33,46 @@ public class AwtPaintUtils {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
-    
+
     /**
      * No need, because default composite is SRC_OVER,
-     * and our background is always opaque.
+     * and our client background is always opaque.
      */
     private static final boolean MUST_SET_ALPHA_1_COMPOSITE = false;
+    
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * TODO awt TODO mac On Mac, at some point had trouble when using
+     * buffered images of type TYPE_INT_ARGB: painting did visibly show up
+     * only after some delay, or if we used a lot of drawXxx() primitives
+     * on window graphics (like when painting pixels one by one)
+     * (this workaround seemed to only work if client area height was above
+     * about 210), or did never show up in case of window painting frenzy
+     * such as in benches.
+     * For some time our workaround was to use TYPE_INT_RGB instead on Mac,
+     * which for some reason still allowed to do semi-transparent painting,
+     * although it could make things much slower (most likely because of
+     * conversions needed between "ARGB" and "RGB_").
+     * Another workaround was to do all of these:
+     * - have repaint() call super.repaint()
+     * - have paint() call paintComponentNowOnG()
+     *   and/or have paintComponents() call paintComponentNowOnG()
+     * - have paintClientNowOrLater() call window.repaint()
+     * Lately though, we didn't encounter this issue anymore,
+     * and now we always use TYPE_INT_ARGB_PRE, which is required
+     * by our AwtBwdGraphicsWithIntArr implementation.
+     * 
+     * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB(_PRE),
+     * and black if using BufferedImage.TYPE_INT_RGB.
+     */
+    public static final int BUFFERED_IMAGE_TYPE_FOR_CLIENT_G_DRAWING =
+            BufferedImage.TYPE_INT_ARGB_PRE;
+
+    public static final int BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN =
+            BufferedImage.TYPE_INT_ARGB_PRE;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -55,7 +88,7 @@ public class AwtPaintUtils {
      * NB: Does nothing if any client span is <= 0.
      */
     public void paintClientOnObThenG(
-            InterfaceBwdBinding binding,
+            AbstractAwtBwdBinding binding,
             Window window,
             ClientPainterNoRec clientPainterNoRec,
             AwtGraphicBuffer offscreenBuffer,
@@ -72,6 +105,7 @@ public class AwtPaintUtils {
             return;
         }
 
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
 
         final GRect dirtyRect = dirtyRectProvider.newInstance();
@@ -81,23 +115,35 @@ public class AwtPaintUtils {
          */
 
         offscreenBuffer.setSize(width, height);
+        final BufferedImage offscreenImage = offscreenBuffer.getImage();
 
+        final AwtBwdBindingConfig bindingConfig = binding.getBindingConfig();
+        
         final List<GRect> paintedRectList;
-        final Graphics2D backingOffscreenG = offscreenBuffer.createClippedGraphics();
-        try {
-            final AwtBwdGraphicsWithG g = new AwtBwdGraphicsWithG(
+        if (bindingConfig.getMustUseIntArrayGraphicsForClients()) {
+            final AwtBwdGraphicsWithIntArr g = new AwtBwdGraphicsWithIntArr(
                     binding,
-                    backingOffscreenG,
-                    offscreenBuffer.getImage(),
-                    box);
+                    isImageGraphics,
+                    box,
+                    //
+                    offscreenImage);
 
             paintedRectList = clientPainterNoRec.paintClientAndClipRects(
                     g,
                     dirtyRect);
-        } finally {
-            backingOffscreenG.dispose();
-        }
+        } else {
+            final AwtBwdGraphicsWithG g = new AwtBwdGraphicsWithG(
+                    binding,
+                    isImageGraphics,
+                    box,
+                    //
+                    offscreenImage);
 
+            paintedRectList = clientPainterNoRec.paintClientAndClipRects(
+                    g,
+                    dirtyRect);
+        }
+        
         if (paintedRectList.size() != 0) {
             if (AwtUtils.isShowingAndDeiconified(window)) {
                 /*
@@ -125,7 +171,7 @@ public class AwtPaintUtils {
                 try {
                     for (GRect paintedRect : paintedRectList) {
                         drawImageRectOnG(
-                                offscreenBuffer.getImage(),
+                                offscreenImage,
                                 paintedRect,
                                 properlyClippedBackingG,
                                 clientXInWindow,

@@ -8,8 +8,6 @@
   - Other blending modes than SRC_OVER.
   - Bulk pixels drawing methods (but they could be seen as an excuse to make
     drawPoint(int,int) slow, which would be bad), and same for reading.
-  - Offscreen image painting (but in UI thread, due to limitations of some
-    (too) advanced libraries).
 
 - BWD bindings:
   - Bindings wrapper that implements windowing on top of a single backing

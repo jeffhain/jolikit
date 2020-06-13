@@ -23,11 +23,10 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.NumbersUtils;
 
-public class JoglBwdImageFromFile extends AbstractBwdImage {
+public class JoglBwdImageFromFile extends AbstractJoglBwdImage {
 
     /*
      * TODO jogl Tried to use FreeImage 3.17 library,
@@ -39,16 +38,6 @@ public class JoglBwdImageFromFile extends AbstractBwdImage {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * TODO jogl For performances when drawing image on graphics,
-     * we store its content as an array of premultiplied colors.
-     * Note that as a result, in getArgb32AtImpl(...), we compute
-     * the non-premultiplied color from a premultiplied one,
-     * which can damage RGB components in case of semi transparent images.
-     * 
-     * ABGR if native is little (which will give RGBA in little,
-     * Java being in big), else RGBA, with 8/8/8/8 bits.
-     */
     private final int[] color32Arr;
 
     //--------------------------------------------------------------------------
@@ -101,14 +90,6 @@ public class JoglBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     
     @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final int index = y * this.getWidth() + x;
-        final int premulColor32 = this.color32Arr[index];
-        final int argb32 = JoglPaintHelper.getArgb32FromArrayColor32(premulColor32);
-        return argb32;
-    }
-
-    @Override
     protected void disposeImpl() {
         // Nothing to do.
     }
@@ -117,11 +98,7 @@ public class JoglBwdImageFromFile extends AbstractBwdImage {
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    /**
-     * ABGR if native is little, else RGBA.
-     * 
-     * @return For read only purpose.
-     */
+    @Override
     int[] getColor32Arr() {
         return this.color32Arr;
     }

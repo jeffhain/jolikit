@@ -18,33 +18,23 @@ package net.jolikit.bwd.impl.lwjgl3;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
-import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBImage;
-
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
+import net.jolikit.lang.NumbersUtils;
+
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImage;
 
 /**
  * TODO lwjgl 1-bit BMPs are not supported.
  */
-public class LwjglBwdImageFromFile extends AbstractBwdImage {
+public class LwjglBwdImageFromFile extends AbstractLwjglBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * TODO lwjgl For performances when drawing image on graphics,
-     * we store its content as an array of premultiplied colors.
-     * Note that as a result, in getArgb32AtImpl(...), we compute
-     * the non-premultiplied color from a premultiplied one,
-     * which can damage RGB components in case of semi transparent images.
-     * 
-     * ABGR if native is little (which will give RGBA in little,
-     * Java being in big), else RGBA, with 8/8/8/8 bits.
-     */
     private final int[] color32Arr;
 
     //--------------------------------------------------------------------------
@@ -118,22 +108,25 @@ public class LwjglBwdImageFromFile extends AbstractBwdImage {
                             + ": "
                             + STBImage.stbi_failure_reason());
         }
+        final int w;
+        final int h;
+        final int[] color32Arr;
         try {
-            final int w = wBuff.get(0);
-            final int h = hBuff.get(0);
+            w = wBuff.get(0);
+            h = hBuff.get(0);
             final int comp = compBuff.get(0);
 
             this.setWidth_final(w);
             this.setHeight_final(h);
             final int bytesPerPixel = req_comp;
             
-            final int wh = w * h;
-            final int expectedCapacity = wh * bytesPerPixel;
+            final int wh = NumbersUtils.timesExact(w, h);
+            final int expectedCapacity = NumbersUtils.timesExact(wh, bytesPerPixel);
             if (data.capacity() != expectedCapacity) {
                 throw new BindingError("data = " + data + ", expectedCapacity = " + expectedCapacity);
             }
             
-            final int[] color32Arr = new int[wh];
+            color32Arr = new int[wh];
             this.color32Arr = color32Arr;
             
             int byteIndex = 0;
@@ -156,14 +149,6 @@ public class LwjglBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
-    @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final int index = y * this.getWidth() + x;
-        final int color32 = this.color32Arr[index];
-        final int argb32 = LwjglPaintHelper.getArgb32FromArrayColor32(color32);
-        return argb32;
-    }
 
     @Override
     protected void disposeImpl() {
@@ -173,12 +158,8 @@ public class LwjglBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
-    
-    /**
-     * ABGR if native is little, else RGBA.
-     * 
-     * @return For read only purpose.
-     */
+
+    @Override
     int[] getColor32Arr() {
         return this.color32Arr;
     }

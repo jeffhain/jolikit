@@ -79,12 +79,14 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     public JoglBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             //
             int[] pixelArr,
             int pixelArrScanlineStride) {
         this(
                 binding,
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -110,6 +112,7 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new JoglBwdGraphics(
                 this.getBinding(),
+                this.isImageGraphics(),
                 childBox,
                 childInitialClip,
                 //
@@ -303,7 +306,7 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final JoglBwdImageFromFile imageImpl = (JoglBwdImageFromFile) image;
+        final AbstractJoglBwdImage imageImpl = (AbstractJoglBwdImage) image;
         final int[] color32Arr = imageImpl.getColor32Arr();
         return color32Arr;
     }
@@ -331,12 +334,14 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     private JoglBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
             BufferedImage bufferedImage) {
         super(
                 binding,
+                isImageGraphics,
                 box,
                 initialClip,
                 //

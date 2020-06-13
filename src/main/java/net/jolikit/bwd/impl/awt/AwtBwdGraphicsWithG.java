@@ -37,20 +37,16 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
+/**
+ * Graphics based on an AWT Graphics when it's correct and fast enough,
+ * otherwise on redefined treatments using backing BufferedImage API.
+ * 
+ * Extending AbstractIntArrayBwdGraphics and using redefined treatments
+ * drawing directly on an array of pixels is usually much faster,
+ * but we keep this class around for the knowledge it contains
+ * and in case there would ever be a point to use it instead.
+ */
 public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
-    
-    /*
-     * TODO awt Since we don't use much of AWT's primitives (oval etc.),
-     * we could as well just paint directly into an int array, as we do for
-     * OpenGL bindings, eventually using intermediary graphic buffers for
-     * strings and images.
-     * Performances should then be worse for drawText(...) and drawImage(...)
-     * methods, but much better for methods like drawPoint(...), and also
-     * for alpha blending (even though we already use an alpha-premultiplied
-     * format, it's about twice slower as our alpha blending on int array).
-     * But we try to be corporate, which allows us to pass the blame to AWT
-     * in case of performance issue.
-     */
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -58,15 +54,107 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
 
     private static final boolean DEBUG = false;
 
-    /**
-     * True to use backing graphics when somehow relevant, to see how well
-     * we can do with backing graphics.
-     * False to be as pixel-perfect as possible.
+    /*
+     * Flags for use of redefined treatments, from AbstractBwdGraphics
+     * and/or BufferedImageHelper, instead of the backing graphics,
+     * which can be:
+     * - much slower, for example for drawLine(...) with non-opaque colors.
+     * - much less accurate, especially for ovals and arcs.
      */
-    private static final boolean FORCED_BACKING_GRAPHICS_USAGE = false;
     
     /**
-     * For when using AWT oval methods (FORCED_BACKING_GRAPHICS_USAGE = true).
+     * Using backing graphics is much faster,
+     * so we only use redefined treatments when necessary,
+     * i.e. when clearing a writable image with a non opaque color.
+     * 
+     * backing : 0.16 ms
+     * redefined : 12 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_CLEAR_RECT = false;
+    
+    /**
+     * True, else filling a rectangle with drawPoint() is
+     * 200 times slower than using fillRect() for opaque colors,
+     * and 1000 times slower for transparent colors.
+     * 
+     * fillRect : 0.2 ms, 2.5 ms
+     * false : 50 ms, 2500 ms
+     * true : 22 ms, 30 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_DRAW_POINT = true;
+    
+    /**
+     * Redefined treatment can be a bit faster for general case (2 times)
+     * or vertical lines with alpha (4 times), but for horizontal lines
+     * or opaque colors it can be an order of magnitude slower,
+     * so we prefer not to use it.
+     * 
+     * fillRect : 0.2 ms, 2.5 ms
+     * false :
+     * - H : 0.001 ms, 0.02 ms
+     * - V : 0.002 ms, 0.13 ms
+     * - GEN : 0.002 ms, 0.13 ms
+     * - HRECT : 0.2 ms, 7 ms
+     * - VRECT : 1.8 ms, 120 ms
+     * true :
+     * - H : 0.02 ms, 0.03 ms
+     * - V : 0.03 ms, 0.03 ms
+     * - GEN : 0.05 ms, 0.05 ms
+     * - HRECT : 20 ms, 31 ms
+     * - VRECT : 23 ms, 31 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_DRAW_LINE = false;
+    
+    /**
+     * Equivalent, no need to use redefined treatment.
+     */
+    private static final boolean MUST_USE_REDEF_FOR_DRAW_RECT = false;
+    
+    /**
+     * Redefined treatment is much slower, not using it.
+     * 
+     * fillRect : 0.2 ms, 2.5 ms
+     * redefined : 18 ms, 24 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_FILL_RECT = false;
+    
+    /**
+     * True because backing ovals are messy.
+     */
+    private static final boolean MUST_USE_REDEF_FOR_OVALS = true;
+    
+    /**
+     * True because backing arcs are messy.
+     */
+    private static final boolean MUST_USE_REDEF_FOR_ARCS = true;
+    
+    /**
+     * Redefined treatment is much slower, not using it
+     * (unless needed, since backing don't handle transparency properly).
+     * 
+     * backing : 0.2 ms
+     * redefined : 18 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_FLIP_COLORS = false;
+    
+    /**
+     * Redefined treatment seems a bit slower for some reason,
+     * in spite of doing about them same thing,
+     * but we sill use it, for it allows not to create garbage.
+     * 
+     * backing : 0.016 us per call (lowest that could measure)
+     * redefined : 0.019 us per call (lowest that could measure)
+     */
+    private static final boolean MUST_USE_REDEF_FOR_GET_ARGB32_AT = true;
+
+    /*
+     * 
+     */
+    
+    /**
+     * For when using AWT oval or arc methods
+     * (MUST_USE_BIH_FOR_OVALS = false
+     * or MUST_USE_BIH_FOR_ARCS = false).
      * 
      * TODO awt fillOval(...) and fillArc(...) are quite messy about the border
      * of the filled area, in that they easily leak outside.
@@ -79,6 +167,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * curves.
      * This also makes drawXXX and fillXXX methods consistent with each other.
      * Note that this would not be practical with XOR mode, if ever using it.
+     * Also, this only works for opaque colors, else we can see redraws.
      */
     private static final boolean MUST_COMPLETE_CURVES_FILL_WITH_DRAW = false;
     
@@ -89,73 +178,129 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     private class MyPrimitives extends AbstractBwdPrimitives {
         @Override
         public void drawPointInClip(int x, int y) {
-            drawPoint_raw(x, y);
+            if (MUST_USE_REDEF_FOR_DRAW_POINT) {
+                drawPoint_raw_bih_inClip(x, y);
+            } else {
+                drawPoint_raw_g(x, y);
+            }
         }
         @Override
         public int drawHorizontalLineInClip(
                 int x1, int x2, int y,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x1, y, x2, y);
-                return pixelNum;
-            } else {
+            if (MUST_USE_REDEF_FOR_DRAW_LINE
+                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
                 return super.drawHorizontalLineInClip(
                         x1, x2, y,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw_g(x1, y, x2, y);
+                return pixelNum;
             }
         }
         @Override
         public int drawVerticalLineInClip(
                 int x, int y1, int y2,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x, y1, x, y2);
-                return pixelNum;
-            } else {
+            if (MUST_USE_REDEF_FOR_DRAW_LINE
+                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
                 return super.drawVerticalLineInClip(
                         x, y1, y2,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw_g(x, y1, x, y2);
+                return pixelNum;
             }
         }
         @Override
         public int drawGeneralLineInClip(
                 int x1, int y1, int x2, int y2,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x1, y1, x2, y2);
-                return pixelNum;
-            } else {
+            if (MUST_USE_REDEF_FOR_DRAW_LINE
+                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
                 return super.drawGeneralLineInClip(
                         x1, y1, x2, y2,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw_g(x1, y1, x2, y2);
+                return pixelNum;
             }
         }
         @Override
         public void fillRectInClip(
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
-            fillRect_raw(x, y, xSpan, ySpan);
+            if (MUST_USE_REDEF_FOR_FILL_RECT) {
+                fillRect_raw_bih_inClip(x, y, xSpan, ySpan);
+            } else {
+                fillRect_raw_g(x, y, xSpan, ySpan);
+            }
         }
+        /*
+         * 
+         */
         @Override
         public void drawPoint(GRect clip, int x, int y) {
-            // Relying on backing clipping.
-            drawPoint_raw(x, y);
+            if (MUST_USE_REDEF_FOR_DRAW_POINT) {
+                super.drawPoint(clip, x, y);
+            } else {
+                drawPoint_raw_g(x, y);
+            }
+        }
+        @Override
+        public void drawLine(
+                GRect clip,
+                int x1, int y1, int x2, int y2) {
+            if (MUST_USE_REDEF_FOR_DRAW_LINE) {
+                super.drawLine(clip, x1, y1, x2, y2);
+            } else {
+                drawLine_raw_g(x1, y1, x2, y2);
+            }
+        }
+        @Override
+        public int drawLine(
+                GRect clip,
+                int x1, int y1, int x2, int y2,
+                int factor, short pattern, int pixelNum) {
+            if (MUST_USE_REDEF_FOR_DRAW_LINE
+                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
+                return super.drawLine(
+                        clip,
+                        x1, y1, x2, y2,
+                        factor, pattern, pixelNum);
+            } else {
+                drawLine_raw_g(x1, y1, x2, y2);
+                return pixelNum;
+            }
         }
         @Override
         public void drawRect(
                 GRect clip,
                 int x, int y, int xSpan, int ySpan) {
-            // Relying on backing clipping.
-            drawRect_raw(x, y, xSpan, ySpan);
+            if (MUST_USE_REDEF_FOR_DRAW_RECT) {
+                super.drawRect(clip, x, y, xSpan, ySpan);
+            } else {
+                // Relying on backing clipping.
+                drawRect_raw_g(x, y, xSpan, ySpan);
+            }
         }
         @Override
         public void fillRect(
                 GRect clip,
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
-            // Relying on backing clipping.
-            fillRect_raw(x, y, xSpan, ySpan);
+            if (MUST_USE_REDEF_FOR_FILL_RECT) {
+                super.fillRect(clip, x, y, xSpan, ySpan, areHorVerFlipped);
+            } else {
+                // Relying on backing clipping.
+                fillRect_raw_g(x, y, xSpan, ySpan);
+            }
         }
+        /*
+         * No need to redefine methods for ovals or arcs,
+         * since they are not used by others of our primitives,
+         * so redirection is done only in public implementations.
+         */
     };
 
     //--------------------------------------------------------------------------
@@ -174,17 +319,16 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     private final MyPrimitives primitives = new MyPrimitives();
     
-    /**
-     * Using backing graphics to store color and font.
-     */
-    private final Graphics2D g;
+    private final boolean isImageGraphics;
+    
+    private final BufferedImageHelper bufferedImageHelper;
+    
+    private Graphics2D g;
     
     /**
      * Lazily computed.
      */
     private Color backingColorOpaque = null;
-
-    private final BufferedImage imageForRead;
     
     /*
      * Common adjustments for some methods.
@@ -202,15 +346,18 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      */
     public AwtBwdGraphicsWithG(
             InterfaceBwdBinding binding,
-            Graphics2D g,
-            BufferedImage imageForRead,
-            GRect box) {
-        this(
+            boolean isImageGraphics,
+            GRect box,
+            //
+            BufferedImage backingImage) {
+        super(
                 binding,
-                g,
-                imageForRead,
                 box,
                 box); // initialClip
+        
+        this.bufferedImageHelper = new BufferedImageHelper(backingImage);
+        
+        this.isImageGraphics = isImageGraphics;
     }
 
     /**
@@ -238,14 +385,13 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
-        // create() useful in case of parallel painting.
-        final Graphics2D subG = (Graphics2D) this.g.create();
         return new AwtBwdGraphicsWithG(
                 this.getBinding(),
-                subG,
-                this.imageForRead,
+                this.isImageGraphics,
                 childBox,
-                childInitialClip);
+                childInitialClip,
+                //
+                this.bufferedImageHelper.getImage());
     }
 
     /*
@@ -266,36 +412,75 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         this.checkUsable();
         
         final int argb32 = this.getArgb32();
-
+        
         /*
-         * From clearRect(...) javadoc:
-         * "Beginning with Java 1.1, the background color
-         * of offscreen images may be system dependent.
-         * Applications should use setColor(...) followed by
-         * fillRect(...) to ensure that an offscreen image
-         * is cleared to a specific color."
+         * TODO awt Graphics.fillRect(...)
+         * doesn't work properly for non-opaque colors,
+         * so always using redefined treatments
+         * for non-opaque colors on writable images,
+         * regardless of our static flag.
          */
-        final Color color = this.g.getColor();
+        if (MUST_USE_REDEF_FOR_CLEAR_RECT
+                || (this.isImageGraphics
+                        && (!Argb32.isOpaque(argb32)))) {
 
-        Color colorOpaque = this.backingColorOpaque;
-        if (colorOpaque == null) {
-            if (Argb32.getAlpha8(argb32) == 0xFF) {
-                colorOpaque = color;
+            final GTransform transform = this.getTransform();
+            
+            final GRect rectInUser = GRect.valueOf(x, y, xSpan, ySpan);
+            final GRect rectInBase = transform.rectIn1(rectInUser);
+            
+            final GRect clipInBase = this.getClipInBase();
+            final GRect rectInBaseClipped = rectInBase.intersected(clipInBase);
+            
+            final int xInBaseClipped = rectInBaseClipped.x();
+            final int yInBaseClipped = rectInBaseClipped.y();
+            final int xSpanInBaseClipped = rectInBaseClipped.xSpan();
+            final int ySpanInBaseClipped = rectInBaseClipped.ySpan();
+
+            final int argb32ToSet;
+            if (this.isImageGraphics) {
+                argb32ToSet = argb32;
             } else {
-                final int argb32Opaque = Argb32.toOpaque(argb32);
-                colorOpaque = AwtUtils.newColor(argb32Opaque);
+                // For client, must be opaque.
+                argb32ToSet = Argb32.toOpaque(argb32);
             }
-            this.backingColorOpaque = colorOpaque;
-        }
-
-        this.g.setColor(colorOpaque);
-        try {
-            // Relying on backing clipping.
-            final int _x = x + this.xShiftInUser;
-            final int _y = y + this.yShiftInUser;
-            this.g.fillRect(_x, _y, xSpan, ySpan);
-        } finally {
-            this.g.setColor(color);
+            this.bufferedImageHelper.clearRect(
+                    xInBaseClipped,
+                    yInBaseClipped,
+                    xSpanInBaseClipped,
+                    ySpanInBaseClipped,
+                    argb32ToSet);
+        } else {
+            /*
+             * From clearRect(...) javadoc:
+             * "Beginning with Java 1.1, the background color
+             * of offscreen images may be system dependent.
+             * Applications should use setColor(...) followed by
+             * fillRect(...) to ensure that an offscreen image
+             * is cleared to a specific color."
+             */
+            final Color color = this.g.getColor();
+            
+            Color colorOpaque = this.backingColorOpaque;
+            if (colorOpaque == null) {
+                if (Argb32.getAlpha8(argb32) == 0xFF) {
+                    colorOpaque = color;
+                } else {
+                    final int argb32Opaque = Argb32.toOpaque(argb32);
+                    colorOpaque = AwtUtils.newColor(argb32Opaque);
+                }
+                this.backingColorOpaque = colorOpaque;
+            }
+            
+            this.g.setColor(colorOpaque);
+            try {
+                // Relying on backing clipping.
+                final int _x = x + this.xShiftInUser;
+                final int _y = y + this.yShiftInUser;
+                this.g.fillRect(_x, _y, xSpan, ySpan);
+            } finally {
+                this.g.setColor(color);
+            }
         }
     }
 
@@ -310,12 +495,13 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
 
     @Override
     public void drawLine(int x1, int y1, int x2, int y2) {
-        if (FORCED_BACKING_GRAPHICS_USAGE) {
+        if (MUST_USE_REDEF_FOR_DRAW_LINE) {
+            super.drawLine(x1, y1, x2, y2);
+        } else {
             this.checkUsable();
             
+            // Relying on backing clipping.
             this.g.drawLine(x1, y1, x2, y2);
-        } else {
-            super.drawLine(x1, y1, x2, y2);
         }
     }
     
@@ -325,7 +511,9 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     @Override
     public void drawOval(int x, int y, int xSpan, int ySpan) {
-        if (FORCED_BACKING_GRAPHICS_USAGE) {
+        if (MUST_USE_REDEF_FOR_OVALS) {
+            super.drawOval(x, y, xSpan, ySpan);
+        } else {
             this.checkUsable();
             
             if ((xSpan > 0) && (ySpan > 0)) {
@@ -336,14 +524,14 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                  * "- 1" would cause drawing of a huge oval.
                  */
             }
-        } else {
-            super.drawOval(x, y, xSpan, ySpan);
         }
     }
     
     @Override
     public void fillOval(int x, int y, int xSpan, int ySpan) {
-        if (FORCED_BACKING_GRAPHICS_USAGE) {
+        if (MUST_USE_REDEF_FOR_OVALS) {
+            super.fillOval(x, y, xSpan, ySpan);
+        } else {
             this.checkUsable();
             
             if ((xSpan > 0) && (ySpan > 0)) {
@@ -352,8 +540,6 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                     this.drawOval(x, y, xSpan, ySpan);
                 }
             }
-        } else {
-            super.fillOval(x, y, xSpan, ySpan);
         }
     }
     
@@ -363,7 +549,11 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     @Override
     public void drawArc(int x, int y, int xSpan, int ySpan, double startDeg, double spanDeg) {
-        if (FORCED_BACKING_GRAPHICS_USAGE) {
+        if (MUST_USE_REDEF_FOR_ARCS) {
+            super.drawArc(
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg);
+        } else {
             this.checkUsable();
             GprimUtils.checkArcAngles(startDeg, spanDeg);
             
@@ -373,16 +563,16 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                         BindingCoordsUtils.roundToInt(startDeg),
                         BindingCoordsUtils.roundToInt(spanDeg));
             }
-        } else {
-            super.drawArc(
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg);
         }
     }
     
     @Override
     public void fillArc(int x, int y, int xSpan, int ySpan, double startDeg, double spanDeg) {
-        if (FORCED_BACKING_GRAPHICS_USAGE) {
+        if (MUST_USE_REDEF_FOR_ARCS) {
+            super.fillArc(
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg);
+        } else {
             this.checkUsable();
             GprimUtils.checkArcAngles(startDeg, spanDeg);
             
@@ -395,10 +585,6 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                     this.drawArc(x, y, xSpan, ySpan, startDeg, spanDeg);
                 }
             }
-        } else {
-            super.fillArc(
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg);
         }
     }
 
@@ -438,16 +624,52 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     public void flipColors(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
-        final Color c = this.g.getColor();
-        this.g.setBackground(Color.WHITE);
-        this.g.setColor(Color.WHITE);
-        this.g.setXORMode(Color.BLACK);
-        try {
-            this.fillRect(x, y, xSpan, ySpan);
-        } finally {
-            this.g.setBackground(c);
-            this.g.setColor(c);
-            this.g.setPaintMode();
+        if ((xSpan <= 0) || (ySpan <= 0)) {
+            return;
+        }
+
+        /*
+         * TODO awt Graphics.setXORMode(...)
+         * doesn't work properly with non-opaque background,
+         * so always using redefined treatments for writable images,
+         * regardless of our static flag.
+         */
+        if (MUST_USE_REDEF_FOR_FLIP_COLORS
+                || this.isImageGraphics) {
+            
+            final GTransform transform = this.getTransform();
+            
+            final GRect rectInUser = GRect.valueOf(x, y, xSpan, ySpan);
+            final GRect rectInBase = transform.rectIn1(rectInUser);
+            
+            final GRect clipInBase = this.getClipInBase();
+            final GRect rectInBaseClipped = rectInBase.intersected(clipInBase);
+            
+            final int xInBaseClipped = rectInBaseClipped.x();
+            final int yInBaseClipped = rectInBaseClipped.y();
+            final int xSpanInBaseClipped = rectInBaseClipped.xSpan();
+            final int ySpanInBaseClipped = rectInBaseClipped.ySpan();
+            
+            this.bufferedImageHelper.invertPixels(
+                    xInBaseClipped,
+                    yInBaseClipped,
+                    xSpanInBaseClipped,
+                    ySpanInBaseClipped);
+        } else {
+            final Color c = this.g.getColor();
+            this.g.setBackground(Color.WHITE);
+            this.g.setColor(Color.WHITE);
+            this.g.setXORMode(Color.BLACK);
+            try {
+                final int _x = x + this.xShiftInUser;
+                final int _y = y + this.yShiftInUser;
+                // Relying on backing clipping.
+                this.g.fillRect(_x, _y, xSpan, ySpan);
+            } finally {
+                this.g.setBackground(c);
+                this.g.setColor(c);
+                this.g.setPaintMode();
+            }
         }
     }
 
@@ -463,8 +685,16 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final GTransform transform = this.getTransform();
         final int xInBase = transform.xIn1(x, y);
         final int yInBase = transform.yIn1(x, y);
-        
-        final int argb32 = this.imageForRead.getRGB(xInBase, yInBase);
+
+        final int argb32;
+        if (MUST_USE_REDEF_FOR_GET_ARGB32_AT) {
+            argb32 = this.bufferedImageHelper.getArgb32At(
+                    xInBase,
+                    yInBase);
+        } else {
+            final BufferedImage bufferedImage = this.bufferedImageHelper.getImage();
+            argb32 = bufferedImage.getRGB(xInBase, yInBase);
+        }
         return argb32;
     }
 
@@ -473,7 +703,15 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     @Override
+    protected void initImpl() {
+        this.g = this.bufferedImageHelper.getImage().createGraphics();
+        
+        super.initImpl();
+    }
+    
+    @Override
     protected void finishImpl() {
+        this.g.dispose();
     }
     
     /*
@@ -572,8 +810,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         
-        final AwtBwdImageFromFile imageImpl = (AwtBwdImageFromFile) image;
-        final BufferedImage img = imageImpl.getBackingImage();
+        final AbstractAwtBwdImage imageImpl = (AbstractAwtBwdImage) image;
+        final BufferedImage img = imageImpl.getBufferedImage();
         
         final ImageObserver observer = null;
         
@@ -614,30 +852,36 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    /**
-     * Constructor to reuse initialTransform instance.
-     */
     private AwtBwdGraphicsWithG(
             InterfaceBwdBinding binding,
-            Graphics2D g,
-            BufferedImage imageForRead,
+            boolean isImageGraphics,
             GRect box,
-            GRect clipInBase) {
+            GRect initialClip,
+            //
+            BufferedImage backingImage) {
         super(
                 binding,
                 box,
-                clipInBase);
+                initialClip);
         
-        this.g = LangUtils.requireNonNull(g);
-        this.imageForRead = LangUtils.requireNonNull(imageForRead);
+        this.bufferedImageHelper = new BufferedImageHelper(backingImage);
+        
+        this.isImageGraphics = isImageGraphics;
     }
     
+    /*
+     * 
+     */
+
     /**
      * Sets backing clip to be current clip.
      */
     private void setBackingClipToCurrent() {
-        // Must apply transformed clip (and adjusting deltas),
-        // since the backing graphics has transform applied.
+        /*
+         * Must apply transformed clip (and adjusting deltas),
+         * since the backing graphics has transform applied.
+         */
+        
         final GRect clip = this.getClipInUser();
 
         this.g.setClip(
@@ -667,21 +911,70 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * 
      */
 
-    private void drawPoint_raw(int x, int y) {
+    private void drawPoint_raw_g(int x, int y) {
+        // Relying on backing clipping.
         this.g.drawLine(x, y, x, y);
     }
 
-    private void drawLine_raw(int x1, int y1, int x2, int y2) {
+    private void drawPoint_raw_bih_inClip(int x, int y) {
+        final GTransform transform = this.getTransform();
+        final int xInBase = transform.xIn1(x, y);
+        final int yInBase = transform.yIn1(x, y);
+        final int premulArgb32 = this.getPremulArgb32();
+        this.bufferedImageHelper.drawPointAt(
+                xInBase,
+                yInBase,
+                premulArgb32);
+    }
+    
+    /*
+     * 
+     */
+
+    private void drawLine_raw_g(int x1, int y1, int x2, int y2) {
+        // Relying on backing clipping.
         this.g.drawLine(x1, y1, x2, y2);
     }
+    
+    /*
+     * 
+     */
 
-    private void drawRect_raw(int x, int y, int xSpan, int ySpan) {
+    private void drawRect_raw_g(int x, int y, int xSpan, int ySpan) {
+        // Relying on backing clipping.
         this.g.drawRect(x, y, xSpan - 1, ySpan - 1);
     }
+    
+    /*
+     * 
+     */
 
-    private void fillRect_raw(int x, int y, int xSpan, int ySpan) {
+    private void fillRect_raw_g(int x, int y, int xSpan, int ySpan) {
+        // Relying on backing clipping.
         final int _x = x + this.xShiftInUser;
         final int _y = y + this.yShiftInUser;
         this.g.fillRect(_x, _y, xSpan, ySpan);
+    }
+
+    private void fillRect_raw_bih_inClip(int x, int y, int xSpan, int ySpan) {
+
+        final int premulArgb32 = this.getPremulArgb32();
+        
+        final GTransform transform = this.getTransform();
+        
+        final GRect rectInUser = GRect.valueOf(x, y, xSpan, ySpan);
+        final GRect rectInBase = transform.rectIn1(rectInUser);
+        
+        final int xInBase = rectInBase.x();
+        final int yInBase = rectInBase.y();
+        final int xSpanInBase = rectInBase.xSpan();
+        final int ySpanInBase = rectInBase.ySpan();
+        
+        this.bufferedImageHelper.fillRect(
+                xInBase,
+                yInBase,
+                xSpanInBase,
+                ySpanInBase,
+                premulArgb32);
     }
 }

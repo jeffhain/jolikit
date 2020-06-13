@@ -941,6 +941,7 @@ public class QtjBwdHost extends AbstractBwdHost {
             return;
         }
 
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
 
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
@@ -949,6 +950,7 @@ public class QtjBwdHost extends AbstractBwdHost {
 
         final QtjBwdGraphics g = new QtjBwdGraphics(
                 this.binding,
+                isImageGraphics,
                 box,
                 //
                 this.offscreenImage,

@@ -18,18 +18,14 @@ package net.jolikit.bwd.impl.swt;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Monitor;
-
+import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
@@ -37,6 +33,12 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
+
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Monitor;
 
 /**
  * TODO swt It could be possible to use multiple such bindings in a same JVM,
@@ -205,10 +207,40 @@ org.eclipse.swt.SWTException: Invalid thread access
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
         return true;
     }
+    
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
+        /*
+         * TODO swt False else we can get that:
+Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thread access
+    at org.eclipse.swt.SWT.error(Unknown Source)
+    at org.eclipse.swt.SWT.error(Unknown Source)
+    at org.eclipse.swt.SWT.error(Unknown Source)
+    at org.eclipse.swt.widgets.Widget.error(Unknown Source)
+    at org.eclipse.swt.widgets.Widget.checkWidget(Unknown Source)
+    at org.eclipse.swt.widgets.Text.setFont(Unknown Source)
+    at net.jolikit.bwd.impl.swt.SwtFontMetricsHelper.computeTextWidth(SwtFontMetricsHelper.java:131)
+    at net.jolikit.bwd.impl.swt.SwtBwdFontMetrics.backingTextWidth(SwtBwdFontMetrics.java:90)
+    at net.jolikit.bwd.impl.swt.SwtBwdFontMetrics.computeTextWidth_twoOrMoreCp(SwtBwdFontMetrics.java:82)
+    at net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontMetrics.computeTextWidth(AbstractBwdFontMetrics.java:107)
+    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase.newDrawnWritableImage(WritableImageBwdTestCase.java:351)
+    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase.access$1(WritableImageBwdTestCase.java:326)
+    at net.jolikit.bwd.test.cases.visualtests.WritableImageBwdTestCase$MyBgRunnable.run(WritableImageBwdTestCase.java:83)
+    at net.jolikit.time.sched.hard.HardScheduler.workerRun(HardScheduler.java:1780)
+    at net.jolikit.time.sched.hard.HardScheduler.access$9(HardScheduler.java:1695)
+    at net.jolikit.time.sched.hard.HardScheduler$MyWorkerRunnable.run(HardScheduler.java:229)
+    at java.lang.Thread.run(Thread.java:748)
+         */
+        return false;
+    }
 
+    /*
+     * Graphics.
+     */
+    
     @Override
     public GRect getScreenBounds() {
         /*
@@ -274,7 +306,21 @@ org.eclipse.swt.SWTException: Invalid thread access
                 this.display,
                 disposalListener);
     }
-    
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBinding binding = this;
+        return new SwtBwdWritableImage(
+                binding,
+                width,
+                height,
+                this.display,
+                disposalListener);
+    }
+
     /*
      * Shutdown.
      */

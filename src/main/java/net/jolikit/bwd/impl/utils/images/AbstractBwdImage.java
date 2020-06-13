@@ -132,7 +132,18 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
+
+    /**
+     * @param width Writable image width.
+     * @param height Writable image height.
+     * @throws IllegalArgumentException if width or height is <= 0.
+     */
+    protected final void checkAndSetWritableImageDims(int width, int height) {
+        checkWritableImageDims(width, height);
+        this.setWidth_final(width);
+        this.setHeight_final(height);
+    }
+
     /**
      * To be called in constructor.
      */
@@ -158,4 +169,22 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
      * Called only once.
      */
     protected abstract void disposeImpl();
+
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * @param width Writable image width.
+     * @param height Writable image height.
+     * @throws IllegalArgumentException if width or height is <= 0.
+     */
+    private static void checkWritableImageDims(int width, int height) {
+        if ((width <= 0) || (height <= 0)) {
+            throw new IllegalArgumentException(
+                    "width [" + width
+                    + "] and height [" + height
+                    + "] must be > 0 for writable images");
+        }
+    }
 }

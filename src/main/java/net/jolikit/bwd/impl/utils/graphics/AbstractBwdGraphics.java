@@ -26,6 +26,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
@@ -91,6 +92,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     /**
      * Lazily created.
+     * Kept across resets.
      */
     private ArrayList<GRect> clipsBeforeLastAdd = null;
     
@@ -782,11 +784,16 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             InterfaceBwdImage image) {
         this.checkUsable();
         
+        this.checkIsNotThisGraphicsImage(image);
+        
         checkNotDisposed(image);
 
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         if ((imageWidth <= 0) || (imageHeight <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty image");
+            }
             return;
         }
         
@@ -805,15 +812,23 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             InterfaceBwdImage image) {
         this.checkUsable();
         
+        this.checkIsNotThisGraphicsImage(image);
+        
         checkNotDisposed(image);
 
         if ((xSpan <= 0) || (ySpan <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty dst span");
+            }
             return;
         }
 
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         if ((imageWidth <= 0) || (imageHeight <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty image");
+            }
             return;
         }
         
@@ -840,19 +855,30 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             int sx, int sy, int sxSpan, int sySpan) {
         this.checkUsable();
         
+        this.checkIsNotThisGraphicsImage(image);
+        
         checkNotDisposed(image);
 
         if ((xSpan <= 0) || (ySpan <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty dst span");
+            }
             return;
         }
 
         if ((sxSpan <= 0) || (sySpan <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty src span");
+            }
             return;
         }
 
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         if ((imageWidth <= 0) || (imageHeight <= 0)) {
+            if (DEBUG) {
+                Dbg.log("drawImage(...) : empty image");
+            }
             return;
         }
         
@@ -867,10 +893,16 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             final GRect imgBox = GRect.valueOf(0, 0, imageWidth, imageHeight);
             sxSpan = GRect.intersectedSpan(imgBox.x(), imgBox.xSpan(), sx, sxSpan);
             if (sxSpan <= 0) {
+                if (DEBUG) {
+                    Dbg.log("drawImage(...) : empty reduced sxSpan");
+                }
                 return;
             }
             sySpan = GRect.intersectedSpan(imgBox.y(), imgBox.ySpan(), sy, sySpan);
             if (sySpan <= 0) {
+                if (DEBUG) {
+                    Dbg.log("drawImage(...) : empty reduced sySpan");
+                }
                 return;
             }
             sx = GRect.intersectedPos(imgBox.x(), sx);
@@ -954,7 +986,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     protected int getPremulArgb32() {
         return this.premulArgb32;
     }
-
+    
     /*
      * 
      */
@@ -1267,6 +1299,18 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         // Implicit null check on initialClip.
         if ((!initialClip.isEmpty()) && (!box.contains(initialClip))) {
             throwIae_boxAndInitialClip(box, initialClip);
+        }
+    }
+    
+    private void checkIsNotThisGraphicsImage(InterfaceBwdImage image) {
+        if (image instanceof InterfaceBwdWritableImage) {
+            final InterfaceBwdWritableImage wi =
+                    (InterfaceBwdWritableImage) image;
+            final InterfaceBwdGraphics wig = wi.getGraphics();
+            // Works as long as bindings don't get fancy with wrappers.
+            if (wig == this) {
+                throw new IllegalArgumentException("can't draw an image into itself");
+            }
         }
     }
 

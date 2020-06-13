@@ -21,6 +21,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
@@ -133,7 +134,12 @@ public class BindingForApiTests extends AbstractBwdBinding {
     }
 
     @Override
-    public boolean isConcurrentImageManagementSupported() {
+    public boolean isConcurrentImageFromFileManagementSupported() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isConcurrentWritableImageManagementSupported() {
         throw new UnsupportedOperationException();
     }
 
@@ -159,7 +165,15 @@ public class BindingForApiTests extends AbstractBwdBinding {
     @Override
     protected InterfaceBwdImage newImageImpl(
             String filePath,
-            InterfaceBwdImageDisposalListener imageDisposalListener) {
+            InterfaceBwdImageDisposalListener disposalListener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
+            InterfaceBwdImageDisposalListener disposalListener) {
         throw new UnsupportedOperationException();
     }
     

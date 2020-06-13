@@ -22,6 +22,8 @@ import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.image.PixelFormat;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.ScrollEvent;
@@ -40,8 +42,10 @@ import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
+import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 
 public class JfxBwdHost extends AbstractBwdHost {
 
@@ -100,6 +104,8 @@ public class JfxBwdHost extends AbstractBwdHost {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+
+    private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
 
     private static final boolean ALLOW_OB_SHRINKING = true;
     
@@ -402,6 +408,16 @@ public class JfxBwdHost extends AbstractBwdHost {
     private final MyCanvasEl canvasEventListener;
     private final MyStageEl windowEventListener;
     
+    private final IntArrayGraphicBuffer offscreenIntArrayBuffer =
+            new IntArrayGraphicBuffer(
+                    MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                    ALLOW_OB_SHRINKING);
+    
+    private final JfxGraphicBuffer offscreenBackingWiBuffer =
+            new JfxGraphicBuffer(
+                    MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+                    ALLOW_OB_SHRINKING);
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -706,16 +722,35 @@ public class JfxBwdHost extends AbstractBwdHost {
             return;
         }
         
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
         
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
 
-        final JfxBwdGraphicsWithGc g = new JfxBwdGraphicsWithGc(
-                this.getBinding(),
-                gc,
-                box,
-                //
-                this.dirtySnapshotHelper);
+        final JfxBwdBindingConfig bindingConfig = this.getBinding().getBindingConfig();
+        final boolean mustUseIntArrayGraphics =
+                bindingConfig.getMustUseIntArrayGraphicsForClients();
+        
+        final InterfaceBwdGraphics g;
+        if (mustUseIntArrayGraphics) {
+            this.offscreenIntArrayBuffer.setSize(width, height);
+            final int[] pixelArr = this.offscreenIntArrayBuffer.getPixelArr();
+            final int pixelArrScanlineStride = this.offscreenIntArrayBuffer.getScanlineStride();
+            g = new JfxBwdGraphicsWithIntArr(
+                    this.getBinding(),
+                    isImageGraphics,
+                    box,
+                    pixelArr,
+                    pixelArrScanlineStride);
+        } else {
+            g = new JfxBwdGraphicsWithGc(
+                    this.getBinding(),
+                    gc,
+                    isImageGraphics,
+                    box,
+                    //
+                    this.dirtySnapshotHelper);
+        }
 
         // No use for this list.
         @SuppressWarnings("unused")
@@ -723,6 +758,30 @@ public class JfxBwdHost extends AbstractBwdHost {
                 this.getClientPainterNoRec().paintClientAndClipRects(
                         g,
                         dirtyRect);
+        
+        if (mustUseIntArrayGraphics) {
+            this.offscreenBackingWiBuffer.setSize(width, height);
+            final WritableImage offscreenImage = this.offscreenBackingWiBuffer.getImage();
+            /*
+             * Copying pixels from int array into JavaFX writable image.
+             */
+            offscreenImage.getPixelWriter().setPixels(
+                    0, 0, width, height,
+                    PixelFormat.getIntArgbPreInstance(),
+                    this.offscreenIntArrayBuffer.getPixelArr(),
+                    0,
+                    this.offscreenIntArrayBuffer.getScanlineStride());
+            /*
+             * Drawing JavaFX writable image.
+             * No need to offset : x/yShiftInUser are 0.5 when rotation is 0,
+             * but then for images destination box we remove 0.5,
+             * which makes for zero offsets.
+             */
+            gc.drawImage(
+                    offscreenImage,
+                    0.0, 0.0, width, height,
+                    0.0, 0.0, width, height);
+        }
     }
 
     @Override

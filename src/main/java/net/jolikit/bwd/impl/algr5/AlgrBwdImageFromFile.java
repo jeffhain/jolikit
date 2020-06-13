@@ -17,18 +17,17 @@ package net.jolikit.bwd.impl.algr5;
 
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_LOCKED_REGION;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrBitmapLoadFlag;
-import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
+import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
 import com.sun.jna.Pointer;
 
-public class AlgrBwdImageFromFile extends AbstractBwdImage {
+public class AlgrBwdImageFromFile extends AbstractAlgrBwdImage {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -42,13 +41,6 @@ public class AlgrBwdImageFromFile extends AbstractBwdImage {
     
     private static final AlgrJnaLib LIB = AlgrJnaLib.INSTANCE;
     
-    /**
-     * TODO algr For performances when drawing image on graphics,
-     * we store its content as an array of premultiplied colors.
-     * Note that as a result, in getArgb32AtImpl(...), we compute
-     * the non-premultiplied color from a premultiplied one,
-     * which can damage RGB components in case of semi transparent images.
-     */
     private final int[] premulArgb32Arr;
     
     //--------------------------------------------------------------------------
@@ -117,14 +109,6 @@ public class AlgrBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     
     @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final int index = y * this.getWidth() + x;
-        final int premulArgb32 = this.premulArgb32Arr[index];
-        final int argb32 = BindingColorUtils.toNonPremulAxyz32(premulArgb32);
-        return argb32;
-    }
-
-    @Override
     protected void disposeImpl() {
         // Nothing to do.
     }
@@ -133,6 +117,7 @@ public class AlgrBwdImageFromFile extends AbstractBwdImage {
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
     
+    @Override
     int[] getPremulArgb32Arr() {
         return this.premulArgb32Arr;
     }

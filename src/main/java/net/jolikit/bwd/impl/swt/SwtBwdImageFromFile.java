@@ -15,18 +15,17 @@
  */
 package net.jolikit.bwd.impl.swt;
 
+import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NumbersUtils;
+
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.widgets.Display;
 
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
-import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
-
-public class SwtBwdImageFromFile extends AbstractBwdImage {
+public class SwtBwdImageFromFile extends AbstractSwtBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -42,8 +41,8 @@ public class SwtBwdImageFromFile extends AbstractBwdImage {
      * @param filePath Path of an image file.
      * @param display Display to use for the image. Must not be null.
      * @param disposalListener Must not be null.
-     * @throws IllegalArgumentException if could not load the specified image.
      * @throws NullPointerException if filePath or display or disposalListener is null.
+     * @throws IllegalArgumentException if could not load the specified image.
      */
     public SwtBwdImageFromFile(
             String filePath,
@@ -73,6 +72,9 @@ public class SwtBwdImageFromFile extends AbstractBwdImage {
          * we just transform the image data into a proper array of pixels
          * here.
          */
+        final int width;
+        final int height;
+        final int[] premulArgb32Arr;
         try {
             if (false) {
                 /*
@@ -86,10 +88,10 @@ public class SwtBwdImageFromFile extends AbstractBwdImage {
             // This is slow: must only do it once.
             final ImageData imageData = backingImage.getImageData();
 
-            final int width = imageData.width;
-            final int height = imageData.height;
+            width = imageData.width;
+            height = imageData.height;
             final int pixelCapacity = NumbersUtils.timesExact(width, height);
-            final int[] premulArgb32Arr = new int[pixelCapacity];
+            premulArgb32Arr = new int[pixelCapacity];
 
             int index = 0;
             for (int y = 0; y < height; y++) {
@@ -111,13 +113,6 @@ public class SwtBwdImageFromFile extends AbstractBwdImage {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
-    @Override
-    protected int getArgb32AtImpl(int x, int y) {
-        final int index = y * this.getWidth() + x;
-        final int premulArgb32 = this.premulArgb32Arr[index];
-        return BindingColorUtils.toNonPremulAxyz32(premulArgb32);
-    }
 
     @Override
     protected void disposeImpl() {
@@ -128,6 +123,7 @@ public class SwtBwdImageFromFile extends AbstractBwdImage {
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
 
+    @Override
     int[] getPremulArgb32Arr() {
         return this.premulArgb32Arr;
     }

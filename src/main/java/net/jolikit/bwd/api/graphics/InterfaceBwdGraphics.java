@@ -44,9 +44,14 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  *   using them, which complicates the drawing treatments).
  * 
  * Frames of reference:
+ * These graphics can be used to draw on various kinds of surfaces.
  * The base frame of reference is the one with (0,0) at the top-left corner
- * of the client, and a transform allows to define another one relatively
+ * of the surface, and a transform allows to define another one relatively
  * to it, called the user frame of reference, which is used by drawing methods.
+ * For graphics used to draw on client, base frame of reference
+ * is therefore client frame of reference.
+ * For graphics used to draw on images, base frame of reference
+ * is also called image frame of reference.
  * 
  * Box:
  * The rectangle in which the graphics is made to draw on is called its box,
@@ -144,7 +149,7 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * to explicitly deal with fonts, and to make more explicit that changing font
  * can have an overhead on its own, depending on bindings implementations.
  * 
- * Default pixels colors:
+ * Default pixels colors for a client graphics:
  * Pixels colors for pixels not yet painted with a BWD graphics
  * (such as at first client area painting, or on client area growth),
  * are undefined, which allows to avoid the overhead of an eventually
@@ -175,6 +180,9 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  * As a result, for consistency across paintings, every non fully opaque
  * painting should take place over an area previously cleared (or filled
  * with a fully opaque color) during that painting.
+ * 
+ * Default pixels colors for an image graphics:
+ * Pixels color for pixels not yet painted must be 0 (fully transparent).
  * 
  * Threading:
  * Graphics are by default not supposed to be thread-safe, but if the binding
@@ -270,9 +278,18 @@ public interface InterfaceBwdGraphics {
     public void init();
     
     /**
-     * Must be called after graphics usage, because depending on
-     * the implementation, not calling it properly could cause drawings
-     * not to be flushed or some resources not to be released.
+     * For client graphics, must be called after graphics usage,
+     * because depending on the implementation, not calling it properly
+     * could cause drawings not to be flushed or some resources
+     * not to be released.
+     * 
+     * For writable image graphics, calling it after graphics usage
+     * is not needed: it is automatically called on disposal,
+     * and any eventual flushing to be conducted before drawing
+     * the image must be done by the binding (if not already done
+     * by the backing library).
+     * For these graphics this method can be used as a way to "freeze"
+     * image content (accidental feature).
      * 
      * Must do nothing if already called.
      */
@@ -532,7 +549,7 @@ public interface InterfaceBwdGraphics {
      * Clearing means filling but with erasing (COPY (or SRC) (not CLEAR!)
      * compositing operator) instead of blending (SRC_OVER for us).
      * 
-     * Clearing must be done with the fully opaque variant
+     * For client graphics, clearing must be done with the fully opaque variant
      * of current color, because most libraries don't handle non-fully opaque
      * clearings properly (ex.: JavaFX, Qt4, Allegro5 and SDL2 seem to interpret
      * 0x80FFFFFF background as grey, instead of fully black), and a fully
@@ -541,6 +558,10 @@ public interface InterfaceBwdGraphics {
      * for libraries not supporting truly (independently of window alpha)
      * transparent windows, which is the case for all those I used
      * for the design of this API.
+     * 
+     * For image graphics, clearing must be done with current color,
+     * because on the contrary, it's usually possible to reset color
+     * with arbitrary opacity.
      * 
      * The rectangle can cover pixels outside of the clip,
      * in which case they must not be modified.
@@ -946,7 +967,9 @@ public interface InterfaceBwdGraphics {
      * @param y Destination y, in user coordinates.
      * @param image Image to draw. Must not be null.
      * @throws NullPointerException if the specified image is null.
-     * @throws IllegalArgumentException if the specified image is disposed.
+     * @throws IllegalArgumentException if the specified image is disposed,
+     *         or the specified image is a writable image and this graphics
+     *         belongs to it (can't draw a writable image into itself).
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
@@ -960,8 +983,11 @@ public interface InterfaceBwdGraphics {
      * @param xSpan Destination X span.
      * @param ySpan Destination Y span.
      * @param image Image to draw. Must not be null.
+     *        If this graphics belongs to an image, must not be that image.
      * @throws NullPointerException if the specified image is null.
-     * @throws IllegalArgumentException if the specified image is disposed.
+     * @throws IllegalArgumentException if the specified image is disposed,
+     *         or the specified image is a writable image and this graphics
+     *         belongs to it (can't draw a writable image into itself).
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
@@ -975,8 +1001,11 @@ public interface InterfaceBwdGraphics {
      * 
      * @param rect Destination rectangle. Must not be null.
      * @param image Image to draw. Must not be null.
+     *        If this graphics belongs to an image, must not be that image.
      * @throws NullPointerException if the specified rectangle or image is null.
-     * @throws IllegalArgumentException if the specified image is disposed.
+     * @throws IllegalArgumentException if the specified image is disposed,
+     *         or the specified image is a writable image and this graphics
+     *         belongs to it (can't draw a writable image into itself).
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
@@ -992,12 +1021,15 @@ public interface InterfaceBwdGraphics {
      * @param xSpan Destination X span.
      * @param ySpan Destination Y span.
      * @param image Image to draw. Must not be null.
+     *        If this graphics belongs to an image, must not be that image.
      * @param sx Source x, in image coordinates.
      * @param sy Source y, in image coordinates.
      * @param sxSpan Source X span.
      * @param sySpan Source Y span.
      * @throws NullPointerException if the specified image is null.
-     * @throws IllegalArgumentException if the specified image is disposed.
+     * @throws IllegalArgumentException if the specified image is disposed,
+     *         or the specified image is a writable image and this graphics
+     *         belongs to it (can't draw a writable image into itself).
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
@@ -1015,10 +1047,13 @@ public interface InterfaceBwdGraphics {
      * 
      * @param rect Destination rectangle. Must not be null.
      * @param image Image to draw. Must not be null.
+     *        If this graphics belongs to an image, must not be that image.
      * @param sRect Source rectangle. Must not be null.
      * @throws NullPointerException if any of the specified rectangles
      *         or image is null.
-     * @throws IllegalArgumentException if the specified image is disposed.
+     * @throws IllegalArgumentException if the specified image is disposed,
+     *         or the specified image is a writable image and this graphics
+     *         belongs to it (can't draw a writable image into itself).
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */

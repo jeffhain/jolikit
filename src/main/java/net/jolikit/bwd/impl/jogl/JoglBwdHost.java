@@ -1121,6 +1121,7 @@ public class JoglBwdHost extends AbstractBwdHost {
             hostLog(this, "paintClientOnOb(...) : clientBounds = " + clientBounds);
         }
         
+        final boolean isImageGraphics = false;
         final GRect box = GRect.valueOf(0, 0, width, height);
         boxWrapper[0] = box;
 
@@ -1132,6 +1133,7 @@ public class JoglBwdHost extends AbstractBwdHost {
 
         final JoglBwdGraphics g = new JoglBwdGraphics(
                 this.binding,
+                isImageGraphics,
                 box,
                 //
                 pixelArr,

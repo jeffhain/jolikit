@@ -103,12 +103,14 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     public AlgrBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             //
             int[] pixelArr,
             int pixelArrScanlineStride) {
         this(
                 binding,
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -130,6 +132,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         return new AlgrBwdGraphics(
                 this.getBinding(),
+                this.isImageGraphics(),
                 childBox,
                 childInitialClip,
                 //
@@ -394,7 +397,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final AlgrBwdImageFromFile imageImpl = (AlgrBwdImageFromFile) image;
+        final AbstractAlgrBwdImage imageImpl = (AbstractAlgrBwdImage) image;
         final int[] premulArgb32Arr = imageImpl.getPremulArgb32Arr();
         return premulArgb32Arr;
     }
@@ -422,6 +425,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     private AlgrBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -429,6 +433,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
             int pixelArrScanlineStride) {
         super(
                 binding,
+                isImageGraphics,
                 box,
                 initialClip,
                 //

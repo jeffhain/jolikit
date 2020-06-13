@@ -137,6 +137,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     public SwtBwdGraphics(
             InterfaceBwdBinding binding,
             Display display,
+            boolean isImageGraphics,
             GRect box,
             //
             int[] pixelArr,
@@ -144,6 +145,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         this(
                 binding,
                 display,
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -170,6 +172,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         return new SwtBwdGraphics(
                 this.getBinding(),
                 this.display,
+                this.isImageGraphics(),
                 childBox,
                 childInitialClip,
                 //
@@ -441,7 +444,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final SwtBwdImageFromFile imageImpl = (SwtBwdImageFromFile) image;
+        final AbstractSwtBwdImage imageImpl = (AbstractSwtBwdImage) image;
         final int[] premulArgb32Arr = imageImpl.getPremulArgb32Arr();
         return premulArgb32Arr;
     }
@@ -473,6 +476,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     private SwtBwdGraphics(
             InterfaceBwdBinding binding,
             Display display,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -482,6 +486,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             SwtBwdGraphics parentGraphics) {
         super(
                 binding,
+                isImageGraphics,
                 box,
                 initialClip,
                 //

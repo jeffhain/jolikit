@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -33,6 +34,12 @@ import net.jolikit.lang.LangUtils;
  * color model.
  */
 public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
+    
+    //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    private static final boolean DEBUG = false;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -77,9 +84,11 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                 int x, int y, int xSpan, int ySpan,
                 boolean areHorVerFlipped) {
             final boolean mustUseOpaqueColor = false;
+            final boolean mustSetColor = false;
             fillRectInClip_raw(
                     x, y, xSpan, ySpan,
-                    mustUseOpaqueColor);
+                    mustUseOpaqueColor,
+                    mustSetColor);
         }
     };
     
@@ -88,6 +97,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private final MyPrimitives primitives = new MyPrimitives();
+    
+    private final boolean isImageGraphics;
     
     /**
      * Pixels corresponding to the base area, which top-left corner is (0,0).
@@ -130,8 +141,13 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
+    /**
+     * @param isImageGraphics True if it is an image graphics,
+     *        false if it is a client graphics.
+     */
     public AbstractIntArrayBwdGraphics(
             InterfaceBwdBinding binding,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -142,6 +158,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                 box,
                 initialClip);
 
+        this.isImageGraphics = isImageGraphics;
+        
         this.pixelArr = LangUtils.requireNonNull(pixelArr);
         this.pixelArrScanlineStride = pixelArrScanlineStride;
     }
@@ -172,13 +190,15 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int clippedXSpan = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
         final int clippedYSpan = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
         
-        final boolean mustUseOpaqueColor = true;
+        final boolean mustUseOpaqueColor = !this.isImageGraphics;
+        final boolean mustSetColor = this.isImageGraphics;
         fillRectInClip_raw(
                 clippedX,
                 clippedY,
                 clippedXSpan,
                 clippedYSpan,
-                mustUseOpaqueColor);
+                mustUseOpaqueColor,
+                mustSetColor);
     }
 
     /*
@@ -369,6 +389,14 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
+    protected final boolean isImageGraphics() {
+        return this.isImageGraphics;
+    }
+    
+    /*
+     * 
+     */
+    
     @Override
     protected void setBackingClip(GRect clipInBase) {
         // Usually no backing clip to update.
@@ -467,6 +495,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         
         final GRect dstRectInUser_userClipRework = dstRectInUser_initial.intersected(clipInUser);
         if (dstRectInUser_userClipRework.isEmpty()) {
+            if (DEBUG) {
+                Dbg.log("drawImageImpl(...) : empty dstRectInUser_userClipRework");
+            }
             return;
         }
 
@@ -481,6 +512,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                 dstRectInUser_userClipRework,
                 srcRectInImg_initial);
         if (srcRectInImg_userClipRework.isEmpty()) {
+            if (DEBUG) {
+                Dbg.log("drawImageImpl(...) : empty srcRectInImg_userClipRework");
+            }
             return;
         }
         
@@ -722,7 +756,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int xSpan = Math.abs(x2 - x1) + 1;
         final int ySpan = 1;
         final boolean mustUseOpaqueColor = false;
-        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor);
+        final boolean mustSetColor = false;
+        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor, mustSetColor);
     }
     
     private void drawVerticalLineInClip_raw(int x, int y1, int y2) {
@@ -730,12 +765,21 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int xSpan = 1;
         final int ySpan = Math.abs(y2 - y1) + 1;
         final boolean mustUseOpaqueColor = false;
-        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor);
+        final boolean mustSetColor = false;
+        fillRectInClip_raw(x, y, xSpan, ySpan, mustUseOpaqueColor, mustSetColor);
     }
 
+    /**
+     * @param mustUseOpaqueColor If true, using a fully opaque version
+     *        of current array color.
+     * @param mustSetColor If true, uses COPY (or SRC) blending
+     *        (replaces previous color with specified color)
+     *        instead of SRC_OVER.
+     */
     private void fillRectInClip_raw(
             int x, int y, int xSpan, int ySpan,
-            boolean mustUseOpaqueColor) {
+            boolean mustUseOpaqueColor,
+            boolean mustSetColor) {
         if ((xSpan <= 0) || (ySpan <= 0)) {
             // Not wasting time looping on some coordinate.
             return;
@@ -769,10 +813,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         // To optimize for the case where xSpanInBase is small.
         final int indexJump = scanlineStride - xSpanInBase;
 
-        final int alpha8 = this.getArrayColorAlpha8(color32);
-        if (alpha8 == 0xFF) {
+        if (mustSetColor
+                || (this.getArrayColorAlpha8(color32) == 0xFF)) {
             /*
-             * Optimization for fully opaque colors.
+             * Optimization when not having to blend.
              */
             for (int j = 0; j < ySpanInBase; j++) {
                 for (int i = 0; i < xSpanInBase; i++) {

@@ -36,6 +36,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontHome;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -403,6 +404,24 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         return image;
     }
 
+    @Override
+    public InterfaceBwdWritableImage newWritableImage(int width, int height) {
+        if ((width <= 0)
+                || (height <= 0)) {
+            throw new IllegalArgumentException(
+                    "width [" + width
+                    + "] and height [" + height
+                    + "] must be > 0");
+        }
+
+        final InterfaceBwdWritableImage image = this.newWritableImageImpl(
+                width,
+                height,
+                this.imageDisposalListener);
+        this.addImage(image);
+        return image;
+    }
+
     /*
      * Shutdown.
      */
@@ -544,6 +563,11 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
     
     protected abstract InterfaceBwdImage newImageImpl(
             String filePath,
+            InterfaceBwdImageDisposalListener disposalListener);
+    
+    protected abstract InterfaceBwdWritableImage newWritableImageImpl(
+            int width,
+            int height,
             InterfaceBwdImageDisposalListener disposalListener);
     
     /*

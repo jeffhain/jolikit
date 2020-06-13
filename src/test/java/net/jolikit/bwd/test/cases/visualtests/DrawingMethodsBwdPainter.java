@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -35,7 +36,7 @@ import net.jolikit.lang.NumbersUtils;
  * Mock using all painting methods (primitives, text, images...),
  * along with transforms.
  */
-public class DrawingMethodsBwdMockPainter {
+public class DrawingMethodsBwdPainter {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -79,9 +80,13 @@ public class DrawingMethodsBwdMockPainter {
      */
     private static final int TARGET_FONT_HEIGHT = CELL_QUARTER_INNER_SPAN - 1;
 
-    public static final int AREA_X_SPAN = NBR_OF_COLUMNS * (CELL_INNER_SPAN + 1) + 1;
-    public static final int AREA_Y_SPAN = NBR_OF_ROWS * (CELL_INNER_SPAN + 1) + 1;
+    private static final int AREA_X_SPAN = NBR_OF_COLUMNS * (CELL_INNER_SPAN + 1) + 1;
+    private static final int AREA_Y_SPAN = NBR_OF_ROWS * (CELL_INNER_SPAN + 1) + 1;
     
+    private static final int INITIAL_WIDTH = DrawingMethodsBwdPainter.AREA_X_SPAN + 28;
+    private static final int INITIAL_HEIGHT = DrawingMethodsBwdPainter.AREA_Y_SPAN + 60;
+    public static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
+
     /*
      * 
      */
@@ -106,7 +111,7 @@ public class DrawingMethodsBwdMockPainter {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DrawingMethodsBwdMockPainter(InterfaceBwdBinding binding) {
+    public DrawingMethodsBwdPainter(InterfaceBwdBinding binding) {
         this.binding = LangUtils.requireNonNull(binding);
         this.image_filled_grey = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_FILLED_GREY_PNG);
         this.image_struct_grey = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_STRUCT_GREY_PNG);

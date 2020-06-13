@@ -43,6 +43,11 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.RethrowException;
 
+/**
+ * Graphics based on a JavaFX GraphicsContext.
+ * Not too bad, other that doesn't allow for transparent offscreen images
+ * (Canvas background always opaque).
+ */
 public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
     /*
@@ -185,6 +190,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
     private final MyPrimitives primitives = new MyPrimitives();
     
+    private final boolean isImageGraphics;
+    
     private final GraphicsContext gc;
     
     /*
@@ -221,12 +228,14 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
             GraphicsContext gc,
+            boolean isImageGraphics,
             GRect box,
             //
             JfxDirtySnapshotHelper dirtySnapshotHelper) {
         this(
                 binding,
                 gc,
+                isImageGraphics,
                 box,
                 box, // initialClip
                 //
@@ -255,8 +264,10 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         return new JfxBwdGraphicsWithGc(
                 this.getBinding(),
                 this.gc,
+                this.isImageGraphics,
                 childBox,
                 childInitialClip,
+                //
                 this.dirtySnapshotHelper);
     }
     
@@ -279,6 +290,10 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         
         /*
          * Implicit dirtySnapshotHelper calls.
+         * 
+         * NB: Can't clear with a transparent color with GC,
+         * so even in case of image graphics, we use this
+         * opaque clearing method.
          */
 
         final Color backingColor = (Color) this.gc.getStroke();
@@ -682,8 +697,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         
-        final JfxBwdImageFromFile imageImpl = (JfxBwdImageFromFile) image;
-        final Image img = imageImpl.getBackingImage();
+        final AbstractJfxBwdImage imageImpl = (AbstractJfxBwdImage) image;
+        final Image img = imageImpl.getBackingImageForGcDrawOrRead();
         
         // Only for destination box, not source.
         final double _x = x + this.xShiftInUser - H;
@@ -729,6 +744,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     private JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
             GraphicsContext gc,
+            boolean isImageGraphics,
             GRect box,
             GRect initialClip,
             //
@@ -739,6 +755,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 initialClip);
         
         this.gc = LangUtils.requireNonNull(gc);
+        
+        this.isImageGraphics = isImageGraphics;
         
         this.dirtySnapshotHelper = LangUtils.requireNonNull(dirtySnapshotHelper);
     }
