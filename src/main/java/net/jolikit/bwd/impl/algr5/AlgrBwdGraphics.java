@@ -394,7 +394,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final AlgrBwdImage imageImpl = (AlgrBwdImage) image;
+        final AlgrBwdImageFromFile imageImpl = (AlgrBwdImageFromFile) image;
         final int[] premulArgb32Arr = imageImpl.getPremulArgb32Arr();
         return premulArgb32Arr;
     }

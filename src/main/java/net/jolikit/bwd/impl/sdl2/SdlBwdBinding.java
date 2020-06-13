@@ -528,7 +528,7 @@ palette = JnaLibSdl$SDL_Palette$ByReference(native@0x6c86dcb0) (24 bytes) {
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new SdlBwdImage(
+        return new SdlBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

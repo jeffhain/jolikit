@@ -225,7 +225,7 @@ java.lang.NullPointerException
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new JfxBwdImage(
+        return new JfxBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

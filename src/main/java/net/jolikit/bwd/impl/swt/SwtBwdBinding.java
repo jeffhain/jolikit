@@ -269,7 +269,7 @@ org.eclipse.swt.SWTException: Invalid thread access
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new SwtBwdImage(
+        return new SwtBwdImageFromFile(
                 filePath,
                 this.display,
                 disposalListener);

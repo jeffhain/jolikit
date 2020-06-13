@@ -17,6 +17,8 @@ package net.jolikit.bwd.impl.sdl2;
 
 import java.util.ArrayList;
 
+import com.sun.jna.Pointer;
+
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
@@ -26,10 +28,10 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.utils.BwdUnicode;
-import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
-import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLibTtf;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Color;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Surface;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLibTtf;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
@@ -37,8 +39,6 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
-
-import com.sun.jna.Pointer;
 
 public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
@@ -357,7 +357,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final SdlBwdImage imageImpl = (SdlBwdImage) image;
+        final SdlBwdImageFromFile imageImpl = (SdlBwdImageFromFile) image;
         return imageImpl.getPremulArgb32Arr();
     }
 

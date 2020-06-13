@@ -259,7 +259,7 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new JoglBwdImage(
+        return new JoglBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

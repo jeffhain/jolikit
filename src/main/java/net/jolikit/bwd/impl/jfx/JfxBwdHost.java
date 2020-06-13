@@ -710,7 +710,7 @@ public class JfxBwdHost extends AbstractBwdHost {
         
         final GRect dirtyRect = this.getAndResetDirtyRectBb();
 
-        final JfxBwdGraphics g = new JfxBwdGraphics(
+        final JfxBwdGraphicsWithGc g = new JfxBwdGraphicsWithGc(
                 this.getBinding(),
                 gc,
                 box,

@@ -303,7 +303,7 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final JoglBwdImage imageImpl = (JoglBwdImage) image;
+        final JoglBwdImageFromFile imageImpl = (JoglBwdImageFromFile) image;
         final int[] color32Arr = imageImpl.getColor32Arr();
         return color32Arr;
     }

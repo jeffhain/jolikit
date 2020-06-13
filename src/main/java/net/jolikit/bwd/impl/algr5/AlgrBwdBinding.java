@@ -676,7 +676,7 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new AlgrBwdImage(
+        return new AlgrBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

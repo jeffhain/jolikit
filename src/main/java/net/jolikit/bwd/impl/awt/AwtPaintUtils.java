@@ -85,7 +85,7 @@ public class AwtPaintUtils {
         final List<GRect> paintedRectList;
         final Graphics2D backingOffscreenG = offscreenBuffer.createClippedGraphics();
         try {
-            final AwtBwdGraphics g = new AwtBwdGraphics(
+            final AwtBwdGraphicsWithG g = new AwtBwdGraphicsWithG(
                     binding,
                     backingOffscreenG,
                     offscreenBuffer.getImage(),

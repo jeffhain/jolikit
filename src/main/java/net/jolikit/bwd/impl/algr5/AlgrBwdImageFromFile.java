@@ -28,7 +28,7 @@ import net.jolikit.lang.LangUtils;
 
 import com.sun.jna.Pointer;
 
-public class AlgrBwdImage extends AbstractBwdImage {
+public class AlgrBwdImageFromFile extends AbstractBwdImage {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -61,7 +61,7 @@ public class AlgrBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public AlgrBwdImage(
+    public AlgrBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

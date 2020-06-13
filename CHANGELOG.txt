@@ -134,7 +134,12 @@ Jolikit X.X, XXXX/XX/XX
     - In AbstractBwdHost, runWindowEventLogicLoopOnPeriod(..) visibility was
       changed from package-private to protected.
     - In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
-      onHostClosedEventFiringImpl(...). 
+      onHostClosedEventFiringImpl(...).
+    - Before adding writable images and new related image
+      and graphics classes, renamed a few classes:
+      - XxxBwdImage into XxxBwdImageFromFile.
+      - AwtBwdGraphics into AwtBwdGraphicsWithG.
+      - JfxBwdGraphics into JfxBwdGraphicsWithGc.
 
 - Added finals for Java 7 (or less) source compatibility.
 

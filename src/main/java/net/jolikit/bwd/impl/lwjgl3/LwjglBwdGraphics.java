@@ -303,7 +303,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final LwjglBwdImage imageImpl = (LwjglBwdImage) image;
+        final LwjglBwdImageFromFile imageImpl = (LwjglBwdImageFromFile) image;
         final int[] color32Arr = imageImpl.getColor32Arr();
         return color32Arr;
     }

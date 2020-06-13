@@ -218,7 +218,7 @@ public class AwtBwdBinding extends AbstractAwtBwdBinding {
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new AwtBwdImage(
+        return new AwtBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

@@ -43,7 +43,7 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.RethrowException;
 
-public class JfxBwdGraphics extends AbstractBwdGraphics {
+public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
     /*
      * TODO jfx For line stipples, Shape.getStrokeDashArray() doesn't suit
@@ -218,7 +218,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      * 
      * @param dirtySnapshotHelper Must not be null.
      */
-    public JfxBwdGraphics(
+    public JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
             GraphicsContext gc,
             GRect box,
@@ -248,11 +248,11 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    public JfxBwdGraphics newChildGraphics(GRect childBox) {
+    public JfxBwdGraphicsWithGc newChildGraphics(GRect childBox) {
         this.checkFinishNotCalled();
         
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
-        return new JfxBwdGraphics(
+        return new JfxBwdGraphicsWithGc(
                 this.getBinding(),
                 this.gc,
                 childBox,
@@ -682,7 +682,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         
-        final JfxBwdImage imageImpl = (JfxBwdImage) image;
+        final JfxBwdImageFromFile imageImpl = (JfxBwdImageFromFile) image;
         final Image img = imageImpl.getBackingImage();
         
         // Only for destination box, not source.
@@ -726,7 +726,7 @@ public class JfxBwdGraphics extends AbstractBwdGraphics {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private JfxBwdGraphics(
+    private JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
             GraphicsContext gc,
             GRect box,

@@ -337,7 +337,7 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new LwjglBwdImage(
+        return new LwjglBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

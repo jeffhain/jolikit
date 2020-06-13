@@ -26,7 +26,7 @@ import net.jolikit.lang.LangUtils;
 
 import com.sun.jna.Pointer;
 
-public class SdlBwdImage extends AbstractBwdImage {
+public class SdlBwdImageFromFile extends AbstractBwdImage {
     
     /*
      * TODO sdl For 1-bit, 8-bits and 16-bits BMP images,
@@ -63,7 +63,7 @@ public class SdlBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public SdlBwdImage(
+    public SdlBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

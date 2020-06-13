@@ -20,7 +20,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
-public class JfxBwdImage extends AbstractBwdImage {
+public class JfxBwdImageFromFile extends AbstractBwdImage {
     
     /*
      * Storing pixels as original Image, not as an int array of pixels,
@@ -45,7 +45,7 @@ public class JfxBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public JfxBwdImage(
+    public JfxBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

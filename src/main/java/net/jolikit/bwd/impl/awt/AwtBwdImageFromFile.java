@@ -25,7 +25,7 @@ import javax.imageio.ImageIO;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
-public class AwtBwdImage extends AbstractBwdImage {
+public class AwtBwdImageFromFile extends AbstractBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -45,7 +45,7 @@ public class AwtBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public AwtBwdImage(
+    public AwtBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

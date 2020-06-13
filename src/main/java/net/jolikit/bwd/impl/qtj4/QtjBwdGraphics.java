@@ -642,7 +642,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
 
-        final QtjBwdImage imageImpl = (QtjBwdImage) image;
+        final QtjBwdImageFromFile imageImpl = (QtjBwdImageFromFile) image;
         final QImage backingImage = imageImpl.getBackingImage();
         
         final GTransform transform = this.getTransform();

@@ -24,7 +24,7 @@ import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
-public class QtjBwdImage extends AbstractBwdImage {
+public class QtjBwdImageFromFile extends AbstractBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -50,7 +50,7 @@ public class QtjBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public QtjBwdImage(
+    public QtjBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

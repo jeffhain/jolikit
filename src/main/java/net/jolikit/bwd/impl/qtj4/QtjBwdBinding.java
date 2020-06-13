@@ -252,7 +252,7 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     protected InterfaceBwdImage newImageImpl(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
-        return new QtjBwdImage(
+        return new QtjBwdImageFromFile(
                 filePath,
                 disposalListener);
     }

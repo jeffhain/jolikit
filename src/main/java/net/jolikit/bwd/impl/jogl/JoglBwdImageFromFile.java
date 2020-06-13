@@ -27,7 +27,7 @@ import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.NumbersUtils;
 
-public class JoglBwdImage extends AbstractBwdImage {
+public class JoglBwdImageFromFile extends AbstractBwdImage {
 
     /*
      * TODO jogl Tried to use FreeImage 3.17 library,
@@ -61,7 +61,7 @@ public class JoglBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public JoglBwdImage(
+    public JoglBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);

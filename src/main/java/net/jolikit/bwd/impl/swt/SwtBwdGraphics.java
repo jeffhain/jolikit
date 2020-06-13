@@ -441,9 +441,9 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     @Override
     protected Object getImageDataAccessor(InterfaceBwdImage image) {
-        final SwtBwdImage imageImpl = (SwtBwdImage) image;
-        final int[] color32Arr = imageImpl.getColor32Arr();
-        return color32Arr;
+        final SwtBwdImageFromFile imageImpl = (SwtBwdImageFromFile) image;
+        final int[] premulArgb32Arr = imageImpl.getPremulArgb32Arr();
+        return premulArgb32Arr;
     }
 
     @Override
@@ -457,10 +457,10 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             Object imageDataAccessor,
             int xInImage,
             int yInImage) {
-        final int[] color32Arr = (int[]) imageDataAccessor;
+        final int[] premulArgb32Arr = (int[]) imageDataAccessor;
         final int index = yInImage * image.getWidth() + xInImage;
-        final int color32 = color32Arr[index];
-        return color32;
+        final int premulArgb32 = premulArgb32Arr[index];
+        return premulArgb32;
     }
 
     //--------------------------------------------------------------------------

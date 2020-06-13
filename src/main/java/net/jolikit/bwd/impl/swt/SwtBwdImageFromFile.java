@@ -26,7 +26,7 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 
-public class SwtBwdImage extends AbstractBwdImage {
+public class SwtBwdImageFromFile extends AbstractBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -45,7 +45,7 @@ public class SwtBwdImage extends AbstractBwdImage {
      * @throws IllegalArgumentException if could not load the specified image.
      * @throws NullPointerException if filePath or display or disposalListener is null.
      */
-    public SwtBwdImage(
+    public SwtBwdImageFromFile(
             String filePath,
             Display display,
             InterfaceBwdImageDisposalListener disposalListener) {
@@ -128,7 +128,7 @@ public class SwtBwdImage extends AbstractBwdImage {
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    int[] getColor32Arr() {
+    int[] getPremulArgb32Arr() {
         return this.premulArgb32Arr;
     }
 }

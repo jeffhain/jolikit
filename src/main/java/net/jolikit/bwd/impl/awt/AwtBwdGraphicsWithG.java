@@ -37,7 +37,7 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
-public class AwtBwdGraphics extends AbstractBwdGraphics {
+public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     /*
      * TODO awt Since we don't use much of AWT's primitives (oval etc.),
@@ -200,7 +200,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     /**
      * Constructor for root graphics.
      */
-    public AwtBwdGraphics(
+    public AwtBwdGraphicsWithG(
             InterfaceBwdBinding binding,
             Graphics2D g,
             BufferedImage imageForRead,
@@ -231,7 +231,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    public AwtBwdGraphics newChildGraphics(GRect childBox) {
+    public AwtBwdGraphicsWithG newChildGraphics(GRect childBox) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
@@ -240,7 +240,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
         // create() useful in case of parallel painting.
         final Graphics2D subG = (Graphics2D) this.g.create();
-        return new AwtBwdGraphics(
+        return new AwtBwdGraphicsWithG(
                 this.getBinding(),
                 subG,
                 this.imageForRead,
@@ -572,7 +572,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         
-        final AwtBwdImage imageImpl = (AwtBwdImage) image;
+        final AwtBwdImageFromFile imageImpl = (AwtBwdImageFromFile) image;
         final BufferedImage img = imageImpl.getBackingImage();
         
         final ImageObserver observer = null;
@@ -617,7 +617,7 @@ public class AwtBwdGraphics extends AbstractBwdGraphics {
     /**
      * Constructor to reuse initialTransform instance.
      */
-    private AwtBwdGraphics(
+    private AwtBwdGraphicsWithG(
             InterfaceBwdBinding binding,
             Graphics2D g,
             BufferedImage imageForRead,

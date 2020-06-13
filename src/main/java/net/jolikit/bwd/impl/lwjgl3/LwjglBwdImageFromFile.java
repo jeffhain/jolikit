@@ -29,7 +29,7 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 /**
  * TODO lwjgl 1-bit BMPs are not supported.
  */
-public class LwjglBwdImage extends AbstractBwdImage {
+public class LwjglBwdImageFromFile extends AbstractBwdImage {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -57,7 +57,7 @@ public class LwjglBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
-    public LwjglBwdImage(
+    public LwjglBwdImageFromFile(
             String filePath,
             InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
