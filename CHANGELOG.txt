@@ -97,39 +97,44 @@ Jolikit X.X, XXXX/XX/XX
   - BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
     instead of to available parallelism, for multi-threading not to hurt
     incognizant users.
-  - In AbstractBwdHost, runWindowEventLogicLoopOnPeriod(..) visibility was
-    changed from package-private to protected.
-  - In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
-    onHostClosedEventFiringImpl(...). 
-  - AwtEventConverter:
-    - guards against spurious wheel events on Mac.
-    - Now using getPreciseWheelRotation() only if available,
-      and best effort workaround against getWheelRotation() sometimes
-      returning zero on wheel roll direction change (on Windows at least).
-  - Optimized BWD bindings graphics creations and init,
-    and added BenchNewChildGBwdTestCase.
-  - Moved file loading into image constructor for the few bindings
-    for which that was not the case.
-  - Factored/upgraded/optimized/simplified various internal utilities,
-    in particular:
-    BufferedImageHelper and other graphics buffer related classes,
-    snapshot utilities for JavaFX, OpenGL and pixel formats methods
-    in BindingColorUtils and PixelFormatHelper.
-    Related functional upgrades: smaller and shrinkable graphic buffers,
-    more pixel formats should be supported by Qtj4 binding,
-    and worked around an origin drift/offset issue in JavaFX
-    when drawing huge figures.
-  - AbstractBwdBinding: For the Executor backing the parallelizer,
-    now using a HardScheduler instead of a ThreadPoolExecutor,
-    to avoid spurious shutdown issues under stress.
-  - Graphics: minimized color setting overhead, especially
-    for setArgb32(), by computing backing and/or associated
-    64 bits and opaque colors when needed (lazily).
-    Also added an argb32 field in BwdColor, to make
-    BwdColor.toArgb32() much faster.
-  - Optimized text drawing, by only considering the clipped bounding box
-    (Allegro5, SDL2, SWT), or by drawing directly on the backing int array
-    through a BufferedImage graphics (JOGL, LWJGL3).
+  - Optimizations/upgrades:
+    - Factored/upgraded/optimized/simplified various internal utilities,
+      in particular:
+      BufferedImageHelper and other graphics buffer related classes,
+      snapshot utilities for JavaFX, OpenGL and pixel formats methods
+      in BindingColorUtils and PixelFormatHelper.
+      Related functional upgrades: smaller and shrinkable graphic buffers,
+      more pixel formats should be supported by Qtj4 binding,
+      and worked around an origin drift/offset issue in JavaFX
+      when drawing huge figures.
+    - Optimized BWD bindings graphics creations and init,
+      and added BenchNewChildGBwdTestCase.
+    - Graphics: minimized color setting overhead, especially
+      for setArgb32(), by computing backing and/or associated
+      64 bits and opaque colors when needed (lazily).
+      Also added an argb32 field in BwdColor, to make
+      BwdColor.toArgb32() much faster.
+    - Optimized text drawing, by only considering the clipped bounding box
+      (Allegro5, SDL2, SWT), or by drawing directly on the backing int array
+      through a BufferedImage graphics (JOGL, LWJGL3).
+    - QtjBwdGraphics: the painter (which is shared across graphics) state
+      is now ensured to be aligned on graphics state before use,
+      which allows for interleaved graphics usage.
+    - AwtEventConverter:
+      - guards against spurious wheel events on Mac.
+      - Now using getPreciseWheelRotation() only if available,
+        and best effort workaround against getWheelRotation() sometimes
+        returning zero on wheel roll direction change (on Windows at least).
+    - AbstractBwdBinding: For the Executor backing the parallelizer,
+      now using a HardScheduler instead of a ThreadPoolExecutor,
+      to avoid spurious shutdown issues under stress.
+  - Internals:
+    - Moved file loading into image constructor for the few bindings
+      for which that was not the case.
+    - In AbstractBwdHost, runWindowEventLogicLoopOnPeriod(..) visibility was
+      changed from package-private to protected.
+    - In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
+      onHostClosedEventFiringImpl(...). 
 
 - Added finals for Java 7 (or less) source compatibility.
 

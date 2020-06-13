@@ -30,7 +30,6 @@ import com.trolltech.qt.gui.QCloseEvent;
 import com.trolltech.qt.gui.QDragMoveEvent;
 import com.trolltech.qt.gui.QFrame;
 import com.trolltech.qt.gui.QImage;
-import com.trolltech.qt.gui.QImage.Format;
 import com.trolltech.qt.gui.QKeyEvent;
 import com.trolltech.qt.gui.QMouseEvent;
 import com.trolltech.qt.gui.QMoveEvent;
@@ -427,7 +426,7 @@ public class QtjBwdHost extends AbstractBwdHost {
     private QImage offscreenImage = new QImage(
             BindingBasicsUtils.MIN_STORAGE_SPAN,
             BindingBasicsUtils.MIN_STORAGE_SPAN,
-            Format.Format_ARGB32_Premultiplied);
+            QtjPaintUtils.QIMAGE_FORMAT);
     
     /**
      * To contain the reference to a pool of Qt objects,
@@ -439,7 +438,7 @@ public class QtjBwdHost extends AbstractBwdHost {
      * so that it can be reclaimed by GC after closing a host
      * which painting created a crazy amount of graphics.
      */
-    private final ObjectWrapper<Object> hostGraphicsQtStuffsPoolRef =
+    private final ObjectWrapper<Object> hostQtStuffsPoolRef =
             new ObjectWrapper<Object>();
     
     //--------------------------------------------------------------------------
@@ -948,34 +947,20 @@ public class QtjBwdHost extends AbstractBwdHost {
         
         this.updateOffscreenImageSize(width, height);
 
-        final QPainter offscreenPainter = new QPainter(); 
-        offscreenPainter.begin(this.offscreenImage);
-        try {
-            final QImage imageForRead = this.offscreenImage;
-            final QtjBwdGraphics g = new QtjBwdGraphics(
-                    this.binding,
-                    offscreenPainter,
-                    imageForRead,
-                    box,
-                    this.hostGraphicsQtStuffsPoolRef);
+        final QtjBwdGraphics g = new QtjBwdGraphics(
+                this.binding,
+                box,
+                //
+                this.offscreenImage,
+                //
+                this.hostQtStuffsPoolRef);
 
-            // No use for this list.
-            @SuppressWarnings("unused")
-            final List<GRect> paintedRectList =
-            this.getClientPainterNoRec().paintClientAndClipRects(
-                    g,
-                    dirtyRect);
-        } finally {
-            if (isClosed_nonVolatile()) {
-                /*
-                 * Offscreen image could be closed now,
-                 * in which case calling QPainter.end()
-                 * might yield an error as for onscreen painter.
-                 */
-            } else {
-                offscreenPainter.end();
-            }
-        }
+        // No use for this list.
+        @SuppressWarnings("unused")
+        final List<GRect> paintedRectList =
+        this.getClientPainterNoRec().paintClientAndClipRects(
+                g,
+                dirtyRect);
 
         if (this.canPaintClientNow()) {
             painter.drawImage(0, 0, this.offscreenImage);
