@@ -258,6 +258,94 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
     }
     
+    @Override
+    public void reset() {
+        this.checkUsable();
+        
+        /*
+         * Clip.
+         */
+        
+        final GRect oldClipInBase = this.clipInBase;
+        final GRect newClipInBase = this.initialClipInBase;
+        final boolean mustResetClip = !newClipInBase.equals(oldClipInBase);
+        if (mustResetClip) {
+            this.clipInBase = newClipInBase;
+        }
+        // Always resetting clips in user, in case of transform change.
+        this.initialClipInUser = newClipInBase;
+        this.clipInUser = newClipInBase;
+        
+        // Always resetting clip stack.
+        if (this.clipsBeforeLastAdd != null) {
+            this.clipsBeforeLastAdd.clear();
+        }
+        
+        /*
+         * Transform.
+         */
+        
+        final GTransform oldTransform = this.transform;
+        final GTransform newTransform = GTransform.IDENTITY;
+        final boolean mustResetTransform = !newTransform.equals(oldTransform);
+        if (mustResetTransform) {
+            this.transform = newTransform;
+        }
+        
+        // Always resetting transform stack.
+        if (this.transformsBeforeLastAdd != null) {
+            this.transformsBeforeLastAdd.clear();
+        }
+        
+        /*
+         * Color.
+         */
+
+        final int oldArgb32 = this.argb32;
+        final BwdColor oldColorElseNull = this.colorElseNull;
+        final int newArgb32 = DEFAULT_ARGB_32;
+        final BwdColor newColor = DEFAULT_COLOR;
+        final boolean isOldColorDefined = (oldColorElseNull != null);
+        final boolean mustResetColor =
+                (newArgb32 != oldArgb32)
+                || (isOldColorDefined
+                        && (!newColor.equals(oldColorElseNull)));
+        if (mustResetColor) {
+            this.argb32 = newArgb32;
+            this.premulArgb32 = BindingColorUtils.toPremulAxyz32(newArgb32);
+        }
+        this.colorElseNull = newColor;
+
+        /*
+         * Font.
+         */
+        
+        final InterfaceBwdFont oldFont = this.font;
+        final InterfaceBwdFont newFont = this.binding.getFontHome().getDefaultFont();
+        final boolean mustResetFont = !newFont.equals(oldFont);
+        if (mustResetFont) {
+            this.font = newFont;
+        }
+        
+        /*
+         * Backing state.
+         */
+        
+        this.setBackingState(
+                mustResetClip,
+                newClipInBase,
+                //
+                mustResetTransform,
+                newTransform,
+                //
+                mustResetColor,
+                newArgb32,
+                newColor,
+                //
+                mustResetFont,
+                newFont);
+    }
+    
     /*
      * 
      */

@@ -64,6 +64,7 @@ Jolikit X.X, XXXX/XX/XX
     - GRect.area() and areaLong().
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().
+    - InterfaceBwdGraphics.reset().
     - InterfaceBwdGraphics.isClipEmpty().
     - InterfaceBwdImage.getRect().
     - AbstractBwdClient class.

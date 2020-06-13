@@ -278,6 +278,20 @@ public interface InterfaceBwdGraphics {
      */
     public void finish();
     
+    /**
+     * Resets this graphics state (not pixels) to what it was
+     * just after init() call (initial clip, identity transform,
+     * default color and default font).
+     * 
+     * Handy for use before calling a sub-painting treatment that expects
+     * the input graphics to be in initial state, or after calling one
+     * to get rid of the state modifications it applied.
+     * 
+     * @throws IllegalStateException if init() has not been called
+     *         or if finish() has been called.
+     */
+    public void reset();
+
     /*
      * Painting box.
      */

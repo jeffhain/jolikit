@@ -57,6 +57,11 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
+    public void reset() {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
     public GRect getBox() {
         throw new UnsupportedOperationException();
     }

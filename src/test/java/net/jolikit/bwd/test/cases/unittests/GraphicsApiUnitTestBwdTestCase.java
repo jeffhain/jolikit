@@ -43,9 +43,8 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.time.TimeUtils;
 
 /**
- * Tests behavior of InterfaceBwdGraphics API,
- * not which pixels are actually drawn,
- * for which we use visual tests.
+ * Tests the behavior of InterfaceBwdGraphics API,
+ * but not actual drawings (i.e. whether colors are written or read properly).
  */
 public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase {
 
@@ -365,7 +364,44 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * ISE, typically when not called between init() and finish().
+         * reset().
+         */
+        
+        {
+            final InterfaceBwdGraphics childG = g.newChildGraphics(box);
+            childG.init();
+            try {
+                final int initialArgb32 = childG.getArgb32();
+                final GRect initialClip = childG.getClipInUser();
+                final GTransform initialTransform = childG.getTransform();
+                final InterfaceBwdFont initialFont = childG.getFont();
+
+                final InterfaceBwdFont otherFont =
+                        getBinding().getFontHome().newFontWithSize(
+                                initialFont.fontKind(),
+                                initialFont.fontSize() + 1);
+
+                childG.setArgb32(Argb32.inverted(initialArgb32));
+                childG.addClipInUser(initialClip.withSpans(1, 1));
+                childG.setTransform(initialTransform.inverted());
+                childG.setFont(otherFont);
+                
+                childG.reset();
+                
+                checkEqualArgb32(initialArgb32, childG.getArgb32());
+                checkEqual(initialClip, childG.getClipInUser());
+                checkEqual(initialTransform, childG.getTransform());
+                checkEqual(initialFont, childG.getFont());
+                
+                otherFont.dispose();
+            } finally {
+                childG.finish();
+            }
+        }
+
+        /*
+         * IllegalStateException,
+         * typically when not called between init() and finish().
          * 
          * Not bothering to test callability between init() and finish(),
          * as our set of functionnal tests already take care of that.
@@ -391,6 +427,13 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                         fail();
                     } catch (IllegalStateException ok) {}
                 }
+                /*
+                 * 
+                 */
+                try {
+                    childG.reset();
+                    fail();
+                } catch (IllegalStateException ok) {}
                 /*
                  * 
                  */
@@ -607,7 +650,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         final GRect initialClipInBase = g.getInitialClipInBase();
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -739,7 +782,9 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
         
         {
-            g.addClipInBase(initialClipInBase.withPosDeltas(initialClipInBase.xSpan()/2, initialClipInBase.ySpan()/2));
+            g.addClipInBase(initialClipInBase.withPosDeltas(
+                    initialClipInBase.xSpan()/2,
+                    initialClipInBase.ySpan()/2));
             final GRect userClipInBase = g.getClipInBase();
             for (GRotation rotation : GRotation.values()) {
                 final GTransform transform = GTransform.valueOf(
@@ -769,7 +814,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         checkEqual(GTransform.IDENTITY, g.getTransform());
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -868,7 +913,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         checkEqual(BwdColor.BLACK, g.getColor());
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -928,7 +973,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         checkSame(defaultFont, font);
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -990,7 +1035,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         final short pattern = (short) 0x81;
         
         /*
-         * IAE
+         * IllegalArgumentException
          */
         
         for (int badFactor : new int[] {
@@ -1077,7 +1122,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -1116,7 +1161,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -1177,7 +1222,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         final double spanDeg = 78.9;
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -1194,7 +1239,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * IAE
+         * IllegalArgumentException
          */
 
         for (double badStartDeg : BAD_ANG_ARR) {
@@ -1272,7 +1317,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -1392,7 +1437,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         final InterfaceBwdImage image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
@@ -1461,13 +1506,13 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
         
         /*
-         * 
+         * Disposing image.
          */
         
         image.dispose();
         
         /*
-         * IAE
+         * IllegalArgumentException
          */
         
         try {
@@ -1491,13 +1536,19 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         try {
-            g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
+            g.drawImage(
+                    0, 0, 100, 100,
+                    image,
+                    0, 0, 10, 10);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         try {
-            g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+            g.drawImage(
+                    GRect.valueOf(0, 0, 100, 100),
+                    image,
+                    GRect.valueOf(0, 0, 10, 10));
             fail();
         } catch (IllegalArgumentException e) {
             // ok
@@ -1515,7 +1566,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         }
         
         /*
-         * NPE
+         * NullPointerException
          */
         
         try {
