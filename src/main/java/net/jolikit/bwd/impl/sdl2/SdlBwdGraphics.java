@@ -41,18 +41,18 @@ import net.jolikit.lang.NumbersUtils;
 import com.sun.jna.Pointer;
 
 public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
-    
+
     /*
      * Not using per-pixel SDL treatments, such as SDL_DRAW_PUTPIXEL_BPP_4,
      * for it's extremely slow (from Java a least).
      */
-    
+
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
-    
+
     private static final boolean DEBUG = false;
-    
+
     /**
      * TODO sdl For some reasons, SDL seem to draw the text with random
      * {r,g,b} components (but not alpha), and as if it would use some color's
@@ -63,7 +63,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
      * of user-specified alpha and anti-aliased alpha.
      */
     private static final boolean MUST_ENFORCE_COLOR = true;
-    
+
     /**
      * TODO sdl Using TTF_RenderGlyph_XXX(...) rather than
      * TTF_RenderText_XXX(...), else we can't seem to render code points
@@ -81,26 +81,46 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
      * drawable code points in [0,255], but we prefer to keep things simple.
      */
     private static final boolean MUST_DRAW_TEXT_GLYPH_BY_GLYPH = true;
-    
+
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
 
-    private static class MyTextDataAccessor {
+    /**
+     * Clipped Text Data Accessor.
+     */
+    private static class MyCtda {
         final int[] argb32Arr;
-        final GRect maxTextRelativeRect;
-        public MyTextDataAccessor(
+        final int scanlineStride;
+        final GRect rectInText;
+        public MyCtda(
                 int[] argb32Arr,
-                GRect maxTextRelativeRect) {
+                int scanlineStride,
+                GRect rectInText) {
             this.argb32Arr = argb32Arr;
-            this.maxTextRelativeRect = maxTextRelativeRect;
+            this.scanlineStride = scanlineStride;
+            this.rectInText = rectInText;
         }
     }
-    
+
+    private static class MyGlyphData {
+        final int[] argb32Arr;
+        final int width;
+        final int height;
+        public MyGlyphData(
+                int[] argb32Arr,
+                int width,
+                int height) {
+            this.argb32Arr = argb32Arr;
+            this.width = width;
+            this.height = height;
+        }
+    }
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-    
+
     private static final SdlJnaLib LIB = SdlJnaLib.INSTANCE;
     private static final SdlJnaLibTtf LIB_TTF = SdlJnaLibTtf.INSTANCE;
 
@@ -114,7 +134,13 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         SDL_TEXT_RENDERING_COLOR.b = (byte) 0xFF;
         SDL_TEXT_RENDERING_COLOR.a = (byte) 0xFF;
     }
-    
+
+    private static final MyCtda EMPTY_CLIPPED_TEXT_DATA_ACCESSOR =
+            new MyCtda(
+                    new int[0],
+                    0,
+                    GRect.DEFAULT_EMPTY);
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -144,7 +170,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     @Override
     public SdlBwdGraphics newChildGraphics(GRect childBox) {
         this.checkFinishNotCalled();
-        
+
         if (DEBUG) {
             Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
         }
@@ -166,15 +192,15 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     public SdlBwdFont getFont() {
         return (SdlBwdFont) super.getFont();
     }
-    
+
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-    
+
     @Override
     protected void finishImpl() {
     }
-    
+
     /*
      * 
      */
@@ -183,22 +209,22 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     protected void setBackingFont(InterfaceBwdFont font) {
         // Nothing to do.
     }
-    
+
     @Override
     protected void setBackingState(
-        boolean mustSetClip,
-        GRect clipInBase,
-        //
-        boolean mustSetTransform,
-        GTransform transform,
-        //
-        boolean mustSetColor,
-        int argb32,
-        BwdColor colorElseNull,
-        //
-        boolean mustSetFont,
-        InterfaceBwdFont font) {
-        
+            boolean mustSetClip,
+            GRect clipInBase,
+            //
+            boolean mustSetTransform,
+            GTransform transform,
+            //
+            boolean mustSetColor,
+            int argb32,
+            BwdColor colorElseNull,
+            //
+            boolean mustSetFont,
+            InterfaceBwdFont font) {
+
         this.setBackingStateDefaultImpl(
                 mustSetClip,
                 clipInBase,
@@ -213,16 +239,16 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
                 mustSetFont,
                 font);
     }
-    
+
     /*
      * 
      */
-    
+
     @Override
     protected int getArrayColor32FromArgb32(int argb32) {
         return BindingColorUtils.toPremulAxyz32(argb32);
     }
-    
+
     @Override
     protected int getArgb32FromArrayColor32(int premulArgb32) {
         return BindingColorUtils.toNonPremulAxyz32(premulArgb32);
@@ -232,7 +258,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     protected int toInvertedArrayColor32(int premulArgb32) {
         return BindingColorUtils.toInvertedPremulAxyz32_noCheck(premulArgb32);
     }
-    
+
     @Override
     protected int getArrayColorAlpha8(int premulArgb32) {
         return Argb32.getAlpha8(premulArgb32);
@@ -246,14 +272,14 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     /*
      * Text.
      */
-    
+
     @Override
-    protected Object getTextDataAccessor(
+    protected Object getClippedTextDataAccessor(
             String text,
-            GRect maxTextRelativeRect) {
-        
+            GRect maxClippedTextRectInText) {
+
         final int argb32 = this.getArgb32();
-        
+
         SDL_Color backingFgColor;
         if (MUST_ENFORCE_COLOR) {
             /*
@@ -269,9 +295,9 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
             backingFgColor.b = (byte) Argb32.getBlue8(argb32);
             backingFgColor.a = (byte) Argb32.getAlpha8(argb32);
         }
-        
+
         final SdlBwdFont font = (SdlBwdFont) this.getFont();
-        
+
         /*
          * TODO sdl TTF_RenderText/Glyph_Shaded(...) paints
          * non-transparent backgrounds,
@@ -279,19 +305,19 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
          * (characters not even recognizable in non-large sizes),
          * so we stick to TTF_RenderText/Glyph_Blended(...).
          */
-        
-        final MyTextDataAccessor accessor;
+
+        final MyCtda accessor;
         if (MUST_DRAW_TEXT_GLYPH_BY_GLYPH) {
             accessor = newTextDataAccessor_RenderGlyph_Blended(
                     text,
-                    maxTextRelativeRect,
+                    maxClippedTextRectInText,
                     font,
                     backingFgColor,
                     argb32);
         } else {
             accessor = newTextDataAccessor_RenderText_Blended(
                     text,
-                    maxTextRelativeRect,
+                    maxClippedTextRectInText,
                     font,
                     backingFgColor,
                     argb32);
@@ -300,24 +326,26 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     }
 
     @Override
-    protected void disposeTextDataAccessor(Object textDataAccessor) {
+    protected void disposeClippedTextDataAccessor(
+            Object clippedTextDataAccessor) {
         // Nothing to do.
     }
 
     @Override
-    protected GRect getRenderedTextRelativeRect(Object textDataAccessor) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        return accessor.maxTextRelativeRect;
+    protected GRect getRenderedClippedTextRectInText(
+            Object clippedTextDataAccessor) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
+        return accessor.rectInText;
     }
 
     @Override
     protected int getTextColor32(
             String text,
-            Object textDataAccessor,
-            int xInText,
-            int yInText) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        final int index = yInText * accessor.maxTextRelativeRect.xSpan() + xInText;
+            Object clippedTextDataAccessor,
+            int xInClippedText,
+            int yInClippedText) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
+        final int index = yInClippedText * accessor.scanlineStride + xInClippedText;
         final int argb32 = accessor.argb32Arr[index];
         final int premulArgb32 = this.getArrayColor32FromArgb32(argb32);
         return premulArgb32;
@@ -332,12 +360,12 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         final SdlBwdImage imageImpl = (SdlBwdImage) image;
         return imageImpl.getPremulArgb32Arr();
     }
-    
+
     @Override
     protected void disposeImageDataAccessor(Object imageDataAccessor) {
         // Nothing to do.
     }
-    
+
     @Override
     protected int getImageColor32(
             InterfaceBwdImage image,
@@ -368,17 +396,17 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
                 pixelArr,
                 pixelArrScanlineStride);
     }
-    
+
     /*
      * 
      */
-    
+
     /**
      * Uses TTF_RenderGlyph_Blended(...).
      */
-    private static MyTextDataAccessor newTextDataAccessor_RenderGlyph_Blended(
+    private static MyCtda newTextDataAccessor_RenderGlyph_Blended(
             String text,
-            GRect maxTextRelativeRect,
+            GRect maxClippedTextRectInText,
             //
             SdlBwdFont font,
             SDL_Color backingFgColor,
@@ -388,109 +416,210 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
         final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
 
-        // Reusing accessor class.
-        final ArrayList<MyTextDataAccessor> glyphDataList =
-                new ArrayList<MyTextDataAccessor>();
+        final ArrayList<MyGlyphData> glyphDataList =
+                new ArrayList<MyGlyphData>();
 
-        int ci = 0;
-        while (ci < text.length()) {
-            final int cp = text.codePointAt(ci);
-            if (cp <= BwdUnicode.MAX_FFFF) {
-                final int theoreticalWidth = fontMetrics.computeCharWidth(cp);
-                if (theoreticalWidth == 0) {
-                    /*
-                     * TODO sdl TTF_RenderGlyph_Blended(...)
-                     * returns null if glyph width is zero,
-                     * with the error "Text has zero width".
-                     */
+        // -1 means invalid.
+        int firstGlyphXInText = -1;
+        {
+            // To ignore glyphs out of paintable range in X.
+            // We don't bother considering paintable range in Y
+            // for these ignorings.
+            final int mcXInText = maxClippedTextRectInText.x();
+            final int mcXMaxInText = maxClippedTextRectInText.xMax();
+            int currentGlyphXInText = 0;
+
+            int ci = 0;
+            while (ci < text.length()) {
+                final int cp = text.codePointAt(ci);
+                if (cp <= BwdUnicode.MAX_FFFF) {
+                    final int theoreticalWidth = fontMetrics.computeCharWidth(cp);
+                    if (theoreticalWidth == 0) {
+                        /*
+                         * TODO sdl TTF_RenderGlyph_Blended(...)
+                         * returns null if glyph width is zero,
+                         * with the error "Text has zero width".
+                         */
+                    } else {
+                        final char ch = (char) cp;
+                        final Pointer surfPtr = LIB_TTF.TTF_RenderGlyph_Blended(backingFont, ch, backingFgColor);
+                        if (surfPtr == null) {
+                            throw new BindingError(
+                                    "could not render code point: " + LIB.SDL_GetError()
+                                    + ", code point = " + BwdUnicode.toDisplayString(cp));
+                        }
+                        final SDL_Surface surface = SdlJnaUtils.newAndRead(SDL_Surface.ByValue.class, surfPtr);
+
+                        final int[] glyphArgb32Arr;
+                        final int glyphWidth;
+                        final int glyphHeight;
+                        try {
+                            glyphWidth = surface.w;
+                            glyphHeight = surface.h;
+                            final boolean premul = false;
+                            glyphArgb32Arr = SdlUtils.surfToArgb32Arr(surface, premul);
+                        } finally {
+                            LIB.SDL_FreeSurface(surface);
+                        }
+
+                        final int glyphXMaxInText = currentGlyphXInText + glyphWidth - 1;
+
+                        if (glyphXMaxInText < mcXInText) {
+                            // Glyph before rect.
+                        } else if (currentGlyphXInText <= mcXMaxInText) {
+                            // Glyph overlaps rect.
+                            glyphDataList.add(new MyGlyphData(
+                                    glyphArgb32Arr,
+                                    glyphWidth,
+                                    glyphHeight));
+                            if (firstGlyphXInText < 0) {
+                                firstGlyphXInText = currentGlyphXInText;
+                            }
+                            if (currentGlyphXInText == mcXMaxInText) {
+                                // Glyph last in rect: we are done.
+                                break;
+                            }
+                        } else {
+                            // Glyph after rect: we are done.
+                            break;
+                        }
+
+                        currentGlyphXInText += glyphWidth;
+                    }
                 } else {
-                    final char ch = (char) cp;
-                    final Pointer surfPtr = LIB_TTF.TTF_RenderGlyph_Blended(backingFont, ch, backingFgColor);
-                    if (surfPtr == null) {
-                        throw new BindingError(
-                                "could not render code point: " + LIB.SDL_GetError()
-                                + ", code point = " + BwdUnicode.toDisplayString(cp));
-                    }
-                    final SDL_Surface surface = SdlJnaUtils.newAndRead(SDL_Surface.ByValue.class, surfPtr);
-
-                    final int[] glyphArgb32Arr;
-                    final int glyphWidth;
-                    final int glyphHeight;
-                    try {
-                        glyphWidth = surface.w;
-                        glyphHeight = surface.h;
-                        final boolean premul = false;
-                        glyphArgb32Arr = SdlUtils.surfToArgb32Arr(surface, premul);
-                    } finally {
-                        LIB.SDL_FreeSurface(surface);
-                    }
-
-                    final GRect glyphRelativeRect = GRect.valueOf(0, 0, glyphWidth, glyphHeight);
-                    glyphDataList.add(new MyTextDataAccessor(glyphArgb32Arr, glyphRelativeRect));
+                    /*
+                     * Can't display it: ignoring
+                     * (We assume that matches SDL text width computation,
+                     * for which we use TTF_SizeText(...)).
+                     */
                 }
-            } else {
-                /*
-                 * Can't display it: ignoring
-                 * (We assume that matches SDL text width computation,
-                 * for which we use TTF_SizeText(...)).
-                 */
+                ci += Character.charCount(cp);
             }
-            ci += Character.charCount(cp);
         }
 
         final int glyphCount = glyphDataList.size();
-
-        int width = 0;
-        int height = 0;
-        for (int i = 0; i < glyphCount; i++) {
-            final MyTextDataAccessor glyphData = glyphDataList.get(i);
-            width += glyphData.maxTextRelativeRect.xSpan();
-            height = Math.max(height, glyphData.maxTextRelativeRect.ySpan());
+        if (glyphCount <= 0) {
+            return EMPTY_CLIPPED_TEXT_DATA_ACCESSOR;
+        }
+        if (firstGlyphXInText < 0) {
+            throw new AssertionError();
         }
 
-        final int pixelCount = NumbersUtils.timesExact(width, height);
-        final int[] argb32Arr = new int[pixelCount];
-        int glyphX = 0;
+        /*
+         * (width, height) corresponding to all non-ignored glyphs,
+         * even if parts of them (or all of them in case of pathological
+         * Y clipping) are out of visible coordinates ranges.
+         */
+
+        int totalGlyphWidth = 0;
+        int totalGlyphHeight = 0;
         for (int i = 0; i < glyphCount; i++) {
-            final MyTextDataAccessor glyphData = glyphDataList.get(i);
+            final MyGlyphData glyphData = glyphDataList.get(i);
+            totalGlyphWidth += glyphData.width;
+            totalGlyphHeight = Math.max(totalGlyphHeight, glyphData.height);
+        }
+
+        /*
+         * 
+         */
+
+        {
+            final int glyphXMaxInText = firstGlyphXInText + totalGlyphWidth - 1;
+            final int glyphYMaxInText = totalGlyphHeight - 1;
+
+            maxClippedTextRectInText = reducedClippedTextRectInText(
+                    maxClippedTextRectInText,
+                    glyphXMaxInText,
+                    glyphYMaxInText);
+        }
+
+        if (maxClippedTextRectInText.isEmpty()) {
+            return EMPTY_CLIPPED_TEXT_DATA_ACCESSOR;
+        }
+
+        /*
+         * Copying all clipped parts of non-ignored glyphs,
+         * into the array of pixels.
+         */
+
+        final int mcXInText = maxClippedTextRectInText.x();
+        final int mcYInText = maxClippedTextRectInText.y();
+        final int mcTextWidth = maxClippedTextRectInText.xSpan();
+        final int mcTextHeight = maxClippedTextRectInText.ySpan();
+
+        // For Y coordinates, "in text" and "in glyph" are the same.
+        final int mcYInGlyph = mcYInText;
+
+        final int pixelCapacity = NumbersUtils.timesExact(mcTextWidth, mcTextHeight);
+        final int[] mcArgb32Arr = new int[pixelCapacity];
+        // First (ignored or not) glyph (0,0) is in (0,0) in text.
+        int currentGlyphXInText = firstGlyphXInText;
+        int currentXInMc = 0;
+        int currentRemainingXInMc = mcTextWidth;
+
+        for (int gi = 0; gi < glyphCount; gi++) {
+            final MyGlyphData glyphData = glyphDataList.get(gi);
             final int[] glyphArgb32Arr = glyphData.argb32Arr;
-            final int glyphWidth = glyphData.maxTextRelativeRect.xSpan();
-            final int glyphHeight = glyphData.maxTextRelativeRect.ySpan();
-            for (int y = 0; y < glyphHeight; y++) {
-                final int srcPos = y * glyphWidth;
-                final int dstPos = (y * width) + glyphX;
-                final int length = glyphWidth;
-                System.arraycopy(glyphArgb32Arr, srcPos, argb32Arr, dstPos, length);
+            final int glyphWidth = glyphData.width;
+            final int glyphHeight = glyphData.height;
+
+            final int currentGlyphXMaxInText =
+                    currentGlyphXInText + glyphWidth - 1;
+
+            // Glyph part.
+            final int partXInText = Math.max(mcXInText, currentGlyphXInText);
+            final int partXSpan = Math.min(
+                    glyphWidth,
+                    Math.min(
+                            currentGlyphXMaxInText - partXInText + 1,
+                            currentRemainingXInMc));
+            final int partYSpan = Math.min(mcTextHeight, glyphHeight);
+
+            for (int j = 0; j < partYSpan; j++) {
+                final int srcYInGlyph = mcYInGlyph + j;
+                final int dstYInMc = j;
+
+                for (int i = 0; i < partXSpan; i++) {
+                    final int srcXInGlyph = (partXInText - currentGlyphXInText) + i;
+                    final int dstXInMc = currentXInMc + i;
+
+                    final int srcIndex = srcYInGlyph * glyphWidth + srcXInGlyph;
+                    final int dstIndex = dstYInMc * mcTextWidth + dstXInMc;
+
+                    mcArgb32Arr[dstIndex] = glyphArgb32Arr[srcIndex];
+                }
             }
-            glyphX += glyphWidth;
+
+            currentGlyphXInText += glyphWidth;
+
+            currentXInMc += partXSpan;
+            currentRemainingXInMc -= partXSpan;
         }
 
-        final GRect actualTextRelativeRect = GRect.valueOf(0, 0, width, height);
+        final int scanlineStride = maxClippedTextRectInText.xSpan();
 
-        return newTextDataAccessor(
-                argb32Arr,
-                actualTextRelativeRect,
-                argb32,
-                maxTextRelativeRect);
+        return newClippedTextDataAccessor(
+                mcArgb32Arr,
+                scanlineStride,
+                maxClippedTextRectInText,
+                argb32);
     }
 
     /**
      * Uses TTF_RenderText_Blended(...).
      */
-    private static MyTextDataAccessor newTextDataAccessor_RenderText_Blended(
+    private static MyCtda newTextDataAccessor_RenderText_Blended(
             String text,
-            GRect maxTextRelativeRect,
+            GRect maxClippedTextRectInText,
             //
             SdlBwdFont font,
             SDL_Color backingFgColor,
             int argb32) {
-        
+
         final Pointer backingFont = font.getBackingFont();
-        
+
         final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
 
-        final int[] argb32Arr;
-        final GRect actualTextRelativeRect;
         /*
          * TODO sdl TTF_RenderText_Blended(...)
          * returns null if text width is zero,
@@ -498,66 +627,113 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
          */
         final int theoreticalWidth = fontMetrics.computeTextWidth(text);
         if (theoreticalWidth == 0) {
-            argb32Arr = new int[0];
-            actualTextRelativeRect = GRect.valueOf(0, 0, 0, 0);
-        } else {
-            /*
-             * TODO sdl TTF_RenderText_Blended(...) stops drawing on first NUL,
-             * so we get rid of them.
-             */
-            text = BindingTextUtils.withoutNul(text);
-            
-            final Pointer surfPtr = LIB_TTF.TTF_RenderText_Blended(backingFont, text, backingFgColor);
-            if (surfPtr == null) {
-                throw new BindingError(
-                        "could not render text: " + LIB.SDL_GetError()
-                        + ", first code point = " + BwdUnicode.toDisplayString(text.codePointAt(0))
-                        + ", text = " + text);
-            }
-            final SDL_Surface surface = SdlJnaUtils.newAndRead(SDL_Surface.ByValue.class, surfPtr);
-
-            final int width;
-            final int height;
-            try {
-                width = surface.w;
-                height = surface.h;
-                final boolean premul = false;
-                argb32Arr = SdlUtils.surfToArgb32Arr(surface, premul);
-            } finally {
-                LIB.SDL_FreeSurface(surface);
-            }
-
-            actualTextRelativeRect = GRect.valueOf(0, 0, width, height);
+            return EMPTY_CLIPPED_TEXT_DATA_ACCESSOR;
         }
 
-        return newTextDataAccessor(
+        final int[] argb32Arr;
+
+        /*
+         * TODO sdl TTF_RenderText_Blended(...) stops drawing on first NUL,
+         * so we get rid of them.
+         */
+        text = BindingTextUtils.withoutNul(text);
+
+        final Pointer surfPtr = LIB_TTF.TTF_RenderText_Blended(backingFont, text, backingFgColor);
+        if (surfPtr == null) {
+            throw new BindingError(
+                    "could not render text: " + LIB.SDL_GetError()
+                    + ", first code point = " + BwdUnicode.toDisplayString(text.codePointAt(0))
+                    + ", text = " + text);
+        }
+        final SDL_Surface surface = SdlJnaUtils.newAndRead(SDL_Surface.ByValue.class, surfPtr);
+
+        final int renderedWidth;
+        final int renderedHeight;
+        try {
+            renderedWidth = surface.w;
+            renderedHeight = surface.h;
+            final boolean premul = false;
+            argb32Arr = SdlUtils.surfToArgb32Arr(surface, premul);
+        } finally {
+            LIB.SDL_FreeSurface(surface);
+        }
+
+        final int scanlineStride = renderedWidth;
+
+        final int glyphXMaxInText = renderedWidth - 1;
+        final int glyphYMaxInText = renderedHeight - 1;
+
+        final GRect clippedTextRectInText = reducedClippedTextRectInText(
+                maxClippedTextRectInText,
+                glyphXMaxInText,
+                glyphYMaxInText);
+
+        return newClippedTextDataAccessor(
                 argb32Arr,
-                actualTextRelativeRect,
-                argb32,
-                maxTextRelativeRect);
+                scanlineStride,
+                clippedTextRectInText,
+                argb32);
     }
-    
+
+    /**
+     * To reduce max clipped text rect, taking into account:
+     * - the fact that we don't use its negative coordinates
+     *   (since we draw our glyphs pixels at (0+,0+) coordinates),
+     * - max rendered coordinates.
+     */
+    private static GRect reducedClippedTextRectInText(
+            GRect maxClippedTextRectInText,
+            int glyphXMaxInText,
+            int glyphYMaxInText) {
+
+        final int lowXSurplus = Math.max(0, -maxClippedTextRectInText.x());
+        final int lowYSurplus = Math.max(0, -maxClippedTextRectInText.y());
+        final int highXSurplus = Math.max(0, maxClippedTextRectInText.xMax() - glyphXMaxInText);
+        final int highYSurplus = Math.max(0, maxClippedTextRectInText.yMax() - glyphYMaxInText);
+
+        final int totalXSurplus = lowXSurplus + highXSurplus;
+        final int totalYSurplus = lowYSurplus + highYSurplus;
+
+        final int initialXSpan = maxClippedTextRectInText.xSpan();
+        final int initialYSpan = maxClippedTextRectInText.ySpan();
+
+        final GRect ret;
+        if ((totalXSurplus >= initialXSpan)
+                || (totalYSurplus >= initialYSpan)) {
+            // Nothing to draw.
+            ret = GRect.DEFAULT_EMPTY;
+        } else {
+            final int dxMin = lowXSurplus;
+            final int dyMin = lowYSurplus;
+            final int dxMax = -highXSurplus;
+            final int dyMax = -highYSurplus;
+
+            if ((dxMin|dyMin|dxMax|dyMax) != 0) {
+                ret = maxClippedTextRectInText.withBordersDeltas(
+                        dxMin, dyMin, dxMax, dyMax);
+            } else {
+                ret = maxClippedTextRectInText;
+            }
+        }
+        return ret;
+    }
+
     /**
      * Does eventual color enforcing.
      */
-    private static MyTextDataAccessor newTextDataAccessor(
+    private static MyCtda newClippedTextDataAccessor(
             int[] argb32Arr,
-            GRect actualTextRelativeRect,
-            //
-            int argb32,
-            GRect maxTextRelativeRect) {
+            int scanlineStride,
+            GRect clippedTextRectInText,
+            int argb32) {
         if (MUST_ENFORCE_COLOR) {
             enforceColor(argb32Arr, argb32);
         }
-        
-        // Eventually shrinking.
-        maxTextRelativeRect = maxTextRelativeRect.intersected(actualTextRelativeRect);
-        
-        final MyTextDataAccessor accessor = new MyTextDataAccessor(
+
+        return new MyCtda(
                 argb32Arr,
-                maxTextRelativeRect);
-        
-        return accessor;
+                scanlineStride,
+                clippedTextRectInText);
     }
 
     /**

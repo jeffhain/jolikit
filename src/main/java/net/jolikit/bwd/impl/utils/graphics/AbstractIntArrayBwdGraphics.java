@@ -214,10 +214,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             return;
         }
         
-        final GRect maxTextRelativeRectInUser = this.computeMaxTextRelativeRect(
+        final GRect maxTextRectInText = this.computeMaxTextRectInText(
                 theoTextWidth,
                 theoTextHeight);
-        final GRect maxTextRectInUser = maxTextRelativeRectInUser.withPosDeltas(x, y);
+        final GRect maxTextRectInUser = maxTextRectInText.withPosDeltas(x, y);
         
         final GRect clipInUser = this.getClipInUser();
         
@@ -225,51 +225,60 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
          * Coordinates rework based on clipping.
          */
         
-        final GRect maxTextRectInUserClipped = maxTextRectInUser.intersected(clipInUser);
-        if (maxTextRectInUserClipped.isEmpty()) {
-            // All would be drawn out of clip.
+        final GRect maxClippedTextRectInUser = maxTextRectInUser.intersected(clipInUser);
+        if (maxClippedTextRectInUser.isEmpty()) {
+            // All would be drawn out of clip,
+            // and getClippedTextDataAccessor(...)
+            // requires non-empty rectangle.
             return;
         }
         
-        /*
-         * 
-         */
+        final GRect maxClippedTextRectInText =
+                maxClippedTextRectInUser.withPosDeltas(-x, -y);
         
-        final Object textDataAccessor = this.getTextDataAccessor(text, maxTextRelativeRectInUser);
+        final Object accessor = this.getClippedTextDataAccessor(
+                text,
+                maxClippedTextRectInText);
         try {
-            final GRect renderedTextRelativeRectInUser = this.getRenderedTextRelativeRect(textDataAccessor);
-            final GRect renderedTextRectInUser;
-            final GRect renderedTextRectInUserClipped;
-            if (renderedTextRelativeRectInUser.equals(maxTextRelativeRectInUser)) {
-                renderedTextRectInUser = maxTextRectInUser;
-                renderedTextRectInUserClipped = maxTextRectInUserClipped;
+            final GRect renderedClippedTextRectInText =
+                    this.getRenderedClippedTextRectInText(accessor);
+            GRect renderedClippedTextRectInUser;
+            if (renderedClippedTextRectInText.equals(maxClippedTextRectInText)) {
+                // Rendered on whole max rect.
+                renderedClippedTextRectInUser = maxClippedTextRectInUser;
             } else {
-                renderedTextRectInUser = renderedTextRelativeRectInUser.withPosDeltas(x, y);
-                renderedTextRectInUserClipped = renderedTextRectInUser.intersected(clipInUser);
-                if (renderedTextRectInUserClipped.isEmpty()) {
+                // Rendered on (less) than max rect.
+                // From text to user coordinates.
+                renderedClippedTextRectInUser =
+                        renderedClippedTextRectInText.withPosDeltas(x, y);
+                if (renderedClippedTextRectInUser.isEmpty()) {
                     return;
                 }
             }
             
             /*
-             * 
+             * No obvious gain from bothering to do row-major looping
+             * in base coordinates (in case rotation is 90 or 270 degrees),
+             * since then it would cause column-major looping
+             * on input array which is row-major in user coordinates.
              */
             
-            final int clippedXOffset = renderedTextRectInUserClipped.x() - renderedTextRectInUser.x();
-            final int clippedYOffset = renderedTextRectInUserClipped.y() - renderedTextRectInUser.y();
+            final int clippedWidth = renderedClippedTextRectInUser.xSpan();
+            final int clippedHeight = renderedClippedTextRectInUser.ySpan();
             
-            final int clippedWidth = renderedTextRectInUserClipped.xSpan();
-            final int clippedHeight = renderedTextRectInUserClipped.ySpan();
-            
-            for (int yi = 0; yi < clippedHeight; yi++) {
-                final int dstY = renderedTextRectInUserClipped.y() + yi;
-                final int srcY = clippedYOffset + yi;
+            for (int j = 0; j < clippedHeight; j++) {
+                final int dstYInUser = renderedClippedTextRectInUser.y() + j;
+                final int srcYInClippedText = j;
 
-                for (int xi = 0; xi < clippedWidth; xi++) {
-                    final int dstX = renderedTextRectInUserClipped.x() + xi;
-                    final int srcX = clippedXOffset + xi;
+                for (int i = 0; i < clippedWidth; i++) {
+                    final int dstXInUser = renderedClippedTextRectInUser.x() + i;
+                    final int srcXInClippedText = i;
 
-                    final int color32 = this.getTextColor32(text, textDataAccessor, srcX, srcY);
+                    final int color32 = this.getTextColor32(
+                            text,
+                            accessor,
+                            srcXInClippedText,
+                            srcYInClippedText);
                     final int alpha8 = this.getArrayColorAlpha8(color32);
                     if (alpha8 == 0) {
                         /*
@@ -279,18 +288,17 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                          * before coordinates conversions
                          * and messing with array.
                          */
-                        continue;
+                    } else {
+                        final int xInBase = transform.xIn1(dstXInUser, dstYInUser);
+                        final int yInBase = transform.yIn1(dstXInUser, dstYInUser);
+                        final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
+
+                        this.blendColor32(dstIndex, color32);
                     }
-
-                    final int xInBase = transform.xIn1(dstX, dstY);
-                    final int yInBase = transform.yIn1(dstX, dstY);
-                    final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
-
-                    this.blendColor32(dstIndex, color32);
                 }
             }
         } finally {
-            this.disposeTextDataAccessor(textDataAccessor);
+            this.disposeClippedTextDataAccessor(accessor);
         }
     }
     
@@ -409,7 +417,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * @param Max bounding box for text, in text coordinates,
      *        i.e. relative to the (x,y) position given to drawText(...) method.
      */
-    protected GRect computeMaxTextRelativeRect(
+    protected GRect computeMaxTextRectInText(
             int theoTextWidth,
             int theoTextHeight) {
         
@@ -599,24 +607,35 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
 
     /**
-     * @param maxTextRelativeRect Must not paint pixels out of it.
-     *        Passed here so as not to have to recompute it.
-     * @return An object from which text data (bounding box, drawn pixels, etc.)
+     * @param text The text to draw.
+     * @param maxClippedTextRectInText Rectangle expressed in text coordinates
+     *        (i.e. (0,0) corresponding to (x,y) given to drawText() method).
+     *        Pixels painted out of it won't be drawn.
+     *        Passed here so as not to have to recompute it. Not empty.
+     * @return An object from which clipped text data (pixels to draw, etc.)
      *         can be quickly retrieved.
      */
-    protected abstract Object getTextDataAccessor(
+    protected abstract Object getClippedTextDataAccessor(
             String text,
-            GRect maxTextRelativeRect);
-
-    protected abstract void disposeTextDataAccessor(Object textDataAccessor);
+            GRect maxClippedTextRectInText);
 
     /**
-     * @return The rectangle containing rendered text,
+     * @param clippedTextDataAccessor An instance returned by
+     *        getClippedTextDataAccessor().
+     */
+    protected abstract void disposeClippedTextDataAccessor(
+            Object clippedTextDataAccessor);
+
+    /**
+     * @param clippedTextDataAccessor An instance returned by
+     *        getClippedTextDataAccessor().
+     * @return The rectangle containing rendered clipped text,
      *         relative to the (x,y) position given to drawText(...) method,
      *         i.e. with (0,0) position in rectangle corresponding to (x,y)
      *         in user coordinates.
      */
-    protected abstract GRect getRenderedTextRelativeRect(Object textDataAccessor);
+    protected abstract GRect getRenderedClippedTextRectInText(
+            Object clippedTextDataAccessor);
 
     /**
      * This method returns a color, and not just a boolean indicating
@@ -624,15 +643,22 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * anti-aliased text rendering, without which, with some backing libraries,
      * text can be quite ugly with small-sized fonts.
      * 
+     * @param text The text itself.
+     * @param clippedTextDataAccessor An instance returned by
+     *        getClippedTextDataAccessor() for the specified text.
+     * @param xInClippedText X coordinate in clipped text,
+     *        i.e. in [0,clippedTextXSpan[.
+     * @param yInClippedText Y coordinate in clipped text,
+     *        i.e. in [0,clippedTextYSpan[.
      * @return The color to use for drawing the text pixel,
      *         typically an alpha-variant of current graphics color,
      *         or a fully transparent color if the pixel is not to be drawn.
      */
     protected abstract int getTextColor32(
             String text,
-            Object textDataAccessor,
-            int xInText,
-            int yInText);
+            Object clippedTextDataAccessor,
+            int xInClippedText,
+            int yInClippedText);
 
     /*
      * Images.
@@ -644,13 +670,21 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * pixel by pixel.
      * 
      * @param image An image.
-     * @return The object on which actual drawing is done.
+     * @return An object from which image data (pixels to draw, etc.)
+     *         can be quickly retrieved.
      */
     protected abstract Object getImageDataAccessor(InterfaceBwdImage image);
 
+    /**
+     * @param imageDataAccessor An instance returned by
+     *        getImageDataAccessor().
+     */
     protected abstract void disposeImageDataAccessor(Object imageDataAccessor);
     
     /**
+     * @param image The image itself.
+     * @param imageDataAccessor An instance returned by
+     *        getImageDataAccessor() for the specified image.
      * @return The pixel to copy or blend into the array of pixels.
      */
     protected abstract int getImageColor32(

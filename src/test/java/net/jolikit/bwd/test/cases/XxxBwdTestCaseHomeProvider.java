@@ -63,6 +63,7 @@ import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.FontGlyphTableBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextCasesBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.TextClippingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextWidthBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HelloBindingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetBwdTestCase;
@@ -171,6 +172,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new TextWidthBwdTestCase(),
                     new UnicodeBwdTestCase(),
                     new TextAlphaBwdTestCase(),
+                    new TextClippingBwdTestCase(),
             });
 
             /*

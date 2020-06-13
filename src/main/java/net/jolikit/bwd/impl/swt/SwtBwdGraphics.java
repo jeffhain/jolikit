@@ -73,16 +73,19 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
 
-    private static class MyTextDataAccessor {
+    /**
+     * Clipped Text Data Accessor.
+     */
+    private static class MyCtda {
         final ImageData textImageData;
-        final GRect maxTextRelativeRect;
+        final GRect rectInText;
         final int fgArgb32;
-        public MyTextDataAccessor(
+        public MyCtda(
                 ImageData textImageData,
-                GRect maxTextRelativeRect,
+                GRect rectInText,
                 int fgArgb32) {
             this.textImageData = textImageData;
-            this.maxTextRelativeRect = maxTextRelativeRect;
+            this.rectInText = rectInText;
             this.fgArgb32 = fgArgb32;
         }
     }
@@ -272,9 +275,9 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    protected Object getTextDataAccessor(
+    protected Object getClippedTextDataAccessor(
             String text,
-            GRect maxTextRelativeRect) {
+            GRect maxClippedTextRectInText) {
         
         /*
          * To avoid unnecessary arrays creations, and because text often
@@ -285,12 +288,12 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
          * ImageData that we use.
          */
         
-        final int maxTextWidth = maxTextRelativeRect.xSpan();
-        final int maxTextHeight = maxTextRelativeRect.ySpan();
+        final int mcTextWidth = maxClippedTextRectInText.xSpan();
+        final int mcTextHeight = maxClippedTextRectInText.ySpan();
         
-        this.textGraphicBuffer.setSize(maxTextWidth, maxTextHeight);
+        this.textGraphicBuffer.setSize(mcTextWidth, mcTextHeight);
         
-        final MyTextDataAccessor accessor;
+        final MyCtda accessor;
 
         // Drawing the text in the image.
         final GC textGc = this.textGraphicBuffer.createClippedGraphics();
@@ -321,7 +324,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             textGc.setForeground(this.backingColor_WHITE);
             
             // Uses background color.
-            textGc.fillRectangle(0, 0, maxTextWidth, maxTextHeight);
+            textGc.fillRectangle(0, 0, mcTextWidth, mcTextHeight);
             
             /*
              * Here, "transparent" means "transparent background",
@@ -330,7 +333,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
              * rather than "with non-opaque alpha",
              * cf. ImageData.transparentPixel.
              */
-            final int textX = 0 - maxTextRelativeRect.x();
+            final int textX = 0 - maxClippedTextRectInText.x();
             final int textY;
             if (false) {
                 /*
@@ -339,9 +342,9 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
                  * but for some fonts (like Impact, or Interface)
                  * we have to remove descent to be properly located.
                  */
-                textY = -fontImpl.fontMetrics().fontDescent() - maxTextRelativeRect.y();
+                textY = -fontImpl.fontMetrics().fontDescent() - maxClippedTextRectInText.y();
             } else {
-                textY = 0 - maxTextRelativeRect.y();
+                textY = 0 - maxClippedTextRectInText.y();
             }
             final boolean isTransparent = true;
             textGc.drawString(text, textX, textY, isTransparent);
@@ -351,9 +354,9 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             final ImageData textImageData = textImage.getImageData();
             
             final int fgArgb32 = this.getArgb32();
-            accessor = new MyTextDataAccessor(
+            accessor = new MyCtda(
                     textImageData,
-                    maxTextRelativeRect,
+                    maxClippedTextRectInText,
                     fgArgb32);
         } finally {
             textGc.dispose();
@@ -363,26 +366,31 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     }
     
     @Override
-    protected void disposeTextDataAccessor(Object textDataAccessor) {
+    protected void disposeClippedTextDataAccessor(
+            Object clippedTextDataAccessor) {
         // Nothing to do, all the data is in tmp class field.
     }
 
     @Override
-    protected GRect getRenderedTextRelativeRect(Object textDataAccessor) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        return accessor.maxTextRelativeRect;
+    protected GRect getRenderedClippedTextRectInText(
+            Object clippedTextDataAccessor) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
+        return accessor.rectInText;
     }
 
     @Override
     protected int getTextColor32(
             String text,
-            Object textDataAccessor,
-            int xInText,
-            int yInText) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
+            Object clippedTextDataAccessor,
+            int xInClippedText,
+            int yInClippedText) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
         final ImageData textImageData = accessor.textImageData;
         
-        final int tmpArgb32 = SwtPaintUtils.getArgb32At(textImageData, xInText, yInText);
+        final int tmpArgb32 = SwtPaintUtils.getArgb32At(
+                textImageData,
+                xInClippedText,
+                yInClippedText);
         final double tmpRedFp = Argb32.getRedFp(tmpArgb32);
         final double tmpGreenFp = Argb32.getGreenFp(tmpArgb32);
         final double tmpBlueFp = Argb32.getBlueFp(tmpArgb32);

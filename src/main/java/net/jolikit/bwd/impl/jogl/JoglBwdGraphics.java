@@ -16,22 +16,25 @@
 package net.jolikit.bwd.impl.jogl;
 
 import java.awt.Color;
-import java.awt.Font;
 import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
-import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFont;
+import net.jolikit.bwd.impl.awt.AwtUtils;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.LangUtils;
 
 public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -42,19 +45,30 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     private static final boolean DEBUG = false;
     
     //--------------------------------------------------------------------------
-    // PRIVATE CLASSES
+    // FIELDS
     //--------------------------------------------------------------------------
+
+    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
+            new AffineTransform();
+
+    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
+            AwtUtils.newRotationTransformArr();
     
-    private static class MyTextDataAccessor {
-        final int[] color32Arr;
-        final GRect maxTextRelativeRect;
-        public MyTextDataAccessor(
-                int[] color32Arr,
-                GRect maxTextRelativeRect) {
-            this.color32Arr = color32Arr;
-            this.maxTextRelativeRect = maxTextRelativeRect;
-        }
-    }
+    /*
+     * For drawing text on backing int array directly.
+     */
+    
+    private final BufferedImage bufferedImage;
+    
+    private Graphics2D g;
+    
+    private boolean mustUpdateGClip;
+    private boolean mustUpdateGTransform;
+    private boolean mustUpdateGColor;
+    private boolean mustUpdateGFont;
+    
+    private int xShiftInUser;
+    private int yShiftInUser;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -74,8 +88,12 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
                 box,
                 box, // initialClip
                 //
-                pixelArr,
-                pixelArrScanlineStride);
+                BufferedImageHelper.newBufferedImageWithIntArray(
+                        pixelArr,
+                        pixelArrScanlineStride,
+                        box.ySpan(),
+                        BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
+                        BufferedImageHelper.PREMUL));
     }
     
     /*
@@ -95,8 +113,50 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
                 childBox,
                 childInitialClip,
                 //
-                this.getPixelArr(),
-                this.getPixelArrScanlineStride());
+                this.bufferedImage);
+    }
+    
+    /*
+     * 
+     */
+
+    @Override
+    public AwtBwdFont getFont() {
+        return (AwtBwdFont) super.getFont();
+    }
+
+    /*
+     * Text.
+     */
+    
+    @Override
+    public void drawText(
+            int x, int y,
+            String text) {
+        this.checkUsable();
+        LangUtils.requireNonNull(text);
+
+        final AwtBwdFont font = this.getFont();
+        if (font.isDisposed()) {
+            throw new IllegalStateException("current font is disposed: " + font);
+        }
+
+        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+
+        final int theoTextHeight = metrics.fontHeight();
+
+        if (theoTextHeight <= 0) {
+            return;
+        }
+
+        this.ensureUpToDateG();
+
+        final int ascent = font.fontMetrics().fontAscent();
+
+        final int _x = x + this.xShiftInUser;
+        final int _y = y + this.yShiftInUser + ascent;
+
+        this.g.drawString(text, _x, _y);
     }
 
     //--------------------------------------------------------------------------
@@ -104,8 +164,20 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
     
     @Override
+    protected void initImpl() {
+        this.g = this.bufferedImage.createGraphics();
+
+        this.mustUpdateGClip = true;
+        this.mustUpdateGTransform = true;
+        this.mustUpdateGColor = true;
+        this.mustUpdateGFont = true;
+
+        super.initImpl();
+    }
+
+    @Override
     protected void finishImpl() {
-        // Nothing to do.
+        this.g.dispose();
     }
 
     /*
@@ -113,10 +185,27 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     
     @Override
-    protected void setBackingFont(InterfaceBwdFont font) {
-        // We use AWT backed font stored in super.
+    protected void setBackingClip(GRect clipInBase) {
+        this.mustUpdateGClip = true;
     }
     
+    @Override
+    protected void setBackingTransform(GTransform transform) {
+        this.mustUpdateGTransform = true;
+    }
+
+    @Override
+    protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
+        super.setBackingArgb(argb32, colorElseNull);
+        
+        this.mustUpdateGColor = true;
+    }
+    
+    @Override
+    protected void setBackingFont(InterfaceBwdFont font) {
+        this.mustUpdateGFont = true;
+    }
+
     @Override
     protected void setBackingState(
         boolean mustSetClip,
@@ -181,73 +270,31 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    protected Object getTextDataAccessor(
+    protected Object getClippedTextDataAccessor(
             String text,
-            GRect maxTextRelativeRect) {
-        
-        final AwtBwdFont font = (AwtBwdFont) this.getFont();
-        final Font backingFont = font.getBackingFont();
-        
-        final int maxTextWidth = maxTextRelativeRect.xSpan();
-        final int maxTextHeight = maxTextRelativeRect.ySpan();
-        
-        final int pixelCapacity = maxTextRelativeRect.area();
-        final int[] textPixelArr = new int[pixelCapacity];
-        
-        final BufferedImage image = BufferedImageHelper.newBufferedImageWithIntArray(
-                textPixelArr,
-                maxTextWidth,
-                maxTextHeight,
-                BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
-                BufferedImageHelper.PREMUL);
-        
-        // Drawing the text in the image.
-        final Graphics2D g2d = image.createGraphics();
-        try {
-            g2d.setFont(backingFont);
-            final int argb32 = this.getArgb32();
-            final Color awtColor = new Color(
-                    Argb32.getRed8(argb32),
-                    Argb32.getGreen8(argb32),
-                    Argb32.getBlue8(argb32),
-                    Argb32.getAlpha8(argb32));
-            g2d.setColor(awtColor);
-            
-            final int x = 0 - maxTextRelativeRect.x();
-            final int y = font.fontMetrics().fontAscent() - maxTextRelativeRect.y();
-            g2d.drawString(text, x, y);
-        } finally {
-            g2d.dispose();
-        }
-        
-        final MyTextDataAccessor accessor = new MyTextDataAccessor(
-                textPixelArr,
-                maxTextRelativeRect);
-        return accessor;
+            GRect maxClippedTextRectInText) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    protected void disposeTextDataAccessor(Object textDataAccessor) {
-        // Nothing to do.
+    protected void disposeClippedTextDataAccessor(
+            Object clippedTextDataAccessor) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
-    protected GRect getRenderedTextRelativeRect(Object textDataAccessor) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        return accessor.maxTextRelativeRect;
+    protected GRect getRenderedClippedTextRectInText(
+            Object clippedTextDataAccessor) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     protected int getTextColor32(
             String text,
-            Object textDataAccessor,
-            int xInText,
-            int yInText) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        final int index = yInText * accessor.maxTextRelativeRect.xSpan() + xInText;
-        // Already alpha-premultiplied, due to the image we used for text drawing.
-        final int color32 = accessor.color32Arr[index];
-        return color32;
+            Object clippedTextDataAccessor,
+            int xInClippedText,
+            int yInClippedText) {
+        throw new UnsupportedOperationException();
     }
 
     /*
@@ -287,14 +334,77 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
             GRect box,
             GRect initialClip,
             //
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+            BufferedImage bufferedImage) {
         super(
                 binding,
                 box,
                 initialClip,
                 //
-                pixelArr,
-                pixelArrScanlineStride);
+                BufferedImageHelper.getIntPixelArr(bufferedImage),
+                bufferedImage.getWidth());
+        
+        this.bufferedImage = bufferedImage;
+    }
+    
+    /**
+     * Sets backing clip to be current clip.
+     */
+    private void setBackingClipToCurrent() {
+        /*
+         * Must apply transformed clip (and adjusting deltas),
+         * since the backing graphics has transform applied.
+         */
+        
+        final GRect clip = this.getClipInUser();
+
+        this.g.setClip(
+                clip.x() + this.xShiftInUser,
+                clip.y() + this.yShiftInUser,
+                clip.xSpan(),
+                clip.ySpan());
+    }
+    
+    /**
+     * Sets backing transform to be current transform.
+     */
+    private void setBackingTransformToCurrent() {
+        final GTransform transform = this.getTransform();
+        
+        this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
+        
+        final GRotation rotation = transform.rotation();
+        this.g.translate(transform.frame2XIn1(), transform.frame2YIn1());
+        this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
+        
+        this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
+        this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
+    }
+    
+    private void ensureUpToDateG() {
+        if (this.mustUpdateGTransform) {
+            this.setBackingTransformToCurrent();
+            this.mustUpdateGTransform = false;
+            
+            // Must reset clip as well, since we use transformed clip.
+            this.setBackingClipToCurrent(); 
+            this.mustUpdateGClip = false;
+            
+        } else if (this.mustUpdateGClip) {
+            this.setBackingClipToCurrent(); 
+            this.mustUpdateGClip = false;
+        }
+        
+        if (this.mustUpdateGColor) {
+            final int argb32 = this.getArgb32();
+            final Color backingColor = AwtUtils.newColor(argb32);
+            this.g.setColor(backingColor);
+            this.mustUpdateGColor = false;
+        }
+        
+        if (this.mustUpdateGFont) {
+            final AwtBwdFont font = this.getFont();
+            this.g.setFont(font.getBackingFont());
+            this.mustUpdateGFont = false;
+        }
     }
 }

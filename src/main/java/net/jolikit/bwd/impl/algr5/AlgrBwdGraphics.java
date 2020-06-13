@@ -59,14 +59,20 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private static class MyTextDataAccessor {
+    /**
+     * Clipped Text Data Accessor.
+     */
+    private static class MyCtda {
         final int[] argb32Arr;
-        final GRect maxTextRelativeRect;
-        public MyTextDataAccessor(
+        final GRect rectInText;
+        public MyCtda(
                 int[] argb32Arr,
-                GRect maxTextRelativeRect) {
+                GRect rectInText) {
             this.argb32Arr = argb32Arr;
-            this.maxTextRelativeRect = maxTextRelativeRect;
+            this.rectInText = rectInText;
+        }
+        public int getScanlineStride() {
+            return this.rectInText.xSpan();
         }
     }
 
@@ -227,36 +233,33 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     
     @Override
-    protected Object getTextDataAccessor(
+    protected Object getClippedTextDataAccessor(
             String text,
-            GRect maxTextRelativeRect) {
+            GRect maxClippedTextRectInText) {
         
         final AlgrBwdFont font = (AlgrBwdFont) this.getFont();
         
-        final int maxTextWidth = maxTextRelativeRect.xSpan();
-        final int maxTextHeight = maxTextRelativeRect.ySpan();
+        final int mcTextWidth = maxClippedTextRectInText.xSpan();
+        final int mcTextHeight = maxClippedTextRectInText.ySpan();
 
         final ALLEGRO_FONT backingFont = font.getBackingFont();
 
         LIB.al_set_new_bitmap_flags(AlgrBitmapFlag.ALLEGRO_MEMORY_BITMAP.intValue());
-        final Pointer textBitmap = LIB.al_create_bitmap(maxTextWidth, maxTextHeight);
-        if (textBitmap == null) {
+        final Pointer mcTextBitmap = LIB.al_create_bitmap(
+                mcTextWidth,
+                mcTextHeight);
+        if (mcTextBitmap == null) {
             throw new BindingError("could not create bitmap: " + LIB.al_get_errno());
         }
-        final int[] argb32Arr;
-        final int width;
-        final int height;
+        final int[] mcArgb32Arr;
         try {
-            width = LIB.al_get_bitmap_width(textBitmap);
-            height = LIB.al_get_bitmap_height(textBitmap);
-
             final Pointer prevBitmap = LIB.al_get_target_bitmap();
-            final int textBitmapLockFormat = AlgrFormatUtils.getLockFormat(textBitmap);
-            final Pointer textRegionPtr = LIB.al_lock_bitmap(
-                    textBitmap,
+            final int textBitmapLockFormat = AlgrFormatUtils.getLockFormat(mcTextBitmap);
+            final Pointer mcTextRegionPtr = LIB.al_lock_bitmap(
+                    mcTextBitmap,
                     textBitmapLockFormat,
                     AlgrJnaLib.ALLEGRO_LOCK_READWRITE);
-            if (textRegionPtr == null) {
+            if (mcTextRegionPtr == null) {
                 throw new BindingError("could not lock bitmap: " + LIB.al_get_errno());
             }
             
@@ -265,24 +268,24 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
             }
             
             try {
-                final ALLEGRO_LOCKED_REGION region = AlgrJnaUtils.newAndRead(
+                final ALLEGRO_LOCKED_REGION mcRegion = AlgrJnaUtils.newAndRead(
                         ALLEGRO_LOCKED_REGION.class,
-                        textRegionPtr);
+                        mcTextRegionPtr);
 
-                // We need to zeroize the region, because al_create_bitmap(...)
-                // doesn't do it.
-                final int byteSize = region.pitch * height;
-                region.data.clear(byteSize);
+                // We need to zeroize the region,
+                // because al_create_bitmap(...) doesn't do it.
+                final int byteSize = mcRegion.pitch * mcTextHeight;
+                mcRegion.data.clear(byteSize);
 
-                LIB.al_set_target_bitmap(textBitmap);
+                LIB.al_set_target_bitmap(mcTextBitmap);
                 try {
-                    final float x0 = 0.0f - maxTextRelativeRect.x();
-                    final float y0 = 0.0f - maxTextRelativeRect.y();
+                    final float x0 = 0.0f - maxClippedTextRectInText.x();
+                    final float y0 = 0.0f - maxClippedTextRectInText.y();
                     if (MUST_DRAW_TEXT_GLYPH_BY_GLYPH) {
                         float x = x0;
                         
                         final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
-
+                        
                         int ci = 0;
                         while (ci < text.length()) {
                             final int cp = text.codePointAt(ci);
@@ -341,42 +344,45 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                     LIB.al_set_target_bitmap(prevBitmap);
                 }
 
-                argb32Arr = AlgrPaintUtils.regionToArgb32Arr(
-                        region,
-                        width,
-                        height);
+                mcArgb32Arr = AlgrPaintUtils.regionToArgb32Arr(
+                        mcRegion,
+                        mcTextWidth,
+                        mcTextHeight);
             } finally {
-                LIB.al_unlock_bitmap(textBitmap);
+                LIB.al_unlock_bitmap(mcTextBitmap);
             }
         } finally {
-            LIB.al_destroy_bitmap(textBitmap);
+            LIB.al_destroy_bitmap(mcTextBitmap);
         }
 
-        final MyTextDataAccessor accessor = new MyTextDataAccessor(
-                argb32Arr,
-                maxTextRelativeRect);
+        final MyCtda accessor =
+                new MyCtda(
+                        mcArgb32Arr,
+                        maxClippedTextRectInText);
         return accessor;
     }
 
     @Override
-    protected void disposeTextDataAccessor(Object textDataAccessor) {
+    protected void disposeClippedTextDataAccessor(
+            Object clippedTextDataAccessor) {
         // Nothing to do.
     }
 
     @Override
-    protected GRect getRenderedTextRelativeRect(Object textDataAccessor) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        return accessor.maxTextRelativeRect;
+    protected GRect getRenderedClippedTextRectInText(
+            Object clippedTextDataAccessor) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
+        return accessor.rectInText;
     }
 
     @Override
     protected int getTextColor32(
             String text,
-            Object textDataAccessor,
-            int xInText,
-            int yInText) {
-        final MyTextDataAccessor accessor = (MyTextDataAccessor) textDataAccessor;
-        final int index = yInText * accessor.maxTextRelativeRect.xSpan() + xInText;
+            Object clippedTextDataAccessor,
+            int xInClippedText,
+            int yInClippedText) {
+        final MyCtda accessor = (MyCtda) clippedTextDataAccessor;
+        final int index = yInClippedText * accessor.getScanlineStride() + xInClippedText;
         final int argb32 = accessor.argb32Arr[index];
         final int premulArgb32 = this.getArrayColor32FromArgb32(argb32);
         return premulArgb32;

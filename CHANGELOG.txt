@@ -101,14 +101,15 @@ Jolikit X.X, XXXX/XX/XX
     changed from package-private to protected.
   - In AbstractBwdBinding, renamed onClosedEventFiringImpl(...) into
     onHostClosedEventFiringImpl(...). 
-  - AwtEventConverter : guards against spurious wheel events on Mac.
+  - AwtEventConverter:
+    - guards against spurious wheel events on Mac.
+    - Now using getPreciseWheelRotation() only if available,
+      and best effort workaround against getWheelRotation() sometimes
+      returning zero on wheel roll direction change (on Windows at least).
   - Optimized BWD bindings graphics creations and init,
     and added BenchNewChildGBwdTestCase.
   - Moved file loading into image constructor for the few bindings
     for which that was not the case.
-  - AwtEventConverter: Now using getPreciseWheelRotation() only if available,
-    and best effort workaround against getWheelRotation() sometimes
-    returning zero on wheel roll direction change (on Windows at least).
   - Factored/upgraded/optimized/simplified various internal utilities,
     in particular:
     BufferedImageHelper and other graphics buffer related classes,
@@ -126,6 +127,9 @@ Jolikit X.X, XXXX/XX/XX
     64 bits and opaque colors when needed (lazily).
     Also added an argb32 field in BwdColor, to make
     BwdColor.toArgb32() much faster.
+  - Optimized text drawing, by only considering the clipped bounding box
+    (Allegro5, SDL2, SWT), or by drawing directly on the backing int array
+    through a BufferedImage graphics (JOGL, LWJGL3).
 
 - Added finals for Java 7 (or less) source compatibility.
 
