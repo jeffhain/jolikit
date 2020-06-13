@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
@@ -137,6 +138,19 @@ public class NoLeakBwdTestCase extends AbstractBwdTestCase {
             } finally {
                 if (MUST_DISPOSE_PROPERLY) {
                     image.dispose();
+                }
+            }
+        }
+        
+        if (true) {
+            final InterfaceBwdWritableImage wi = binding.newWritableImage(INITIAL_WIDTH, INITIAL_HEIGHT);
+            try {
+                final InterfaceBwdGraphics wig = wi.getGraphics();
+                wig.clearRect(wig.getBox());
+                g.drawImage(0, 0, wi);
+            } finally {
+                if (MUST_DISPOSE_PROPERLY) {
+                    wi.dispose();
                 }
             }
         }

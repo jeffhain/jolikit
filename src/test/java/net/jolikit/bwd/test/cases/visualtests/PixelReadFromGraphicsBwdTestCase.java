@@ -23,7 +23,6 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
-import net.jolikit.bwd.impl.utils.graphics.AbstractBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
@@ -146,34 +145,15 @@ public class PixelReadFromGraphicsBwdTestCase extends AbstractBwdTestCase {
         /*
          * Copying drawn pixels on the right, if possible.
          */
-        
-        if (g instanceof AbstractBwdGraphics) {
-            final AbstractBwdGraphics g2 = (AbstractBwdGraphics) g;
-            for (int y = leftBox.y(); y <= leftBox.yMax(); y++) {
-                for (int x = leftBox.x(); x <= leftBox.xMax(); x++) {
-                    final int argb32 = g2.getArgb32At(x, y);
-                    g.setArgb32(argb32);
-                    g.drawPoint(x + leftBox.xSpan(), y);
-                }
+
+        for (int y = leftBox.y(); y <= leftBox.yMax(); y++) {
+            for (int x = leftBox.x(); x <= leftBox.xMax(); x++) {
+                final int argb32 = g.getArgb32At(x, y);
+                g.setArgb32(argb32);
+                g.drawPoint(x + leftBox.xSpan(), y);
             }
-        } else {
-            g.setColor(BwdColor.WHITE);
-            g.clearRect(
-                    rightBox.x(),
-                    rightBox.y(),
-                    rightBox.xSpan(),
-                    rightBox.ySpan());
-            g.setColor(BwdColor.BLACK);
-            g.drawText(
-                    rightBox.x(),
-                    rightBox.y(),
-                    "no pixel read method on graphics class:");
-            g.drawText(
-                    rightBox.x(),
-                    rightBox.y() + g.getFont().fontMetrics().fontHeight() + 1,
-                    g.getClass().toString());
         }
-        
+
         /*
          * Labels.
          */

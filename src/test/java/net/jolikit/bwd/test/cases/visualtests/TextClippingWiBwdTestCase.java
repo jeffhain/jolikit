@@ -21,11 +21,15 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
-public class TextClippingBwdTestCase extends AbstractBwdTestCase {
+/**
+ * Text clipping using writable image graphics.
+ */
+public class TextClippingWiBwdTestCase extends AbstractBwdTestCase {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -37,30 +41,30 @@ public class TextClippingBwdTestCase extends AbstractBwdTestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public TextClippingBwdTestCase() {
+    public TextClippingWiBwdTestCase() {
         this.painter = null;
     }
-    
-    public TextClippingBwdTestCase(InterfaceBwdBinding binding) {
+
+    public TextClippingWiBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
         this.painter = new TextClippingBwdPainter(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new TextClippingBwdTestCase(binding);
+        return new TextClippingWiBwdTestCase(binding);
     }
 
     @Override
     public InterfaceBwdTestCaseClient newClient() {
-        return new TextClippingBwdTestCase(this.getBinding());
+        return new TextClippingWiBwdTestCase(this.getBinding());
     }
 
     @Override
     public GPoint getInitialClientSpans() {
         return TextClippingBwdPainter.INITIAL_CLIENT_SPANS;
     }
-    
+
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
@@ -69,8 +73,19 @@ public class TextClippingBwdTestCase extends AbstractBwdTestCase {
     protected List<GRect> paint_initDone(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
-
-        this.painter.paint(g);
+        
+        final InterfaceBwdBinding binding = this.getBinding();
+        
+        final InterfaceBwdWritableImage wi = binding.newWritableImage(
+                getInitialClientSpans().x(),
+                getInitialClientSpans().y());
+        
+        {
+            final InterfaceBwdGraphics wig = wi.getGraphics();
+            this.painter.paint(wig);
+        }
+        
+        g.drawImage(0, 0, wi);
         
         return GRect.DEFAULT_HUGE_IN_LIST;
     }

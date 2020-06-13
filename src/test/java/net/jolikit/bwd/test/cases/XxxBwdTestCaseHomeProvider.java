@@ -50,7 +50,7 @@ import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over30s_BwdTestCas
 import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over60s_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentFontCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentImageCreaDispBwdTestCase;
-import net.jolikit.bwd.test.cases.visualsturds.ParallelDrawingBwdTestCase;
+import net.jolikit.bwd.test.cases.visualsturds.ParallelPaintingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AllEventsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinOpaqueBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinTranspBwdTestCase;
@@ -76,15 +76,16 @@ import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.KeyEventsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextCasesBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.TextClippingBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.TextClippingCliBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.TextClippingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextWidthBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TheoreticalOvalOnGridBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.UnicodeBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestCaseHomesColumn;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
@@ -103,7 +104,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
     {
         final List<BwdTestCaseHomesColumn> columnList = new ArrayList<BwdTestCaseHomesColumn>();
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Tests");
+            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Tests (General)");
             columnList.add(column);
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
@@ -170,9 +171,13 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new AllEventsBwdTestCase(),
                     new KeyEventsBwdTestCase(),
             });
+        }
+        {
+            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Tests (Text, Images)");
+            columnList.add(column);
 
             /*
-             * Fonts.
+             * Text.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new DefaultFontBwdTestCase(),
@@ -181,7 +186,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new TextWidthBwdTestCase(),
                     new UnicodeBwdTestCase(),
                     new TextAlphaBwdTestCase(),
-                    new TextClippingBwdTestCase(),
+                    new TextClippingCliBwdTestCase(),
+                    new TextClippingWiBwdTestCase(),
             });
 
             /*
@@ -190,7 +196,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new ImageFormatsBwdTestCase(),
             });
-            
+
             /*
              * Writable images.
              */
@@ -199,7 +205,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
         }
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Benches/Stability");
+            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Benches/Conc/Prl");
             columnList.add(column);
 
             /*
@@ -223,7 +229,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              * Parallel.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new ParallelDrawingBwdTestCase(),
+                    new ParallelPaintingBwdTestCase(),
                     new ConcurrentFontCreaDispBwdTestCase(),
                     new ConcurrentImageCreaDispBwdTestCase(),
             });
@@ -250,7 +256,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
         }
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Unit Tests");
+            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Unit Tests/Benches");
             columnList.add(column);
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
@@ -264,38 +270,19 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new UiSchedulerAndThrowUnitTestBwdTestCase(),
-            });
-
-            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new FontHomeApiWsUnitTestBwdTestCase(),
                     new FontHomeApiWchUnitTestBwdTestCase(),
                     new FontApiUnitTestBwdTestCase(),
                     new FontMetricsApiUnitTestBwdTestCase(),
-            });
-        }
-        {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Unit Benches/Stability");
-            columnList.add(column);
-
-            /*
-             * Font methods benches.
-             */
-            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new FontMethodsBenchBwdTestCase(),
             });
 
-            /*
-             * Scheduling benches.
-             */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                    new UiSchedulerAndThrowUnitTestBwdTestCase(),
                     new UiSchedulerAsapBwdTestCase(),
                     new UiSchedulerTimedBwdTestCase(),
             });
 
-            /*
-             * Memory.
-             */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new NoLeakBwdTestCase(),
             });

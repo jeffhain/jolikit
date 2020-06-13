@@ -178,8 +178,8 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             
             if (expectedClientBounds != null) {
                 // To check that figure fits exactly in actual client bounds.
-                final GRect clientInBase = expectedClientBounds.withPos(0, 0);
-                drawFigureInRect(g, clientInBase);
+                final GRect clientInClient = expectedClientBounds.withPos(0, 0);
+                drawFigureInRect(g, clientInClient);
             }
             
             if (expectedClientBounds != null) {

@@ -145,8 +145,8 @@ public class ClippingBwdTestCase extends AbstractBwdTestCase {
         drawerList.add(new MyInterfaceDrawer() {
             @Override
             public void drawIt(InterfaceBwdGraphics g) {
-                for (int i = 0; i < DRAW_BOX_IN_USER.xSpan(); i += 3) {
-                    for (int j = 0; j < DRAW_BOX_IN_USER.ySpan(); j += 3) {
+                for (int j = 0; j < DRAW_BOX_IN_USER.ySpan(); j += 3) {
+                    for (int i = 0; i < DRAW_BOX_IN_USER.xSpan(); i += 3) {
                         g.drawPoint(
                                 DRAW_BOX_IN_USER.x() + i,
                                 DRAW_BOX_IN_USER.y() + j);

@@ -697,8 +697,8 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
         
         final InterfaceBwdFont font = g.getFont();
         final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int textHeight = metrics.fontHeight();
         final int textWidth = metrics.computeTextWidth(textForWidth);
+        final int textHeight = metrics.fontHeight();
         
         BwdTestUtils.drawTextAndSpannedBg(
                 g, BwdColor.WHITE, BwdColor.BLACK,

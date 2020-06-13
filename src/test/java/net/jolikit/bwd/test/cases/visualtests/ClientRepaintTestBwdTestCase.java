@@ -182,11 +182,11 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
             final int screenCenterYInScreen = (screenBounds.yMax() - screenBounds.y()) / 2;
             
             final GRect clientBounds = this.getHost().getClientBounds();
-            final int screenCenterXInBase = screenCenterXInScreen - clientBounds.x();
-            final int screenCenterYInBase = screenCenterYInScreen - clientBounds.y();
+            final int screenCenterXInClient = screenCenterXInScreen - clientBounds.x();
+            final int screenCenterYInClient = screenCenterYInScreen - clientBounds.y();
             
-            final int boxCenterToScreenCenterDx = screenCenterXInBase - boxCenterX;
-            final int boxCenterToScreenCenterDy = screenCenterYInBase - boxCenterY;
+            final int boxCenterToScreenCenterDx = screenCenterXInClient - boxCenterX;
+            final int boxCenterToScreenCenterDy = screenCenterYInClient - boxCenterY;
             final int boxCenterToScreenCenterDelta = (int) Math.sqrt(
                     pow2(boxCenterToScreenCenterDx)
                     + pow2(boxCenterToScreenCenterDy));

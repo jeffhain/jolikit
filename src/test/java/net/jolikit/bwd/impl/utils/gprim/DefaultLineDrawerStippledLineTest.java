@@ -407,10 +407,10 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
         
         final boolean mustUseX = mustIterateOnXForStipple(drawingArgs);
         
-        for (int i = 0; i < drawingBBox.ySpan(); i++) {
-            final int y = drawingBBox.y() + i;
-            for (int j = 0; j < drawingBBox.xSpan(); j++) {
-                final int x = drawingBBox.x() + j;
+        for (int j = 0; j < drawingBBox.ySpan(); j++) {
+            final int y = drawingBBox.y() + j;
+            for (int i = 0; i < drawingBBox.xSpan(); i++) {
+                final int x = drawingBBox.x() + i;
                 final GPoint pixel = GPoint.valueOf(x, y);
                 
                 final boolean pixelInClip = clip.contains(pixel.x(), pixel.y());
