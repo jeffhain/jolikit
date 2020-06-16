@@ -259,16 +259,6 @@ or toolkits on top of which UIs can be built.
   centered on rectangle corners, or corners with straight oblique lines instead.
   If new primitive were added, that would rather be to draw/fill polygons/paths.
 
-- "Why is there no way to draw on an offscreen image?"
-  Images creation in memory (not from a file), and drawing on images using
-  a graphics, could be added, but some libraries don't allow for painting
-  out of their UI thread, in which case preparing an image by drawing it
-  offscreen would block events and regular painting.
-  Also, some libraries don't provide graphics for their offscreen images,
-  which would make it hard to implement, or slow to execute.
-  That said, it could be used without issue in some initialization phase,
-  or in progressive offscreen painting with short duration steps.
-
 - "Why use xSpan and ySpan instead of width and height?"
   To be more explicit and not having to remember or remind each time that
   width corresponds to x and height to y, and not to lie after a 90 degrees
