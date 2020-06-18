@@ -106,6 +106,9 @@ Jolikit X.X, XXXX/XX/XX
   - BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
     instead of to available parallelism, for multi-threading not to hurt
     incognizant users.
+  - Corrections:
+    - Corrected an issue in DefaultLineDrawer, where pixels out of clip
+      could be drawn when coordinates were huge (>= 500_000_000 or so).
   - Optimizations/upgrades:
     - Factored/upgraded/optimized/simplified various internal utilities,
       in particular:

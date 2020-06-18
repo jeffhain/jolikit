@@ -15,6 +15,10 @@
  */
 package net.jolikit.bwd.impl.utils.gprim;
 
+import java.util.ArrayList;
+
+import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
 
@@ -75,6 +79,61 @@ public class DefaultLineDrawerPlainLineTest extends AbstractDrawerTezt<TestLineA
     @Override
     public void test_drawer_clipNearbyBBox() {
         super.test_drawer_clipNearbyBBox();
+    }
+    
+    /**
+     * Bug corrected by using ONE_{PLUS|MINUS}_2_ULPS
+     * instead of ONE_{PLUS|MINUS}_1_ULP,
+     * when computing bounds of extended clip.
+     */
+    public void test_bugHugeCoordRoundingOutOfClip() {
+        
+        final ArrayList<GPoint> drawnList = new ArrayList<GPoint>();
+        
+        final InterfaceClippedPointDrawer clippedPointDrawer =
+                new InterfaceClippedPointDrawer() {
+                    @Override
+                    public void drawPointInClip(int x, int y) {
+                        if (DEBUG) {
+                            Dbg.log("drawPointInClip(" + x + ", " + y + ")");
+                        }
+                        drawnList.add(GPoint.valueOf(x, y));
+                    }
+                };
+        final DefaultLineDrawer drawer = new DefaultLineDrawer(clippedPointDrawer);
+        
+        /*
+         * First a case that worked, close to the problematic case
+         * (for comparison while debugging),
+         * second the case in which the bug occurred.
+         */
+        for (boolean fineCase : new boolean[] {true, false}) {
+            
+            final int offsetMag = (fineCase ? 500000000 : 510000000);
+            final int xOffset = offsetMag;
+            final int yOffset = -offsetMag;
+            
+            final GRect clip = GRect.valueOf(xOffset, yOffset, 3, 2);
+            final int x1 = xOffset + 1;
+            final int y1 = yOffset - 1;
+            final int x2 = xOffset + 4;
+            final int y2 = yOffset + 0;
+            
+            if (DEBUG) {
+                Dbg.log();
+                Dbg.log("drawLine(" + clip + ", " + x1 + ", " + y1 + ", " + x2 + ", " + y2 + ")");
+            }
+            
+            drawnList.clear();
+            drawer.drawLine(clip, x1, y1, x2, y2);
+            if (DEBUG) {
+                Dbg.log();
+                Dbg.log("drawnList = " + drawnList);
+            }
+            for (GPoint point : drawnList) {
+                assertTrue(clip.contains(point.x(), point.y()));
+            }
+        }
     }
     
     //--------------------------------------------------------------------------

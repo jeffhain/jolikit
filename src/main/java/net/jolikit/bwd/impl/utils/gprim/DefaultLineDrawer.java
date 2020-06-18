@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,9 +40,13 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
     
     /*
      * TODO jdk Can use Math.nextAfter(...) from JDK 6+.
+     * 
+     * 1+-one_ulp is not enough to guard against computing coordinates
+     * that round out of clip, at least not for values of magnitude
+     * above about 500_000_000.
      */
-    private static final double ONE_MINUS_1_ULP = 0.9999999999999999;
-    private static final double ONE_PLUS_1_ULP = 1.0000000000000002;
+    private static final double ONE_MINUS_2_ULPS = 0.9999999999999998;
+    private static final double ONE_PLUS_2_ULPS = 1.0000000000000004;
 
     private final InterfaceClippedLineDrawer clippedLineDrawer;
     
@@ -355,13 +359,13 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
         
         final double h = 0.5;
         // Rounds to clipX.
-        final double clipXExtended = (clip.x() - h) * (clip.x() <= 0 ? ONE_MINUS_1_ULP : ONE_PLUS_1_ULP);
+        final double clipXExtended = (clip.x() - h) * (clip.x() <= 0 ? ONE_MINUS_2_ULPS : ONE_PLUS_2_ULPS);
         // Rounds to clipY.
-        final double clipYExtended = (clip.y() - h) * (clip.y() <= 0 ? ONE_MINUS_1_ULP : ONE_PLUS_1_ULP);
+        final double clipYExtended = (clip.y() - h) * (clip.y() <= 0 ? ONE_MINUS_2_ULPS : ONE_PLUS_2_ULPS);
         // Rounds to clipXMax.
-        final double clipXMaxExtended = (clip.xMax() + h) * (clip.xMax() < 0 ? ONE_PLUS_1_ULP : ONE_MINUS_1_ULP);
+        final double clipXMaxExtended = (clip.xMax() + h) * (clip.xMax() < 0 ? ONE_PLUS_2_ULPS : ONE_MINUS_2_ULPS);
         // Rounds to clipYMax.
-        final double clipYMaxExtended = (clip.yMax() + h) * (clip.yMax() < 0 ? ONE_PLUS_1_ULP : ONE_MINUS_1_ULP);
+        final double clipYMaxExtended = (clip.yMax() + h) * (clip.yMax() < 0 ? ONE_PLUS_2_ULPS : ONE_MINUS_2_ULPS);
         if (DEBUG) {
             Dbg.log("clipXExtended = " + clipXExtended);
             Dbg.log("clipYExtended = " + clipYExtended);
@@ -375,6 +379,10 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
 
         final boolean x1Out = (x1d < clipXExtended);
         final boolean x2Out = (x2d > clipXMaxExtended);
+        if (DEBUG) {
+            Dbg.log("x1Out = " + x1Out);
+            Dbg.log("x2Out = " + x2Out);
+        }
         final boolean someXOut = (x1Out || x2Out);
         double a = Double.NaN;
         double b = Double.NaN;
@@ -404,6 +412,12 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                 x2d = clipXMaxExtended;
                 // Typically no longer a mathematical integer.
                 y2d = a * x2d + b;
+            }
+            if (DEBUG) {
+                Dbg.log("x1d (1) = " + NumbersUtils.toStringNoCSN(x1d));
+                Dbg.log("y1d (1) = " + NumbersUtils.toStringNoCSN(y1d));
+                Dbg.log("x2d (1) = " + NumbersUtils.toStringNoCSN(x2d));
+                Dbg.log("y2d (1) = " + NumbersUtils.toStringNoCSN(y2d));
             }
             if (Math.max(y1d,y2d) < clipYExtended) {
                 // Line above clip (all cases).
@@ -440,6 +454,10 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
 
         final boolean y1Out = (y1d < clipYExtended) || (y1d > clipYMaxExtended);
         final boolean y2Out = (y2d < clipYExtended) || (y2d > clipYMaxExtended);
+        if (DEBUG) {
+            Dbg.log("y1Out = " + y1Out);
+            Dbg.log("y2Out = " + y2Out);
+        }
         final boolean someYOut = (y1Out || y2Out);
         if (someYOut) {
             if (!equationComputed) {
@@ -504,10 +522,10 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
         if (someXOut || someYOut) {
             if (DEBUG) {
                 Dbg.log("CLIPPED (general)");
-                Dbg.log("x1d = " + NumbersUtils.toStringNoCSN(x1d));
-                Dbg.log("y1d = " + NumbersUtils.toStringNoCSN(y1d));
-                Dbg.log("x2d = " + NumbersUtils.toStringNoCSN(x2d));
-                Dbg.log("y2d = " + NumbersUtils.toStringNoCSN(y2d));
+                Dbg.log("x1d (2) = " + NumbersUtils.toStringNoCSN(x1d));
+                Dbg.log("y1d (2) = " + NumbersUtils.toStringNoCSN(y1d));
+                Dbg.log("x2d (2) = " + NumbersUtils.toStringNoCSN(x2d));
+                Dbg.log("y2d (2) = " + NumbersUtils.toStringNoCSN(y2d));
             }
             
             pixelNum = clippedLineDrawer.drawGeneralLineClipped(
