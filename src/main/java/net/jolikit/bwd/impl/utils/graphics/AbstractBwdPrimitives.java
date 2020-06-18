@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,15 +23,18 @@ import net.jolikit.bwd.impl.utils.gprim.DefaultHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPointDrawer;
+import net.jolikit.bwd.impl.utils.gprim.DefaultPolygonDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultRectDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedPointDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedRectDrawer;
+import net.jolikit.bwd.impl.utils.gprim.InterfaceColorDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfacePointDrawer;
+import net.jolikit.bwd.impl.utils.gprim.InterfacePolygonDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceRectDrawer;
 
 /**
@@ -54,6 +57,8 @@ public abstract class AbstractBwdPrimitives implements
 //
 InterfaceHugeAlgoSwitch,
 //
+InterfaceColorDrawer,
+//
 InterfaceClippedPointDrawer,
 InterfaceClippedLineDrawer,
 InterfaceClippedRectDrawer,
@@ -63,7 +68,9 @@ InterfaceLineDrawer,
 InterfaceRectDrawer,
 //
 InterfaceOvalDrawer,
-InterfaceArcDrawer {
+InterfaceArcDrawer,
+//
+InterfacePolygonDrawer {
 
     /*
      * TODO optim Could optimize away user-to-client coordinates conversion
@@ -90,12 +97,16 @@ InterfaceArcDrawer {
     }
     
     /*
+     * InterfaceColorDrawer
+     */
+
+    @Override
+    public abstract boolean isColorOpaque();
+
+    /*
      * InterfaceClippedPointDrawer
      */
     
-    /**
-     * At least this method must be implemented.
-     */
     @Override
     public abstract void drawPointInClip(int x, int y);
     
@@ -381,6 +392,68 @@ InterfaceArcDrawer {
                 clippedLineDrawer,
                 //
                 pointDrawer,
+                lineDrawer,
+                rectDrawer);
+    }
+    
+    /*
+     * InterfacePolygonDrawer
+     */
+    
+    @Override
+    public void drawPolygon(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        
+        final InterfaceColorDrawer colorDrawer = this;
+        
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
+        
+        final InterfaceLineDrawer lineDrawer = this;
+        
+        DefaultPolygonDrawer.drawPolygon(
+                clip,
+                xArr,
+                yArr,
+                pointCount,
+                //
+                colorDrawer,
+                //
+                clippedPointDrawer,
+                //
+                lineDrawer);
+    }
+
+    @Override
+    public void fillPolygon(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount,
+            boolean areHorVerFlipped) {
+        
+        final InterfaceColorDrawer colorDrawer = this;
+        
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
+        final InterfaceClippedLineDrawer clippedLineDrawer = this;
+        
+        final InterfaceLineDrawer lineDrawer = this;
+        final InterfaceRectDrawer rectDrawer = this;
+        
+        DefaultPolygonDrawer.fillPolygon(
+                clip,
+                xArr,
+                yArr,
+                pointCount,
+                areHorVerFlipped,
+                //
+                colorDrawer,
+                //
+                clippedPointDrawer,
+                clippedLineDrawer,
+                //
                 lineDrawer,
                 rectDrawer);
     }

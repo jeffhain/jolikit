@@ -779,6 +779,42 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     @Override
+    public void drawPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        this.checkUsable();
+        GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+
+        this.getPrimitives().drawPolygon(
+                this.getClipInUser(),
+                xArr,
+                yArr,
+                pointCount);
+    }
+
+    @Override
+    public void fillPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        this.checkUsable();
+        GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+
+        this.getPrimitives().fillPolygon(
+                this.getClipInUser(),
+                xArr,
+                yArr,
+                pointCount,
+                this.areHorVerFlipped());
+    }
+
+    
+    /*
+     * 
+     */
+    
+    @Override
     public void drawImage(
             int x, int y,
             InterfaceBwdImage image) {

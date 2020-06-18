@@ -74,7 +74,9 @@ class DefaultLineDrawerTestHelper extends AbstractDrawerTestHelper<TestLineArgs>
     }
 
     @Override
-    public long getAllowedNbrOfDanglingPixels(TestLineArgs drawingArgs) {
+    public long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            TestLineArgs drawingArgs) {
         // 0, not 2, because we compute bounding box exactly. 
         return 0;
     }

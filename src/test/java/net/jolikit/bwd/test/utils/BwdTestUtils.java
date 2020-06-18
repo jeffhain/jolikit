@@ -366,6 +366,59 @@ public class BwdTestUtils {
      * 
      */
     
+    /**
+     * Computes points for drawing a spiral polygon,
+     * centered on (0,0).
+     * 
+     * @param pointCount Must be even.
+     * @param xArr (out) Length must be >= pointCount.
+     * @param yArr (out) Length must be >= pointCount.
+     */
+    public static void computeSpiralPolygonPoints(
+            int xMaxRadius,
+            int yMaxRadius,
+            int pointCount,
+            double roundCount,
+            //
+            int[] xArr,
+            int[] yArr) {
+        
+        if (!NumbersUtils.isEven(pointCount)) {
+            throw new IllegalArgumentException();
+        }
+        final int halfPointCount = pointCount / 2;
+        
+        {
+            final double xRadiusStep = xMaxRadius / (double) (halfPointCount - 1);
+            final double yRadiusStep = yMaxRadius / (double) (halfPointCount - 1);
+            final double angStepRad = roundCount * (2*Math.PI / (halfPointCount - 1));
+            int k = 0;
+            double xRadius = 0.0;
+            double yRadius = 0.0;
+            double angRad = Math.PI;
+            for (; k < halfPointCount; k++) {
+                xArr[k] = (int) (xRadius * Math.sin(angRad));
+                yArr[k] = (int) (yRadius * Math.cos(angRad));
+                final int kk = (pointCount - 1) - k;
+                final double internalAngRad;
+                if (kk == halfPointCount) {
+                    internalAngRad = angRad;
+                } else {
+                    internalAngRad = angRad + angStepRad * 0.5;
+                }
+                xArr[kk] = (int) ((xRadius * 0.8) * Math.sin(internalAngRad));
+                yArr[kk] = (int) ((yRadius * 0.8) * Math.cos(internalAngRad));
+                xRadius += xRadiusStep;
+                yRadius += yRadiusStep;
+                angRad += angStepRad;
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
     public static void drawTextCentered(
             InterfaceBwdGraphics g,
             int centerX, int centerY,

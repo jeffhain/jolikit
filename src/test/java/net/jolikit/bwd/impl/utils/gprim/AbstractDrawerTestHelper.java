@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,9 @@ abstract class AbstractDrawerTestHelper<ARG> {
     public abstract void callFillMethod(GRect clip, ARG drawingArgs);
     
     /**
+     * A dangling pixel is a pixel with no more than one neighbor,
+     * or with only two adjacent neighbors, that are not on
+     * clipped bounding box border.
      * Ex.: 0 for line (segment) drawing (not 2, because we know we compute
      * bounding box exactly for these), 0 for oval drawing, 2 for arc drawing,
      * many for stippled lines.
@@ -57,7 +60,9 @@ abstract class AbstractDrawerTestHelper<ARG> {
      * @return For a curve outline, the number of allowed dangling pixels,
      *         unless due to clipped bounding box border.
      */
-    public abstract long getAllowedNbrOfDanglingPixels(ARG drawingArgs);
+    public abstract long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            ARG drawingArgs);
     
     /**
      * Allowed to leak some around actual drawing,

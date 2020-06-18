@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
@@ -215,6 +216,39 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
         }
     }
     
+    private static class MyItemDrawer_drawOrFillPolygon implements InterfaceItemDrawer {
+        private final boolean mustFill;
+        public MyItemDrawer_drawOrFillPolygon(boolean mustFill) {
+            this.mustFill = mustFill;
+        }
+        @Override
+        public void drawItem(InterfaceBwdGraphics g, int itemX, int itemY) {
+            final int xMaxRadius = ITEM_X_SPAN / 2;
+            final int yMaxRadius = ITEM_Y_SPAN / 2;
+            final int pointCount = 100;
+            final double roundCount = 3.0;
+            final int[] xArr = new int[pointCount];
+            final int[] yArr = new int[pointCount];
+            BwdTestUtils.computeSpiralPolygonPoints(
+                    xMaxRadius,
+                    yMaxRadius,
+                    pointCount,
+                    roundCount,
+                    xArr,
+                    yArr);
+            g.addTransform(GTransform.valueOf(
+                    0,
+                    itemX + xMaxRadius,
+                    itemY + yMaxRadius));
+            if (mustFill) {
+                g.drawPolygon(xArr, yArr, pointCount);
+            } else {
+                g.fillPolygon(xArr, yArr, pointCount);
+            }
+            g.removeLastAddedTransform();
+        }
+    }
+    
     private class MyItemDrawer_drawText implements InterfaceItemDrawer {
         private InterfaceBwdFont bigBoldFont;
         @Override
@@ -365,6 +399,9 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
         
         blendWith(g, cellIndex++, new MyItemDrawer_drawArc());
         blendWith(g, cellIndex++, new MyItemDrawer_fillArc());
+        
+        blendWith(g, cellIndex++, new MyItemDrawer_drawOrFillPolygon(false));
+        blendWith(g, cellIndex++, new MyItemDrawer_drawOrFillPolygon(true));
 
         blendWith(g, cellIndex++, new MyItemDrawer_drawText());
         

@@ -37,6 +37,8 @@ public class DefaultOvalDrawerTest extends AbstractDrawerTezt<GRect> {
      * Random.
      */
     
+    private static final boolean ALLOW_HUGE_COORDS = true;
+    
     private static final int NBR_OF_CALLS_RANDOM = 100;
     
     private static final int MAX_RANDOM_OVAL_SPAN = 100;
@@ -125,8 +127,8 @@ public class DefaultOvalDrawerTest extends AbstractDrawerTezt<GRect> {
                 ySpan = minSpan + this.random.nextInt(maxSpan - minSpan + 1);
             }
 
-            final int tmpX = this.random.nextInt();
-            final int tmpY = this.random.nextInt();
+            final int tmpX = (ALLOW_HUGE_COORDS ? this.random.nextInt() : 0);
+            final int tmpY = (ALLOW_HUGE_COORDS ? this.random.nextInt() : 0);
             x = (int) Math.min(tmpX, Integer.MAX_VALUE - (long) xSpan + 1);
             y = (int) Math.min(tmpY, Integer.MAX_VALUE - (long) ySpan + 1);
         }

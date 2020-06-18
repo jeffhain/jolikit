@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,11 +89,33 @@ public class DefaultArcDrawerTestHelper extends AbstractDrawerTestHelper<PixelFi
     }
 
     @Override
-    public long getAllowedNbrOfDanglingPixels(PixelFigStatusArcDef drawingArgs) {
-        if (drawingArgs.getReworkedSpanDeg() == 360.0) {
-            return 0;
+    public long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            PixelFigStatusArcDef drawingArgs) {
+        if (isFillElseDraw) {
+            final double spanDeg = drawingArgs.getReworkedSpanDeg();
+            if (spanDeg < 10.0) {
+                // Might have many, due to angular constraint
+                // excluding a lot of pixels.
+                return Math.max(
+                        drawingArgs.getOval().xSpan(),
+                        drawingArgs.getOval().ySpan()) / 2;
+            } else if (spanDeg < 90.0) {
+                // Might have 3, two at edges extremities
+                // and one at center.
+                return 3;
+            } else if (spanDeg < 360.0) {
+                // Might have 2, at edges extremities.
+                return 2;
+            } else {
+                return 0;
+            }
         } else {
-            return 2;
+            if (drawingArgs.getReworkedSpanDeg() == 360.0) {
+                return 0;
+            } else {
+                return 2;
+            }
         }
     }
 

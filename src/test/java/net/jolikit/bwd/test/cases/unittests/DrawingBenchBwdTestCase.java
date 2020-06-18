@@ -36,6 +36,7 @@ import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.utils.BenchTimeoutManager;
 import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.LangUtils;
@@ -138,6 +139,53 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     private static final int FIGURE_WIDTH = 960;
     private static final int FIGURE_HEIGHT = 540;
 
+    /**
+     * Not too small, for algos with bad complexity to hurt.
+     */
+    private static final int POLYGON_POINT_COUNT = 1000;
+    /**
+     * Not too small, for algos with bad complexity to hurt.
+     * 30 points per round, for spiral to be mostly roundish.
+     */
+    private static final double POLYGON_SPIRAL_ROUND_COUNT = POLYGON_POINT_COUNT / 30;
+
+    private static final int[] POLYGON_ELLIPSE_X_ARR = new int[POLYGON_POINT_COUNT];
+    private static final int[] POLYGON_ELLIPSE_Y_ARR = new int[POLYGON_POINT_COUNT];
+    static {
+        final int xMaxRadius = FIGURE_WIDTH / 2;
+        final int yMaxRadius = FIGURE_HEIGHT / 2;
+        final double stepRad = (2*Math.PI) / POLYGON_POINT_COUNT;
+        for (int k = 0; k < POLYGON_POINT_COUNT; k++) {
+            final double angRad = k * stepRad;
+            POLYGON_ELLIPSE_X_ARR[k] = (int) (xMaxRadius * Math.sin(angRad));
+            POLYGON_ELLIPSE_Y_ARR[k] = (int) (yMaxRadius * Math.cos(angRad));
+        }
+        // For centering, without having to add a transform.
+        for (int k = 0; k < POLYGON_POINT_COUNT; k++) {
+            POLYGON_ELLIPSE_X_ARR[k] += xMaxRadius;
+            POLYGON_ELLIPSE_Y_ARR[k] += yMaxRadius;
+        }
+    }
+
+    private static final int[] POLYGON_SPIRAL_X_ARR = new int[POLYGON_POINT_COUNT];
+    private static final int[] POLYGON_SPIRAL_Y_ARR = new int[POLYGON_POINT_COUNT];
+    static {
+        final int xMaxRadius = FIGURE_WIDTH / 2;
+        final int yMaxRadius = FIGURE_HEIGHT / 2;
+        BwdTestUtils.computeSpiralPolygonPoints(
+                xMaxRadius,
+                yMaxRadius,
+                POLYGON_POINT_COUNT,
+                POLYGON_SPIRAL_ROUND_COUNT,
+                POLYGON_SPIRAL_X_ARR,
+                POLYGON_SPIRAL_Y_ARR);
+        // For centering, without having to add a transform.
+        for (int k = 0; k < POLYGON_POINT_COUNT; k++) {
+            POLYGON_SPIRAL_X_ARR[k] += xMaxRadius;
+            POLYGON_SPIRAL_Y_ARR[k] += yMaxRadius;
+        }
+    }
+
     private static final int TEST_GRAPHICS_WIDTH = FIGURE_WIDTH;
     private static final int TEST_GRAPHICS_HEIGHT = FIGURE_HEIGHT;
 
@@ -232,6 +280,10 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         FILL_OVAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         DRAW_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         FILL_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        DRAW_POLYGON_ELLIPSE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        DRAW_POLYGON_SPIRAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        FILL_POLYGON_ELLIPSE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        FILL_POLYGON_SPIRAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         //
         DRAW_TEXT(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         //
@@ -1040,6 +1092,8 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
         final int xSpan = FIGURE_WIDTH;
         final int ySpan = FIGURE_HEIGHT;
+        
+        final int pointCount = POLYGON_POINT_COUNT;
 
         /*
          * Values to avoid special cases like
@@ -1122,6 +1176,30 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                 testG.fillArc(
                         x, y, xSpan, ySpan,
                         0, 315);
+            } break;
+            case DRAW_POLYGON_ELLIPSE: {
+                testG.drawPolygon(
+                        POLYGON_ELLIPSE_X_ARR,
+                        POLYGON_ELLIPSE_Y_ARR,
+                        pointCount);
+            } break;
+            case DRAW_POLYGON_SPIRAL: {
+                testG.drawPolygon(
+                        POLYGON_SPIRAL_X_ARR,
+                        POLYGON_SPIRAL_Y_ARR,
+                        pointCount);
+            } break;
+            case FILL_POLYGON_ELLIPSE: {
+                testG.fillPolygon(
+                        POLYGON_ELLIPSE_X_ARR,
+                        POLYGON_ELLIPSE_Y_ARR,
+                        pointCount);
+            } break;
+            case FILL_POLYGON_SPIRAL: {
+                testG.fillPolygon(
+                        POLYGON_SPIRAL_X_ARR,
+                        POLYGON_SPIRAL_Y_ARR,
+                        pointCount);
             } break;
             /*
              * 

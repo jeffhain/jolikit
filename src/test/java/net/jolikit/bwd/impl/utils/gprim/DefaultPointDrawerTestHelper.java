@@ -52,7 +52,9 @@ class DefaultPointDrawerTestHelper extends AbstractDrawerTestHelper<GPoint> {
     }
 
     @Override
-    public long getAllowedNbrOfDanglingPixels(GPoint drawingArgs) {
+    public long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            GPoint drawingArgs) {
         // 0 because out bounding box is exact.
         return 0;
     }

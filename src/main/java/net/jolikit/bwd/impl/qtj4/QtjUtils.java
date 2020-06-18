@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.qtj4;
 import net.jolikit.bwd.api.graphics.GRect;
 
 import com.trolltech.qt.core.QRect;
+import com.trolltech.qt.gui.QPolygon;
 
 public class QtjUtils {
 
@@ -31,6 +32,20 @@ public class QtjUtils {
                 rect.y(),
                 rect.width(),
                 rect.height());
+    }
+    
+    public static QPolygon toQPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        // We guess the constructor arg is initial point capacity.
+        // Qt docs say it's the "size",
+        // but don't tell what that means.
+        final QPolygon polygon = new QPolygon(pointCount);
+        for (int i = 0; i < pointCount; i++) {
+            polygon.add(xArr[i], yArr[i]);
+        }
+        return polygon;
     }
     
     //--------------------------------------------------------------------------

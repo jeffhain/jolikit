@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,13 +41,30 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final InterfaceClippedPointDrawer clippedPointDrawer;
+    private InterfaceClippedPointDrawer clippedPointDrawer;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
+    /**
+     * Must configure before use.
+     */
+    public DefaultClippedLineDrawer() {
+        this.clippedPointDrawer = null;
+    }
+    
+    /**
+     * @param clippedPointDrawer Must not be null.
+     */
     public DefaultClippedLineDrawer(InterfaceClippedPointDrawer clippedPointDrawer) {
+        this.clippedPointDrawer = LangUtils.requireNonNull(clippedPointDrawer);
+    }
+    
+    /**
+     * @param clippedPointDrawer Must not be null.
+     */
+    public void configure(InterfaceClippedPointDrawer clippedPointDrawer) {
         this.clippedPointDrawer = LangUtils.requireNonNull(clippedPointDrawer);
     }
 
@@ -282,8 +299,12 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
             Dbg.log("drawGeneralLineClipped("
                     + clip
                     + ", " + x1 + ", " + y1 + ", " + x2 + ", " + y2
-                    + ", " + x1d + ", " + y1d + ", " + x2d + ", " + y2d
+                    + ", x1d, y1d, x2d, y2d"
                     + ", " + factor + ", " + pattern + ", " + pixelNum + ",)");
+            Dbg.log("x1d (1) = " + NumbersUtils.toStringNoCSN(x1d));
+            Dbg.log("y1d (1) = " + NumbersUtils.toStringNoCSN(y1d));
+            Dbg.log("x2d (1) = " + NumbersUtils.toStringNoCSN(x2d));
+            Dbg.log("y2d (1) = " + NumbersUtils.toStringNoCSN(y2d));
         }
 
         final boolean isPatternPlain = (pattern == GprimUtils.PLAIN_PATTERN);
@@ -293,6 +314,9 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
          */
         
         final boolean p1p2Swap = (x1d > x2d);
+        if (DEBUG) {
+            Dbg.log("p1p2Swap = " + p1p2Swap);
+        }
         if (p1p2Swap) {
             {
                 double tmp = x1d;
@@ -318,6 +342,12 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
          * 
          */
 
+        if (DEBUG) {
+            Dbg.log("x1d (2) = " + NumbersUtils.toStringNoCSN(x1d));
+            Dbg.log("y1d (2) = " + NumbersUtils.toStringNoCSN(y1d));
+            Dbg.log("x2d (2) = " + NumbersUtils.toStringNoCSN(x2d));
+            Dbg.log("y2d (2) = " + NumbersUtils.toStringNoCSN(y2d));
+        }
         final int roundedX1 = BindingCoordsUtils.roundToInt(x1d);
         final int roundedY1 = BindingCoordsUtils.roundToInt(y1d);
         final int roundedX2 = BindingCoordsUtils.roundToInt(x2d);

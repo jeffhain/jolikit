@@ -76,16 +76,19 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
         final TestClippedPointDrawer clippedPointDrawer = new TestClippedPointDrawer();
         final SortedMap<GPoint,Integer> paintCountByPixel = clippedPointDrawer.paintedCountByPixel;
 
-        final int nbrOfCalls = getNbrOfCalls();
+        final int nbrOfCalls = this.getNbrOfCalls();
         
         final AbstractDrawerTestHelper<ARG> helper = this.newDrawerTestHelper(clippedPointDrawer);
 
         for (int i = 0; i < nbrOfCalls; i++) {
 
             final ARG drawingArgs = this.newDrawingArgs(i);
+            final boolean multipaintedPixelsAllowed =
+                    this.mustAllowMultipaintedPixels();
             if (DEBUG) {
                 Dbg.log();
                 Dbg.log("drawingArgs = " + drawingArgs);
+                Dbg.log("multipaintedPixelsAllowed = " + multipaintedPixelsAllowed);
             }
 
             final GRect drawingBBox = helper.computeBoundingBox(drawingArgs);
@@ -121,6 +124,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                         helper,
                         clip,
                         drawingArgs,
+                        multipaintedPixelsAllowed,
                         drawingBBox,
                         drawnCountByPixel,
                         isFillElseDraw);
@@ -131,7 +135,8 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
              */
             
             if (helper.isFillSupported()) {
-                final SortedMap<GPoint,Integer> drawnCountByPixel = new TreeMap<GPoint,Integer>(paintCountByPixel);
+                final SortedMap<GPoint,Integer> drawnCountByPixel =
+                        new TreeMap<GPoint,Integer>(paintCountByPixel);
                 
                 paintCountByPixel.clear();
                 if (DEBUG) {
@@ -148,6 +153,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                         helper,
                         clip,
                         drawingArgs,
+                        multipaintedPixelsAllowed,
                         drawingBBox,
                         filledCountByPixel,
                         isFillElseDraw);
@@ -163,7 +169,8 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
-    protected abstract AbstractDrawerTestHelper<ARG> newDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer);
+    protected abstract AbstractDrawerTestHelper<ARG> newDrawerTestHelper(
+            InterfaceClippedPointDrawer clippedPointDrawer);
     
     protected abstract int getNbrOfCalls();
     
@@ -174,7 +181,21 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
      * @return The arguments for next draw call, and next fill call if supported.
      */
     protected abstract ARG newDrawingArgs(int index);
-    
+
+    /**
+     * This default implementation returns false.
+     * 
+     * Called after each call to newDrawingArgs().
+     * 
+     * Useful for implementations that are faster
+     * when eventually painting some pixels multiple times,
+     * while still being correct due to only doing it
+     * when color is opaque.
+     */
+    protected boolean mustAllowMultipaintedPixels() {
+        return false;
+    }
+
     /*
      * Utilities.
      */
@@ -298,6 +319,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
             AbstractDrawerTestHelper<ARG> helper,
             GRect clip,
             ARG drawingArgs,
+            boolean multipaintedPixelsAllowed,
             GRect drawingBBox,
             Map<GPoint,Integer> paintedCountByPixel,
             boolean isFillElseDraw) {
@@ -355,19 +377,16 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
          * on fill.
          */
         
-        final long maxNbrOfDanglingPixels;
-        final long nbrOfDanglingPixels;
-        if (isFillElseDraw) {
-            maxNbrOfDanglingPixels = 0;
-            nbrOfDanglingPixels = 0;
-        } else {
-            maxNbrOfDanglingPixels =
-                    helper.getAllowedNbrOfDanglingPixels(drawingArgs);
-            nbrOfDanglingPixels = computeNbrOfDanglingPixels(
-                    clippedBBox,
-                    paintedCountByPixel.keySet());
-        }
-        final boolean foundTooManyDanglingPixels = (nbrOfDanglingPixels > maxNbrOfDanglingPixels);
+        final long maxNbrOfDanglingPixels =
+                helper.getAllowedNbrOfDanglingPixels(
+                        isFillElseDraw,
+                        drawingArgs);
+        final long nbrOfDanglingPixels =
+                computeNbrOfDanglingPixels(
+                        clippedBBox,
+                        paintedCountByPixel.keySet());
+        final boolean foundTooManyDanglingPixels =
+                (nbrOfDanglingPixels > maxNbrOfDanglingPixels);
         
         /*
          * 
@@ -377,7 +396,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                 (!foundPixelOutOfClippedBBox)
                 && (!foundMissingPixel)
                 && (!foundExceedingPixel)
-                && (!foundMultipaintedPixel)
+                && ((!foundMultipaintedPixel) || multipaintedPixelsAllowed)
                 && (!foundTooManyDanglingPixels);
 
         if ((!valid)
@@ -393,6 +412,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
             Dbg.log("foundPixelOutOfClippedBBox = " + foundPixelOutOfClippedBBox);
             Dbg.log("foundMissingPixel = " + foundMissingPixel);
             Dbg.log("foundExceedingPixel = " + foundExceedingPixel);
+            Dbg.log("multipaintedPixelsAllowed = " + multipaintedPixelsAllowed);
             Dbg.log("foundMultipaintedPixel = " + foundMultipaintedPixel);
             Dbg.log(
                     "foundTooManyDanglingPixels = " + foundTooManyDanglingPixels

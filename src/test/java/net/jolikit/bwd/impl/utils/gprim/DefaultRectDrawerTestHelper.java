@@ -64,7 +64,9 @@ class DefaultRectDrawerTestHelper extends AbstractDrawerTestHelper<GRect> {
     }
 
     @Override
-    public long getAllowedNbrOfDanglingPixels(GRect drawingArgs) {
+    public long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            GRect drawingArgs) {
         return 0;
     }
 

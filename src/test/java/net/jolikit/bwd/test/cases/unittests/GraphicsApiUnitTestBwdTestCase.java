@@ -154,7 +154,13 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         Double.NEGATIVE_INFINITY,
         Double.POSITIVE_INFINITY
     };
-    
+
+    private static final int[] BAD_POINT_COUNT = new int[]{
+            Integer.MIN_VALUE,
+            Integer.MIN_VALUE/2,
+            -1
+        };
+
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -500,6 +506,9 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             final InterfaceBwdFont font = g.getFont();
             final double startDeg = 123.456;
             final double spanDeg = 78.9;
+            final int[] xArr = new int[]{1, 2, 3};
+            final int[] yArr = new int[]{4, 5, 6};
+            final int pointCount = 3;
             final String text = "text";
             final InterfaceBwdImage image = getBinding().newImage(BwdTestResources.TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG);
             
@@ -669,6 +678,17 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 } catch (IllegalStateException ok) {}
                 try {
                     childG.fillArc(GRect.DEFAULT_HUGE, startDeg, spanDeg);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                /*
+                 * 
+                 */
+                try {
+                    childG.drawPolygon(xArr, yArr, pointCount);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.fillPolygon(xArr, yArr, pointCount);
                     fail();
                 } catch (IllegalStateException ok) {}
                 /*
@@ -1102,6 +1122,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         test_primitives_rects(g);
         test_primitives_ovals(g);
         test_primitives_arcs(g);
+        test_primitives_polygons(g);
     }
 
     private void test_primitives_points(InterfaceBwdGraphics g) {
@@ -1394,6 +1415,75 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             g.drawArc(rect, startDeg, spanDeg);
             g.fillArc(rect, startDeg, spanDeg);
         }
+    }
+    
+    private void test_primitives_polygons(InterfaceBwdGraphics g) {
+        if (DEBUG) {
+            System.out.println("test_primitives_polygons(...)");
+        }
+        
+        final int[] xArr = new int[] {1, 2, 3};
+        final int[] yArr = new int[]{4, 5, 6};
+        final int pointCount = 3;
+
+        /*
+         * NullPointerException
+         */
+        
+        try {
+            g.drawPolygon(null, yArr, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.fillPolygon(null, yArr, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+
+        try {
+            g.drawPolygon(xArr, null, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
+            g.fillPolygon(xArr, null, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+
+        /*
+         * IllegalArgumentException
+         */
+
+        for (int badPointCount : BAD_POINT_COUNT) {
+            try {
+                g.drawPolygon(xArr, yArr, badPointCount);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+            try {
+                g.fillPolygon(xArr, yArr, badPointCount);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+
+        /*
+         * Huge polygon: must not blow up,
+         * with appropriate usage of clip.
+         */
+
+        g.fillPolygon(
+                new int[] {MIN, MAX, MAX, MIN},
+                new int[] {MIN, MIN, MAX, MAX},
+                4);
     }
 
     /*

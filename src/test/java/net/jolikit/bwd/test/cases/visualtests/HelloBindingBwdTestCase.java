@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
@@ -90,7 +91,6 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
         final GRect box = g.getBox();
 
         final int x = box.x();
-        final int y = box.y();
         final int xSpan = box.xSpan();
         final int ySpan = box.ySpan();
         
@@ -139,6 +139,16 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
                 box.yMid() - ySpan / 4,
                 xSpan / 8,
                 ySpan / 2);
+        
+        g.setColor(BwdColor.GREEN.withAlphaFp(0.5));
+        g.addTransform(GTransform.valueOf(
+                0,
+                (int) (box.xMid() * 1.5),
+                (int) (box.yMid() * 1.5)));
+        final int xMaxRadius = box.xSpan() / 4;
+        final int yMaxRadius = box.ySpan() / 4;
+        fillSpiralPolygon(g, xMaxRadius, yMaxRadius);
+        g.removeLastAddedTransform();
         
         /*
          * 
@@ -198,6 +208,31 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
                 box.y() + (box.ySpan()  - ySpan) / 2,
                 xSpan,
                 ySpan);
+    }
+
+    /**
+     * Fills a spiral, centered on (0,0).
+     */
+    private static void fillSpiralPolygon(
+            InterfaceBwdGraphics g,
+            int xMaxRadius,
+            int yMaxRadius) {
+        
+        final int pointCount = 30;
+        final double roundCount = 3.0;
+        final int[] xArr = new int[pointCount];
+        final int[] yArr = new int[pointCount];
+        BwdTestUtils.computeSpiralPolygonPoints(
+                xMaxRadius,
+                yMaxRadius,
+                pointCount,
+                roundCount,
+                xArr,
+                yArr);
+        g.fillPolygon(
+                xArr,
+                yArr,
+                pointCount);
     }
 
     private String[] getStrArr() {

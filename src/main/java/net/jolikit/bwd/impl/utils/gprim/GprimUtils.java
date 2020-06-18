@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 
 /**
@@ -139,6 +140,55 @@ public class GprimUtils {
         }
     }
     
+    public static void checkPolygonArgs(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        /*
+         * Not bothering to check pointCount
+         * against arrays length, if any issue
+         * it will throw while iterating on points.
+         */
+        LangUtils.requireNonNull(xArr);
+        LangUtils.requireNonNull(yArr);
+        if (pointCount < 0) {
+            throw new IllegalArgumentException(
+                    "pointCount [" + pointCount + "] must be >= 0");
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    public static GRect computePolygonBoundingBox(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (pointCount <= 0) {
+            return GRect.DEFAULT_EMPTY;
+        }
+        int xMin = Integer.MAX_VALUE;
+        int xMax = Integer.MIN_VALUE;
+        int yMin = Integer.MAX_VALUE;
+        int yMax = Integer.MIN_VALUE;
+        for (int i = 0; i < pointCount; i++) {
+            final int x = xArr[i];
+            final int y = yArr[i];
+            xMin = Math.min(xMin, x);
+            xMax = Math.max(xMax, x);
+            yMin = Math.min(yMin, y);
+            yMax = Math.max(yMax, y);
+        }
+        final int xSpan = xMax - xMin + 1;
+        final int ySpan = yMax - yMin + 1;
+        return GRect.valueOf(
+                xMin,
+                yMin,
+                xSpan,
+                ySpan);
+    }
+
     /*
      * 
      */

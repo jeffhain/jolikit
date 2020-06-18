@@ -29,6 +29,7 @@ import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.utils.BwdTestResources;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
 
@@ -64,7 +65,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private static final int NBR_OF_COLUMNS = 8;
-    private static final int NBR_OF_ROWS = 7;
+    private static final int NBR_OF_ROWS = 8;
     private static final int NBR_OF_CELLS = NBR_OF_ROWS * NBR_OF_COLUMNS;
     
     /**
@@ -177,6 +178,18 @@ public class DrawingMethodsBwdPainter {
             // Must only draw the part left of center.
             fillArcs(g, CELL_HALF_INNER_SPAN, ySpan, 90.0, 180.0, cellIndex++);
         }
+        
+        drawPolygons(g, cellIndex++, 100, 3.0);
+        drawPolygons(g, cellIndex++, 50, 2.0);
+        drawPolygons(g, cellIndex++, 26, 1.0);
+        // Crossing.
+        drawPolygons(g, cellIndex++, 20, 3.0);
+        //
+        fillPolygons(g, cellIndex++, 100, 3.0);
+        fillPolygons(g, cellIndex++, 50, 2.0);
+        fillPolygons(g, cellIndex++, 26, 1.0);
+        // Crossing.
+        fillPolygons(g, cellIndex++, 20, 3.0);
         
         /*
          * String.
@@ -942,15 +955,104 @@ public class DrawingMethodsBwdPainter {
         final int y0 = cellCenterY(g, cellIndex);
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            fillArc(g, LOCAL_OFFSET, LOCAL_OFFSET, xSpan, ySpan, startDeg, spanDeg, transform);
+            fillArc(g, LOCAL_OFFSET, LOCAL_OFFSET,
+                    xSpan, ySpan, startDeg, spanDeg, transform);
         }
     }
     
-    private void fillArc(InterfaceBwdGraphics g, int x, int y, int xSpan, int ySpan, double startDeg, double spanDeg, GTransform transform) {
+    private void fillArc(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan,
+            double startDeg, double spanDeg,
+            GTransform transform) {
         g.setTransform(transform);
         g.fillArc(x, y, xSpan, ySpan, startDeg, spanDeg);
     }
     
+    /*
+     * 
+     */
+    
+    private void drawPolygons(
+            InterfaceBwdGraphics g,
+            int cellIndex,
+            int pointCount,
+            double roundCount) {
+        final boolean mustFill = false;
+        drawOrFillPolygons(
+                g,
+                cellIndex,
+                pointCount,
+                roundCount,
+                mustFill);
+    }
+    
+    private void fillPolygons(
+            InterfaceBwdGraphics g,
+            int cellIndex,
+            int pointCount,
+            double roundCount) {
+        final boolean mustFill = true;
+        drawOrFillPolygons(
+                g,
+                cellIndex,
+                pointCount,
+                roundCount,
+                mustFill);
+    }
+    
+    private void drawOrFillPolygons(
+            InterfaceBwdGraphics g,
+            int cellIndex,
+            int pointCount,
+            double roundCount,
+            boolean mustFill) {
+        resetColor(g);
+        
+        final int x0 = cellCenterX(g, cellIndex);
+        final int y0 = cellCenterY(g, cellIndex);
+        
+        for (GTransform transform : getQuadrantTransforms(x0, y0)) {
+            drawOrFillPolygon(
+                    g,
+                    pointCount,
+                    roundCount,
+                    mustFill,
+                    transform);
+        }
+    }
+    
+    private void drawOrFillPolygon(
+            InterfaceBwdGraphics g,
+            int pointCount,
+            double roundCount,
+            boolean mustFill,
+            GTransform transform) {
+        
+        g.setTransform(transform);
+        
+        final int span = CELL_HALF_INNER_SPAN;
+        
+        final int xMaxRadius = span / 2;
+        final int yMaxRadius = span / 2;
+        final int[] xArr = new int[pointCount];
+        final int[] yArr = new int[pointCount];
+        BwdTestUtils.computeSpiralPolygonPoints(
+                xMaxRadius,
+                yMaxRadius,
+                pointCount,
+                roundCount,
+                xArr,
+                yArr);
+        g.addTransform(GTransform.valueOf(0, xMaxRadius, yMaxRadius));
+        if (mustFill) {
+            g.fillPolygon(xArr, yArr, pointCount);
+        } else {
+            g.drawPolygon(xArr, yArr, pointCount);
+        }
+        g.removeLastAddedTransform();
+    }
+
     /*
      * 
      */

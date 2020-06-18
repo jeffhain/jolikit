@@ -62,6 +62,8 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
      * Random.
      */
     
+    private static final boolean ALLOW_HUGE_COORDS = true;
+    
     private static final int NBR_OF_CALLS_RANDOM = 1000;
     
     private static final int MAX_RANDOM_OVAL_SPAN = 50;
@@ -116,8 +118,10 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
     //--------------------------------------------------------------------------
 
     @Override
-    protected AbstractDrawerTestHelper<PixelFigStatusArcDef> newDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer) {
-        final DefaultHugeAlgoSwitch hugeAlgoSwitch = new DefaultHugeAlgoSwitch(HUGE_SPAN_THRESHOLD);
+    protected AbstractDrawerTestHelper<PixelFigStatusArcDef> newDrawerTestHelper(
+            InterfaceClippedPointDrawer clippedPointDrawer) {
+        final DefaultHugeAlgoSwitch hugeAlgoSwitch =
+                new DefaultHugeAlgoSwitch(HUGE_SPAN_THRESHOLD);
         return new DefaultArcDrawerTestHelper(
                 hugeAlgoSwitch,
                 clippedPointDrawer);
@@ -165,8 +169,8 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
                 ySpan = minSpan + this.random.nextInt(maxSpan - minSpan + 1);
             }
 
-            final int tmpX = this.random.nextInt();
-            final int tmpY = this.random.nextInt();
+            final int tmpX = (ALLOW_HUGE_COORDS ? this.random.nextInt() : 0);
+            final int tmpY = (ALLOW_HUGE_COORDS ? this.random.nextInt() : 0);
             x = (int) Math.min(tmpX, Integer.MAX_VALUE - (long) xSpan + 1);
             y = (int) Math.min(tmpY, Integer.MAX_VALUE - (long) ySpan + 1);
             

@@ -26,6 +26,7 @@ import com.trolltech.qt.gui.QImage;
 import com.trolltech.qt.gui.QPainter;
 import com.trolltech.qt.gui.QPainter.CompositionMode;
 import com.trolltech.qt.gui.QPen;
+import com.trolltech.qt.gui.QPolygon;
 import com.trolltech.qt.gui.QTransform;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
@@ -67,6 +68,10 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private class MyPrimitives extends AbstractBwdPrimitives {
+        @Override
+        public boolean isColorOpaque() {
+            return Argb32.isOpaque(getArgb32());
+        }
         @Override
         public void drawPointInClip(int x, int y) {
             drawPoint_raw(x, y);
@@ -136,7 +141,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             // Relying on backing clipping.
             fillRect_raw(x, y, xSpan, ySpan, qtStuffs.backingColor);
         }
-    };
+    }
     
     /**
      * Qt objects, in which some of the backing graphics state is held,
@@ -462,6 +467,65 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             super.fillArc(
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg);
+        }
+    }
+
+    /*
+     * 
+     */
+    
+    @Override
+    public void drawPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (FORCED_BACKING_GRAPHICS_USAGE) {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final QPolygon polygon = QtjUtils.toQPolygon(
+                        xArr,
+                        yArr,
+                        pointCount);
+                
+                final QPainter painter = this.getConfiguredPainter();
+                
+                painter.drawPolygon(polygon);
+            }
+        } else {
+            super.drawPolygon(xArr, yArr, pointCount);
+        }
+    }
+
+    @Override
+    public void fillPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (FORCED_BACKING_GRAPHICS_USAGE) {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final QPolygon polygon = QtjUtils.toQPolygon(
+                        xArr,
+                        yArr,
+                        pointCount);
+                
+                final QPainter painter = this.getConfiguredPainter();
+                
+                // TODO qtj Why doesn't fill?
+                final QBrush brush = new QBrush(BrushStyle.SolidPattern);
+                painter.setBrush(brush);
+                try {
+                    painter.drawPolygon(polygon);
+                } finally {
+                    painter.setBrush(QBrush.NoBrush);
+                }
+            }
+        } else {
+            super.fillPolygon(xArr, yArr, pointCount);
         }
     }
 

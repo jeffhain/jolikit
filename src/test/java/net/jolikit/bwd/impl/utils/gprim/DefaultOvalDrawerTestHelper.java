@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,7 +77,9 @@ class DefaultOvalDrawerTestHelper extends AbstractDrawerTestHelper<GRect> {
     }
 
     @Override
-    public long getAllowedNbrOfDanglingPixels(GRect drawingArgs) {
+    public long getAllowedNbrOfDanglingPixels(
+            boolean isFillElseDraw,
+            GRect drawingArgs) {
         return 0;
     }
 

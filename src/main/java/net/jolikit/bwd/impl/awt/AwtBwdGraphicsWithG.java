@@ -77,7 +77,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * 200 times slower than using fillRect() for opaque colors,
      * and 1000 times slower for transparent colors.
      * 
-     * fillRect : 0.2 ms, 2.5 ms
+     * fillRect : 0.2 ms, 2.5 ms (opaque, alpha)
      * false : 50 ms, 2500 ms
      * true : 22 ms, 30 ms
      */
@@ -127,7 +127,25 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * True because backing arcs are messy.
      */
     private static final boolean MUST_USE_REDEF_FOR_ARCS = true;
-    
+
+    /**
+     * True to be consistent with drawLine().
+     * Also, our implementation is faster most
+     * and in worse cases, especially with alpha.
+     * 
+     * - Ellipse polygon ("trivial"):
+     * drawPolygon : 0.14 ms, 0.2 ms
+     * redefined : 0.04 ms, 0.12 ms
+     * fillPolygon : 2.2 ms, 8.5 ms
+     * redefined : 1.7 ms, 4.8 ms
+     * - Spiral polygon ("complex"):
+     * drawPolygon : 0.26 ms, 4.2 ms
+     * redefined : 0.23 ms, 1.6 ms
+     * fillPolygon : 10.4 ms, 91 ms
+     * redefined : 7.5 ms, 9.8 ms
+     */
+    private static final boolean MUST_USE_REDEF_FOR_POLYGONS = true;
+
     /**
      * Redefined treatment is much slower, not using it
      * (unless needed, since backing don't handle transparency properly).
@@ -176,6 +194,10 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private class MyPrimitives extends AbstractBwdPrimitives {
+        @Override
+        public boolean isColorOpaque() {
+            return Argb32.isOpaque(getArgb32());
+        }
         @Override
         public void drawPointInClip(int x, int y) {
             if (MUST_USE_REDEF_FOR_DRAW_POINT) {
@@ -585,6 +607,36 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                     this.drawArc(x, y, xSpan, ySpan, startDeg, spanDeg);
                 }
             }
+        }
+    }
+
+    /*
+     * 
+     */
+    
+    @Override
+    public void drawPolygon(int[] xArr, int[] yArr, int pointCount) {
+        if (MUST_USE_REDEF_FOR_POLYGONS) {
+            super.drawPolygon(xArr, yArr, pointCount);
+        } else {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            
+            // Relying on backing clipping.
+            this.g.drawPolygon(xArr, yArr, pointCount);
+        }
+    }
+    
+    @Override
+    public void fillPolygon(int[] xArr, int[] yArr, int pointCount) {
+        if (MUST_USE_REDEF_FOR_POLYGONS) {
+            super.fillPolygon(xArr, yArr, pointCount);
+        } else {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+
+            // Relying on backing clipping.
+            this.g.fillPolygon(xArr, yArr, pointCount);
         }
     }
 

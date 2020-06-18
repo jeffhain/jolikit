@@ -272,6 +272,22 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
+    public void drawPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void fillPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void drawText(int x, int y, String text) {
         throw new UnsupportedOperationException();
     }

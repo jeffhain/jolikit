@@ -257,7 +257,6 @@ or toolkits on top of which UIs can be built.
   they correspond to a too specific choice or drawing corners. For example, one
   might want only some corners to be rounded, or rounded using "inverse" ovals
   centered on rectangle corners, or corners with straight oblique lines instead.
-  If new primitive were added, that would rather be to draw/fill polygons/paths.
 
 - "Why use xSpan and ySpan instead of width and height?"
   To be more explicit and not having to remember or remind each time that

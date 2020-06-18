@@ -66,6 +66,8 @@ Jolikit X.X, XXXX/XX/XX
     - GTransform.areHorVerFlipped().
     - InterfaceBwdGraphics.reset().
     - InterfaceBwdGraphics.isClipEmpty().
+    - InterfaceBwdGraphics.drawPolygon().
+    - InterfaceBwdGraphics.fillPolygon().
     - InterfaceBwdImage.getRect().
     - InterfaceBwdWritableImage class.
     - InterfaceBwdBinding.newWritableImage(int,int).

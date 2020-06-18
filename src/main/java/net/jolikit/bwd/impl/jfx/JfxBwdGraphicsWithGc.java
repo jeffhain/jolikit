@@ -28,6 +28,7 @@ import javafx.scene.text.FontSmoothingType;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
+import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
@@ -85,6 +86,10 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private class MyPrimitives extends AbstractBwdPrimitives {
+        @Override
+        public boolean isColorOpaque() {
+            return Argb32.isOpaque(getArgb32());
+        }
         @Override
         public void drawPointInClip(int x, int y) {
             drawPoint_raw(x, y);
@@ -464,6 +469,66 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
     }
     
+    /*
+     * 
+     */
+    
+    @Override
+    public void drawPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (MUST_USE_BACKING_GRAPHICS_METHODS) {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final double[] xdArr = new double[pointCount];
+                final double[] ydArr = new double[pointCount];
+                for (int i = 0; i < pointCount; i++) {
+                    xdArr[i] = xArr[i] + this.xShiftInUser;
+                    ydArr[i] = yArr[i] + this.yShiftInUser;
+                }
+                this.gc.strokePolygon(xdArr, ydArr, pointCount);
+            }
+        } else {
+            super.drawPolygon(xArr, yArr, pointCount);
+        }
+        
+        final GRect bbox = GprimUtils.computePolygonBoundingBox(xArr, yArr, pointCount);
+        this.dirtySnapshotHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
+    }
+
+    @Override
+    public void fillPolygon(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (MUST_USE_BACKING_GRAPHICS_METHODS) {
+            this.checkUsable();
+            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final double[] xdArr = new double[pointCount];
+                final double[] ydArr = new double[pointCount];
+                for (int i = 0; i < pointCount; i++) {
+                    xdArr[i] = xArr[i] + this.xShiftInUser;
+                    ydArr[i] = yArr[i] + this.yShiftInUser;
+                }
+                this.gc.fillPolygon(xdArr, ydArr, pointCount);
+            }
+        } else {
+            super.fillPolygon(xArr, yArr, pointCount);
+        }
+        
+        final GRect bbox = GprimUtils.computePolygonBoundingBox(xArr, yArr, pointCount);
+        this.dirtySnapshotHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
+    }
+
     /*
      * 
      */

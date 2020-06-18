@@ -47,6 +47,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     
     private class MyPrimitives extends AbstractBwdPrimitives {
         @Override
+        public boolean isColorOpaque() {
+            return Argb32.isOpaque(getArgb32());
+        }
+        @Override
         public void drawPointInClip(int x, int y) {
             drawPointInClip_raw(x, y);
         }
