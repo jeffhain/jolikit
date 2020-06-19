@@ -18,13 +18,14 @@ package net.jolikit.bwd.impl.lwjgl3;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import org.lwjgl.BufferUtils;
+import org.lwjgl.stb.STBImage;
+
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.NumbersUtils;
-
-import org.lwjgl.BufferUtils;
-import org.lwjgl.stb.STBImage;
 
 /**
  * TODO lwjgl 1-bit BMPs are not supported.
@@ -108,29 +109,30 @@ public class LwjglBwdImageFromFile extends AbstractLwjglBwdImage {
                             + ": "
                             + STBImage.stbi_failure_reason());
         }
-        final int w;
-        final int h;
+        final int width;
+        final int height;
         final int[] color32Arr;
         try {
-            w = wBuff.get(0);
-            h = hBuff.get(0);
+            width = wBuff.get(0);
+            height = hBuff.get(0);
             final int comp = compBuff.get(0);
 
-            this.setWidth_final(w);
-            this.setHeight_final(h);
-            final int bytesPerPixel = req_comp;
+            this.setWidth_final(width);
+            this.setHeight_final(height);
             
-            final int wh = NumbersUtils.timesExact(w, h);
-            final int expectedCapacity = NumbersUtils.timesExact(wh, bytesPerPixel);
-            if (data.capacity() != expectedCapacity) {
-                throw new BindingError("data = " + data + ", expectedCapacity = " + expectedCapacity);
+            final GRect box = this.getRect();
+            final int bytesPerPixel = req_comp;
+            final int pixelCapacity = box.area();
+            final int expectedByteCapacity = NumbersUtils.timesExact(pixelCapacity, bytesPerPixel);
+            if (data.capacity() != expectedByteCapacity) {
+                throw new BindingError("data = " + data + ", expectedByteCapacity = " + expectedByteCapacity);
             }
             
-            color32Arr = new int[wh];
+            color32Arr = new int[pixelCapacity];
             this.color32Arr = color32Arr;
             
             int byteIndex = 0;
-            for (int pixelIndex = 0; pixelIndex < wh; pixelIndex++) {
+            for (int pixelIndex = 0; pixelIndex < pixelCapacity; pixelIndex++) {
                 final int color32 = data.getInt(byteIndex);
                 byteIndex += bytesPerPixel;
                 final int premulColor32 =

@@ -523,7 +523,25 @@ public final class GRect implements Comparable<GRect> {
     public long yMaxLong() {
         return this.y + (long) this.ySpan - 1;
     }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * @return min(xSpan, ySpan).
+     */
+    public int minSpan() {
+        return Math.min(this.xSpan, this.ySpan);
+    }
 
+    /**
+     * @return max(xSpan, ySpan).
+     */
+    public int maxSpan() {
+        return Math.max(this.xSpan, this.ySpan);
+    }
+    
     /*
      * Area.
      */

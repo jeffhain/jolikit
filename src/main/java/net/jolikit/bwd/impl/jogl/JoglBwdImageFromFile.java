@@ -22,9 +22,9 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.NumbersUtils;
 
 public class JoglBwdImageFromFile extends AbstractJoglBwdImage {
 
@@ -70,8 +70,10 @@ public class JoglBwdImageFromFile extends AbstractJoglBwdImage {
         final int height = readImage.getHeight(observer);
         this.setWidth_final(width);
         this.setHeight_final(height);
+        
+        final GRect box = this.getRect();
 
-        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final int pixelCapacity = box.area();
         final int[] color32Arr = new int[pixelCapacity];
         final int color32ArrScanlineStride = width;
         

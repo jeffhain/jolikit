@@ -729,6 +729,26 @@ public class GRectTest extends TestCase {
      * 
      */
     
+    public void test_minSpan() {
+        for (GRect rect : RECT_LIST) {
+            final int expected = Math.min(rect.xSpan(), rect.ySpan());
+            final int actual = rect.minSpan();
+            assertEquals(expected, actual);
+        }
+    }
+    
+    public void test_maxSpan() {
+        for (GRect rect : RECT_LIST) {
+            final int expected = Math.max(rect.xSpan(), rect.ySpan());
+            final int actual = rect.maxSpan();
+            assertEquals(expected, actual);
+        }
+    }
+    
+    /*
+     * 
+     */
+    
     public void test_area() {
         for (GRect rect : RECT_LIST) {
             final long prod = rect.xSpan() * (long) rect.ySpan();

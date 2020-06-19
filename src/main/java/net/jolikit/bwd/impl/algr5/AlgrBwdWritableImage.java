@@ -20,7 +20,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.NumbersUtils;
 
 public class AlgrBwdWritableImage extends AbstractAlgrBwdImage implements InterfaceBwdWritableImage {
 
@@ -51,13 +50,14 @@ public class AlgrBwdWritableImage extends AbstractAlgrBwdImage implements Interf
         
         this.checkAndSetWritableImageDims(width, height);
         
-        final int nbrOfPixels = NumbersUtils.timesExact(width, height);
+        final boolean isImageGraphics = true;
+        final GRect box = this.getRect();
+        
+        final int nbrOfPixels = box.area();
         final int[] premulArgb32Arr = new int[nbrOfPixels];
 
         this.premulArgb32Arr = premulArgb32Arr;
         
-        final boolean isImageGraphics = true;
-        final GRect box = this.getRect();
         final int[] pixelArr = premulArgb32Arr;
         final int pixelArrScanlineStride = width;
         final AlgrBwdGraphics graphics = new AlgrBwdGraphics(

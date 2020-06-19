@@ -166,7 +166,7 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
          */
 
         {
-            final int minBoxSpan = Math.min(box.xSpan(), box.ySpan());
+            final int minBoxSpan = box.minSpan();
             final int boxCenterX = (box.xMax() - box.x()) / 2;
             final int boxCenterY = (box.yMax() - box.y()) / 2;
             

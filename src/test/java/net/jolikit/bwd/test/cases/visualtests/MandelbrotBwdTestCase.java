@@ -286,8 +286,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
              * either horizontally or vertically.
              */
             return (box.area() >= MIN_GRECT_AREA_FOR_SPLIT)
-                    && ((box.xSpan() >= 2 * MIN_GRECT_SPAN)
-                            || (box.ySpan() >= 2 * MIN_GRECT_SPAN));
+                    && (box.maxSpan() >= 2 * MIN_GRECT_SPAN);
         }
         @Override
         public InterfaceSplitmergable split() {

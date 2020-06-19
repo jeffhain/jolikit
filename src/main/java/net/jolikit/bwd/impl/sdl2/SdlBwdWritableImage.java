@@ -21,7 +21,6 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.NumbersUtils;
 
 public class SdlBwdWritableImage extends AbstractSdlBwdImage implements InterfaceBwdWritableImage {
     
@@ -52,13 +51,14 @@ public class SdlBwdWritableImage extends AbstractSdlBwdImage implements Interfac
         
         this.checkAndSetWritableImageDims(width, height);
         
-        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final boolean isImageGraphics = true;
+        final GRect box = this.getRect();
+
+        final int pixelCapacity = box.area();
         final int[] premulArgb32Arr = new int[pixelCapacity];
         
         this.premulArgb32Arr = premulArgb32Arr;
         
-        final boolean isImageGraphics = true;
-        final GRect box = this.getRect();
         final int[] pixelArr = premulArgb32Arr;
         final int pixelArrScanlineStride = width;
         final SdlBwdGraphics graphics = new SdlBwdGraphics(

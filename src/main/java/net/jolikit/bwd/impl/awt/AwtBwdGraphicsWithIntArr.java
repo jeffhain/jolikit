@@ -36,7 +36,6 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
 
 /**
  * Graphics based on an int array, except for drawText()
@@ -347,7 +346,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         final int mcTextWidth = maxClippedTextRectInText.xSpan();
         final int mcTextHeight = maxClippedTextRectInText.ySpan();
 
-        final int pixelCapacity = NumbersUtils.timesExact(mcTextWidth, mcTextHeight);
+        final int pixelCapacity = maxClippedTextRectInText.area();
         final int[] mcColor32Arr = new int[pixelCapacity];
 
         final BufferedImage image = BufferedImageHelper.newBufferedImageWithIntArray(

@@ -23,7 +23,6 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.NumbersUtils;
 
 public class JfxBwdWritableImage extends AbstractJfxBwdImage implements InterfaceBwdWritableImage {
     
@@ -73,7 +72,7 @@ public class JfxBwdWritableImage extends AbstractJfxBwdImage implements Interfac
         
         final InterfaceBwdGraphics graphics;
         if (bindingConfig.getMustUseIntArrayGraphicsForWritableImages()) {
-            final int pixelCapacity = NumbersUtils.timesExact(width, height);
+            final int pixelCapacity = box.area();
             final int[] pixelArr = new int[pixelCapacity];
             final int pixelArrScanlineStride = width;
             

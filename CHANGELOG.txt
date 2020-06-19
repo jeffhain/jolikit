@@ -61,6 +61,7 @@ Jolikit X.X, XXXX/XX/XX
   - Additions:
     - Argb32.toOpaque(int), Argb64.toOpaque(long).
     - GRect.xMidFp() and yMidFp().
+    - GRect.minSpan() and maxSpan().
     - GRect.area() and areaLong().
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().

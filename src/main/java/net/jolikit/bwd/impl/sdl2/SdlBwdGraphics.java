@@ -38,7 +38,6 @@ import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
 
 public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
@@ -555,7 +554,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
         // For Y coordinates, "in text" and "in glyph" are the same.
         final int mcYInGlyph = mcYInText;
 
-        final int pixelCapacity = NumbersUtils.timesExact(mcTextWidth, mcTextHeight);
+        final int pixelCapacity = maxClippedTextRectInText.area();
         final int[] mcArgb32Arr = new int[pixelCapacity];
         // First (ignored or not) glyph (0,0) is in (0,0) in text.
         int currentGlyphXInText = firstGlyphXInText;

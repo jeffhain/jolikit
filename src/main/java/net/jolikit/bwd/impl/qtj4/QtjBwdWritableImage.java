@@ -60,17 +60,17 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
         
         this.checkAndSetWritableImageDims(width, height);
         
+        final boolean isImageGraphics = true;
+        final GRect box = this.getRect();
+        
         final QImage backingImage = new QImage(
                 width,
                 height,
                 QtjPaintUtils.QIMAGE_FORMAT);
-        
         checkNoColorTable(backingImage);
         
         this.backingImage = backingImage;
         
-        final boolean isImageGraphics = true;
-        final GRect box = this.getRect();
         final QtjBwdGraphics graphics = new QtjBwdGraphics(
                 binding,
                 isImageGraphics,
