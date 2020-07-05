@@ -142,6 +142,9 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
             yMax = y1;
         }
 
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+        
         // Fast check.
         if ((x2 < clip.x())
                 || (yMax < clip.y())
@@ -154,21 +157,25 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
             if (DEBUG) {
                 Dbg.log("OUT (obvious)");
             }
-            pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
-                    x1, y1, x2, y2,
-                    factor,
-                    pixelNum);
+            if (mustComputePixelNum) {
+                pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                        x1, y1, x2, y2,
+                        factor,
+                        pixelNum);
+            }
             return pixelNum;
         }
         
         // Horizontal case first (should be the most used,
         // for cache-friendly fillings).
         if (y1 == y2) {
-            pixelNum = pixelNumPlusDistToClip_horizontal(
-                    clip,
-                    trueX1,
-                    factor,
-                    pixelNum);
+            if (mustComputePixelNum) {
+                pixelNum = pixelNumPlusDistToClip_horizontal(
+                        clip,
+                        trueX1,
+                        factor,
+                        pixelNum);
+            }
             
             x1 = Math.max(x1, clip.x());
             x2 = Math.min(x2, clip.xMax());
@@ -185,21 +192,25 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                     x1, x2, y1,
                     factor, pattern, pixelNum);
             
-            pixelNum = pixelNumPlusDistToClip_horizontal(
-                    clip,
-                    trueX2,
-                    factor,
-                    pixelNum);
+            if (mustComputePixelNum) {
+                pixelNum = pixelNumPlusDistToClip_horizontal(
+                        clip,
+                        trueX2,
+                        factor,
+                        pixelNum);
+            }
             
             return pixelNum;
         }
 
         if (x1 == x2) {
-            pixelNum = pixelNumPlusDistToClip_vertical(
-                    clip,
-                    trueY1,
-                    factor,
-                    pixelNum);
+            if (mustComputePixelNum) {
+                pixelNum = pixelNumPlusDistToClip_vertical(
+                        clip,
+                        trueY1,
+                        factor,
+                        pixelNum);
+            }
             
             yMin = Math.max(yMin, clip.y());
             yMax = Math.min(yMax, clip.yMax());
@@ -223,11 +234,13 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                     x1, y1, y2,
                     factor, pattern, pixelNum);
             
-            pixelNum = pixelNumPlusDistToClip_vertical(
-                    clip,
-                    trueY2,
-                    factor,
-                    pixelNum);
+            if (mustComputePixelNum) {
+                pixelNum = pixelNumPlusDistToClip_vertical(
+                        clip,
+                        trueY2,
+                        factor,
+                        pixelNum);
+            }
             
             return pixelNum;
         }
@@ -373,6 +386,9 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
             Dbg.log("clipYMaxExtended = " + clipYMaxExtended);
         }
 
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+        
         /*
          * Getting x coordinates back in range, if needed.
          */
@@ -424,10 +440,12 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                 if (DEBUG) {
                     Dbg.log("OUT : line above (all cases)");
                 }
-                pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
-                        x1, y1, x2, y2,
-                        factor,
-                        pixelNum);
+                if (mustComputePixelNum) {
+                    pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                            x1, y1, x2, y2,
+                            factor,
+                            pixelNum);
+                }
                 return pixelNum;
             }
             if (Math.min(y1d,y2d) > clipYMaxExtended) {
@@ -435,10 +453,12 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                 if (DEBUG) {
                     Dbg.log("OUT : line below (all cases)");
                 }
-                pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
-                        x1, y1, x2, y2,
-                        factor,
-                        pixelNum);
+                if (mustComputePixelNum) {
+                    pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                            x1, y1, x2, y2,
+                            factor,
+                            pixelNum);
+                }
                 return pixelNum;
             }
         }

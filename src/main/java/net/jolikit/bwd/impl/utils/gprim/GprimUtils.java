@@ -122,6 +122,11 @@ public class GprimUtils {
         return Math.max(xLength, yLength);
     }
 
+    public static long computeHorVerSegmentPixelLength(
+            int c1, int c2) {
+        return 1 + computeAbsDelta(c1, c2);
+    }
+
     public static void checkFactorAndPixelNum(int factor, int pixelNum) {
         if (!((factor >= 1) && (factor <= 256))) {
             throw new IllegalArgumentException("factor [" + factor + "] must be in [1,256]");
@@ -488,6 +493,18 @@ public class GprimUtils {
      */
     
     /**
+     * For non-plain patterns, pixel num must not be computed,
+     * which is made explicit in the code by this method
+     * not just being called "isPatternPlain".
+     * 
+     * @return True if the specified pattern is not plain
+     *         (i.e. if it doesn't only contain 1-bits).
+     */
+    public static boolean mustComputePixelNum(short pattern) {
+        return (pattern != PLAIN_PATTERN);
+    }
+    
+    /**
      * For int pixelNum.
      * 
      * @param factor Must be in [1,256].
@@ -538,41 +555,6 @@ public class GprimUtils {
         return pixelNumPlusLongAmountNormalized(factor, pixelNum, pixelLength);
     }
 
-    /*
-     * 
-     */
-    
-    /**
-     * @return An int with pattern bits in 16 LSBits, and 0 in 16 MSBits.
-     */
-    public static int patternBitsToInt(short pattern) {
-        return (((int) pattern) & PATTERN_BIT_MASK_INT);
-    }
-    
-    public static String patternToBinString(short pattern) {
-        final int patternInt = patternBitsToInt(pattern);
-        // Either works.
-        if (true) {
-            final int paddingUpTo = 16;
-            final int radix = 2;
-            return NumbersUtils.toString(
-                    patternInt,
-                    radix,
-                    paddingUpTo);
-        } else {
-            final int firstIncl = 16;
-            final int lastExcl = 32;
-            final boolean bigEndian = true;
-            final boolean padding = false;
-            return NumbersUtils.toStringBits(
-                    patternInt,
-                    firstIncl,
-                    lastExcl,
-                    bigEndian,
-                    padding);
-        }
-    }
-    
     /*
      * Line.
      */

@@ -642,21 +642,28 @@ public interface InterfaceBwdGraphics {
      * Derived from OpenGL API.
      * 
      * If pixelNum usage is not supported, the stipple should always start
-     * "from scratch", which corresponds to a pixelNum of 0.
+     * "from scratch", which corresponds to a pixelNum of 0,
+     * and the specified pixelNum should always be returned.
      * 
      * The pattern is read least significant bits first, i.e. for 0x00FF,
      * with a factor of 1, going from point 1 to point 2,
      * 8 pixels will be drawn then 8 pixels skipped.
      * 
-     * Pixel num to continue drawing is computed and returned,
-     * because the proper pixel num to continue the line depends
-     * on how many pixel its drawing algorithm covered.
+     * For plain patterns (i.e. with only 1-bits, i.e. = -1),
+     * the returned pixel num must be the specified one,
+     * which allows not to compute it and to use specific
+     * and faster drawing algorithms. 
      * 
-     * Pixel num must be incremented during drawing from non-clipped line start
-     * to non-clipped line end, such as growing or shrinking the clip
-     * should not shift the visible stipples.
-     * We dare to specify this, because the amount of skipped pixels due to clip
-     * should always be computable in O(1).
+     * For non-plain patterns, pixel num to continue drawing
+     * is computed and returned, because the proper pixel num
+     * to continue the line depends on how many pixel its
+     * drawing algorithm covered.
+     * Pixel num must also be incremented during drawing from
+     * non-clipped line start to non-clipped line end,
+     * such as growing or shrinking the clip should not shift
+     * the visible stipples.
+     * We dare to specify this, because the amount of skipped pixels
+     * due to clip should always be computable in O(1).
      * 
      * Since the pattern has 16 bits, we need (pixelNum / max_factor)
      * to covert at least 2^16 possible values. As a result, for factor

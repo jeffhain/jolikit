@@ -115,4 +115,3 @@ class DefaultLineDrawerTestHelper extends AbstractDrawerTestHelper<TestLineArgs>
                 nbrOfSurroundingEightsIn);
     }
 }
-

@@ -211,7 +211,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                 int x1, int x2, int y,
                 int factor, short pattern, int pixelNum) {
             if (MUST_USE_REDEF_FOR_DRAW_LINE
-                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
+                    || GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawHorizontalLineInClip(
                         x1, x2, y,
                         factor, pattern, pixelNum);
@@ -225,7 +225,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                 int x, int y1, int y2,
                 int factor, short pattern, int pixelNum) {
             if (MUST_USE_REDEF_FOR_DRAW_LINE
-                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
+                    || GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawVerticalLineInClip(
                         x, y1, y2,
                         factor, pattern, pixelNum);
@@ -239,7 +239,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                 int x1, int y1, int x2, int y2,
                 int factor, short pattern, int pixelNum) {
             if (MUST_USE_REDEF_FOR_DRAW_LINE
-                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
+                    || GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawGeneralLineInClip(
                         x1, y1, x2, y2,
                         factor, pattern, pixelNum);
@@ -285,7 +285,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                 int x1, int y1, int x2, int y2,
                 int factor, short pattern, int pixelNum) {
             if (MUST_USE_REDEF_FOR_DRAW_LINE
-                    || (pattern != GprimUtils.PLAIN_PATTERN)) {
+                    || GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawLine(
                         clip,
                         x1, y1, x2, y2,

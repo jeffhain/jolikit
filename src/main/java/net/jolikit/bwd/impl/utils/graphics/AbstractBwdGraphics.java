@@ -653,9 +653,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         GprimUtils.checkFactorAndPixelNum(factor, pixelNum);
-        // Normalizing before, not to have to care about
-        // int-wrapping during computations.
-        pixelNum = GprimUtils.pixelNumNormalized(factor, pixelNum);
+        
+        if (GprimUtils.mustComputePixelNum(pattern)) {
+            // Normalizing before, not to have to care about
+            // int-wrapping during computations.
+            pixelNum = GprimUtils.pixelNumNormalized(factor, pixelNum);
+        }
         
         return this.getPrimitives().drawLine(
                 this.getClipInUser(),

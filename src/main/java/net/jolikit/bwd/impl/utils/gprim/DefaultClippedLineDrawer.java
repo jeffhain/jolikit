@@ -131,27 +131,35 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     + ", " + factor + ", " + pattern + ", " + pixelNum + ",)");
         }
 
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+
         // Iterating from first to second point,
         // for stipple continuity.
         final int step = (x1 > x2 ? -1 : 1);
 
         // A for loop wouldn't work with Integer.MAX_VALUE bound.
         int x = x1;
-        if (pattern == GprimUtils.PLAIN_PATTERN) {
+        if (mustComputePixelNum) {
+            int myPixelNum = pixelNum;
             while (true) {
-                clippedPointDrawer.drawPointInClip(x, y);
+                if (LineStippleUtils.mustDraw(factor, pattern, myPixelNum)) {
+                    clippedPointDrawer.drawPointInClip(x, y);
+                }
+                myPixelNum++;
                 if (x == x2) {
                     break;
                 }
                 x += step;
             }
-            pixelNum += 1 + Math.abs(x2 - x1);
+            final long segmentPixelLength =
+                    GprimUtils.computeHorVerSegmentPixelLength(x1, x2);
+            pixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
+                    factor, pixelNum,
+                    segmentPixelLength);
         } else {
             while (true) {
-                if (LineStippleUtils.mustDraw(factor, pattern, pixelNum)) {
-                    clippedPointDrawer.drawPointInClip(x, y);
-                }
-                pixelNum++;
+                clippedPointDrawer.drawPointInClip(x, y);
                 if (x == x2) {
                     break;
                 }
@@ -173,27 +181,36 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     + ", " + factor + ", " + pattern + ", " + pixelNum + ",)");
         }
 
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+
         // Iterating from first to second point,
         // for stipple continuity.
         final int step = (y1 > y2 ? -1 : 1);
 
         // A for loop wouldn't work with Integer.MAX_VALUE bound.
         int y = y1;
-        if (pattern == GprimUtils.PLAIN_PATTERN) {
+        if (mustComputePixelNum) {
+            int myPixelNum = pixelNum;
             while (true) {
-                clippedPointDrawer.drawPointInClip(x, y);
+                if (LineStippleUtils.mustDraw(factor, pattern, myPixelNum)) {
+                    clippedPointDrawer.drawPointInClip(x, y);
+                }
+                myPixelNum++;
                 if (y == y2) {
                     break;
                 }
                 y += step;
             }
-            pixelNum += 1 + Math.abs(y2 - y1);
+            
+            final long segmentPixelLength =
+                    GprimUtils.computeHorVerSegmentPixelLength(y1, y2);
+            pixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
+                    factor, pixelNum,
+                    segmentPixelLength);
         } else {
             while (true) {
-                if (LineStippleUtils.mustDraw(factor, pattern, pixelNum)) {
-                    clippedPointDrawer.drawPointInClip(x, y);
-                }
-                pixelNum++;
+                clippedPointDrawer.drawPointInClip(x, y);
                 if (y == y2) {
                     break;
                 }
@@ -214,8 +231,6 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     + x1 + ", " + y1 + ", " + x2 + ", " + y2
                     + ", " + factor + ", " + pattern + ", " + pixelNum + ",)");
         }
-
-        final boolean isPatternPlain = (pattern == GprimUtils.PLAIN_PATTERN);
 
         // Clip span is at most Integer.MAX_VALUE,
         // so these delta can't be Integer.MIN_VALUE,
@@ -241,13 +256,17 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
         int x = x1;
         int y = y1;
 
-        if (mustDraw_quickIfPlain(
-                isPatternPlain,
-                factor, pattern, pixelNum)) {
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+        int myPixelNum = pixelNum;
+
+        if ((!mustComputePixelNum)
+                || LineStippleUtils.mustDraw(
+                factor, pattern, myPixelNum)) {
             clippedPointDrawer.drawPointInClip(x, y);
         }
-        pixelNum++;
-
+        myPixelNum++;
+        
         final int tdx = dx + dx;
         final int tdy = dy + dy;
 
@@ -260,12 +279,12 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                 }
                 x += xStep;
                 fraction += tdy;
-                if (mustDraw_quickIfPlain(
-                        isPatternPlain,
-                        factor, pattern, pixelNum)) {
+                if ((!mustComputePixelNum)
+                        || LineStippleUtils.mustDraw(
+                        factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
-                pixelNum++;
+                myPixelNum++;
             }
         } else {
             int fraction = tdx - dy;
@@ -276,15 +295,21 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                 }
                 y += yStep;
                 fraction += tdx;
-                if (mustDraw_quickIfPlain(
-                        isPatternPlain,
-                        factor, pattern, pixelNum)) {
+                if ((!mustComputePixelNum)
+                        || LineStippleUtils.mustDraw(
+                        factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
-                pixelNum++;
+                myPixelNum++;
             }
         }
 
+        if (mustComputePixelNum) {
+            pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                    x1, y1, x2, y2,
+                    factor, pixelNum);
+        }
+        
         return pixelNum;
     }
 
@@ -306,8 +331,6 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
             Dbg.log("x2d (1) = " + NumbersUtils.toStringNoCSN(x2d));
             Dbg.log("y2d (1) = " + NumbersUtils.toStringNoCSN(y2d));
         }
-
-        final boolean isPatternPlain = (pattern == GprimUtils.PLAIN_PATTERN);
 
         /*
          * Making sure x1 <= x2.
@@ -375,31 +398,38 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
          * Pixel num stuffs.
          */
 
-        final long segmentPixelLength =
-                GprimUtils.computeSegmentPixelLength(
-                        x1, y1, x2, y2);
-        if (DEBUG) {
-            Dbg.log("p1p2Swap = " + p1p2Swap);
-        }
+        final boolean mustComputePixelNum =
+                GprimUtils.mustComputePixelNum(pattern);
+
+        final long segmentPixelLength;
         final int myInitialPixelNum;
-        if (p1p2Swap) {
-            /*
-             * We will start from last pixelNum,
-             * and pixelNum needs to decrease as we draw.
-             */
-            myInitialPixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
-                    factor,
-                    pixelNum,
-                    segmentPixelLength - 1);
+        if (mustComputePixelNum) {
+            segmentPixelLength =
+                    GprimUtils.computeSegmentPixelLength(
+                            x1, y1, x2, y2);
+            if (p1p2Swap) {
+                /*
+                 * We will start from last pixelNum,
+                 * and pixelNum needs to decrease as we draw.
+                 */
+                myInitialPixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
+                        factor,
+                        pixelNum,
+                        segmentPixelLength - 1);
+            } else {
+                /*
+                 * We will start from first pixelNum,
+                 * and pixelNum needs to increase as we draw.
+                 */
+                myInitialPixelNum = pixelNum;
+            }
+            if (DEBUG) {
+                Dbg.log("myInitialPixelNum = " + myInitialPixelNum);
+            }
         } else {
-            /*
-             * We will start from first pixelNum,
-             * and pixelNum needs to increase as we draw.
-             */
+            // Not used.
+            segmentPixelLength = 0;
             myInitialPixelNum = pixelNum;
-        }
-        if (DEBUG) {
-            Dbg.log("myInitialPixelNum = " + myInitialPixelNum);
         }
 
         // Both values initialized when reaching first pixel in clip.
@@ -437,14 +467,17 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     Dbg.log("loop (1) : y = " + y + ", check against [" + yMin + ", " + yMax + "]");
                 }
                 if ((y >= yMin) && (y <= yMax)) {
-                    if (myPixelNumStep == 0) {
-                        myPixelNumStep = (p1p2Swap ? -1 : 1);
-                        final int myPixelNumFactor = myPixelNumStep;
-                        myPixelNum = myInitialPixelNum + myPixelNumFactor * (x - x1);
+                    if (mustComputePixelNum) {
+                        if (myPixelNumStep == 0) {
+                            myPixelNumStep = (p1p2Swap ? -1 : 1);
+                            final int myPixelNumFactor = myPixelNumStep;
+                            myPixelNum = myInitialPixelNum + myPixelNumFactor * (x - x1);
+                        }
                     }
-                    final boolean mustDraw = mustDraw_quickIfPlain(
-                            isPatternPlain,
-                            factor, pattern, myPixelNum);
+                    final boolean mustDraw =
+                            (!mustComputePixelNum)
+                            || LineStippleUtils.mustDraw(
+                                    factor, pattern, myPixelNum);
                     if (DEBUG) {
                         Dbg.log("(loop 1) (" + x + ", " + y
                                 + " from " + NumbersUtils.toStringNoCSN(yd)
@@ -488,14 +521,17 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     Dbg.log("loop (2) : x = " + x + ", check against [" + roundedX1 + ", " + roundedX2 + "]");
                 }
                 if ((x >= roundedX1) && (x <= roundedX2)) {
-                    if (myPixelNumStep == 0) {
-                        myPixelNumStep = (p1p2Swap ? -1 : 1);
-                        final int myPixelNumFactor = myPixelNumStep * yStep;
-                        myPixelNum = myInitialPixelNum + myPixelNumFactor * (y - y1);
+                    if (mustComputePixelNum) {
+                        if (myPixelNumStep == 0) {
+                            myPixelNumStep = (p1p2Swap ? -1 : 1);
+                            final int myPixelNumFactor = myPixelNumStep * yStep;
+                            myPixelNum = myInitialPixelNum + myPixelNumFactor * (y - y1);
+                        }
                     }
-                    final boolean mustDraw = mustDraw_quickIfPlain(
-                            isPatternPlain,
-                            factor, pattern, myPixelNum);
+                    final boolean mustDraw =
+                            (!mustComputePixelNum)
+                            || LineStippleUtils.mustDraw(
+                                    factor, pattern, myPixelNum);
                     if (DEBUG) {
                         Dbg.log("(loop 2) (" + x + " from " + NumbersUtils.toStringNoCSN(xd)
                                 + ", " + y
@@ -517,32 +553,13 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
             }
         }
 
-        pixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
-                factor,
-                pixelNum,
-                segmentPixelLength);
+        if (mustComputePixelNum) {
+            pixelNum = GprimUtils.pixelNumPlusLongAmountNormalized(
+                    factor,
+                    pixelNum,
+                    segmentPixelLength);
+        }
 
         return pixelNum;
-    }
-
-    //--------------------------------------------------------------------------
-    // PRIVATE METHODS
-    //--------------------------------------------------------------------------
-
-    /**
-     * Useful to draw non-stippled and stippled lines with the same code,
-     * with just one check in case of non-stippled lines.
-     * 
-     * @param isPatternPlain If true, returns true whatever the other args.
-     * @param factor Must be in [1,256].
-     * @param pixelNum Must be >= 0.
-     */
-    private static boolean mustDraw_quickIfPlain(
-            boolean isPatternPlain,
-            int factor, short pattern, int pixelNum) {
-        if (isPatternPlain) {
-            return true;
-        }
-        return LineStippleUtils.mustDraw(factor, pattern, pixelNum);
     }
 }

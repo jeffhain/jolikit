@@ -21,7 +21,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.test.utils.TestUtils;
 
-public class BwdGraphicsBencher {
+public class GraphicsBencher_drawLine {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -37,18 +37,12 @@ public class BwdGraphicsBencher {
      * Can be less due to clip.
      */
     private static final int TARGET_MAX_LINE_LENGTH = 100;
-    
-    //--------------------------------------------------------------------------
-    // PRIVATE CLASSES
-    //--------------------------------------------------------------------------
-    
-    private static class MyLinePoints {
-        int x1;
-        int y1;
-        int x2;
-        int y2;
-    }
-    
+
+    /**
+     * Not too many, to avoid too much cache misses overhead.
+     */
+    private static final int CASE_MASK = 0xF;
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -67,7 +61,7 @@ public class BwdGraphicsBencher {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public BwdGraphicsBencher(
+    public GraphicsBencher_drawLine(
             int nbrOfRuns,
             int nbrOfCalls) {
         this.nbrOfRuns = nbrOfRuns;
@@ -81,28 +75,8 @@ public class BwdGraphicsBencher {
     /**
      * Uses a default bencher.
      */
-    public static void bench_all_static(InterfaceBwdGraphics g) {
-        final BwdGraphicsBencher bencher = new BwdGraphicsBencher(
-                DEFAULT_NBR_OF_RUNS,
-                DEFAULT_NBR_OF_CALLS);
-        bencher.bench_all(g);
-    }
-
-    /**
-     * Uses a default bencher.
-     */
-    public static void bench_drawPoint_2int_static(InterfaceBwdGraphics g) {
-        final BwdGraphicsBencher bencher = new BwdGraphicsBencher(
-                DEFAULT_NBR_OF_RUNS,
-                DEFAULT_NBR_OF_CALLS);
-        bencher.bench_drawPoint_2int(g);
-    }
-
-    /**
-     * Uses a default bencher.
-     */
-    public static void bench_drawLine_4int_static(InterfaceBwdGraphics g) {
-        final BwdGraphicsBencher bencher = new BwdGraphicsBencher(
+    public static void bench_drawLine_static(InterfaceBwdGraphics g) {
+        final GraphicsBencher_drawLine bencher = new GraphicsBencher_drawLine(
                 DEFAULT_NBR_OF_RUNS,
                 DEFAULT_NBR_OF_CALLS);
         bencher.bench_drawLine(g);
@@ -110,106 +84,6 @@ public class BwdGraphicsBencher {
     
     /*
      * 
-     */
-    
-    /**
-     * Benches all methods.
-     */
-    public void bench_all(InterfaceBwdGraphics g) {
-        this.bench_drawPoint_2int(g);
-        this.bench_drawLine(g);
-    }
-    
-    /*
-     * Points.
-     */
-    
-    public void bench_drawPoint_2int(InterfaceBwdGraphics g) {
-        this.bench_drawPoint_2int_fixed_inClip(g);
-        this.bench_drawPoint_2int_fixed_outOfClip(g);
-        this.bench_drawPoint_2int_varying_inClip(g);
-    }
-    
-    /**
-     * Fixed coordinates, to exclude cache misses overhead, in clip.
-     */
-    public void bench_drawPoint_2int_fixed_inClip(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
-        
-        final GRect clip = g.getClipInUser();
-        
-        for (int k = 0; k < this.nbrOfRuns; k++) {
-            final int x = clip.x() + random.nextInt(clip.xSpan());
-            final int y = clip.y() + random.nextInt(clip.ySpan());
-            
-            long a = System.nanoTime();
-            for (int i = 0; i < this.nbrOfCalls; i++) {
-                g.drawPoint(x, y);
-            }
-            long b = System.nanoTime();
-            System.out.println(this.nbrOfCalls + " calls to drawPoint(2int), fixed, in clip, took " + TestUtils.nsToSRounded(b-a) + " s");
-        }
-    }
-
-    /**
-     * Fixed coordinates, out of clip.
-     */
-    public void bench_drawPoint_2int_fixed_outOfClip(InterfaceBwdGraphics g) {
-
-        final GRect clip = g.getClipInUser();
-
-        for (int k = 0; k < this.nbrOfRuns; k++) {
-            final int x = clip.x() - 1;
-            final int y = clip.y() + clip.ySpan();
-            
-            long a = System.nanoTime();
-            for (int i = 0; i < this.nbrOfCalls; i++) {
-                g.drawPoint(x, y);
-            }
-            long b = System.nanoTime();
-            System.out.println(this.nbrOfCalls + " calls to drawPoint(2int), fixed, out of clip, took " + TestUtils.nsToSRounded(b-a) + " s");
-        }
-    }
-
-    /**
-     * Varying coordinates, to include cache misses overhead, in clip.
-     */
-    public void bench_drawPoint_2int_varying_inClip(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
-
-        final GRect clip = g.getClipInUser();
-
-        for (int k = 0; k < this.nbrOfRuns; k++) {
-            final long overheadNs;
-            {
-                long a = System.nanoTime();
-                for (int i = 0; i < this.nbrOfCalls; i++) {
-                    final int x = clip.x() + random.nextInt(clip.xSpan());
-                    final int y = clip.y() + random.nextInt(clip.ySpan());
-                    if (x == y) {
-                        // To avoid x and y being optimized away.
-                        // Rare if spans not too small.
-                        random.setSeed(x + y);
-                    }
-                }
-                long b = System.nanoTime();
-                overheadNs = b - a;
-            }
-            
-            long a = System.nanoTime();
-            for (int i = 0; i < this.nbrOfCalls; i++) {
-                final int x = clip.x() + random.nextInt(clip.xSpan());
-                final int y = clip.y() + random.nextInt(clip.ySpan());
-                g.drawPoint(x, y);
-            }
-            long b = System.nanoTime();
-            long ns = Math.max(0, b-a-overheadNs);
-            System.out.println(this.nbrOfCalls + " calls to drawPoint(2int), varying, in clip, took " + TestUtils.nsToSRounded(ns) + " s");
-        }
-    }
-
-    /*
-     * Lines.
      */
     
     public void bench_drawLine(InterfaceBwdGraphics g) {
@@ -225,9 +99,6 @@ public class BwdGraphicsBencher {
         this.bench_drawLine_fixed_outOfClipNotObvious(g);
         this.bench_drawLine_varying_inClip(g);
         this.bench_drawLine_varying_toClip(g);
-        /*
-         * TODO test cache misses aside.
-         */
     }
     
     public void bench_drawLine_inClip_horizontal(InterfaceBwdGraphics g) {
@@ -311,17 +182,35 @@ public class BwdGraphicsBencher {
         final int lineLength = getLineLength(clip);
         final int myNbrOfCalls = this.nbrOfCalls / lineLength;
 
-        final MyLinePoints points = new MyLinePoints();
+        final int caseMask = CASE_MASK;
+        final int nbrOfCases = (caseMask + 1);
+        final int[] ptsArr = new int[4 * nbrOfCases];
+        for (int i = 0; i < nbrOfCases; i++) {
+            final int from = 4 * i;
+            addRandomLinePointsInClipInto(
+                    random,
+                    clip,
+                    lineLength,
+                    from,
+                    ptsArr);
+        }
         
         for (int k = 0; k < this.nbrOfRuns; k++) {
-            randomLinePointsInClip(random, clip, lineLength, points);
-            
             long a = System.nanoTime();
             for (int i = 0; i < myNbrOfCalls; i++) {
-                g.drawLine(points.x1, points.y1, points.x2, points.y2);
+                final int caseIndex = (i & caseMask);
+                final int from = (caseIndex << 2);
+                g.drawLine(
+                        ptsArr[from],
+                        ptsArr[from + 1],
+                        ptsArr[from + 2],
+                        ptsArr[from + 3]);
             }
             long b = System.nanoTime();
-            System.out.println(myNbrOfCalls + " calls to drawLine(4int), fixed, in clip, took " + TestUtils.nsToSRounded(b-a) + " s");
+            System.out.println(
+                    myNbrOfCalls
+                    + " calls to drawLine(4int), fixed, in clip, took "
+                    + TestUtils.nsToSRounded(b-a) + " s");
         }
     }
 
@@ -333,14 +222,30 @@ public class BwdGraphicsBencher {
         final int lineLength = getLineLength(clip);
         final int myNbrOfCalls = this.nbrOfCalls / lineLength;
 
-        final MyLinePoints points = new MyLinePoints();
+        final int caseMask = CASE_MASK;
+        final int nbrOfCases = (caseMask + 1);
+        final int[] ptsArr = new int[4 * nbrOfCases];
+        for (int i = 0; i < nbrOfCases; i++) {
+            final int from = 4 * i;
+            addRandomLinePointsInClipInto(
+                    random,
+                    clip,
+                    lineLength,
+                    from,
+                    ptsArr);
+        }
         
         for (int k = 0; k < this.nbrOfRuns; k++) {
-            randomLinePointsInClip(random, clip, lineLength, points);
-            
             long a = System.nanoTime();
             for (int i = 0; i < myNbrOfCalls; i++) {
-                g.drawLineStipple(points.x1, points.y1, points.x2, points.y2, 1, (short) 0x5555, 0);
+                final int caseIndex = (i & caseMask);
+                final int from = (caseIndex << 2);
+                g.drawLineStipple(
+                        ptsArr[from],
+                        ptsArr[from + 1],
+                        ptsArr[from + 2],
+                        ptsArr[from + 3],
+                        1, (short) 0x5555, 0);
             }
             long b = System.nanoTime();
             System.out.println(
@@ -358,14 +263,30 @@ public class BwdGraphicsBencher {
         final int lineLength = getLineLength(clip);
         final int myNbrOfCalls = this.nbrOfCalls / lineLength;
 
-        final MyLinePoints points = new MyLinePoints();
+        final int caseMask = CASE_MASK;
+        final int nbrOfCases = (caseMask + 1);
+        final int[] ptsArr = new int[4 * nbrOfCases];
+        for (int i = 0; i < nbrOfCases; i++) {
+            final int from = 4 * i;
+            addRandomLinePointsInClipInto(
+                    random,
+                    clip,
+                    lineLength,
+                    from,
+                    ptsArr);
+        }
         
         for (int k = 0; k < this.nbrOfRuns; k++) {
-            randomLinePointsInClip(random, clip, lineLength, points);
-            
             long a = System.nanoTime();
             for (int i = 0; i < myNbrOfCalls; i++) {
-                g.drawLineStipple(points.x1, points.y1, points.x2, points.y2, 3, (short) 0x5555, 0);
+                final int caseIndex = (i & caseMask);
+                final int from = (caseIndex << 2);
+                g.drawLineStipple(
+                        ptsArr[from],
+                        ptsArr[from + 1],
+                        ptsArr[from + 2],
+                        ptsArr[from + 3],
+                        3, (short) 0x5555, 0);
             }
             long b = System.nanoTime();
             System.out.println(
@@ -411,7 +332,10 @@ public class BwdGraphicsBencher {
                 g.drawLine(x1, y1, x2, y2);
             }
             long b = System.nanoTime();
-            System.out.println(this.nbrOfCalls + " calls to drawLine(4int), fixed, not obviously out of clip, took " + TestUtils.nsToSRounded(b-a) + " s");
+            System.out.println(
+                    this.nbrOfCalls
+                    + " calls to drawLine(4int), fixed, not obviously out of clip, took "
+                    + TestUtils.nsToSRounded(b-a) + " s");
         }
     }
 
@@ -426,32 +350,36 @@ public class BwdGraphicsBencher {
         final int lineLength = getLineLength(clip);
         final int myNbrOfCalls = this.nbrOfCalls / lineLength;
 
-        final MyLinePoints points = new MyLinePoints();
+        final int caseMask = CASE_MASK;
+        final int nbrOfCases = (caseMask + 1);
+        final int[] ptsArr = new int[4 * nbrOfCases];
+        for (int i = 0; i < nbrOfCases; i++) {
+            final int from = 4 * i;
+            addRandomLinePointsInClipInto(
+                    random,
+                    clip,
+                    lineLength,
+                    from,
+                    ptsArr);
+        }
 
         for (int k = 0; k < this.nbrOfRuns; k++) {
-            final long overheadNs;
-            {
-                long a = System.nanoTime();
-                for (int i = 0; i < myNbrOfCalls; i++) {
-                    randomLinePointsInClip(random, clip, lineLength, points);
-                    if (points.x1 == points.y1) {
-                        // To avoid x and y being optimized away.
-                        // Rare if spans not too small.
-                        random.setSeed(points.x1 + points.y1);
-                    }
-                }
-                long b = System.nanoTime();
-                overheadNs = b - a;
-            }
-            
             long a = System.nanoTime();
             for (int i = 0; i < myNbrOfCalls; i++) {
-                randomLinePointsInClip(random, clip, lineLength, points);
-                g.drawLine(points.x1, points.y1, points.x2, points.y2);
+                final int caseIndex = (i & caseMask);
+                final int from = (caseIndex << 2);
+                g.drawLine(
+                        ptsArr[from],
+                        ptsArr[from + 1],
+                        ptsArr[from + 2],
+                        ptsArr[from + 3]);
             }
             long b = System.nanoTime();
-            long ns = Math.max(0, b-a-overheadNs);
-            System.out.println(myNbrOfCalls + " calls to drawLine(4int), varying, in clip, took " + TestUtils.nsToSRounded(ns) + " s");
+            long ns = Math.max(0, b-a);
+            System.out.println(
+                    myNbrOfCalls
+                    + " calls to drawLine(4int), varying, in clip, took "
+                    + TestUtils.nsToSRounded(ns) + " s");
         }
     }
     
@@ -466,32 +394,36 @@ public class BwdGraphicsBencher {
         final int lineLength = getLineLength(clip);
         final int myNbrOfCalls = this.nbrOfCalls / lineLength;
 
-        final MyLinePoints points = new MyLinePoints();
-
+        final int caseMask = CASE_MASK;
+        final int nbrOfCases = (caseMask + 1);
+        final int[] ptsArr = new int[4 * nbrOfCases];
+        for (int i = 0; i < nbrOfCases; i++) {
+            final int from = 4 * i;
+            addRandomLinePointsToClipInto(
+                    random,
+                    clip,
+                    lineLength,
+                    from,
+                    ptsArr);
+        }
+        
         for (int k = 0; k < this.nbrOfRuns; k++) {
-            final long overheadNs;
-            {
-                long a = System.nanoTime();
-                for (int i = 0; i < myNbrOfCalls; i++) {
-                    randomLinePointsToClip(random, clip, lineLength, points);
-                    if (points.x1 == points.y1) {
-                        // To avoid x and y being optimized away.
-                        // Rare if spans not too small.
-                        random.setSeed(points.x1 + points.y1);
-                    }
-                }
-                long b = System.nanoTime();
-                overheadNs = b - a;
-            }
-            
             long a = System.nanoTime();
             for (int i = 0; i < myNbrOfCalls; i++) {
-                randomLinePointsToClip(random, clip, lineLength, points);
-                g.drawLine(points.x1, points.y1, points.x2, points.y2);
+                final int caseIndex = (i & caseMask);
+                final int from = (caseIndex << 2);
+                g.drawLine(
+                        ptsArr[from],
+                        ptsArr[from + 1],
+                        ptsArr[from + 2],
+                        ptsArr[from + 3]);
             }
             long b = System.nanoTime();
-            long ns = Math.max(0, b-a-overheadNs);
-            System.out.println(myNbrOfCalls + " calls to drawLine(4int), varying, to clip, took " + TestUtils.nsToSRounded(ns) + " s");
+            long ns = Math.max(0, b-a);
+            System.out.println(
+                    myNbrOfCalls
+                    + " calls to drawLine(4int), varying, to clip, took "
+                    + TestUtils.nsToSRounded(ns) + " s");
         }
     }
     
@@ -508,13 +440,15 @@ public class BwdGraphicsBencher {
     }
     
     /**
-     * @param points (out)
+     * @param ptsArr (in,out)
      */
-    private static void randomLinePointsInClip(
+    private static void addRandomLinePointsInClipInto(
             Random random,
             GRect clip,
             int lineLength,
-            MyLinePoints points) {
+            //
+            int from,
+            int[] ptsArr) {
         
         final int halfLineLength = lineLength/2;
         
@@ -526,20 +460,22 @@ public class BwdGraphicsBencher {
         // Giving some slope, not to be too horizontal.
         final int y2 = y1 + (random.nextBoolean() ? -halfLineLength : halfLineLength);
 
-        points.x1 = x1;
-        points.y1 = y1;
-        points.x2 = x2;
-        points.y2 = y2;
+        ptsArr[from] = x1;
+        ptsArr[from + 1] = y1;
+        ptsArr[from + 2] = x2;
+        ptsArr[from + 3] = y2;
     }
     
     /**
-     * @param points (out)
+     * @param ptsArr (in,out)
      */
-    private static void randomLinePointsToClip(
+    private static void addRandomLinePointsToClipInto(
             Random random,
             GRect clip,
             int lineLength,
-            MyLinePoints points) {
+            //
+            int from,
+            int[] ptsArr) {
         
         final int x1 = clip.x() + lineLength - 2;
         final int y1 = clip.y() + 2;
@@ -547,9 +483,9 @@ public class BwdGraphicsBencher {
         final int x2 = clip.x() - 1;
         final int y2 = clip.y() - (random.nextBoolean() ? -1 : 0);
 
-        points.x1 = x1;
-        points.y1 = y1;
-        points.x2 = x2;
-        points.y2 = y2;
+        ptsArr[from] = x1;
+        ptsArr[from + 1] = y1;
+        ptsArr[from + 2] = x2;
+        ptsArr[from + 3] = y2;
     }
 }

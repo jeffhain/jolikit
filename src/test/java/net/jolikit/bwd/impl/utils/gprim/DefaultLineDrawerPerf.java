@@ -18,9 +18,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 import net.jolikit.bwd.api.graphics.GRect;
 
 /**
- * Benches DefaultLineDrawer (clipping + drawing)
- * using DefaultClippedLineDrawer (actual line drawing),
- * by benching a graphics that uses the former.
+ * Benches DefaultLineDrawer.
  */
 public class DefaultLineDrawerPerf {
 
@@ -46,6 +44,10 @@ public class DefaultLineDrawerPerf {
         }
         @Override
         public GRect getClipInBase() {
+            return this.clip;
+        }
+        @Override
+        public GRect getClipInUser() {
             return this.clip;
         }
         @Override
@@ -102,8 +104,12 @@ public class DefaultLineDrawerPerf {
                 lineDrawer,
                 GRect.valueOf(0, 0, 1000, 1000));
         
-        BwdGraphicsBencher.bench_drawLine_4int_static(g);
+        GraphicsBencher_drawLine.bench_drawLine_static(g);
         
+        if (antiOptim == 0) {
+            System.out.println("antiOptim");
+        }
+
         System.out.println("--- ..." + DefaultLineDrawerPerf.class.getSimpleName() + " ---");
     }
 }

@@ -215,11 +215,17 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
              * 
              */
             
-            final int expectedNewPixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
-                    x1, y1, x2, y2,
-                    factor,
-                    pixelNum);
-            final boolean isNewPixelNumWrong = (newPixelNum != expectedNewPixelNum);
+            final int expectedNewPixelNum;
+            if (GprimUtils.mustComputePixelNum(pattern)) {
+                expectedNewPixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                        x1, y1, x2, y2,
+                        factor,
+                        pixelNum);
+            } else {
+                expectedNewPixelNum = pixelNum;
+            }
+            final boolean isNewPixelNumWrong =
+                    (newPixelNum != expectedNewPixelNum);
 
             /*
              * 

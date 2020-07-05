@@ -92,6 +92,9 @@ Jolikit X.X, XXXX/XX/XX
       - getClipInClient() renamed into getClipInBase().
       - addClipInClient() renamed into addClipInBase().
       - clearRectOpaque() renamed into clearRect().
+      - drawLineStipple(): specified that when the pattern is plain,
+        the returned pixel num must be the specified one (which was
+        inconsistently done or not by implementations).
     - InterfaceBwdBinding:
       - isConcurrentFontCreationAndDisposalSupported()
         renamed into

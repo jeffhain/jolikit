@@ -98,39 +98,39 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         public int drawHorizontalLineInClip(
                 int x1, int x2, int y,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x1, y, x2, y);
-                return pixelNum;
-            } else {
+            if (GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawHorizontalLineInClip(
                         x1, x2, y,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw(x1, y, x2, y);
+                return pixelNum;
             }
         }
         @Override
         public int drawVerticalLineInClip(
                 int x, int y1, int y2,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x, y1, x, y2);
-                return pixelNum;
-            } else {
+            if (GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawVerticalLineInClip(
                         x, y1, y2,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw(x, y1, x, y2);
+                return pixelNum;
             }
         }
         @Override
         public int drawGeneralLineInClip(
                 int x1, int y1, int x2, int y2,
                 int factor, short pattern, int pixelNum) {
-            if (pattern == GprimUtils.PLAIN_PATTERN) {
-                drawLine_raw(x1, y1, x2, y2);
-                return pixelNum;
-            } else {
+            if (GprimUtils.mustComputePixelNum(pattern)) {
                 return super.drawGeneralLineInClip(
                         x1, y1, x2, y2,
                         factor, pattern, pixelNum);
+            } else {
+                drawLine_raw(x1, y1, x2, y2);
+                return pixelNum;
             }
         }
         @Override
