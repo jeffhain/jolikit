@@ -31,6 +31,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
+    private final InterfaceClippedPointDrawer clippedPointDrawer;
     private final InterfaceClippedLineDrawer clippedLineDrawer;
     
     private final InterfacePointDrawer pointDrawer;
@@ -42,12 +43,14 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
     //--------------------------------------------------------------------------
 
     public MidPointOvalDrawer(
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
             InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
         
+        this.clippedPointDrawer = LangUtils.requireNonNull(clippedPointDrawer);
         this.clippedLineDrawer = LangUtils.requireNonNull(clippedLineDrawer);
         
         this.pointDrawer = LangUtils.requireNonNull(pointDrawer);
@@ -67,6 +70,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
                 clip,
                 x, y, xSpan, ySpan,
                 //
+                this.clippedPointDrawer,
                 this.clippedLineDrawer,
                 //
                 this.pointDrawer,
@@ -84,6 +88,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
                 x, y, xSpan, ySpan,
                 areHorVerFlipped,
                 //
+                this.clippedPointDrawer,
                 this.clippedLineDrawer,
                 //
                 this.pointDrawer,
@@ -102,6 +107,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
             GRect clip,
             int x, int y, int xSpan, int ySpan,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -113,7 +119,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
             Dbg.log("drawOval("
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
-                    + ",,,,)");
+                    + ",,,,,)");
         }
 
         OvalOrArc_midPointDraw.drawOvalOrArc(
@@ -121,6 +127,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
                 x, y, xSpan, ySpan,
                 0.0, 360.0,
                 //
+                clippedPointDrawer,
                 clippedLineDrawer,
                 //
                 pointDrawer,
@@ -136,6 +143,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
             int x, int y, int xSpan, int ySpan,
             boolean areHorVerFlipped,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -148,7 +156,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + areHorVerFlipped
-                    + ",,,,)");
+                    + ",,,,,)");
         }
 
         OvalOrArc_midPointFill.fillOvalOrArc(
@@ -157,6 +165,7 @@ public class MidPointOvalDrawer implements InterfaceOvalDrawer {
                 0.0, 360.0,
                 areHorVerFlipped,
                 //
+                clippedPointDrawer,
                 clippedLineDrawer,
                 //
                 pointDrawer,

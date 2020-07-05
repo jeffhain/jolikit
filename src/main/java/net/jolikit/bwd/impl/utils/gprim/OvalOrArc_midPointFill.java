@@ -21,19 +21,16 @@ import net.jolikit.lang.NumbersUtils;
 
 /**
  * Algorithms specific for oval or arc filling.
+ * 
+ * Uses "Midpoint circle algorithm", adapted for ovals,
+ * and with doubles not to overflow
+ * and to handle both odd or even spans,
+ * and with angular range checks for arcs.
+ * Also takes care not to draw a same pixel twice,
+ * which would cause additional color blending.
  */
 public class OvalOrArc_midPointFill {
 
-    /*
-     * Using "Midpoint circle algorithm", adapted for ovals,
-     * and with doubles not to overflow
-     * and to handle both odd or even spans,
-     * and with angular range checks for arcs.
-     * 
-     * Also taking care not to draw a same pixel twice,
-     * which would cause additional color blending.
-     */
-    
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
@@ -59,6 +56,7 @@ public class OvalOrArc_midPointFill {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -85,6 +83,10 @@ public class OvalOrArc_midPointFill {
         xSpan = GRect.trimmedSpan(x, xSpan);
         ySpan = GRect.trimmedSpan(y, ySpan);
 
+        /*
+         * 
+         */
+
         final boolean isFull = (spanDeg == 360.0);
         
         /*
@@ -104,6 +106,7 @@ public class OvalOrArc_midPointFill {
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg,
                     //
+                    clippedPointDrawer,
                     clippedLineDrawer,
                     //
                     pointDrawer,
@@ -151,7 +154,7 @@ public class OvalOrArc_midPointFill {
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
-                pointDrawer,
+                clippedPointDrawer,
                 lineDrawer);
     }
     
@@ -174,7 +177,7 @@ public class OvalOrArc_midPointFill {
             GRect clip,
             int ox, int oy, int oxSpan, int oySpan,
             double startDeg, double spanDeg,
-            InterfacePointDrawer pointDrawer,
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceLineDrawer lineDrawer) {
 
         /*
@@ -270,7 +273,7 @@ public class OvalOrArc_midPointFill {
                             prevDx, prevDy,
                             startDeg, spanDeg,
                             v1x, v1y, v2x, v2y,
-                            pointDrawer,
+                            clippedPointDrawer,
                             lineDrawer);
                     tmpLastDrawnDx = prevDx;
                     tmpLastDrawnDy = prevDy;
@@ -301,7 +304,7 @@ public class OvalOrArc_midPointFill {
                         prevDx, prevDy,
                         startDeg, spanDeg,
                         v1x, v1y, v2x, v2y,
-                        pointDrawer,
+                        clippedPointDrawer,
                         lineDrawer);
                 tmpLastDrawnDx = prevDx;
                 tmpLastDrawnDy = prevDy;
@@ -348,7 +351,7 @@ public class OvalOrArc_midPointFill {
                                 maxDxDrawnAtY,
                                 startDeg, spanDeg,
                                 v1x, v1y, v2x, v2y,
-                                pointDrawer,
+                                clippedPointDrawer,
                                 lineDrawer);
                     }
                     break;
@@ -368,7 +371,7 @@ public class OvalOrArc_midPointFill {
                             dx, dy,
                             startDeg, spanDeg,
                             v1x, v1y, v2x, v2y,
-                            pointDrawer,
+                            clippedPointDrawer,
                             lineDrawer);
                 }
                 dy++;
@@ -412,7 +415,7 @@ public class OvalOrArc_midPointFill {
             double startDeg, double spanDeg,
             double v1x, double v1y,
             double v2x, double v2y,
-            InterfacePointDrawer pointDrawer,
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceLineDrawer lineDrawer) {
         
         final int cxMdx = (int) (cx - dx);
@@ -440,7 +443,7 @@ public class OvalOrArc_midPointFill {
                     cx, cy,
                     spanDeg,
                     v1x, v1y, v2x, v2y,
-                    pointDrawer);
+                    clippedPointDrawer);
             // Taking care not to draw a same pixel twice,
             // which would mess up alpha rendering.
             if (cyMdy != cyPdy) {
@@ -451,7 +454,7 @@ public class OvalOrArc_midPointFill {
                         cx, cy,
                         spanDeg,
                         v1x, v1y, v2x, v2y,
-                        pointDrawer);
+                        clippedPointDrawer);
             }
         }
     }
@@ -464,7 +467,7 @@ public class OvalOrArc_midPointFill {
             double spanDeg,
             double v1x, double v1y,
             double v2x, double v2y,
-            InterfacePointDrawer pointDrawer) {
+            InterfaceClippedPointDrawer clippedPointDrawer) {
         if (DEBUG) {
             Dbg.log("drawHorizontalLine_integer_angleCheck("
                     + clip
@@ -475,15 +478,21 @@ public class OvalOrArc_midPointFill {
                     + ", " + v1x + ", " + v1y + ", " + v2x + ", " + v2y
                     + ",)");
         }
+        
+        if ((y < clip.y()) || (y > clip.yMax())) {
+            return;
+        }
+        xMin = Math.max(xMin, clip.x());
+        xMax = Math.min(xMax, clip.xMax());
 
         final double dy = y - cy;
         for (int x = xMin; x <= xMax; x++) {
             final double dx = x - cx;
             if (GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
                 if (DEBUG) {
-                    Dbg.log("pointDrawer.drawPoint(, " + x + ", " + y + ")");
+                    Dbg.log("clippedPointDrawer.drawPointInClip(" + x + ", " + y + ")");
                 }
-                pointDrawer.drawPoint(clip, x, y);
+                clippedPointDrawer.drawPointInClip(x, y);
             } else {
                 if (DEBUG) {
                     Dbg.log("NOT in angular range, dx = " + dx + ", dy = " + dy + ", spanDeg = " + spanDeg);
@@ -505,7 +514,7 @@ public class OvalOrArc_midPointFill {
             double startDeg, double spanDeg,
             double v1x, double v1y,
             double v2x, double v2y,
-            InterfacePointDrawer pointDrawer,
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceLineDrawer lineDrawer) {
         final int x1Far = (int) (cx - dx);
         final int x1Close = (int) (cx - (maxDxDrawnAtY + 1.0));
@@ -542,7 +551,7 @@ public class OvalOrArc_midPointFill {
                     cx, cy,
                     spanDeg,
                     v1x, v1y, v2x, v2y,
-                    pointDrawer);
+                    clippedPointDrawer);
             drawHorizontalLine_integer_angleCheck(
                     clip,
                     x2Close, x2Far,
@@ -550,7 +559,7 @@ public class OvalOrArc_midPointFill {
                     cx, cy,
                     spanDeg,
                     v1x, v1y, v2x, v2y,
-                    pointDrawer);
+                    clippedPointDrawer);
             if (y2 != y1) {
                 drawHorizontalLine_integer_angleCheck(
                         clip,
@@ -559,7 +568,7 @@ public class OvalOrArc_midPointFill {
                         cx, cy,
                         spanDeg,
                         v1x, v1y, v2x, v2y,
-                        pointDrawer);
+                        clippedPointDrawer);
                 drawHorizontalLine_integer_angleCheck(
                         clip,
                         x2Close, x2Far,
@@ -567,7 +576,7 @@ public class OvalOrArc_midPointFill {
                         cx, cy,
                         spanDeg,
                         v1x, v1y, v2x, v2y,
-                        pointDrawer);
+                        clippedPointDrawer);
             }
         }
     }

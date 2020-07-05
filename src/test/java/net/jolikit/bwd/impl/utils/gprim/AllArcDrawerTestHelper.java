@@ -41,13 +41,15 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
     
     public AllArcDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer) {
         
-        final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
         final DefaultClippedLineDrawer clippedLineDrawer = new DefaultClippedLineDrawer(clippedPointDrawer);
+        final DefaultClippedRectDrawer clippedRectDrawer = new DefaultClippedRectDrawer(clippedLineDrawer);
+        
+        final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
         final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedLineDrawer);
-        final DefaultClippedRectDrawer defaultClippedRectDrawer = new DefaultClippedRectDrawer(clippedLineDrawer);
-        final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, defaultClippedRectDrawer);
+        final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, clippedRectDrawer);
         
         final MidPointArcDrawer midPointArcDrawer = new MidPointArcDrawer(
+                clippedPointDrawer,
                 clippedLineDrawer,
                 pointDrawer,
                 lineDrawer,

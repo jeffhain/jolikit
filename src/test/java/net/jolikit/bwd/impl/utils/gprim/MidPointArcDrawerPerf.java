@@ -110,6 +110,7 @@ public class MidPointArcDrawerPerf {
         final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedPointDrawer);
         final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, clippedRectDrawer);
         final MidPointArcDrawer arcDrawer = new MidPointArcDrawer(
+                clippedPointDrawer,
                 clippedLineDrawer,
                 pointDrawer,
                 lineDrawer,

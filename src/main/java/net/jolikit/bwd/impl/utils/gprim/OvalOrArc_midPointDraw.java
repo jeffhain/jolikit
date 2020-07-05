@@ -21,19 +21,16 @@ import net.jolikit.lang.NumbersUtils;
 
 /**
  * Algorithms specific for oval or arc outline drawing.
+ * 
+ * Uses "Midpoint circle algorithm", adapted for ovals,
+ * and with doubles not to overflow
+ * and to handle both odd or even spans,
+ * and with angular range checks for arcs.
+ * Also takes care not to draw a same pixel twice,
+ * which would cause additional color blending.
  */
 public class OvalOrArc_midPointDraw {
     
-    /*
-     * Using "Midpoint circle algorithm", adapted for ovals,
-     * and with doubles not to overflow
-     * and to handle both odd or even spans,
-     * and with angular range checks for arcs.
-     * 
-     * Also taking care not to draw a same pixel twice,
-     * which would cause additional color blending.
-     */
-
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
@@ -55,6 +52,7 @@ public class OvalOrArc_midPointDraw {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -66,7 +64,7 @@ public class OvalOrArc_midPointDraw {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
-                    + ",,,,)");
+                    + ",,,,,)");
         }
         
         final boolean isEmpty =
@@ -79,7 +77,7 @@ public class OvalOrArc_midPointDraw {
         
         xSpan = GRect.trimmedSpan(x, xSpan);
         ySpan = GRect.trimmedSpan(y, ySpan);
-
+        
         /*
          * Special case for full circle.
          */
@@ -103,7 +101,7 @@ public class OvalOrArc_midPointDraw {
                     rectDrawer);
             return;
         }
-        
+
         /*
          * Special case for ovals with a tiny span.
          */
@@ -159,6 +157,7 @@ public class OvalOrArc_midPointDraw {
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
+                clippedPointDrawer,
                 pointDrawer);
     }
     
@@ -181,6 +180,7 @@ public class OvalOrArc_midPointDraw {
             GRect clip,
             int ox, int oy, int oxSpan, int oySpan,
             double startDeg, double spanDeg,
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfacePointDrawer pointDrawer) {
 
         final boolean isXSpanOdd = NumbersUtils.isOdd(oxSpan);
@@ -268,6 +268,7 @@ public class OvalOrArc_midPointDraw {
                         cx, cy, dx, dy,
                         startDeg, spanDeg,
                         v1x, v1y, v2x, v2y,
+                        clippedPointDrawer,
                         pointDrawer);
                 tmpLastDrawnDx = dx;
                 tmpLastDrawnDy = dy;
@@ -364,6 +365,7 @@ public class OvalOrArc_midPointDraw {
                         cx, cy, dx, dy,
                         startDeg, spanDeg,
                         v1x, v1y, v2x, v2y,
+                        clippedPointDrawer,
                         pointDrawer);
                 dy++;
                 if (DEBUG) {
@@ -406,6 +408,7 @@ public class OvalOrArc_midPointDraw {
             double startDeg, double spanDeg,
             double v1x, double v1y,
             double v2x, double v2y,
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfacePointDrawer pointDrawer) {
         
         final boolean isFull = (spanDeg == 360.0);
@@ -420,7 +423,7 @@ public class OvalOrArc_midPointDraw {
                     cx, cy, dx, dy,
                     startDeg, spanDeg,
                     v1x, v1y, v2x, v2y,
-                    pointDrawer);
+                    clippedPointDrawer);
         }
     }
 
@@ -470,46 +473,36 @@ public class OvalOrArc_midPointDraw {
             double startDeg, double spanDeg,
             double v1x, double v1y,
             double v2x, double v2y,
-            InterfacePointDrawer pointDrawer) {
+            InterfaceClippedPointDrawer clippedPointDrawer) {
 
         final int cxMdx = (int) (cx - dx);
         final int cxPdx = (int) (cx + dx);
         final int cyMdy = (int) (cy - dy);
         final int cyPdy = (int) (cy + dy);
         
-        if (cxPdx == cxMdx) {
-            if (cyPdy == cyMdy) {
-                if (GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyPdy);
-                }
-            } else {
-                if (GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyPdy);
-                }
-                if (GprimUtils.isInAngularRange(dx, -dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyMdy);
-                }
+        /*
+         * Doing clip checks before heavier angle checks.
+         */
+        
+        if (clip.contains(cxPdx, cyPdy)
+                && GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
+            clippedPointDrawer.drawPointInClip(cxPdx, cyPdy);
+        }
+        if (cyPdy != cyMdy) {
+            if (clip.contains(cxPdx, cyMdy)
+                    && GprimUtils.isInAngularRange(dx, -dy, spanDeg, v1x, v1y, v2x, v2y)) {
+                clippedPointDrawer.drawPointInClip(cxPdx, cyMdy);
             }
-        } else {
-            if (cyPdy == cyMdy) {
-                if (GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyPdy);
-                }
-                if (GprimUtils.isInAngularRange(-dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxMdx, cyPdy);
-                }
-            } else {
-                if (GprimUtils.isInAngularRange(dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyPdy);
-                }
-                if (GprimUtils.isInAngularRange(dx, -dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxPdx, cyMdy);
-                }
-                if (GprimUtils.isInAngularRange(-dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxMdx, cyPdy);
-                }
-                if (GprimUtils.isInAngularRange(-dx, -dy, spanDeg, v1x, v1y, v2x, v2y)) {
-                    pointDrawer.drawPoint(clip, cxMdx, cyMdy);
+        }
+        if (cxPdx != cxMdx) {
+            if (clip.contains(cxMdx, cyPdy)
+                    && GprimUtils.isInAngularRange(-dx, dy, spanDeg, v1x, v1y, v2x, v2y)) {
+                clippedPointDrawer.drawPointInClip(cxMdx, cyPdy);
+            }
+            if (cyPdy != cyMdy) {
+                if (clip.contains(cxMdx, cyMdy)
+                        && GprimUtils.isInAngularRange(-dx, -dy, spanDeg, v1x, v1y, v2x, v2y)) {
+                    clippedPointDrawer.drawPointInClip(cxMdx, cyMdy);
                 }
             }
         }

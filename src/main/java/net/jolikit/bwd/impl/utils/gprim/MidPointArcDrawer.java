@@ -31,6 +31,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
+    private final InterfaceClippedPointDrawer clippedPointDrawer;
     private final InterfaceClippedLineDrawer clippedLineDrawer;
     
     private final InterfacePointDrawer pointDrawer;
@@ -42,12 +43,14 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
     //--------------------------------------------------------------------------
 
     public MidPointArcDrawer(
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
             InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
         
+        this.clippedPointDrawer = LangUtils.requireNonNull(clippedPointDrawer);
         this.clippedLineDrawer = LangUtils.requireNonNull(clippedLineDrawer);
         
         this.pointDrawer = LangUtils.requireNonNull(pointDrawer);
@@ -69,6 +72,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 //
+                this.clippedPointDrawer,
                 this.clippedLineDrawer,
                 //
                 this.pointDrawer,
@@ -88,6 +92,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                 startDeg, spanDeg,
                 areHorVerFlipped,
                 //
+                this.clippedPointDrawer,
                 this.clippedLineDrawer,
                 //
                 this.pointDrawer,
@@ -107,6 +112,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -119,7 +125,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
-                    + ",,,,)");
+                    + ",,,,,)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -133,6 +139,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 //
+                clippedPointDrawer,
                 clippedLineDrawer,
                 //
                 pointDrawer,
@@ -149,6 +156,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped,
             //
+            InterfaceClippedPointDrawer clippedPointDrawer,
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             InterfacePointDrawer pointDrawer,
@@ -162,7 +170,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
                     + ", " + areHorVerFlipped
-                    + ",,,,)");
+                    + ",,,,,)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -177,6 +185,7 @@ public class MidPointArcDrawer implements InterfaceArcDrawer {
                 startDeg, spanDeg,
                 areHorVerFlipped,
                 //
+                clippedPointDrawer,
                 clippedLineDrawer,
                 //
                 pointDrawer,

@@ -81,26 +81,7 @@ InterfacePolyDrawer {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    /**
-     * For huge ovals or arcs, considering that the figure is very large
-     * compared oval and clip intersection, and that lines (used when filling)
-     * are clipped before drawing, regular (Bresenham-like) algorithms are
-     * in O(span) both for drawing and filling.
-     * This means that even for quite large spans, regular algorithms should
-     * still go fast, and that we must only switch to huge-specific algorithm,
-     * which is in O(box_span^2) (where "box" is the intersection of oval and
-     * clip), above a quite large threshold.
-     * 
-     * Threshold figured out with benches using
-     * an almost no-op clipped point drawer.
-     * 
-     * Could use different (default) thresholds for oval/arc and draw/fill
-     * (it could be a bit larger when filling ovals (not arcs),
-     * or much larger when just drawing (not filling)),
-     * but we prefer to stick to one, for drawing consistency between
-     * these different operations, and because it's quite large already.
-     */
-    private static final int HUGE_SPAN_THRESHOLD = 10 * 1000;
+    private static final int HUGE_SPAN_THRESHOLD = 20 * 1000 * 1000;
     private static boolean mustUseHugeAlgorithm(int xSpan, int ySpan) {
         return isHuge(xSpan)
                 || isHuge(ySpan);
@@ -307,6 +288,7 @@ InterfacePolyDrawer {
             GRect clip,
             int x, int y, int xSpan, int ySpan) {
         
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
@@ -324,6 +306,7 @@ InterfacePolyDrawer {
                     clip,
                     x, y, xSpan, ySpan,
                     //
+                    clippedPointDrawer,
                     clippedLineDrawer,
                     //
                     pointDrawer,
@@ -338,6 +321,7 @@ InterfacePolyDrawer {
             int x, int y, int xSpan, int ySpan,
             boolean areHorVerFlipped) {
         
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
@@ -359,6 +343,7 @@ InterfacePolyDrawer {
                     x, y, xSpan, ySpan,
                     areHorVerFlipped,
                     //
+                    clippedPointDrawer,
                     clippedLineDrawer,
                     //
                     pointDrawer,
@@ -377,6 +362,7 @@ InterfacePolyDrawer {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg) {
         
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
@@ -396,6 +382,7 @@ InterfacePolyDrawer {
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg,
                     //
+                    clippedPointDrawer,
                     clippedLineDrawer,
                     //
                     pointDrawer,
@@ -411,6 +398,7 @@ InterfacePolyDrawer {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped) {
         
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
@@ -434,6 +422,7 @@ InterfacePolyDrawer {
                     startDeg, spanDeg,
                     areHorVerFlipped,
                     //
+                    clippedPointDrawer,
                     clippedLineDrawer,
                     //
                     pointDrawer,

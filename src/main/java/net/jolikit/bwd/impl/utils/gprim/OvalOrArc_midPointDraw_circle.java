@@ -21,17 +21,14 @@ import net.jolikit.lang.NumbersUtils;
 
 /**
  * Algorithms specific for full circles outline drawing.
+ * 
+ * Uses "Midpoint circle algorithm", with longs not to overflow,
+ * and with separate cases for odd or even spans so that we can
+ * stick to integer arithmetic.
+ * Also takes care not to draw a same pixel twice,
+ * which would cause additional color blending.
  */
 public class OvalOrArc_midPointDraw_circle {
-
-    /*
-     * Using "Midpoint circle algorithm", with longs not to overflow,
-     * and with separate cases for odd or even spans so that we can
-     * stick to integer arithmetic.
-     * 
-     * Also taking care not to draw a same pixel twice,
-     * which would cause additional color blending.
-     */
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
