@@ -104,6 +104,18 @@ public class AwtEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof InputEvent) {
             final InputEvent inputEvent = (InputEvent) backingEvent;
             
+            /*
+             * TODO awt For some reason, at least on Windows:
+             * - when pressing mouse middle button,
+             *   "alt" is indicated as down by AWT.
+             * - when pressing mouse secondary button,
+             *   "meta" is indicated as down by AWT.
+             * We don't try to make up for this oddity
+             * (which could be deliberate, given the messy context
+             * the software world put itself in),
+             * as it could cause other issues.
+             */
+            
             commonState.setShiftDown(inputEvent.isShiftDown());
             commonState.setControlDown(inputEvent.isControlDown());
             commonState.setAltDown(inputEvent.isAltDown());
