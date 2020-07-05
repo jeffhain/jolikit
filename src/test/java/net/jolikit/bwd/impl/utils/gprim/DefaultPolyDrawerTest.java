@@ -15,16 +15,13 @@
  */
 package net.jolikit.bwd.impl.utils.gprim;
 
-import java.util.TreeSet;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
 
-public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
+public class DefaultPolyDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -65,30 +62,16 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
             + NBR_OF_CALLS_LARGE_SPANS;
 
     //--------------------------------------------------------------------------
-    // PRIVATE CLASSES
-    //--------------------------------------------------------------------------
-    
-    private static class MyColorDrawer implements InterfaceColorDrawer {
-        boolean ret_isColorOpaque = true;
-        public MyColorDrawer() {
-        }
-        @Override
-        public boolean isColorOpaque() {
-            return this.ret_isColorOpaque;
-        }
-    }
-    
-    //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final MyColorDrawer colorDrawer = new MyColorDrawer();
+    private final DefaultColorDrawer colorDrawer = new DefaultColorDrawer();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DefaultPolygonDrawerTest() {
+    public DefaultPolyDrawerTest() {
     }
     
     /*
@@ -109,7 +92,7 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
      * Random tests don't (easily) cover it,
      * so we test it here.
      */
-    public void test_clipInPolygon() {
+    public void test_fillPolygon_clipInPolygon() {
         
         final AtomicReference<GRect> clipArgRef =
                 new AtomicReference<GRect>();
@@ -143,8 +126,8 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
                         throw new UnsupportedOperationException();
                     }
                 };
-        final DefaultPolygonDrawer drawer = new DefaultPolygonDrawer(
-                colorDrawer,
+        final DefaultPolyDrawer drawer = new DefaultPolyDrawer(
+                this.colorDrawer,
                 clippedPointDrawer,
                 clippedLineDrawer,
                 lineDrawer,
@@ -184,7 +167,7 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
     @Override
     protected AbstractDrawerTestHelper<TestPolyArgs> newDrawerTestHelper(
             InterfaceClippedPointDrawer clippedPointDrawer) {
-        return new DefaultPolygonDrawerTestHelper(
+        return new DefaultPolyDrawerTestHelper(
                 this.colorDrawer,
                 clippedPointDrawer);
     }
@@ -200,7 +183,7 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
         final boolean mustUseLargeSpan = (index >= NBR_OF_CALLS_SMALL_SPANS);
         
         final boolean isColorOpaque = this.random.nextBoolean();
-        this.colorDrawer.ret_isColorOpaque = isColorOpaque;
+        this.colorDrawer.setIsColorOpaque(isColorOpaque);
 
         final int boundingBoxSpan;
         final int pointCount;
@@ -253,8 +236,14 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
             xArr[i] = x;
             yArr[i] = y;
         }
+        
+        final boolean mustDrawAsPolyline = this.random.nextBoolean();
 
-        final TestPolyArgs drawingArgs = new TestPolyArgs(xArr, yArr, pointCount);
+        final TestPolyArgs drawingArgs = new TestPolyArgs(
+                xArr,
+                yArr,
+                pointCount,
+                mustDrawAsPolyline);
         if (DEBUG) {
             Dbg.log();
             Dbg.log("isColorOpaque = " + isColorOpaque);
@@ -264,7 +253,7 @@ public class DefaultPolygonDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
     }
     
     @Override
-    protected boolean mustAllowMultipaintedPixels() {
-        return this.colorDrawer.ret_isColorOpaque;
+    protected boolean mustAllowMultipaintedPixels(TestPolyArgs drawingArgs) {
+        return this.colorDrawer.isColorOpaque();
     }
 }

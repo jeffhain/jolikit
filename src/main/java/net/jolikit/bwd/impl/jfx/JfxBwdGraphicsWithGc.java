@@ -474,13 +474,41 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      */
     
     @Override
+    public void drawPolyline(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (MUST_USE_BACKING_GRAPHICS_METHODS) {
+            this.checkUsable();
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final double[] xdArr = new double[pointCount];
+                final double[] ydArr = new double[pointCount];
+                for (int i = 0; i < pointCount; i++) {
+                    xdArr[i] = xArr[i] + this.xShiftInUser;
+                    ydArr[i] = yArr[i] + this.yShiftInUser;
+                }
+                this.gc.strokePolyline(xdArr, ydArr, pointCount);
+            }
+        } else {
+            super.drawPolyline(xArr, yArr, pointCount);
+        }
+        
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
+        this.dirtySnapshotHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
+    }
+
+    @Override
     public void drawPolygon(
             int[] xArr,
             int[] yArr,
             int pointCount) {
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
             
             if (pointCount > 0) {
                 final double[] xdArr = new double[pointCount];
@@ -495,7 +523,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             super.drawPolygon(xArr, yArr, pointCount);
         }
         
-        final GRect bbox = GprimUtils.computePolygonBoundingBox(xArr, yArr, pointCount);
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
         this.dirtySnapshotHelper.onRectDrawing(
                 this.getTransform(),
                 bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
@@ -508,7 +536,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             int pointCount) {
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
             
             if (pointCount > 0) {
                 final double[] xdArr = new double[pointCount];
@@ -523,7 +551,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             super.fillPolygon(xArr, yArr, pointCount);
         }
         
-        final GRect bbox = GprimUtils.computePolygonBoundingBox(xArr, yArr, pointCount);
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
         this.dirtySnapshotHelper.onRectDrawing(
                 this.getTransform(),
                 bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());

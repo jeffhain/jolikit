@@ -21,7 +21,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.NumbersUtils;
 
-public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<TestPolyArgs> {
+public class DefaultPolyDrawerTestHelper extends AbstractDrawerTestHelper<TestPolyArgs> {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -29,13 +29,13 @@ public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<Tes
     
     private final Random random = new Random(123456789L);
     
-    private final DefaultPolygonDrawer polygonDrawer;
+    private final DefaultPolyDrawer polyDrawer;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public DefaultPolygonDrawerTestHelper(
+    public DefaultPolyDrawerTestHelper(
             InterfaceColorDrawer colorDrawer,
             InterfaceClippedPointDrawer clippedPointDrawer) {
         
@@ -49,7 +49,7 @@ public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<Tes
                 lineDrawer,
                 defaultClippedRectDrawer);
         
-        final DefaultPolygonDrawer polygonDrawer = new DefaultPolygonDrawer(
+        final DefaultPolyDrawer polyDrawer = new DefaultPolyDrawer(
                 colorDrawer,
                 //
                 clippedPointDrawer,
@@ -57,7 +57,7 @@ public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<Tes
                 //
                 lineDrawer,
                 rectDrawer);
-        this.polygonDrawer = polygonDrawer;
+        this.polyDrawer = polyDrawer;
     }
 
     @Override
@@ -67,17 +67,25 @@ public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<Tes
 
     @Override
     public void callDrawMethod(GRect clip, TestPolyArgs drawingArgs) {
-        this.polygonDrawer.drawPolygon(
-                clip,
-                drawingArgs.xArr,
-                drawingArgs.yArr,
-                drawingArgs.pointCount);
+        if (drawingArgs.mustDrawAsPolyline) {
+            this.polyDrawer.drawPolyline(
+                    clip,
+                    drawingArgs.xArr,
+                    drawingArgs.yArr,
+                    drawingArgs.pointCount);
+        } else {
+            this.polyDrawer.drawPolygon(
+                    clip,
+                    drawingArgs.xArr,
+                    drawingArgs.yArr,
+                    drawingArgs.pointCount);
+        }
     }
 
     @Override
     public void callFillMethod(GRect clip, TestPolyArgs drawingArgs) {
         final boolean areHorVerFlipped = this.random.nextBoolean();
-        this.polygonDrawer.fillPolygon(
+        this.polyDrawer.fillPolygon(
                 clip,
                 drawingArgs.xArr,
                 drawingArgs.yArr,
@@ -114,11 +122,22 @@ public class DefaultPolygonDrawerTestHelper extends AbstractDrawerTestHelper<Tes
         final int[] xArr = drawingArgs.xArr;
         final int[] yArr = drawingArgs.yArr;
         final int pointCount = drawingArgs.pointCount;
+        final boolean mustDrawAsPolyline = drawingArgs.mustDrawAsPolyline;
         
         PixelFigStatus ret = PixelFigStatus.PIXEL_NOT_ALLOWED;
         
         // Looping on edges.
-        for (int i = 0; i < pointCount; i++) {
+        final int iBound;
+        if (isFillElseDraw) {
+            iBound = pointCount;
+        } else {
+            if (pointCount >= 3) {
+                iBound = pointCount - (mustDrawAsPolyline ? 1 : 0);
+            } else {
+                iBound = pointCount;
+            }
+        }
+        for (int i = 0; i < iBound; i++) {
             final int ax = drawingArgs.xArr[i];
             final int ay = drawingArgs.yArr[i];
             final int ii = ((i == pointCount - 1) ? 0 : i + 1);

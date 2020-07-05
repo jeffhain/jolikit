@@ -684,6 +684,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                  * 
                  */
                 try {
+                    childG.drawPolyline(xArr, yArr, pointCount);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
                     childG.drawPolygon(xArr, yArr, pointCount);
                     fail();
                 } catch (IllegalStateException ok) {}
@@ -1431,6 +1435,12 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
         
         try {
+            g.drawPolyline(null, yArr, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        try {
             g.drawPolygon(null, yArr, pointCount);
             fail();
         } catch (NullPointerException e) {
@@ -1443,6 +1453,12 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             // ok
         }
 
+        try {
+            g.drawPolyline(xArr, null, pointCount);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
         try {
             g.drawPolygon(xArr, null, pointCount);
             fail();
@@ -1461,6 +1477,12 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          */
 
         for (int badPointCount : BAD_POINT_COUNT) {
+            try {
+                g.drawPolyline(xArr, yArr, badPointCount);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
             try {
                 g.drawPolygon(xArr, yArr, badPointCount);
                 fail();

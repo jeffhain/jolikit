@@ -434,6 +434,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         FILL_OVAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         DRAW_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         FILL_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        DRAW_POLYLINE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         DRAW_POLYGON(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         FILL_POLYGON(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         //
@@ -1763,6 +1764,13 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
                 testG.fillArc(
                         x - 2, y, 5, 3,
                         0, 315);
+            } break;
+            case DRAW_POLYLINE: {
+                // (x,y) is top pixel.
+                testG.drawPolyline(
+                        new int[] {x, x + 2, x - 2},
+                        new int[] {y, y + 2, y + 2},
+                        3);
             } break;
             case DRAW_POLYGON: {
                 // (x,y) is top pixel.

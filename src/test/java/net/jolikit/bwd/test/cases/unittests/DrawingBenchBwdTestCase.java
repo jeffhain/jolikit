@@ -280,6 +280,9 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         FILL_OVAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         DRAW_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         FILL_ARC(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        /*
+         * Not bothering to bench polyline.
+         */
         DRAW_POLYGON_ELLIPSE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         DRAW_POLYGON_SPIRAL(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         FILL_POLYGON_ELLIPSE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),

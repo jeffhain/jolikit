@@ -352,10 +352,12 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 painter.setPen(this.qtStuffs.backingPen);
             }
             
-            // Best effort.
-            pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
-                    x1, y1, x2, y2,
-                    factor, pixelNum);
+            if (GprimUtils.mustComputePixelNum(pattern)) {
+                // Best effort.
+                pixelNum = GprimUtils.pixelNumPlusSegmentPixelLengthNormalized(
+                        x1, y1, x2, y2,
+                        factor, pixelNum);
+            }
             return pixelNum;
         } else {
             return super.drawLineStipple(
@@ -475,13 +477,37 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
     
     @Override
+    public void drawPolyline(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (FORCED_BACKING_GRAPHICS_USAGE) {
+            this.checkUsable();
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
+            
+            if (pointCount > 0) {
+                final QPolygon polygon = QtjUtils.toQPolygon(
+                        xArr,
+                        yArr,
+                        pointCount);
+                
+                final QPainter painter = this.getConfiguredPainter();
+                
+                painter.drawPolyline(polygon);
+            }
+        } else {
+            super.drawPolyline(xArr, yArr, pointCount);
+        }
+    }
+
+    @Override
     public void drawPolygon(
             int[] xArr,
             int[] yArr,
             int pointCount) {
         if (FORCED_BACKING_GRAPHICS_USAGE) {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
             
             if (pointCount > 0) {
                 final QPolygon polygon = QtjUtils.toQPolygon(
@@ -505,7 +531,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             int pointCount) {
         if (FORCED_BACKING_GRAPHICS_USAGE) {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
             
             if (pointCount > 0) {
                 final QPolygon polygon = QtjUtils.toQPolygon(

@@ -615,12 +615,25 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      */
     
     @Override
+    public void drawPolyline(int[] xArr, int[] yArr, int pointCount) {
+        if (MUST_USE_REDEF_FOR_POLYGONS) {
+            super.drawPolyline(xArr, yArr, pointCount);
+        } else {
+            this.checkUsable();
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
+            
+            // Relying on backing clipping.
+            this.g.drawPolyline(xArr, yArr, pointCount);
+        }
+    }
+    
+    @Override
     public void drawPolygon(int[] xArr, int[] yArr, int pointCount) {
         if (MUST_USE_REDEF_FOR_POLYGONS) {
             super.drawPolygon(xArr, yArr, pointCount);
         } else {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
             
             // Relying on backing clipping.
             this.g.drawPolygon(xArr, yArr, pointCount);
@@ -633,7 +646,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             super.fillPolygon(xArr, yArr, pointCount);
         } else {
             this.checkUsable();
-            GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+            GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
             // Relying on backing clipping.
             this.g.fillPolygon(xArr, yArr, pointCount);

@@ -179,8 +179,8 @@ public class DrawingMethodsBwdPainter {
             fillArcs(g, CELL_HALF_INNER_SPAN, ySpan, 90.0, 180.0, cellIndex++);
         }
         
-        drawPolygons(g, cellIndex++, 100, 3.0);
-        drawPolygons(g, cellIndex++, 50, 2.0);
+        drawPolylines(g, cellIndex++, 100, 3.0);
+        drawPolylines(g, cellIndex++, 50, 2.0);
         drawPolygons(g, cellIndex++, 26, 1.0);
         // Crossing.
         drawPolygons(g, cellIndex++, 20, 3.0);
@@ -973,18 +973,36 @@ public class DrawingMethodsBwdPainter {
      * 
      */
     
+    private void drawPolylines(
+            InterfaceBwdGraphics g,
+            int cellIndex,
+            int pointCount,
+            double roundCount) {
+        final boolean mustFill = false;
+        final boolean isPolyline = true;
+        drawOrFillPolys(
+                g,
+                cellIndex,
+                pointCount,
+                roundCount,
+                mustFill,
+                isPolyline);
+    }
+    
     private void drawPolygons(
             InterfaceBwdGraphics g,
             int cellIndex,
             int pointCount,
             double roundCount) {
         final boolean mustFill = false;
-        drawOrFillPolygons(
+        final boolean isPolyline = false;
+        drawOrFillPolys(
                 g,
                 cellIndex,
                 pointCount,
                 roundCount,
-                mustFill);
+                mustFill,
+                isPolyline);
     }
     
     private void fillPolygons(
@@ -993,40 +1011,45 @@ public class DrawingMethodsBwdPainter {
             int pointCount,
             double roundCount) {
         final boolean mustFill = true;
-        drawOrFillPolygons(
+        final boolean isPolyline = false;
+        drawOrFillPolys(
                 g,
                 cellIndex,
                 pointCount,
                 roundCount,
-                mustFill);
+                mustFill,
+                isPolyline);
     }
     
-    private void drawOrFillPolygons(
+    private void drawOrFillPolys(
             InterfaceBwdGraphics g,
             int cellIndex,
             int pointCount,
             double roundCount,
-            boolean mustFill) {
+            boolean mustFill,
+            boolean isPolyline) {
         resetColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            drawOrFillPolygon(
+            drawOrFillPoly(
                     g,
                     pointCount,
                     roundCount,
                     mustFill,
+                    isPolyline,
                     transform);
         }
     }
     
-    private void drawOrFillPolygon(
+    private void drawOrFillPoly(
             InterfaceBwdGraphics g,
             int pointCount,
             double roundCount,
             boolean mustFill,
+            boolean isPolyline,
             GTransform transform) {
         
         g.setTransform(transform);
@@ -1048,7 +1071,19 @@ public class DrawingMethodsBwdPainter {
         if (mustFill) {
             g.fillPolygon(xArr, yArr, pointCount);
         } else {
-            g.drawPolygon(xArr, yArr, pointCount);
+            if (isPolyline) {
+                // Shifting points for non-drawn segment
+                // to be on spiral edge, not center.
+                for (int i = pointCount / 2; i < pointCount; i++) {
+                    int j = ((i + (pointCount >> 1)) % pointCount);
+                    int tmp;
+                    tmp = xArr[i]; xArr[i] = xArr[j]; xArr[j] = tmp;
+                    tmp = yArr[i]; yArr[i] = yArr[j]; yArr[j] = tmp;
+                }
+                g.drawPolyline(xArr, yArr, pointCount);
+            } else {
+                g.drawPolygon(xArr, yArr, pointCount);
+            }
         }
         g.removeLastAddedTransform();
     }

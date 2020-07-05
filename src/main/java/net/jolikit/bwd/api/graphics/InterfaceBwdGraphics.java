@@ -894,14 +894,37 @@ public interface InterfaceBwdGraphics {
      * @param spanDeg Filled span, in degrees, anti-clockwise.
      *        Clamped into [-360,360].
      * @throws NullPointerException if the specified bounding box is null.
+     * @throws IllegalArgumentException if any angle is NaN or +-Infinity.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
     public void fillArc(GRect rect, double startDeg, double spanDeg);
     
     /*
-     * Polygons.
+     * Polygons and polylines.
      */
+    
+    /**
+     * Draws the specified polyline, with the current color.
+     * Special cases for low pointCount:
+     * If pointCount is 0, must draw nothing.
+     * If pointCount is 1, must draw the point.
+     * If pointCount is 2, must draw the line.
+     * 
+     * @param xArr Arrays containing points X, in [0,pointCount-1],
+     *        in user coordinates.
+     * @param yArr Arrays containing points Y, in [0,pointCount-1],
+     *        in user coordinates.
+     * @param pointCount Number of points. Must be >= 0.
+     * @throws NullPointerException if xArr or yArr is null.
+     * @throws IllegalArgumentException if pointCount < 0.
+     * @throws IllegalStateException if init() has not been called
+     *         or if finish() has been called.
+     */
+    public void drawPolyline(
+            int[] xArr,
+            int[] yArr,
+            int pointCount);
     
     /**
      * Draws the specified polygon, with the current color.

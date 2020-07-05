@@ -20,28 +20,32 @@ import java.util.Arrays;
 import net.jolikit.bwd.api.graphics.GRect;
 
 /**
- * Package-private class for polygon drawing arguments.
+ * Package-private class for polylines/polygons drawing arguments.
  */
 final class TestPolyArgs {
     
     final int[] xArr;
     final int[] yArr;
     final int pointCount;
+    final boolean mustDrawAsPolyline;
     
     public TestPolyArgs(
             int[] xArr,
             int[] yArr,
-            int pointCount) {
+            int pointCount,
+            boolean mustDrawAsPolyline) {
         this.xArr = xArr;
         this.yArr = yArr;
         this.pointCount = pointCount;
+        this.mustDrawAsPolyline = mustDrawAsPolyline;
     }
     
     @Override
     public String toString() {
         return "[xArr = " + Arrays.toString(this.xArr)
         + ", yArr = " + Arrays.toString(this.yArr)
-        + ", pointCount = " + pointCount
+        + ", pointCount = " + this.pointCount
+        + ", mustDrawAsPolyline = " + this.mustDrawAsPolyline
         + "]";
     }
     

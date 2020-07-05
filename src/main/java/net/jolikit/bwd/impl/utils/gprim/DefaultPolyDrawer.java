@@ -16,9 +16,10 @@
 package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
-public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
+public class DefaultPolyDrawer implements InterfacePolyDrawer {
 
     /*
      * For polygon filling, we don't use scanline algorithm,
@@ -46,6 +47,8 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
+    private static final boolean DEBUG = false;
+    
     /**
      * For a byte[], that's 16Mo.
      */
@@ -130,7 +133,7 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DefaultPolygonDrawer(
+    public DefaultPolyDrawer(
             InterfaceColorDrawer colorDrawer,
             //
             InterfaceClippedPointDrawer clippedPointDrawer,
@@ -151,6 +154,25 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
     /*
      * Instance methods.
      */
+
+    @Override
+    public void drawPolyline(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        drawPolyline(
+                clip,
+                xArr,
+                yArr,
+                pointCount,
+                //
+                this.colorDrawer,
+                //
+                this.clippedPointDrawer,
+                //
+                this.lineDrawer);
+    }
 
     @Override
     public void drawPolygon(
@@ -198,6 +220,44 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
      * Static methods.
      */
 
+    public static void drawPolyline(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount,
+            //
+            InterfaceColorDrawer colorDrawer,
+            //
+            InterfaceClippedPointDrawer clippedPointDrawer,
+            //
+            InterfaceLineDrawer lineDrawer) {
+
+        // Not used.
+        final InterfaceClippedLineDrawer clippedLineDrawer = null;
+        // Not used.
+        final InterfaceRectDrawer rectDrawer = null;
+        // Not used.
+        final boolean areHorVerFlipped = false;
+        final boolean mustFill = false;
+        final boolean isPolyline = true;
+        drawOrFillPoly(
+                clip,
+                xArr,
+                yArr,
+                pointCount,
+                areHorVerFlipped,
+                mustFill,
+                isPolyline,
+                //
+                colorDrawer,
+                //
+                clippedPointDrawer,
+                clippedLineDrawer,
+                //
+                lineDrawer,
+                rectDrawer);
+    }
+
     public static void drawPolygon(
             GRect clip,
             int[] xArr,
@@ -217,13 +277,15 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
         // Not used.
         final boolean areHorVerFlipped = false;
         final boolean mustFill = false;
-        drawOrFillPolygon(
+        final boolean isPolyline = false;
+        drawOrFillPoly(
                 clip,
                 xArr,
                 yArr,
                 pointCount,
                 areHorVerFlipped,
                 mustFill,
+                isPolyline,
                 //
                 colorDrawer,
                 //
@@ -250,13 +312,15 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
             InterfaceRectDrawer rectDrawer) {
 
         final boolean mustFill = true;
-        drawOrFillPolygon(
+        final boolean isPolyline = false;
+        drawOrFillPoly(
                 clip,
                 xArr,
                 yArr,
                 pointCount,
                 areHorVerFlipped,
                 mustFill,
+                isPolyline,
                 //
                 colorDrawer,
                 //
@@ -266,21 +330,23 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
                 lineDrawer,
                 rectDrawer);
     }
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
     /**
      * @param areHorVerFlipped Only used when filling.
+     * @param isPolyline Only used if mustFill is false.
      */
-    private static void drawOrFillPolygon(
+    private static void drawOrFillPoly(
             GRect clip,
             int[] xArr,
             int[] yArr,
             int pointCount,
             boolean areHorVerFlipped,
             boolean mustFill,
+            boolean isPolyline,
             //
             InterfaceColorDrawer colorDrawer,
             //
@@ -302,7 +368,7 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
             return;
         }
 
-        final GRect bbox = GprimUtils.computePolygonBoundingBox(
+        final GRect bbox = GprimUtils.computePolyBoundingBox(
                 xArr,
                 yArr,
                 pointCount);
@@ -343,20 +409,63 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
 
         final boolean isOpaque = colorDrawer.isColorOpaque();
         if (isOpaque && (!mustFill)) {
-            // Quick path: just drawing polygon's edges.
-            for (int j = 0; j < pointCount; j++) {
-                final int i = ((j == 0) ? pointCount - 1 : j - 1);
+            // Quick path: just drawing poly's edges.
+            final int i0 = (isPolyline ? 1 : 0);
+            for (int i = i0; i < pointCount; i++) {
+                final int ii = ((i == 0) ? pointCount - 1 : i - 1);
                 lineDrawer.drawLine(
                         clip,
-                        xArr[i], yArr[i], xArr[j], yArr[j]);
+                        xArr[ii], yArr[ii], xArr[i], yArr[i]);
             }
             return;
         }
 
         /*
+         * Special casing for when the clip is in or out of the polygon,
+         * so that in these cases we don't bother with using pixels flags,
+         * which overhead is proportional to cbbox due to initial zeroization.
+         * NB: Doesn't return for polyline when only the "missing" segment
+         * overlaps clip, but that's fine.
+         */
+        
+        {
+            final boolean isClipClearlyInOrOut =
+                    isClipClearlyInOrOutOfPolygon(
+                            clip,
+                            xArr,
+                            yArr,
+                            pointCount);
+            if (isClipClearlyInOrOut) {
+                if (mustFill) {
+                    final boolean isClipInPolyElseOut =
+                            computeBelongingToPolygon(
+                                    xArr,
+                                    yArr,
+                                    pointCount,
+                                    clip.xMid(),
+                                    clip.yMid());
+                    if (DEBUG) {
+                        Dbg.log("isClipInPolyElseOut = " + isClipInPolyElseOut);
+                    }
+                    if (isClipInPolyElseOut) {
+                        rectDrawer.fillRect(
+                                clip,
+                                clip.x(), clip.y(), clip.xSpan(), clip.ySpan(),
+                                areHorVerFlipped);
+                    } else {
+                        // Nothing to fill.
+                    }
+                } else {
+                    // Nothing to draw.
+                }
+                return;
+            }
+        }
+
+        /*
          * Here we need to use pixels flags.
          */
-
+        
         final MyTemps temps = TL_TEMPS.get();
 
         final MyClippedPointDrawerWithFlag clippedPointDrawerWithFlag =
@@ -376,11 +485,12 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
          * Drawing edges, and while doing it setting flags
          * for edges pixels.
          */
-        for (int j = 0; j < pointCount; j++) {
-            final int i = ((j == 0) ? pointCount - 1 : j - 1);
+        final int i0 = (isPolyline ? 1 : 0);
+        for (int i = i0; i < pointCount; i++) {
+            final int ii = ((i == 0) ? pointCount - 1 : i - 1);
             DefaultLineDrawer.drawLine(
                     clip,
-                    xArr[i], yArr[i], xArr[j], yArr[j],
+                    xArr[ii], yArr[ii], xArr[i], yArr[i],
                     clippedLineDrawerWithFlag);
         }
 
@@ -416,6 +526,85 @@ public class DefaultPolygonDrawer implements InterfacePolygonDrawer {
                 clippedPointDrawerWithFlag.flagByIndex);
     }
 
+    /*
+     * 
+     */
+    
+    private static boolean isClipClearlyInOrOutOfPolygon(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        
+        boolean foundPolyPointInClip = false;
+        for (int i = 0; i < pointCount; i++) {
+            final int px = xArr[i];
+            final int py = yArr[i];
+            if (clip.contains(px, py)) {
+                foundPolyPointInClip = true;
+                break;
+            }
+        }
+        if (DEBUG) {
+            Dbg.log("foundPolyPointInClip = " + foundPolyPointInClip);
+        }
+        
+        boolean foundSegmentClipOverlap = false;
+        if (foundPolyPointInClip) {
+            foundSegmentClipOverlap = true;
+        } else {
+            boolean foundInter = false;
+            final double H = 0.5;
+            final double eclipXMin = clip.x() - H;
+            final double eclipYMin = clip.y() - H;
+            final double eclipXMax = clip.xMax() + H;
+            final double eclipYMax = clip.yMax() + H;
+            for (int i = 0; i < pointCount; i++) {
+                final int ii = ((i == 0) ? pointCount - 1 : i - 1);
+                final int xA = xArr[ii];
+                final int yA = yArr[ii];
+                final int xB = xArr[i];
+                final int yB = yArr[i];
+                for (int k = 0; k < 4; k++) {
+                    final double xC = (((k == 1) || (k == 2)) ? eclipXMax : eclipXMin);
+                    final double yC = ((k >= 2) ? eclipYMax : eclipYMin);
+                    final double xD = ((k <= 1) ? eclipXMax : eclipXMin);
+                    final double yD = (((k == 1) || (k == 2)) ? eclipYMax : eclipYMin);
+                    foundInter = GprimUtils.doSegmentsIntersect(
+                            xA, yA, xB, yB,
+                            xC, yC, xD, yD);
+                    if (foundInter) {
+                        if (DEBUG) {
+                            Dbg.log("intersection of ("
+                                    + xA + ", " + yA + ", " + xB + ", " + yB
+                                    + ") with ("
+                                    + xC + ", " + yC + ", " + xD + ", " + yD
+                                    + ")");
+                        }
+                        break;
+                    }
+                }
+                if (foundInter) {
+                    break;
+                }
+            }
+            foundSegmentClipOverlap = foundInter;
+        }
+        
+        final boolean isClipClearlyInOrOut =
+                (!foundSegmentClipOverlap);
+        
+        if (DEBUG) {
+            Dbg.log("isClipClearlyInOrOut = " + isClipClearlyInOrOut);
+        }
+        
+        return isClipClearlyInOrOut;
+    }
+    
+    /*
+     * 
+     */
+    
     /**
      * @param cbbox Clipped bounding box.
      * @param flagByIndex (in,out) Pixel flag by pixel index

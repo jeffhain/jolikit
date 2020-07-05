@@ -145,7 +145,7 @@ public class GprimUtils {
         }
     }
     
-    public static void checkPolygonArgs(
+    public static void checkPolyArgs(
             int[] xArr,
             int[] yArr,
             int pointCount) {
@@ -166,7 +166,7 @@ public class GprimUtils {
      * 
      */
     
-    public static GRect computePolygonBoundingBox(
+    public static GRect computePolyBoundingBox(
             int[] xArr,
             int[] yArr,
             int pointCount) {

@@ -23,7 +23,7 @@ import net.jolikit.bwd.impl.utils.gprim.DefaultHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPointDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultPolygonDrawer;
+import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultRectDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedLineDrawer;
@@ -34,7 +34,7 @@ import net.jolikit.bwd.impl.utils.gprim.InterfaceHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfacePointDrawer;
-import net.jolikit.bwd.impl.utils.gprim.InterfacePolygonDrawer;
+import net.jolikit.bwd.impl.utils.gprim.InterfacePolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceRectDrawer;
 
 /**
@@ -70,7 +70,7 @@ InterfaceRectDrawer,
 InterfaceOvalDrawer,
 InterfaceArcDrawer,
 //
-InterfacePolygonDrawer {
+InterfacePolyDrawer {
 
     /*
      * TODO optim Could optimize away user-to-client coordinates conversion
@@ -397,9 +397,35 @@ InterfacePolygonDrawer {
     }
     
     /*
-     * InterfacePolygonDrawer
+     * InterfacePolyDrawer
      */
     
+    @Override
+    public void drawPolyline(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        
+        final InterfaceColorDrawer colorDrawer = this;
+        
+        final InterfaceClippedPointDrawer clippedPointDrawer = this;
+        
+        final InterfaceLineDrawer lineDrawer = this;
+        
+        DefaultPolyDrawer.drawPolyline(
+                clip,
+                xArr,
+                yArr,
+                pointCount,
+                //
+                colorDrawer,
+                //
+                clippedPointDrawer,
+                //
+                lineDrawer);
+    }
+
     @Override
     public void drawPolygon(
             GRect clip,
@@ -413,7 +439,7 @@ InterfacePolygonDrawer {
         
         final InterfaceLineDrawer lineDrawer = this;
         
-        DefaultPolygonDrawer.drawPolygon(
+        DefaultPolyDrawer.drawPolygon(
                 clip,
                 xArr,
                 yArr,
@@ -442,7 +468,7 @@ InterfacePolygonDrawer {
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
         
-        DefaultPolygonDrawer.fillPolygon(
+        DefaultPolyDrawer.fillPolygon(
                 clip,
                 xArr,
                 yArr,

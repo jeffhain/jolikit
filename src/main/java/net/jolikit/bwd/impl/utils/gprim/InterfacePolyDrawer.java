@@ -17,7 +17,18 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 
-public interface InterfacePolygonDrawer {
+public interface InterfacePolyDrawer {
+
+    /**
+     * Clip and coordinates are in user frame of reference.
+     * 
+     * @param pointCount Must be >= 0.
+     */
+    public void drawPolyline(
+            GRect clip,
+            int[] xArr,
+            int[] yArr,
+            int pointCount);
 
     /**
      * Clip and coordinates are in user frame of reference.

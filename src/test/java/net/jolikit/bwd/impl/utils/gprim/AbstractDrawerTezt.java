@@ -84,7 +84,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
 
             final ARG drawingArgs = this.newDrawingArgs(i);
             final boolean multipaintedPixelsAllowed =
-                    this.mustAllowMultipaintedPixels();
+                    this.mustAllowMultipaintedPixels(drawingArgs);
             if (DEBUG) {
                 Dbg.log();
                 Dbg.log("drawingArgs = " + drawingArgs);
@@ -192,7 +192,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
      * while still being correct due to only doing it
      * when color is opaque.
      */
-    protected boolean mustAllowMultipaintedPixels() {
+    protected boolean mustAllowMultipaintedPixels(ARG drawingArgs) {
         return false;
     }
 

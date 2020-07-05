@@ -18,6 +18,7 @@ package net.jolikit.allx;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtilsPerf;
 import net.jolikit.bwd.impl.utils.fonts.FontBoxHelperPerf;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawerPerf;
+import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtilsPerf;
 import net.jolikit.bwd.impl.utils.gprim.OvalOrArcPerf;
 import net.jolikit.lang.HeisenLoggerPerf;
@@ -47,6 +48,7 @@ public class AllPerfs {
          */
         
         DefaultLineDrawerPerf.newRun(args);
+        DefaultPolyDrawerPerf.newRun(args);
         GprimUtilsPerf.newRun(args);
         OvalOrArcPerf.newRun(args);
         

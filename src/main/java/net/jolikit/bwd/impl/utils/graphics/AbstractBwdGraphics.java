@@ -782,12 +782,27 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     @Override
+    public void drawPolyline(
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        this.checkUsable();
+        GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
+
+        this.getPrimitives().drawPolyline(
+                this.getClipInUser(),
+                xArr,
+                yArr,
+                pointCount);
+    }
+
+    @Override
     public void drawPolygon(
             int[] xArr,
             int[] yArr,
             int pointCount) {
         this.checkUsable();
-        GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+        GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
         this.getPrimitives().drawPolygon(
                 this.getClipInUser(),
@@ -802,7 +817,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             int[] yArr,
             int pointCount) {
         this.checkUsable();
-        GprimUtils.checkPolygonArgs(xArr, yArr, pointCount);
+        GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
         this.getPrimitives().fillPolygon(
                 this.getClipInUser(),
