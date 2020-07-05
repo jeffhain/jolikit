@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,8 @@ import net.jolikit.bwd.impl.utils.fonts.FontBoxHelperPerf;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtilsPerf;
-import net.jolikit.bwd.impl.utils.gprim.OvalOrArcPerf;
+import net.jolikit.bwd.impl.utils.gprim.HugeArcDrawerPerf;
+import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawerPerf;
 import net.jolikit.lang.HeisenLoggerPerf;
 import net.jolikit.lang.NumbersUtilsPerf;
 import net.jolikit.lang.ThinTimePerf;
@@ -50,7 +51,8 @@ public class AllPerfs {
         DefaultLineDrawerPerf.newRun(args);
         DefaultPolyDrawerPerf.newRun(args);
         GprimUtilsPerf.newRun(args);
-        OvalOrArcPerf.newRun(args);
+        HugeArcDrawerPerf.newRun(args);
+        MidPointArcDrawerPerf.newRun(args);
         
         /*
          * net.jolikit.bwd.impl.utils.fonts

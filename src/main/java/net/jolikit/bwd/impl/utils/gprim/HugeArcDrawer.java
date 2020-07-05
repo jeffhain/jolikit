@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
-public class DefaultArcDrawer implements InterfaceArcDrawer {
+public class HugeArcDrawer implements InterfaceArcDrawer {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -31,33 +31,21 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final InterfaceHugeAlgoSwitch hugeAlgoSwitch;
-    
     private final InterfaceClippedLineDrawer clippedLineDrawer;
-    
-    private final InterfacePointDrawer pointDrawer;
-    private final InterfaceLineDrawer lineDrawer;
-    private final InterfaceRectDrawer rectDrawer;
 
+    private final InterfaceRectDrawer rectDrawer;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DefaultArcDrawer(
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
+    public HugeArcDrawer(
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
         
-        this.hugeAlgoSwitch = LangUtils.requireNonNull(hugeAlgoSwitch);
-        
         this.clippedLineDrawer = LangUtils.requireNonNull(clippedLineDrawer);
-        
-        this.pointDrawer = LangUtils.requireNonNull(pointDrawer);
-        this.lineDrawer = LangUtils.requireNonNull(lineDrawer);
+
         this.rectDrawer = LangUtils.requireNonNull(rectDrawer);
     }
 
@@ -75,13 +63,7 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 //
-                this.hugeAlgoSwitch,
-                //
-                this.clippedLineDrawer,
-                //
-                this.pointDrawer,
-                this.lineDrawer,
-                this.rectDrawer);
+                this.clippedLineDrawer);
     }
 
     @Override
@@ -96,12 +78,8 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
                 startDeg, spanDeg,
                 areHorVerFlipped,
                 //
-                this.hugeAlgoSwitch,
-                //
                 this.clippedLineDrawer,
                 //
-                this.pointDrawer,
-                this.lineDrawer,
                 this.rectDrawer);
     }
 
@@ -117,13 +95,7 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
             //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
-            InterfaceClippedLineDrawer clippedLineDrawer,
-            //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
-            InterfaceRectDrawer rectDrawer) {
+            InterfaceClippedLineDrawer clippedLineDrawer) {
 
         if (DEBUG) {
             Dbg.log();
@@ -131,7 +103,7 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
-                    + ",,,,)");
+                    + ",)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -140,17 +112,20 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
         startDeg = GprimUtils.computeReworkedStartDeg(startDeg, spanDeg);
         spanDeg = GprimUtils.computeReworkedSpanDeg(spanDeg);
 
-        OvalOrArc_anyDraw.drawOvalOrArc(
+        final boolean mustFill = false;
+        final boolean areHorVerFlipped = false;
+        
+        final InterfaceRectDrawer rectDrawer = null;
+        
+        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
-                //
-                hugeAlgoSwitch,
+                areHorVerFlipped,
+                mustFill,
                 //
                 clippedLineDrawer,
                 //
-                pointDrawer,
-                lineDrawer,
                 rectDrawer);
     }
 
@@ -163,12 +138,8 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped,
             //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
         
         if (DEBUG) {
@@ -178,7 +149,7 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
                     + ", " + areHorVerFlipped
-                    + ",,,,)");
+                    + ",,)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -187,18 +158,17 @@ public class DefaultArcDrawer implements InterfaceArcDrawer {
         startDeg = GprimUtils.computeReworkedStartDeg(startDeg, spanDeg);
         spanDeg = GprimUtils.computeReworkedSpanDeg(spanDeg);
 
-        OvalOrArc_anyFill.fillOvalOrArc(
+        final boolean mustFill = true;
+        
+        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 areHorVerFlipped,
-                //
-                hugeAlgoSwitch,
+                mustFill,
                 //
                 clippedLineDrawer,
                 //
-                pointDrawer,
-                lineDrawer,
                 rectDrawer);
     }
 }

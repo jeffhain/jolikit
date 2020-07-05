@@ -18,14 +18,16 @@ package net.jolikit.bwd.impl.utils.gprim;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 
-public class DefaultArcDrawerTestHelper extends AbstractDrawerTestHelper<PixelFigStatusArcDef> {
+class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
     
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final DefaultArcDrawer arcDrawer;
-    
+    private final MidPointOvalDrawer midPointOvalDrawer;
+
+    private final HugeOvalDrawer hugeOvalDrawer;
+
     /*
      * temps
      */
@@ -37,21 +39,25 @@ public class DefaultArcDrawerTestHelper extends AbstractDrawerTestHelper<PixelFi
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public DefaultArcDrawerTestHelper(
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
+    public AllOvalDrawerTestHelper(
             InterfaceClippedPointDrawer clippedPointDrawer) {
         final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
         final DefaultClippedLineDrawer clippedLineDrawer = new DefaultClippedLineDrawer(clippedPointDrawer);
         final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedLineDrawer);
         final DefaultClippedRectDrawer defaultClippedRectDrawer = new DefaultClippedRectDrawer(clippedLineDrawer);
         final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, defaultClippedRectDrawer);
-        final DefaultArcDrawer arcDrawer = new DefaultArcDrawer(
-                hugeAlgoSwitch,
+        
+        final MidPointOvalDrawer midPointOvalDrawer = new MidPointOvalDrawer(
                 clippedLineDrawer,
                 pointDrawer,
                 lineDrawer,
                 rectDrawer);
-        this.arcDrawer = arcDrawer;
+        this.midPointOvalDrawer = midPointOvalDrawer;
+        
+        final HugeOvalDrawer hugeOvalDrawer = new HugeOvalDrawer(
+                clippedLineDrawer,
+                rectDrawer);
+        this.hugeOvalDrawer = hugeOvalDrawer;
     }
     
     @Override
@@ -60,88 +66,67 @@ public class DefaultArcDrawerTestHelper extends AbstractDrawerTestHelper<PixelFi
     }
     
     @Override
-    public void callDrawMethod(GRect clip, PixelFigStatusArcDef drawingArgs) {
-        final GRect oval = drawingArgs.getOval();
-        this.arcDrawer.drawArc(
+    public void callDrawMethod(GRect clip, TestOvalArgs drawingArgs) {
+        final GRect rect = drawingArgs.getOval();
+        
+        final InterfaceOvalDrawer ovalDrawer;
+        if (drawingArgs.getMustUseHugeAlgo()) {
+            ovalDrawer = this.hugeOvalDrawer;
+        } else {
+            ovalDrawer = this.midPointOvalDrawer;
+        }
+        
+        ovalDrawer.drawOval(
                 clip,
-                oval.x(),
-                oval.y(),
-                oval.xSpan(),
-                oval.ySpan(),
-                drawingArgs.getStartDeg(),
-                drawingArgs.getSpanDeg());
+                rect.x(), rect.y(), rect.xSpan(), rect.ySpan());
     }
     
     @Override
-    public void callFillMethod(GRect clip, PixelFigStatusArcDef drawingArgs) {
-        final GRect oval = drawingArgs.getOval();
+    public void callFillMethod(GRect clip, TestOvalArgs drawingArgs) {
+        final GRect rect = drawingArgs.getOval();
+        
         // NB: True not tested, but not implemented.
         final boolean areHorVerFlipped = false;
-        this.arcDrawer.fillArc(
+        
+        final InterfaceOvalDrawer ovalDrawer;
+        if (drawingArgs.getMustUseHugeAlgo()) {
+            ovalDrawer = this.hugeOvalDrawer;
+        } else {
+            ovalDrawer = this.midPointOvalDrawer;
+        }
+        
+        ovalDrawer.fillOval(
                 clip,
-                oval.x(),
-                oval.y(),
-                oval.xSpan(),
-                oval.ySpan(),
-                drawingArgs.getStartDeg(),
-                drawingArgs.getSpanDeg(),
+                rect.x(), rect.y(), rect.xSpan(), rect.ySpan(),
                 areHorVerFlipped);
     }
 
     @Override
     public long getAllowedNbrOfDanglingPixels(
             boolean isFillElseDraw,
-            PixelFigStatusArcDef drawingArgs) {
-        if (isFillElseDraw) {
-            final double spanDeg = drawingArgs.getReworkedSpanDeg();
-            if (spanDeg < 10.0) {
-                // Might have many, due to angular constraint
-                // excluding a lot of pixels.
-                return Math.max(
-                        drawingArgs.getOval().xSpan(),
-                        drawingArgs.getOval().ySpan()) / 2;
-            } else if (spanDeg < 90.0) {
-                // Might have 3, two at edges extremities
-                // and one at center.
-                return 3;
-            } else if (spanDeg < 360.0) {
-                // Might have 2, at edges extremities.
-                return 2;
-            } else {
-                return 0;
-            }
-        } else {
-            if (drawingArgs.getReworkedSpanDeg() == 360.0) {
-                return 0;
-            } else {
-                return 2;
-            }
-        }
+            TestOvalArgs drawingArgs) {
+        return 0;
     }
 
     @Override
-    public GRect computeBoundingBox(PixelFigStatusArcDef drawingArgs) {
-        /*
-         * Doesn't hurt to return a box larger than needed.
-         * Even helps for debug, since it gives geometric context
-         * to arc pixels.
-         */
+    public GRect computeBoundingBox(TestOvalArgs drawingArgs) {
         final GRect oval = drawingArgs.getOval();
         return oval;
     }
 
     @Override
     public PixelFigStatus computePixelFigStatus(
-            PixelFigStatusArcDef drawingArgs,
+            TestOvalArgs drawingArgs,
             GRect drawingBBox,
             boolean isFillElseDraw,
             GPoint pixel) {
         /*
-         * This algorithm is used for drawing huge arcs,
+         * This algorithm is used for drawing huge ovals,
          * but has originally been designed for this test class.
          */
-        return PixelFigStatusArcAlgo.computePixelFigStatus(
-                drawingArgs,
+        final GRect oval = drawingArgs.getOval();
+        return PixelFigStatusOvalAlgo.computePixelFigStatus(
+                oval,
                 isFillElseDraw,
                 pixel.x(),
                 pixel.y(),

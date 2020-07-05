@@ -143,7 +143,8 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
         if (mustComputePixelNum) {
             int myPixelNum = pixelNum;
             while (true) {
-                if (LineStippleUtils.mustDraw(factor, pattern, myPixelNum)) {
+                if (LineStippleUtils.mustDraw(
+                        factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
                 myPixelNum++;
@@ -193,7 +194,8 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
         if (mustComputePixelNum) {
             int myPixelNum = pixelNum;
             while (true) {
-                if (LineStippleUtils.mustDraw(factor, pattern, myPixelNum)) {
+                if (LineStippleUtils.mustDraw(
+                        factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
                 myPixelNum++;
@@ -262,7 +264,7 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
 
         if ((!mustComputePixelNum)
                 || LineStippleUtils.mustDraw(
-                factor, pattern, myPixelNum)) {
+                        factor, pattern, myPixelNum)) {
             clippedPointDrawer.drawPointInClip(x, y);
         }
         myPixelNum++;
@@ -281,7 +283,7 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                 fraction += tdy;
                 if ((!mustComputePixelNum)
                         || LineStippleUtils.mustDraw(
-                        factor, pattern, myPixelNum)) {
+                                factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
                 myPixelNum++;
@@ -297,7 +299,7 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                 fraction += tdx;
                 if ((!mustComputePixelNum)
                         || LineStippleUtils.mustDraw(
-                        factor, pattern, myPixelNum)) {
+                                factor, pattern, myPixelNum)) {
                     clippedPointDrawer.drawPointInClip(x, y);
                 }
                 myPixelNum++;

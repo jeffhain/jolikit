@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import net.jolikit.lang.NumbersUtils;
 /**
  * Algorithms specific for oval or arc filling.
  */
-public class OvalOrArc_anyFill {
+public class OvalOrArc_midPointFill {
 
     /*
      * Using "Midpoint circle algorithm", adapted for ovals,
@@ -58,8 +58,6 @@ public class OvalOrArc_anyFill {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
             boolean areHorVerFlipped,
-            //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
             //
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
@@ -101,12 +99,10 @@ public class OvalOrArc_anyFill {
             }
 
             // Draw is enough for filling this.
-            OvalOrArc_anyDraw.drawOvalOrArc(
+            OvalOrArc_midPointDraw.drawOvalOrArc(
                     clip,
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg,
-                    //
-                    hugeAlgoSwitch,
                     //
                     clippedLineDrawer,
                     //
@@ -142,47 +138,28 @@ public class OvalOrArc_anyFill {
                     areHorVerFlipped);
             return;
         }
-        
-        /*
-         * 
-         */
-        
-        final boolean mustUseHugeAlgo = hugeAlgoSwitch.mustUseHugeAlgorithm(xSpan, ySpan);
-        if (DEBUG) {
-            Dbg.log("mustUseHugeAlgo = " + mustUseHugeAlgo);
-        }
-        
-        if (mustUseHugeAlgo) {
-            final boolean isFillElseDraw = true;
-            OvalOrArc_huge.drawOrFillHugeOvalOrArc(
-                    clip,
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg,
-                    isFillElseDraw,
-                    clippedLineDrawer);
-        } else {
-            /*
-             * TODO optim Could, if worth the additional code:
-             * - Use areHorVerFlipped.
-             * - Special case depending on odd or even spans, as done
-             *   for circles drawing.
-             * - Special case for circles.
-             */
 
-            fillOvalOrArc_fp(
-                    clip,
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg,
-                    pointDrawer,
-                    lineDrawer);
-        }
+        /*
+         * TODO optim Could, if worth the additional code:
+         * - Use areHorVerFlipped.
+         * - Special case depending on odd or even spans, as done
+         *   for circles drawing.
+         * - Special case for circles.
+         */
+
+        fillOvalOrArc_fp(
+                clip,
+                x, y, xSpan, ySpan,
+                startDeg, spanDeg,
+                pointDrawer,
+                lineDrawer);
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private OvalOrArc_anyFill() {
+    private OvalOrArc_midPointFill() {
     }
     
     /*

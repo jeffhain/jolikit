@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import net.jolikit.lang.NumbersUtils;
 /**
  * Algorithms specific for full circles outline drawing.
  */
-public class OvalOrArc_fullCircleDraw {
+public class OvalOrArc_midPointDraw_circle {
 
     /*
      * Using "Midpoint circle algorithm", with longs not to overflow,
@@ -49,8 +49,6 @@ public class OvalOrArc_fullCircleDraw {
     public static void drawCircle(
             GRect clip,
             int x, int y, int span,
-            //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
             //
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
@@ -90,34 +88,17 @@ public class OvalOrArc_fullCircleDraw {
         /*
          * 
          */
-        
-        final boolean mustUseHugeAlgo = hugeAlgoSwitch.mustUseHugeAlgorithm(span, span);
-        if (DEBUG) {
-            Dbg.log("mustUseHugeAlgo = " + mustUseHugeAlgo);
-        }
-        
-        if (mustUseHugeAlgo) {
-            final double startDeg = 0.0;
-            final double spanDeg = 360.0;
-            final boolean isFillElseDraw = false;
-            OvalOrArc_huge.drawOrFillHugeOvalOrArc(
+
+        if (NumbersUtils.isOdd(span)) {
+            drawCircle_oddSpan(
                     clip,
-                    x, y, span, span,
-                    startDeg, spanDeg,
-                    isFillElseDraw,
-                    clippedLineDrawer);
+                    x, y, span,
+                    pointDrawer);
         } else {
-            if (NumbersUtils.isOdd(span)) {
-                drawCircle_oddSpan(
-                        clip,
-                        x, y, span,
-                        pointDrawer);
-            } else {
-                drawCircle_evenSpan(
-                        clip,
-                        x, y, span,
-                        pointDrawer);
-            }
+            drawCircle_evenSpan(
+                    clip,
+                    x, y, span,
+                    pointDrawer);
         }
     }
 
@@ -125,7 +106,7 @@ public class OvalOrArc_fullCircleDraw {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private OvalOrArc_fullCircleDraw() {
+    private OvalOrArc_midPointDraw_circle() {
     }
     
     /*

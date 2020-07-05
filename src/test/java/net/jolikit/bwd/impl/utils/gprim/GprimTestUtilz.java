@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -240,7 +240,8 @@ class GprimTestUtilz {
     public static void logStatusByPixel(Map<GPoint,TestPixelStatus> statusByPixel) {
         
         Dbg.log("[- = out of clip, ./: = out of clip and painted once/multiple times]");
-        Dbg.log("[e/E = exceeding, m = missing, x/X = required, y/Y = allowed, z = allowed not painted, caps = multiple times]");
+        Dbg.log("[e/E = exceeding, m = missing, x/X = required painted, y/Y = allowed painted,");
+        Dbg.log(" z = allowed not painted, space = not allowed not painted, caps = multiple times]");
         Dbg.log("---");
         
         final StringBuilder sb = new StringBuilder();

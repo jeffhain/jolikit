@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import net.jolikit.lang.NumbersUtils;
 /**
  * Algorithms specific for oval or arc outline drawing.
  */
-public class OvalOrArc_anyDraw {
+public class OvalOrArc_midPointDraw {
     
     /*
      * Using "Midpoint circle algorithm", adapted for ovals,
@@ -54,8 +54,6 @@ public class OvalOrArc_anyDraw {
             GRect clip,
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
-            //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
             //
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
@@ -95,11 +93,9 @@ public class OvalOrArc_anyDraw {
             if (DEBUG) {
                 Dbg.log("special case : full circle");
             }
-            OvalOrArc_fullCircleDraw.drawCircle(
+            OvalOrArc_midPointDraw_circle.drawCircle(
                     clip,
                     x, y, xSpan,
-                    //
-                    hugeAlgoSwitch,
                     //
                     clippedLineDrawer,
                     //
@@ -158,34 +154,19 @@ public class OvalOrArc_anyDraw {
         /*
          * 
          */
-        
-        final boolean mustUseHugeAlgo = hugeAlgoSwitch.mustUseHugeAlgorithm(xSpan, ySpan);
-        if (DEBUG) {
-            Dbg.log("mustUseHugeAlgo = " + mustUseHugeAlgo);
-        }
-        
-        if (mustUseHugeAlgo) {
-            final boolean isFillElseDraw = false;
-            OvalOrArc_huge.drawOrFillHugeOvalOrArc(
-                    clip,
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg,
-                    isFillElseDraw,
-                    clippedLineDrawer);
-        } else {
-            drawOvalOrArc_fp(
-                    clip,
-                    x, y, xSpan, ySpan,
-                    startDeg, spanDeg,
-                    pointDrawer);
-        }
+
+        drawOvalOrArc_fp(
+                clip,
+                x, y, xSpan, ySpan,
+                startDeg, spanDeg,
+                pointDrawer);
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private OvalOrArc_anyDraw() {
+    private OvalOrArc_midPointDraw() {
     }
 
     /*

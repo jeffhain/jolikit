@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
-public class DefaultOvalDrawer implements InterfaceOvalDrawer {
+public class HugeOvalDrawer implements InterfaceOvalDrawer {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -31,33 +31,21 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final InterfaceHugeAlgoSwitch hugeAlgoSwitch;
-    
     private final InterfaceClippedLineDrawer clippedLineDrawer;
-    
-    private final InterfacePointDrawer pointDrawer;
-    private final InterfaceLineDrawer lineDrawer;
-    private final InterfaceRectDrawer rectDrawer;
 
+    private final InterfaceRectDrawer rectDrawer;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DefaultOvalDrawer(
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
+    public HugeOvalDrawer(
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
-        
-        this.hugeAlgoSwitch = LangUtils.requireNonNull(hugeAlgoSwitch);
         
         this.clippedLineDrawer = LangUtils.requireNonNull(clippedLineDrawer);
         
-        this.pointDrawer = LangUtils.requireNonNull(pointDrawer);
-        this.lineDrawer = LangUtils.requireNonNull(lineDrawer);
         this.rectDrawer = LangUtils.requireNonNull(rectDrawer);
     }
 
@@ -73,13 +61,7 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
                 clip,
                 x, y, xSpan, ySpan,
                 //
-                this.hugeAlgoSwitch,
-                //
-                this.clippedLineDrawer,
-                //
-                this.pointDrawer,
-                this.lineDrawer,
-                this.rectDrawer);
+                this.clippedLineDrawer);
     }
 
     @Override
@@ -92,12 +74,8 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
                 x, y, xSpan, ySpan,
                 areHorVerFlipped,
                 //
-                this.hugeAlgoSwitch,
-                //
                 this.clippedLineDrawer,
                 //
-                this.pointDrawer,
-                this.lineDrawer,
                 this.rectDrawer);
     }
 
@@ -112,33 +90,30 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
             GRect clip,
             int x, int y, int xSpan, int ySpan,
             //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
-            InterfaceClippedLineDrawer clippedLineDrawer,
-            //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
-            InterfaceRectDrawer rectDrawer) {
+            InterfaceClippedLineDrawer clippedLineDrawer) {
 
         if (DEBUG) {
             Dbg.log();
             Dbg.log("drawOval("
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
-                    + ",,,,)");
+                    + ",)");
         }
 
-        OvalOrArc_anyDraw.drawOvalOrArc(
+        final boolean mustFill = false;
+        final boolean areHorVerFlipped = false;
+        
+        final InterfaceRectDrawer rectDrawer = null;
+        
+        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 0.0, 360.0,
-                //
-                hugeAlgoSwitch,
+                areHorVerFlipped,
+                mustFill,
                 //
                 clippedLineDrawer,
                 //
-                pointDrawer,
-                lineDrawer,
                 rectDrawer);
     }
 
@@ -150,12 +125,8 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
             int x, int y, int xSpan, int ySpan,
             boolean areHorVerFlipped,
             //
-            InterfaceHugeAlgoSwitch hugeAlgoSwitch,
-            //
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
-            InterfacePointDrawer pointDrawer,
-            InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
 
         if (DEBUG) {
@@ -164,21 +135,20 @@ public class DefaultOvalDrawer implements InterfaceOvalDrawer {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + areHorVerFlipped
-                    + ",,,,)");
+                    + ",,)");
         }
 
-        OvalOrArc_anyFill.fillOvalOrArc(
+        final boolean mustFill = true;
+        
+        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 0.0, 360.0,
                 areHorVerFlipped,
-                //
-                hugeAlgoSwitch,
+                mustFill,
                 //
                 clippedLineDrawer,
                 //
-                pointDrawer,
-                lineDrawer,
                 rectDrawer);
     }
 }

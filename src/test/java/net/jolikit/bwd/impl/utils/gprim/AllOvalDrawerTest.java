@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
 
-public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDef> {
+public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -31,32 +31,7 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
      * Comprehensive.
      */
     
-    private static final int MAX_COMPREHENSIVE_OVAL_SPAN = 10;
-    
-    private static final double[][] COMP_START_SPAN_DEG_ARR = new double[][]{
-        {0.0, 0.0},
-        {0.0, -Double.MIN_VALUE},
-        {0.0, Double.MIN_VALUE},
-        {0.0, 90.0},
-        //
-        {90.0, -Double.MIN_VALUE},
-        {90.0, Double.MIN_VALUE},
-        {90.0, 90.0},
-        //
-        {180.0, -Double.MIN_VALUE},
-        {180.0, Double.MIN_VALUE},
-        {180.0, 90.0},
-        //
-        {270.0, -Double.MIN_VALUE},
-        {270.0, Double.MIN_VALUE},
-        {270.0, 90.0},
-        //
-        {360.0, -Double.MIN_VALUE},
-        {360.0, Double.MIN_VALUE},
-        {360.0, 90.0},
-        //
-        {360.0, Double.MAX_VALUE},
-    };
+    private static final int MAX_COMPREHENSIVE_OVAL_SPAN = 25;
     
     /*
      * Random.
@@ -64,39 +39,27 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
     
     private static final boolean ALLOW_HUGE_COORDS = true;
     
-    private static final int NBR_OF_CALLS_RANDOM = 1000;
+    private static final int NBR_OF_CALLS_RANDOM = 100;
     
-    private static final int MAX_RANDOM_OVAL_SPAN = 50;
-    
-    /**
-     * Not too large so that we can test huge-specific algorithm
-     * easily and fast.
-     */
-    private static final int HUGE_SPAN_THRESHOLD = (int) (MAX_RANDOM_OVAL_SPAN * 0.8);
+    private static final int MAX_RANDOM_OVAL_SPAN = 100;
     
     private static final double CIRCLE_PROBA = 0.25;
-    
-    /**
-     * To test that spans > 360 deg are properly handled.
-     */
-    private static final double OVER_SPAN_PROBA = 0.05;
     
     /*
      * 
      */
     
     private static final int NBR_OF_CALLS_COMPREHENSIVE =
-            NumbersUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1)
-            * COMP_START_SPAN_DEG_ARR.length;
+            NumbersUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1);
     private static final int NBR_OF_CALLS =
             NBR_OF_CALLS_COMPREHENSIVE
             + NBR_OF_CALLS_RANDOM;
-    
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public DefaultArcDrawerTest() {
+    public AllOvalDrawerTest() {
     }
     
     /*
@@ -118,12 +81,8 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
     //--------------------------------------------------------------------------
 
     @Override
-    protected AbstractDrawerTestHelper<PixelFigStatusArcDef> newDrawerTestHelper(
-            InterfaceClippedPointDrawer clippedPointDrawer) {
-        final DefaultHugeAlgoSwitch hugeAlgoSwitch =
-                new DefaultHugeAlgoSwitch(HUGE_SPAN_THRESHOLD);
-        return new DefaultArcDrawerTestHelper(
-                hugeAlgoSwitch,
+    protected AbstractDrawerTestHelper<TestOvalArgs> newDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer) {
+        return new AllOvalDrawerTestHelper(
                 clippedPointDrawer);
     }
 
@@ -133,7 +92,7 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
     }
     
     @Override
-    protected PixelFigStatusArcDef newDrawingArgs(int index) {
+    protected TestOvalArgs newDrawingArgs(int index) {
         
         final boolean isComprehensive = (index < NBR_OF_CALLS_COMPREHENSIVE);
         
@@ -141,21 +100,12 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
         final int ySpan;
         final int x;
         final int y;
-        final double startDeg;
-        final double spanDeg;
         if (isComprehensive) {
-            final int spanIndex = index / COMP_START_SPAN_DEG_ARR.length;
-            final int angIndex = index % COMP_START_SPAN_DEG_ARR.length;
-            
             // Prime coordinates.
             x = 3;
             y = 7;
-            xSpan = (spanIndex % (MAX_COMPREHENSIVE_OVAL_SPAN + 1));
-            ySpan = (spanIndex / (MAX_COMPREHENSIVE_OVAL_SPAN + 1));
-            
-            final double[] startSpanDegArr = COMP_START_SPAN_DEG_ARR[angIndex];
-            startDeg = startSpanDegArr[0];
-            spanDeg = startSpanDegArr[1];
+            xSpan = index % (MAX_COMPREHENSIVE_OVAL_SPAN + 1);
+            ySpan = index / (MAX_COMPREHENSIVE_OVAL_SPAN + 1);
         } else {
             final boolean mustBeCircle = this.randomBoolean(CIRCLE_PROBA);
             
@@ -173,20 +123,15 @@ public class DefaultArcDrawerTest extends AbstractDrawerTezt<PixelFigStatusArcDe
             final int tmpY = (ALLOW_HUGE_COORDS ? this.random.nextInt() : 0);
             x = (int) Math.min(tmpX, Integer.MAX_VALUE - (long) xSpan + 1);
             y = (int) Math.min(tmpY, Integer.MAX_VALUE - (long) ySpan + 1);
-            
-            // Must handle angles out of +-360 deg.
-            startDeg = this.randomMinusOneOne() * 400.0;
-            if (this.randomBoolean(OVER_SPAN_PROBA)) {
-                final int sign = (this.random.nextBoolean() ? 1 : -1);
-                spanDeg = sign * (360.0 + this.random.nextDouble() * 720.0);
-            } else {
-                spanDeg = this.randomMinusOneOne() * 360.0;
-            }
         }
 
         final GRect oval = GRect.valueOf(x, y, xSpan, ySpan);
         
-        final PixelFigStatusArcDef drawingArgs = new PixelFigStatusArcDef(oval, startDeg, spanDeg);
+        final boolean mustUseHugeAlgo = this.random.nextBoolean();
+        
+        final TestOvalArgs drawingArgs = new TestOvalArgs(
+                oval,
+                mustUseHugeAlgo);
         if (DEBUG) {
             Dbg.log();
             Dbg.log("drawingArgs = " + drawingArgs);

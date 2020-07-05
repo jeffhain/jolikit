@@ -16,26 +16,26 @@
 package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.gprim.DefaultArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultClippedLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultClippedRectDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
-import net.jolikit.bwd.impl.utils.gprim.DefaultOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPointDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultRectDrawer;
+import net.jolikit.bwd.impl.utils.gprim.HugeArcDrawer;
+import net.jolikit.bwd.impl.utils.gprim.HugeOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedPointDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedRectDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceColorDrawer;
-import net.jolikit.bwd.impl.utils.gprim.InterfaceHugeAlgoSwitch;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfacePointDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfacePolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceRectDrawer;
+import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawer;
+import net.jolikit.bwd.impl.utils.gprim.MidPointOvalDrawer;
 
 /**
  * Optional abstract class, that makes it easier to implement graphics,
@@ -54,8 +54,6 @@ import net.jolikit.bwd.impl.utils.gprim.InterfaceRectDrawer;
  * exact non-clipped extremities.
  */
 public abstract class AbstractBwdPrimitives implements
-//
-InterfaceHugeAlgoSwitch,
 //
 InterfaceColorDrawer,
 //
@@ -80,20 +78,44 @@ InterfacePolyDrawer {
      */
 
     //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    /**
+     * For huge ovals or arcs, considering that the figure is very large
+     * compared oval and clip intersection, and that lines (used when filling)
+     * are clipped before drawing, regular (Bresenham-like) algorithms are
+     * in O(span) both for drawing and filling.
+     * This means that even for quite large spans, regular algorithms should
+     * still go fast, and that we must only switch to huge-specific algorithm,
+     * which is in O(box_span^2) (where "box" is the intersection of oval and
+     * clip), above a quite large threshold.
+     * 
+     * Threshold figured out with benches using
+     * an almost no-op clipped point drawer.
+     * 
+     * Could use different (default) thresholds for oval/arc and draw/fill
+     * (it could be a bit larger when filling ovals (not arcs),
+     * or much larger when just drawing (not filling)),
+     * but we prefer to stick to one, for drawing consistency between
+     * these different operations, and because it's quite large already.
+     */
+    private static final int HUGE_SPAN_THRESHOLD = 10 * 1000;
+    private static boolean mustUseHugeAlgorithm(int xSpan, int ySpan) {
+        return isHuge(xSpan)
+                || isHuge(ySpan);
+    }
+    private static boolean isHuge(int span) {
+        // > and not >=, so that Integer.MAX_VALUE
+        // can be used to disable huge-specific algorithm.
+        return (span > HUGE_SPAN_THRESHOLD);
+    }
+
+    //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public AbstractBwdPrimitives() {
-    }
-    
-    /*
-     * InterfaceHugeAlgoSwitch
-     */
-    
-    @Override
-    public boolean mustUseHugeAlgorithm(int xSpan, int ySpan) {
-        return (xSpan > DefaultHugeAlgoSwitch.DEFAULT_HUGE_SPAN_THRESHOLD)
-                || (ySpan > DefaultHugeAlgoSwitch.DEFAULT_HUGE_SPAN_THRESHOLD);
     }
     
     /*
@@ -285,25 +307,29 @@ InterfacePolyDrawer {
             GRect clip,
             int x, int y, int xSpan, int ySpan) {
         
-        final InterfaceHugeAlgoSwitch hugeAlgoSwitch = this;
-        
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
         
-        DefaultOvalDrawer.drawOval(
-                clip,
-                x, y, xSpan, ySpan,
-                //
-                hugeAlgoSwitch,
-                //
-                clippedLineDrawer,
-                //
-                pointDrawer,
-                lineDrawer,
-                rectDrawer);
+        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
+            HugeOvalDrawer.drawOval(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    //
+                    clippedLineDrawer);
+        } else {
+            MidPointOvalDrawer.drawOval(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    //
+                    clippedLineDrawer,
+                    //
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer);
+        }
     }
     
     @Override
@@ -312,26 +338,33 @@ InterfacePolyDrawer {
             int x, int y, int xSpan, int ySpan,
             boolean areHorVerFlipped) {
         
-        final InterfaceHugeAlgoSwitch hugeAlgoSwitch = this;
-        
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
         
-        DefaultOvalDrawer.fillOval(
-                clip,
-                x, y, xSpan, ySpan,
-                areHorVerFlipped,
-                //
-                hugeAlgoSwitch,
-                //
-                clippedLineDrawer,
-                //
-                pointDrawer,
-                lineDrawer,
-                rectDrawer);
+        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
+            HugeOvalDrawer.fillOval(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    areHorVerFlipped,
+                    //
+                    clippedLineDrawer,
+                    //
+                    rectDrawer);
+        } else {
+            MidPointOvalDrawer.fillOval(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    areHorVerFlipped,
+                    //
+                    clippedLineDrawer,
+                    //
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer);
+        }
     }
     
     /*
@@ -344,26 +377,31 @@ InterfacePolyDrawer {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg) {
         
-        final InterfaceHugeAlgoSwitch hugeAlgoSwitch = this;
-        
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
         
-        DefaultArcDrawer.drawArc(
-                clip,
-                x, y, xSpan, ySpan,
-                startDeg, spanDeg,
-                //
-                hugeAlgoSwitch,
-                //
-                clippedLineDrawer,
-                //
-                pointDrawer,
-                lineDrawer,
-                rectDrawer);
+        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
+            HugeArcDrawer.drawArc(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg,
+                    //
+                    clippedLineDrawer);
+        } else {
+            MidPointArcDrawer.drawArc(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg,
+                    //
+                    clippedLineDrawer,
+                    //
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer);
+        }
     }
     
     @Override
@@ -373,27 +411,35 @@ InterfacePolyDrawer {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped) {
         
-        final InterfaceHugeAlgoSwitch hugeAlgoSwitch = this;
-        
         final InterfaceClippedLineDrawer clippedLineDrawer = this;
         
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
         
-        DefaultArcDrawer.fillArc(
-                clip,
-                x, y, xSpan, ySpan,
-                startDeg, spanDeg,
-                areHorVerFlipped,
-                //
-                hugeAlgoSwitch,
-                //
-                clippedLineDrawer,
-                //
-                pointDrawer,
-                lineDrawer,
-                rectDrawer);
+        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
+            HugeArcDrawer.fillArc(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg,
+                    areHorVerFlipped,
+                    //
+                    clippedLineDrawer,
+                    //
+                    rectDrawer);
+        } else {
+            MidPointArcDrawer.fillArc(
+                    clip,
+                    x, y, xSpan, ySpan,
+                    startDeg, spanDeg,
+                    areHorVerFlipped,
+                    //
+                    clippedLineDrawer,
+                    //
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer);
+        }
     }
     
     /*

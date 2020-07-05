@@ -16,7 +16,7 @@
 package net.jolikit.bwd.test.cases.utils.fractals;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
+import net.jolikit.lang.NumbersUtils;
 
 /**
  * Defines central fractal position and the scale.
@@ -103,14 +103,14 @@ public final class FracView {
     public int fToGX(double fx, GRect gBox) {
         final double fdx = fx - this.center.x();
         // center is middle of mid pixel, so no xMidFp().
-        final int gx = gBox.xMid() + BindingCoordsUtils.roundToInt(fdx / this.scale);
+        final int gx = gBox.xMid() + NumbersUtils.roundToInt(fdx / this.scale);
         return gx;
     }
     
     public int fToGY(double fy, GRect gBox) {
         final double fdy = fy - this.center.y();
         // center is middle of mid pixel, so no yMidFp().
-        final int gy = gBox.yMid() + BindingCoordsUtils.roundToInt(fdy / this.scale);
+        final int gy = gBox.yMid() + NumbersUtils.roundToInt(fdy / this.scale);
         return gy;
     }
     
@@ -128,4 +128,3 @@ public final class FracView {
         return fy;
     }
 }
-

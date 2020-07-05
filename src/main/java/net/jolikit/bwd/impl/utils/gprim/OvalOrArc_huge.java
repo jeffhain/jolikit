@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.lang.Dbg;
 
 /**
  * Algorithm for drawing huge ovals or arcs, for which Bresenham-like algorithms
@@ -32,17 +33,90 @@ public class OvalOrArc_huge {
      */
 
     //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    private static final boolean DEBUG = false;
+    
+    //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public static void drawOrFillHugeOvalOrArc(
             GRect clip,
-            int ox, int oy, int oxSpan, int oySpan,
+            int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
-            boolean isFillElseDraw,
-            InterfaceClippedLineDrawer clippedLineDrawer) {
+            boolean areHorVerFlipped,
+            boolean mustFill,
+            //
+            InterfaceClippedLineDrawer clippedLineDrawer,
+            //
+            InterfaceRectDrawer rectDrawer) {
         
-        final GRect oval = GRect.valueOf(ox, oy, oxSpan, oySpan);
+        if (DEBUG) {
+            Dbg.log("drawOrFillHugeOvalOrArc("
+                    + clip
+                    + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
+                    + ", " + startDeg + ", " + spanDeg
+                    + ", " + areHorVerFlipped
+                    + ", " + mustFill
+                    + ",,)");
+        }
+        
+        final boolean isEmpty =
+                (xSpan <= 0)
+                || (ySpan <= 0)
+                || (spanDeg == 0.0);
+        if (isEmpty) {
+            return;
+        }
+        
+        xSpan = GRect.trimmedSpan(x, xSpan);
+        ySpan = GRect.trimmedSpan(y, ySpan);
+        
+        final boolean isFull = (spanDeg == 360.0);
+        
+        /*
+         * 
+         */
+        
+        if (mustFill) {
+            if (!GprimUtils.mustFillOvalOrArc(clip, x, y, xSpan, ySpan)) {
+                if (DEBUG) {
+                    Dbg.log("must not fill");
+                }
+                return;
+            }
+            
+            /*
+             * Special case for ovals containing the clip.
+             */
+
+            if (isFull
+                    && GprimUtils.isClipInOval(clip, x, y, xSpan, ySpan)) {
+                if (DEBUG) {
+                    Dbg.log("fill clip");
+                }
+                rectDrawer.fillRect(
+                        clip,
+                        clip.x(), clip.y(), clip.xSpan(), clip.ySpan(),
+                        areHorVerFlipped);
+                return;
+            }
+        } else {
+            if (!GprimUtils.mustDrawOvalOrArc(clip, x, y, xSpan, ySpan)) {
+                if (DEBUG) {
+                    Dbg.log("must not draw");
+                }
+                return;
+            }
+        }
+
+        /*
+         * 
+         */
+        
+        final GRect oval = GRect.valueOf(x, y, xSpan, ySpan);
         final PixelFigStatusArcDef arcDef = new PixelFigStatusArcDef(
                 oval,
                 startDeg,
@@ -59,21 +133,21 @@ public class OvalOrArc_huge {
         final GRect box = clip.intersected(oval);
 
         for (int j = 0; j < box.ySpan(); j++) {
-            final int y = box.y() + j;
+            final int py = box.y() + j;
             
             // x1 > x2 means neither defined.
             int x1 = Integer.MAX_VALUE;
             int x2 = Integer.MIN_VALUE;
             
             for (int i = 0; i < box.xSpan(); i++) {
-                final int x = box.x() + i;
+                final int px = box.x() + i;
                 
                 final PixelFigStatus pixelStatus =
                         PixelFigStatusArcAlgo.computePixelFigStatus(
                                 arcDef,
-                                isFillElseDraw,
-                                x,
-                                y,
+                                mustFill,
+                                px,
+                                py,
                                 //
                                 ovalAlgoTemps);
                 
@@ -92,16 +166,16 @@ public class OvalOrArc_huge {
                 
                 if (mustDrawPixel) {
                     if (x1 > x2) {
-                        x1 = x;
+                        x1 = px;
                     }
-                    x2 = x;
+                    x2 = px;
                 }
                 
                 if ((!mustDrawPixel)
                         || (i == box.xSpan() - 1)) {
                     if (x1 <= x2) {
                         clippedLineDrawer.drawHorizontalLineInClip(
-                                x1, x2, y,
+                                x1, x2, py,
                                 1, GprimUtils.PLAIN_PATTERN, 0);
                         x1 = Integer.MAX_VALUE;
                         x2 = Integer.MIN_VALUE;
