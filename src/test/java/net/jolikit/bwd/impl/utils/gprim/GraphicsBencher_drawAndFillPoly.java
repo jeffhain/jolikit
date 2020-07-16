@@ -84,13 +84,13 @@ public class GraphicsBencher_drawAndFillPoly {
      */
 
     public void bench_drawPolygon(InterfaceBwdGraphics g) {
-        final boolean isFill = false;
-        this.bench_drawOrFillPolygon(g, isFill);
+        final boolean isFillElseDraw = false;
+        this.bench_drawOrFillPolygon(g, isFillElseDraw);
     }
 
     public void bench_fillPolygon(InterfaceBwdGraphics g) {
-        final boolean isFill = true;
-        this.bench_drawOrFillPolygon(g, isFill);
+        final boolean isFillElseDraw = true;
+        this.bench_drawOrFillPolygon(g, isFillElseDraw);
     }
 
     /*
@@ -99,7 +99,7 @@ public class GraphicsBencher_drawAndFillPoly {
     
     public void bench_drawOrFillPolygon(
             InterfaceBwdGraphics g,
-            boolean isFill) {
+            boolean isFillElseDraw) {
         
         final GRect clipInBase = g.getClipInBase();
         final int clipSpan = clipInBase.xSpan();
@@ -107,22 +107,41 @@ public class GraphicsBencher_drawAndFillPoly {
         System.out.println("nbrOfCalls = " + this.nbrOfCalls);
         System.out.println("clipSpan = " + clipSpan);
 
-        for (int polygonSpan : new int[] {100, clipSpan, 10 * clipSpan, 100 * clipSpan}) {
-            for (int pointCount : new int[] {100, 1000, 10000}) {
-                for (boolean ellipseElseSpiral : new boolean[] {true, false}) {
+        final GRect clip = g.getClipInBase();
+        
+        for (int polygonSpan : new int[] {
+                100,
+                clipSpan,
+                10 * clipSpan,
+                100 * clipSpan}) {
+            
+            for (int pointCount : new int[] {
+                    10,
+                    100,
+                    1000,
+                    10000}) {
+                
+                for (int figureType : new int[] {1, 2, 3}) {
+                    final boolean isEllipse = (figureType == 1);
+                    final boolean isSpiral = (figureType == 2);
+                    final boolean isOblique = (figureType == 3);
+                    
                     final int xMaxRadius = polygonSpan / 2;
                     final int yMaxRadius = polygonSpan / 2;
                     final double roundCount = SPIRAL_ROUND_COUNT;
                     final int[] xArr = new int[pointCount];
                     final int[] yArr = new int[pointCount];
-                    if (ellipseElseSpiral) {
+                    final String figStr;
+                    if (isEllipse) {
+                        figStr = "ellipse";
                         final double stepRad = (2*Math.PI) / pointCount;
                         for (int k = 0; k < pointCount; k++) {
                             final double angRad = k * stepRad;
                             xArr[k] = (int) (xMaxRadius * Math.sin(angRad));
                             yArr[k] = (int) (yMaxRadius * Math.cos(angRad));
                         }
-                    } else {
+                    } else if (isSpiral) {
+                        figStr = "spiral";
                         BwdTestUtils.computeSpiralPolygonPoints(
                                 xMaxRadius,
                                 yMaxRadius,
@@ -130,18 +149,38 @@ public class GraphicsBencher_drawAndFillPoly {
                                 roundCount,
                                 xArr,
                                 yArr);
+                    } else if (isOblique) {
+                        figStr = "oblique";
+                        final int polyXSpan = clip.xSpan();
+                        final int polyYSpan = clip.ySpan();
+                        final int yThick = polyYSpan / 10;
+                        final int hx = polyXSpan / 2;
+                        final int hy = polyYSpan / 2;
+                        xArr[0] = -hx;
+                        yArr[0] = -hy;
+                        xArr[1] = hx;
+                        yArr[1] = hy;
+                        final double divisor = (pointCount - 2);
+                        final double xStep = polyXSpan / divisor;
+                        final double yStep = polyYSpan / divisor;
+                        for (int k = 2; k < pointCount; k++) {
+                            xArr[k] = (int) (hx - xStep * (k - 1));
+                            yArr[k] = (int) (hx - yStep * (k - 1)) + yThick;
+                        }
+                    } else {
+                        throw new AssertionError();
                     }
+                    
                     // For centering in clip, without having to add a transform.
-                    final GRect clip = g.getClipInBase();
                     for (int k = 0; k < pointCount; k++) {
                         xArr[k] += clip.xMid();
                         yArr[k] += clip.yMid();
                     }
-
+                    
                     for (int k = 0; k < this.nbrOfRuns; k++) {
                         long a = System.nanoTime();
                         for (int i = 0; i < this.nbrOfCalls; i++) {
-                            if (isFill) {
+                            if (isFillElseDraw) {
                                 g.fillPolygon(xArr, yArr, pointCount);
                             } else {
                                 g.drawPolygon(xArr, yArr, pointCount);
@@ -150,13 +189,13 @@ public class GraphicsBencher_drawAndFillPoly {
                         long b = System.nanoTime();
                         
                         final StringBuilder sb = new StringBuilder();
-                        sb.append(isFill ? "fillPolygon()" : "drawPolygon()");
+                        sb.append(isFillElseDraw ? "fillPolygon()" : "drawPolygon()");
                         sb.append(": (" + polygonSpan);
                         sb.append(", " + pointCount);
-                        sb.append(" pts), " + (ellipseElseSpiral ? "ellipse" : " spiral"));
+                        sb.append(" pts), " + figStr);
                         System.out.println(
-                                sb.toString() + ", took "
-                                + TestUtils.nsToSRounded(b-a) + " s");
+                                sb.toString()
+                                + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
             }

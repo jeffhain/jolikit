@@ -41,6 +41,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * of O(max(width * height, pointCount)),
      * and makes fill polygons outline consistent with
      * drawPolygon() and with drawLine().
+     * We also keep track of min/max lit X in each row,
+     * which allows for nice filling speed-up in case
+     * of fully out rows, or in case of oblique polygons.
      */
 
     //--------------------------------------------------------------------------
@@ -52,7 +55,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
     /**
      * For a byte[], that's 16Mo.
      */
-    private static final int MAX_REUSE_CAPACITY = 4096 * 4096;
+    private static final int MAX_FLAG_ARR_REUSE_CAPACITY = 4096 * 4096;
+
+    /**
+     * Should be large enough for most screens.
+     */
+    private static final int MAX_X_ARR_REUSE_CAPACITY = 4096 * 4;
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -60,27 +68,48 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
 
     private static class MyTemps {
         private static final byte[] EMPTY_BYTE_ARR = new byte[0];
+        private static final int[] EMPTY_INT_ARR = new int[0];
         final MyClippedPointDrawerWithFlag clippedPointDrawerWithFlag =
                 new MyClippedPointDrawerWithFlag();
         final DefaultClippedLineDrawer clippedLineDrawer =
                 new DefaultClippedLineDrawer();
-        byte[] tmpByteArr1 = EMPTY_BYTE_ARR;
+        byte[] tmpFlagByIndex = EMPTY_BYTE_ARR;
+        /*
+         * min/max lit X on each row.
+         */
+        int[] tmpXMinArr = EMPTY_INT_ARR;
+        int[] tmpXMaxArr = EMPTY_INT_ARR;
     }
 
     private static class MyClippedPointDrawerWithFlag implements InterfaceClippedPointDrawer {
         private InterfaceClippedPointDrawer clippedPointDrawer;
         private GRect bbox = GRect.DEFAULT_EMPTY;
         private byte[] flagByIndex = null;
+        private int[] xMinArr = null;
+        private int[] xMaxArr = null;
         public MyClippedPointDrawerWithFlag() {
         }
         public void reset(
+                MyTemps temps,
+                boolean isFillElseDraw,
                 InterfaceClippedPointDrawer clippedPointDrawer,
                 GRect bbox) {
             this.clippedPointDrawer = clippedPointDrawer;
             this.bbox = bbox;
 
             final int area = bbox.area();
-            this.flagByIndex = getByteArrReset(area);
+            this.flagByIndex = getFlagByIndexReset(temps, area);
+            if (isFillElseDraw) {
+                this.xMinArr = getXArr(temps, bbox.ySpan(), false);
+                this.xMaxArr = getXArr(temps, bbox.ySpan(), true);
+                for (int i = 0; i < bbox.ySpan(); i++) {
+                    this.xMinArr[i] = Integer.MAX_VALUE;
+                    this.xMaxArr[i] = Integer.MIN_VALUE;
+                }
+            } else {
+                this.xMinArr = null;
+                this.xMaxArr = null;
+            }
         }
         @Override
         public void drawPointInClip(int x, int y) {
@@ -92,6 +121,10 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             } else {
                 this.flagByIndex[index] = FLAG_EDGE;
                 this.clippedPointDrawer.drawPointInClip(x, y);
+                if (this.xMinArr != null) {
+                    this.xMinArr[j] = Math.min(this.xMinArr[j], x);
+                    this.xMaxArr[j] = Math.max(this.xMaxArr[j], x);
+                }
             }
         }
     }
@@ -238,7 +271,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         final InterfaceRectDrawer rectDrawer = null;
         // Not used.
         final boolean areHorVerFlipped = false;
-        final boolean mustFill = false;
+        final boolean isFillElseDraw = false;
         final boolean isPolyline = true;
         drawOrFillPoly(
                 clip,
@@ -246,7 +279,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 yArr,
                 pointCount,
                 areHorVerFlipped,
-                mustFill,
+                isFillElseDraw,
                 isPolyline,
                 //
                 colorDrawer,
@@ -276,7 +309,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         final InterfaceRectDrawer rectDrawer = null;
         // Not used.
         final boolean areHorVerFlipped = false;
-        final boolean mustFill = false;
+        final boolean isFillElseDraw = false;
         final boolean isPolyline = false;
         drawOrFillPoly(
                 clip,
@@ -284,7 +317,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 yArr,
                 pointCount,
                 areHorVerFlipped,
-                mustFill,
+                isFillElseDraw,
                 isPolyline,
                 //
                 colorDrawer,
@@ -311,7 +344,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
 
-        final boolean mustFill = true;
+        final boolean isFillElseDraw = true;
         final boolean isPolyline = false;
         drawOrFillPoly(
                 clip,
@@ -319,7 +352,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 yArr,
                 pointCount,
                 areHorVerFlipped,
-                mustFill,
+                isFillElseDraw,
                 isPolyline,
                 //
                 colorDrawer,
@@ -337,7 +370,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
 
     /**
      * @param areHorVerFlipped Only used when filling.
-     * @param isPolyline Only used if mustFill is false.
+     * @param isPolyline Only used if isFillElseDraw is false.
      */
     private static void drawOrFillPoly(
             GRect clip,
@@ -345,7 +378,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int[] yArr,
             int pointCount,
             boolean areHorVerFlipped,
-            boolean mustFill,
+            boolean isFillElseDraw,
             boolean isPolyline,
             //
             InterfaceColorDrawer colorDrawer,
@@ -408,7 +441,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
          */
 
         final boolean isOpaque = colorDrawer.isColorOpaque();
-        if (isOpaque && (!mustFill)) {
+        if (isOpaque && (!isFillElseDraw)) {
             // Quick path: just drawing poly's edges.
             final int i0 = (isPolyline ? 1 : 0);
             for (int i = i0; i < pointCount; i++) {
@@ -436,7 +469,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                             yArr,
                             pointCount);
             if (isClipClearlyInOrOut) {
-                if (mustFill) {
+                if (isFillElseDraw) {
                     final boolean isClipInPolyElseOut =
                             computeBelongingToPolygon(
                                     xArr,
@@ -476,6 +509,8 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         // cbbox is possibly smaller than clip, doesn't hurt
         // even if we still give clip as drawXxx() arg.
         clippedPointDrawerWithFlag.reset(
+                temps,
+                isFillElseDraw,
                 clippedPointDrawer,
                 cbbox);
         clippedLineDrawerWithFlag.configure(
@@ -494,7 +529,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                     clippedLineDrawerWithFlag);
         }
 
-        if (!mustFill) {
+        if (!isFillElseDraw) {
             if (isOpaque) {
                 /*
                  * Case already handled above.
@@ -523,7 +558,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 rectDrawer,
                 //
                 cbbox,
-                clippedPointDrawerWithFlag.flagByIndex);
+                clippedPointDrawerWithFlag.flagByIndex,
+                clippedPointDrawerWithFlag.xMinArr,
+                clippedPointDrawerWithFlag.xMaxArr);
     }
 
     /*
@@ -623,7 +660,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceRectDrawer rectDrawer,
             //
             GRect cbbox,
-            byte[] flagByIndex) {
+            byte[] flagByIndex,
+            int[] xMinArr,
+            int[] xMaxArr) {
         
         boolean foundLitPoint = false;
         int topLeftNonLitX = Integer.MIN_VALUE;
@@ -633,26 +672,58 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         // looking for first lit and first non-lit.
         Loop1 : for (int j = 0; j < cbbox.ySpan(); j++) {
             final int offset = j * cbbox.xSpan();
-            for (int i = 0; i < cbbox.xSpan(); i++) {
-                final int index = offset + i;
-                final int flag = flagByIndex[index];
-                final boolean lit = (flag != FLAG_PENDING);
-                if (lit) {
-                    if (!foundLitPoint) {
-                        foundLitPoint = true;
-                        if (topLeftNonLitX != Integer.MIN_VALUE) {
-                            // Found both.
-                            break Loop1;
+            final int xMinLit = xMinArr[j];
+            final int xMaxLit = xMaxArr[j];
+            if (xMinLit > xMaxLit) {
+                // Nothing lit on that row.
+                if (topLeftNonLitX == Integer.MIN_VALUE) {
+                    topLeftNonLitX = cbbox.x();
+                    topLeftNonLitY = cbbox.y() + j;
+                    if (foundLitPoint) {
+                        // Found both.
+                        break Loop1;
+                    }
+                }
+            } else {
+                final int iMin = (xMinLit - cbbox.x());
+                final int iMax;
+                // Leaking up to 1 pixel past last max drawn,
+                // to be able to detect first non-lit past it.
+                if (xMaxLit < cbbox.xMax()) {
+                    iMax = (xMaxLit - cbbox.x() + 1);
+                } else {
+                    iMax = (xMaxLit - cbbox.x());
+                }
+                // Starting at zero, to be able to detect
+                // first non-lit before iMin, but then
+                // jumping to iMin (or 1 if it is 0).
+                for (int i = 0; i <= iMax;) {
+                    final int index = offset + i;
+                    final int flag = flagByIndex[index];
+                    final boolean lit = (flag != FLAG_PENDING);
+                    if (lit) {
+                        if (!foundLitPoint) {
+                            foundLitPoint = true;
+                            if (topLeftNonLitX != Integer.MIN_VALUE) {
+                                // Found both.
+                                break Loop1;
+                            }
+                        }
+                    } else {
+                        if (topLeftNonLitX == Integer.MIN_VALUE) {
+                            topLeftNonLitX = cbbox.x() + i;
+                            topLeftNonLitY = cbbox.y() + j;
+                            if (foundLitPoint) {
+                                // Found both.
+                                break Loop1;
+                            }
                         }
                     }
-                } else {
-                    if (topLeftNonLitX == Integer.MIN_VALUE) {
-                        topLeftNonLitX = cbbox.x() + i;
-                        topLeftNonLitY = cbbox.y() + j;
-                        if (foundLitPoint) {
-                            // Found both.
-                            break Loop1;
-                        }
+                    if ((i == 0)
+                            && (iMin != 0)) {
+                        i = iMin;
+                    } else {
+                        i++;
                     }
                 }
             }
@@ -661,12 +732,13 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         if (!foundLitPoint) {
             final int xMid = cbbox.xMid();
             final int yMid = cbbox.yMid();
-            final boolean isMidIn = computeBelongingToPolygon(
-                    xArr,
-                    yArr,
-                    pointCount,
-                    xMid,
-                    yMid);
+            final boolean isMidIn =
+                    computeBelongingToPolygon(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            xMid,
+                            yMid);
             if (isMidIn) {
                 /*
                  * cbbox fully in the polygon:
@@ -703,7 +775,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
          * and some non lit points.
          */
         
-        fillPolygon_someLitSomeNonLit(
+        fillPolygon_someLitSomeNonLit_leftSegment(
                 xArr,
                 yArr,
                 pointCount,
@@ -712,12 +784,47 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 //
                 cbbox,
                 flagByIndex,
+                xMinArr,
+                xMaxArr,
+                //
+                topLeftNonLitX,
+                topLeftNonLitY);
+        
+        fillPolygon_someLitSomeNonLit_rightSegment(
+                xArr,
+                yArr,
+                pointCount,
+                //
+                clippedLineDrawer,
+                //
+                cbbox,
+                flagByIndex,
+                xMinArr,
+                xMaxArr,
+                //
+                topLeftNonLitY);
+        
+        fillPolygon_someLitSomeNonLit_litPartsSegment(
+                xArr,
+                yArr,
+                pointCount,
+                //
+                clippedLineDrawer,
+                //
+                cbbox,
+                flagByIndex,
+                xMinArr,
+                xMaxArr,
                 //
                 topLeftNonLitX,
                 topLeftNonLitY);
     }
+    
+    /*
+     * 
+     */
 
-    private static void fillPolygon_someLitSomeNonLit(
+    private static void fillPolygon_someLitSomeNonLit_leftSegment(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -726,24 +833,197 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             //
             GRect cbbox,
             byte[] flagByIndex,
+            int[] xMinArr,
+            int[] xMaxArr,
             //
             int topLeftNonLitX,
             int topLeftNonLitY) {
 
-        // All points above and left of (j0i0,j0) are on edge.
-        final int j0 = topLeftNonLitY - cbbox.y();
-        final int j0i0 = topLeftNonLitX - cbbox.x();
+        if (DEBUG) {
+            Dbg.log("fillPolygon_someLitSomeNonLit_leftSegment()");
+        }
 
-        // Looping on lines.
+        byte leftSegmentFlag;
+        if (topLeftNonLitX == cbbox.x()) {
+            final boolean isIn =
+                    computeBelongingToPolygon(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            topLeftNonLitX,
+                            topLeftNonLitY);
+            leftSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
+        } else {
+            leftSegmentFlag = FLAG_EDGE;
+        }
+        
+        final int leftSegmentXMin = cbbox.x();
+        
+        final int j0 = topLeftNonLitY - cbbox.y();
+        
+        // Looping on rows.
         for (int j = j0; j < cbbox.ySpan(); j++) {
+            final int xMinLit = xMinArr[j];
+            final int xMaxLit = xMaxArr[j];
+            final int leftSegmentXMax;
+            if (xMinLit <= xMaxLit) {
+                if (xMinLit == leftSegmentXMin) {
+                    leftSegmentFlag = FLAG_EDGE;
+                }
+                leftSegmentXMax = xMinLit - 1;
+            } else {
+                leftSegmentXMax = cbbox.xMax();
+            }
+
+            if (leftSegmentXMin <= leftSegmentXMax) {
+                final int y = cbbox.y() + j;
+                if (leftSegmentFlag < FLAG_IN) {
+                    final boolean isIn =
+                            computeBelongingToPolygon(
+                                    xArr,
+                                    yArr,
+                                    pointCount,
+                                    leftSegmentXMin,
+                                    y);
+                    leftSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
+                    /*
+                     * If there is a row below, to avoid belonging tests
+                     * for its pixels in its [xMin + 1, xMax - 1] range,
+                     * we fill our pixels in that range with the flag.
+                     * This should not be a generally useful action,
+                     * but in pathological cases it could speed things up nicely.
+                     */
+                    if (j < cbbox.ySpan() - 1) {
+                        final int jj = j + 1;
+                        final int xxMin = xMinArr[jj];
+                        final int xxMax = xMaxArr[jj];
+                        if (xxMin <= xxMax) {
+                            final int ii = xxMin + 1 - cbbox.x();
+                            final int indexFrom = ii + jj * cbbox.xSpan();
+                            final int indexTo = ii + (xxMax - xxMin);
+                            fillWithFlag(
+                                    flagByIndex,
+                                    indexFrom,
+                                    indexTo,
+                                    leftSegmentFlag);
+                        }
+                    }
+                }
+                if (leftSegmentFlag == FLAG_IN) {
+                    drawHorizontalLineInClip(
+                            clippedLineDrawer,
+                            leftSegmentXMin, leftSegmentXMax, y);
+                }
+            }
+        }
+    }
+
+    private static void fillPolygon_someLitSomeNonLit_rightSegment(
+            int[] xArr,
+            int[] yArr,
+            int pointCount,
+            //
+            InterfaceClippedLineDrawer clippedLineDrawer,
+            //
+            GRect cbbox,
+            byte[] flagByIndex,
+            int[] xMinArr,
+            int[] xMaxArr,
+            //
+            int topLeftNonLitY) {
+
+        if (DEBUG) {
+            Dbg.log("fillPolygon_someLitSomeNonLit_rightSegment()");
+        }
+
+        byte rightSegmentFlag;
+        {
+            final boolean isIn =
+                    computeBelongingToPolygon(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            cbbox.xMax(),
+                            topLeftNonLitY);
+            rightSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
+        }
+        
+        final int rightSegmentXMax = cbbox.xMax();
+        
+        final int j0 = topLeftNonLitY - cbbox.y();
+        
+        // Looping on rows.
+        for (int j = j0; j < cbbox.ySpan(); j++) {
+            final int xMinLit = xMinArr[j];
+            final int xMaxLit = xMaxArr[j];
+            if (xMinLit > xMaxLit) {
+                // Nothing lit.
+                // Row already taken care of by left segment algo.
+                continue;
+            }
+            if (xMaxLit == rightSegmentXMax) {
+                rightSegmentFlag = FLAG_EDGE;
+            }
+            final int rightSegmentXMin = xMaxLit + 1;
+
+            if (rightSegmentXMin <= rightSegmentXMax) {
+                final int y = cbbox.y() + j;
+                if (rightSegmentFlag < FLAG_IN) {
+                    final boolean isIn =
+                            computeBelongingToPolygon(
+                                    xArr,
+                                    yArr,
+                                    pointCount,
+                                    rightSegmentXMax,
+                                    y);
+                    rightSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
+                }
+                if (rightSegmentFlag == FLAG_IN) {
+                    drawHorizontalLineInClip(
+                            clippedLineDrawer,
+                            rightSegmentXMin, rightSegmentXMax, y);
+                }
+            }
+        }
+    }
+
+    private static void fillPolygon_someLitSomeNonLit_litPartsSegment(
+            int[] xArr,
+            int[] yArr,
+            int pointCount,
+            //
+            InterfaceClippedLineDrawer clippedLineDrawer,
+            //
+            GRect cbbox,
+            byte[] flagByIndex,
+            int[] xMinArr,
+            int[] xMaxArr,
+            //
+            int topLeftNonLitX,
+            int topLeftNonLitY) {
+
+        if (DEBUG) {
+            Dbg.log("fillPolygon_someLitSomeNonLit_litPartsSegment()");
+        }
+
+        final int j0 = topLeftNonLitY - cbbox.y();
+
+        // Looping on rows.
+        for (int j = j0; j < cbbox.ySpan(); j++) {
+            final int xMinLit = xMinArr[j];
+            final int xMaxLit = xMaxArr[j];
+            if (xMinLit > xMaxLit) {
+                // Nothing lit.
+                // Row already taken care of by left segment algo.
+                continue;
+            }
+            
+            final int iMinLit = (xMinLit - cbbox.x());
+            final int iMaxLit = (xMaxLit - cbbox.x());
 
             final int y = cbbox.y() + j;
-            final int i0;
-            if (j == j0) {
-                i0 = j0i0;
-            } else {
-                i0 = 0;
-            }
+            final int iMin = iMinLit + 1;
+            final int iMax = iMaxLit - 1;
 
             // A segment is a connex part of the line
             // which pixels are either all IN or all OUT.
@@ -752,29 +1032,31 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             byte segmentFlag = -1;
             
             // Looping on columns.
+            final int xOffset = cbbox.x();
+            final int indexOffset = j * cbbox.xSpan();
             int i;
-            for (i = i0; i < cbbox.xSpan(); i++) {
-                final int x = cbbox.x() + i;
+            for (i = iMin; i <= iMax; i++) {
+                final int x = xOffset + i;
 
-                final int curIndex = j * cbbox.xSpan() + i;
+                final int curIndex = indexOffset + i;
                 final byte curFlag = flagByIndex[curIndex];
                 if (curFlag == FLAG_PENDING) {
                     if (segmentFlag >= FLAG_IN) {
-                        // Left point is IN or OUT:
+                        // Left pixel is IN or OUT:
                         // copying flag and moving
-                        // to next (right) point.
+                        // to next (right) pixel.
                         flagByIndex[curIndex] = segmentFlag;
                         continue;
                     } else if (segmentStartI < 0) {
-                        // Starting the line,
+                        // First row pixel encountered,
                         // or first pixel after an EDGE pixel.
                         segmentStartI = i;
                     }
                     
                     /*
-                     * Looking the point above,
+                     * Looking the pixel above,
                      * and if it's IN or OUT,
-                     * copying the flag to current point.
+                     * copying the flag to current pixel.
                      */
                     if (j > 0) {
                         final int aboveIndex = curIndex - cbbox.xSpan();
@@ -796,7 +1078,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                             }
                         } else {
                             /*
-                             * Above is EDGE.
+                             * Above is EDGE, or PENDING, since when taking care
+                             * of "left" and "right" segments, we don't necessarily
+                             * bother to set flags in pixels.
                              */
                         }
                     }
@@ -883,12 +1167,13 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
              * doing heavy (O(pointCount)) computation
              * and ensuring its pixels are flagged accordingly.
              */
-            final boolean isIn = computeBelongingToPolygon(
-                    xArr,
-                    yArr,
-                    pointCount,
-                    segmentStartX,
-                    y);
+            final boolean isIn =
+                    computeBelongingToPolygon(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            segmentStartX,
+                            y);
             if (isIn) {
                 segmentFlag = FLAG_IN;
             } else {
@@ -905,11 +1190,22 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                     segmentFlag);
         }
         if (segmentFlag == FLAG_IN) {
-            clippedLineDrawer.drawHorizontalLineInClip(
-                    segmentStartX, segmentEndX,
-                    y,
-                    1, GprimUtils.PLAIN_PATTERN, 0);
+            drawHorizontalLineInClip(
+                    clippedLineDrawer,
+                    segmentStartX, segmentEndX, y);
         }
+    }
+    
+    private static void drawHorizontalLineInClip(
+            InterfaceClippedLineDrawer clippedLineDrawer,
+            int x1, int x2, int y) {
+        if (DEBUG) {
+            Dbg.log("drawHorizontalLineInClip(," +  x1 + ", " + x2 + ", " + y + ")");
+        }
+        clippedLineDrawer.drawHorizontalLineInClip(
+                x1, x2,
+                y,
+                1, GprimUtils.PLAIN_PATTERN, 0);
     }
     
     /**
@@ -1030,22 +1326,47 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * @return Reusable byte array with [0,minCapacity-1] set to zero,
      *         which is also FLAG_PENDING.
      */
-    private static byte[] getByteArrReset(
+    private static byte[] getFlagByIndexReset(
+            MyTemps temps,
             int minCapacity) {
-        if (minCapacity > MAX_REUSE_CAPACITY) {
+        if (minCapacity > MAX_FLAG_ARR_REUSE_CAPACITY) {
             return new byte[minCapacity];
         }
 
-        final MyTemps temps = TL_TEMPS.get();
-        byte[] ret = temps.tmpByteArr1;
+        byte[] ret = temps.tmpFlagByIndex;
         if (ret.length < minCapacity) {
             int newCap = Math.max(minCapacity, (ret.length << 1));
-            newCap = Math.min(newCap, MAX_REUSE_CAPACITY);
+            newCap = Math.min(newCap, MAX_FLAG_ARR_REUSE_CAPACITY);
             ret = new byte[newCap];
-            temps.tmpByteArr1 = ret;
+            temps.tmpFlagByIndex = ret;
         } else {
             for (int i = minCapacity; --i >= 0;) {
                 ret[i] = FLAG_PENDING;
+            }
+        }
+        return ret;
+    }
+    
+    /**
+     * @return Reusable X max or min array.
+     */
+    private static int[] getXArr(
+            MyTemps temps,
+            int minCapacity,
+            boolean maxElseMin) {
+        if (minCapacity > MAX_X_ARR_REUSE_CAPACITY) {
+            return new int[minCapacity];
+        }
+
+        int[] ret = (maxElseMin ? temps.tmpXMaxArr : temps.tmpXMinArr);
+        if (ret.length < minCapacity) {
+            int newCap = Math.max(minCapacity, (ret.length << 1));
+            newCap = Math.min(newCap, MAX_X_ARR_REUSE_CAPACITY);
+            ret = new int[newCap];
+            if (maxElseMin) {
+                temps.tmpXMaxArr = ret;
+            } else {
+                temps.tmpXMinArr = ret;
             }
         }
         return ret;

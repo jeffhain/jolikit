@@ -978,14 +978,14 @@ public class DrawingMethodsBwdPainter {
             int cellIndex,
             int pointCount,
             double roundCount) {
-        final boolean mustFill = false;
+        final boolean isFillElseDraw = false;
         final boolean isPolyline = true;
         drawOrFillPolys(
                 g,
                 cellIndex,
                 pointCount,
                 roundCount,
-                mustFill,
+                isFillElseDraw,
                 isPolyline);
     }
     
@@ -994,14 +994,14 @@ public class DrawingMethodsBwdPainter {
             int cellIndex,
             int pointCount,
             double roundCount) {
-        final boolean mustFill = false;
+        final boolean isFillElseDraw = false;
         final boolean isPolyline = false;
         drawOrFillPolys(
                 g,
                 cellIndex,
                 pointCount,
                 roundCount,
-                mustFill,
+                isFillElseDraw,
                 isPolyline);
     }
     
@@ -1010,14 +1010,14 @@ public class DrawingMethodsBwdPainter {
             int cellIndex,
             int pointCount,
             double roundCount) {
-        final boolean mustFill = true;
+        final boolean isFillElseDraw = true;
         final boolean isPolyline = false;
         drawOrFillPolys(
                 g,
                 cellIndex,
                 pointCount,
                 roundCount,
-                mustFill,
+                isFillElseDraw,
                 isPolyline);
     }
     
@@ -1026,7 +1026,7 @@ public class DrawingMethodsBwdPainter {
             int cellIndex,
             int pointCount,
             double roundCount,
-            boolean mustFill,
+            boolean isFillElseDraw,
             boolean isPolyline) {
         resetColor(g);
         
@@ -1038,7 +1038,7 @@ public class DrawingMethodsBwdPainter {
                     g,
                     pointCount,
                     roundCount,
-                    mustFill,
+                    isFillElseDraw,
                     isPolyline,
                     transform);
         }
@@ -1048,7 +1048,7 @@ public class DrawingMethodsBwdPainter {
             InterfaceBwdGraphics g,
             int pointCount,
             double roundCount,
-            boolean mustFill,
+            boolean isFillElseDraw,
             boolean isPolyline,
             GTransform transform) {
         
@@ -1068,7 +1068,7 @@ public class DrawingMethodsBwdPainter {
                 xArr,
                 yArr);
         g.addTransform(GTransform.valueOf(0, xMaxRadius, yMaxRadius));
-        if (mustFill) {
+        if (isFillElseDraw) {
             g.fillPolygon(xArr, yArr, pointCount);
         } else {
             if (isPolyline) {

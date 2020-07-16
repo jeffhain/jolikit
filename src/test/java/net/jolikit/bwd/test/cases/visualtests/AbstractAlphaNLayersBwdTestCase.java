@@ -217,9 +217,9 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
     }
     
     private static class MyItemDrawer_drawOrFillPolygon implements InterfaceItemDrawer {
-        private final boolean mustFill;
-        public MyItemDrawer_drawOrFillPolygon(boolean mustFill) {
-            this.mustFill = mustFill;
+        private final boolean isFillElseDraw;
+        public MyItemDrawer_drawOrFillPolygon(boolean isFillElseDraw) {
+            this.isFillElseDraw = isFillElseDraw;
         }
         @Override
         public void drawItem(InterfaceBwdGraphics g, int itemX, int itemY) {
@@ -240,7 +240,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
                     0,
                     itemX + xMaxRadius,
                     itemY + yMaxRadius));
-            if (mustFill) {
+            if (isFillElseDraw) {
                 g.drawPolygon(xArr, yArr, pointCount);
             } else {
                 g.fillPolygon(xArr, yArr, pointCount);
