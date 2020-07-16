@@ -1032,85 +1032,106 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             byte segmentFlag = -1;
             
             // Looping on columns.
-            final int xOffset = cbbox.x();
             final int indexOffset = j * cbbox.xSpan();
             int i;
             for (i = iMin; i <= iMax; i++) {
-                final int x = xOffset + i;
-
-                final int curIndex = indexOffset + i;
-                final byte curFlag = flagByIndex[curIndex];
-                if (curFlag == FLAG_PENDING) {
-                    if (segmentFlag >= FLAG_IN) {
-                        // Left pixel is IN or OUT:
-                        // copying flag and moving
-                        // to next (right) pixel.
-                        flagByIndex[curIndex] = segmentFlag;
-                        continue;
-                    } else if (segmentStartI < 0) {
-                        // First row pixel encountered,
-                        // or first pixel after an EDGE pixel.
-                        segmentStartI = i;
+                if (segmentFlag >= FLAG_IN) {
+                    i = copySegmentFlagWhilePending(
+                            segmentFlag,
+                            flagByIndex,
+                            indexOffset,
+                            i,
+                            iMax);
+                    if (i > iMax) {
+                        // Copied up to iMax.
+                        break;
                     }
-                    
-                    /*
-                     * Looking the pixel above,
-                     * and if it's IN or OUT,
-                     * copying the flag to current pixel.
-                     */
-                    if (j > 0) {
-                        final int aboveIndex = curIndex - cbbox.xSpan();
-                        final byte aboveFlag = flagByIndex[aboveIndex];
-                        if (aboveFlag >= FLAG_IN) {
-                            flagByIndex[curIndex] = aboveFlag;
-                            if (segmentStartI < 0) {
-                                segmentStartI = i;
-                                segmentFlag = aboveFlag;
-                            } else if (segmentFlag < 0) {
-                                segmentFlag = aboveFlag;
-                                final int indexFrom = curIndex - (i - segmentStartI);
-                                final int indexTo = curIndex - 1;
-                                fillWithFlag(
-                                        flagByIndex,
-                                        indexFrom,
-                                        indexTo,
-                                        segmentFlag);
+                    // Reached an EDGE pixel at i <= iMax.
+                } else {
+                    final int curIndex = indexOffset + i;
+                    final byte curFlag = flagByIndex[curIndex];
+                    if (curFlag == FLAG_PENDING) {
+                        if (segmentStartI < 0) {
+                            // First row pixel encountered,
+                            // or first pixel after an EDGE pixel.
+                            segmentStartI = i;
+                        }
+
+                        /*
+                         * Looking the pixel above,
+                         * and if it's IN or OUT,
+                         * copying the flag up to current pixel.
+                         */
+                        if (j > 0) {
+                            final int aboveIndex = curIndex - cbbox.xSpan();
+                            final byte aboveFlag = flagByIndex[aboveIndex];
+                            if (aboveFlag >= FLAG_IN) {
+                                flagByIndex[curIndex] = aboveFlag;
+                                if (segmentStartI < 0) {
+                                    segmentStartI = i;
+                                    segmentFlag = aboveFlag;
+                                } else if (segmentFlag < 0) {
+                                    segmentFlag = aboveFlag;
+                                    final int indexFrom = curIndex - (i - segmentStartI);
+                                    final int indexTo = curIndex - 1;
+                                    fillWithFlag(
+                                            flagByIndex,
+                                            indexFrom,
+                                            indexTo,
+                                            segmentFlag);
+                                }
+                                /*
+                                 * Segment flag determined.
+                                 * Will copy keep copying it while pixels are PENDING.
+                                 */
+                            } else {
+                                /*
+                                 * Above is EDGE, or PENDING, since when taking care
+                                 * of "left" and "right" segments, we don't necessarily
+                                 * bother to set flags in pixels.
+                                 * Will check next above pixel.
+                                 */
                             }
                         } else {
                             /*
-                             * Above is EDGE, or PENDING, since when taking care
-                             * of "left" and "right" segments, we don't necessarily
-                             * bother to set flags in pixels.
+                             * No row above: no flag to copy.
+                             * Will compute flag at end of loop.
                              */
                         }
+                        continue;
+                    } else {
+                        /*
+                         * Not PENDING, must be EDGE (already drawn).
+                         */
+                        if (curFlag != FLAG_EDGE) {
+                            throw new AssertionError("" + curFlag);
+                        }
                     }
-                } else {
-                    /*
-                     * Not PENDING, must be EDGE (already drawn).
-                     */
-                    if (curFlag != FLAG_EDGE) {
-                        throw new AssertionError("" + curFlag);
-                    }
-                    
-                    if (segmentStartI >= 0) {
-                        final int segmentStartX = cbbox.x() + segmentStartI;
-                        final int segmentEndX = x - 1;
-                        onEdgeOrLineEndReachedWithStartedSegment(
-                                xArr,
-                                yArr,
-                                pointCount,
-                                //
-                                cbbox,
-                                flagByIndex,
-                                y,
-                                segmentStartX,
-                                segmentEndX,
-                                segmentFlag,
-                                //
-                                clippedLineDrawer);
-                        segmentStartI = -1;
-                        segmentFlag = -1;
-                    }
+                }
+                
+                /*
+                 * Here, row pixel at index "i" is EDGE. 
+                 */
+
+                if (segmentStartI >= 0) {
+                    final int segmentStartX = cbbox.x() + segmentStartI;
+                    final int x = cbbox.x() + i;
+                    final int segmentEndX = x - 1;
+                    onEdgeOrRowEndReachedWithStartedSegment(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            //
+                            cbbox,
+                            flagByIndex,
+                            y,
+                            segmentStartX,
+                            segmentEndX,
+                            segmentFlag,
+                            //
+                            clippedLineDrawer);
+                    segmentStartI = -1;
+                    segmentFlag = -1;
                 }
             }
 
@@ -1121,7 +1142,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             if (segmentStartI >= 0) {
                 final int segmentStartX = cbbox.x() + segmentStartI;
                 final int segmentEndX = x - 1;
-                onEdgeOrLineEndReachedWithStartedSegment(
+                onEdgeOrRowEndReachedWithStartedSegment(
                         xArr,
                         yArr,
                         pointCount,
@@ -1148,7 +1169,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * @param segmentStartX Must be valid (>= 0).
      * @param segmentFlag Can be invalid (< 0).
      */
-    private static void onEdgeOrLineEndReachedWithStartedSegment(
+    private static void onEdgeOrRowEndReachedWithStartedSegment(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -1206,6 +1227,41 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 x1, x2,
                 y,
                 1, GprimUtils.PLAIN_PATTERN, 0);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * To copy flag from above row to current row,
+     * while current flag is PENDING and above flag
+     * is IN or OUT.
+     * 
+     * Code extracted into this small method,
+     * because it's kind of a hot spot,
+     * that ought to be optimized.
+     * 
+     * @param segmentFlag Must be FLAG_IN or FLAG_OUT.
+     * @param i Must be <= iMax.
+     * @return Last checked index, post-copy (can be iMax +1).
+     */
+    private static int copySegmentFlagWhilePending(
+            byte segmentFlag,
+            byte[] flagByIndex,
+            int indexOffset,
+            int i,
+            int iMax) {
+        while (i <= iMax) {
+            final int curIndex = indexOffset + i;
+            if (flagByIndex[curIndex] == FLAG_PENDING) {
+                flagByIndex[curIndex] = segmentFlag;
+            } else {
+                break;
+            }
+            i++;
+        }
+        return i;
     }
     
     /**
