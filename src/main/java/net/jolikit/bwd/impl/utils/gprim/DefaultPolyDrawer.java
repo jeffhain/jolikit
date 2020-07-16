@@ -81,10 +81,93 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         int[] tmpXMaxArr = EMPTY_INT_ARR;
     }
 
+    private static class MyFlagManager {
+        private byte[] flagByIndex = null;
+        private int flagOffset = 0;
+        private int flagByIndexMaxArea = 0;
+        public MyFlagManager() {
+        }
+        public void reset(
+                MyTemps temps,
+                GRect bbox) {
+            final int area = bbox.area();
+            final byte[] flagByIndex = getFlagByIndex(temps, area);
+            this.flagByIndex = flagByIndex;
+            if (flagByIndex != temps.tmpFlagByIndex) {
+                /*
+                 * Not a reusable array:
+                 * is already filled with PENDING,
+                 * and whatever current flagOffset works.
+                 */
+            } else {
+                if (this.flagOffset < MAX_FLAG_OFFSET) {
+                    this.flagOffset += FLAG_OFFSET_INCREMENT;
+                    if (this.flagByIndexMaxArea < area) {
+                        this.flagByIndexMaxArea = area;
+                    }
+                } else {
+                    // Only resetting what might have been set.
+                    for (int i = this.flagByIndexMaxArea; --i >= 0;) {
+                        flagByIndex[i] = FLAG_PENDING;
+                    }
+                    this.flagOffset = 0;
+                    this.flagByIndexMaxArea = 0;
+                }
+            }
+        }
+        /**
+         * @return Flag in [0,3].
+         */
+        public byte getFlagAt(int index) {
+            // In [0,255].
+            final int offsetFlagOrLess = (this.flagByIndex[index] & 0xFF);
+            
+            // In [-252,255].
+            final int flagOrLess = offsetFlagOrLess - this.flagOffset;
+            final byte flag;
+            if (flagOrLess <= FLAG_PENDING) {
+                // Any value lower (i.e. from previous
+                // post-reset-calls settings) or equal
+                // (i.e. from current call setting) matches.
+                flag = FLAG_PENDING;
+            } else {
+                // Means has been set during current call,
+                // and since it is not PENDING, it is in [1,3].
+                flag = (byte) flagOrLess;
+            }
+            return flag;
+        }
+        /**
+         * @param flag In [0,3].
+         */
+        public void setFlagAt(int index, byte flag) {
+            // In [0,255].
+            final int offsetFlag = this.flagOffset + flag;
+            this.flagByIndex[index] = (byte) offsetFlag;
+        }
+        /**
+         * Returns "inversed" boolean, for caller not to have to not it.
+         * 
+         * @param flagToSet In [0,3].
+         * @return True if did NOT set, false if did set.
+         */
+        public boolean setFlagAtIfIsPending(int index, byte flagToSet) {
+            final int offsetFlagOrLess = (this.flagByIndex[index] & 0xFF);
+            final boolean ret;
+            if (offsetFlagOrLess - this.flagOffset <= FLAG_PENDING) {
+                this.flagByIndex[index] = (byte) (this.flagOffset + flagToSet);
+                ret = false;
+            } else {
+                ret = true;
+            }
+            return ret;
+        }
+    }
+    
     private static class MyClippedPointDrawerWithFlag implements InterfaceClippedPointDrawer {
         private InterfaceClippedPointDrawer clippedPointDrawer;
         private GRect bbox = GRect.DEFAULT_EMPTY;
-        private byte[] flagByIndex = null;
+        final MyFlagManager flagManager = new MyFlagManager();
         private int[] xMinArr = null;
         private int[] xMaxArr = null;
         public MyClippedPointDrawerWithFlag() {
@@ -97,8 +180,8 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             this.clippedPointDrawer = clippedPointDrawer;
             this.bbox = bbox;
 
-            final int area = bbox.area();
-            this.flagByIndex = getFlagByIndexReset(temps, area);
+            this.flagManager.reset(temps, bbox);
+            
             if (isFillElseDraw) {
                 this.xMinArr = getXArr(temps, bbox.ySpan(), false);
                 this.xMaxArr = getXArr(temps, bbox.ySpan(), true);
@@ -116,10 +199,11 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             final int i = x - bbox.x();
             final int j = y - bbox.y();
             final int index = j * bbox.xSpan() + i;
-            if (this.flagByIndex[index] != FLAG_PENDING) {
+            final boolean didNotSet =
+                    this.flagManager.setFlagAtIfIsPending(index, FLAG_EDGE);
+            if (didNotSet) {
                 // Already drawn: not drawing again.
             } else {
-                this.flagByIndex[index] = FLAG_EDGE;
                 this.clippedPointDrawer.drawPointInClip(x, y);
                 if (this.xMinArr != null) {
                     this.xMinArr[j] = Math.min(this.xMinArr[j], x);
@@ -133,6 +217,27 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
+    /**
+     * In flagByIndex array, storing flag values with an offset
+     * incremented by (n-1) = 3 at each usage, up to (255-3)/3 = 84,
+     * which allows to reset the array only once every 84 usages
+     * (using modulo arithmetic, else we would use 127 instead of 255).
+     * 
+     * Meaningful flag values for current call are in
+     * [flagOffset, flagOffset + 3].
+     * 
+     * Whatever the current value of flagOffset in [0,84*3=252],
+     * it works for an array filled with zeros, i.e. with FLAG_PENDING
+     * (which occurs when we create a new array, possibly because
+     * required capacity is to large for reuse).
+     */
+    private static final int FLAG_OFFSET_INCREMENT = 3;
+    
+    private static final int FLAG_OFFSET_PERIOD =
+            (255 - FLAG_OFFSET_INCREMENT) / FLAG_OFFSET_INCREMENT;
+    private static final int MAX_FLAG_OFFSET =
+            FLAG_OFFSET_PERIOD * FLAG_OFFSET_INCREMENT;
+    
     private static final byte FLAG_PENDING = 0;
     private static final byte FLAG_EDGE = 1;
     private static final byte FLAG_IN = 2;
@@ -558,7 +663,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 rectDrawer,
                 //
                 cbbox,
-                clippedPointDrawerWithFlag.flagByIndex,
+                clippedPointDrawerWithFlag.flagManager,
                 clippedPointDrawerWithFlag.xMinArr,
                 clippedPointDrawerWithFlag.xMaxArr);
     }
@@ -660,7 +765,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceRectDrawer rectDrawer,
             //
             GRect cbbox,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int[] xMinArr,
             int[] xMaxArr) {
         
@@ -699,7 +804,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 // jumping to iMin (or 1 if it is 0).
                 for (int i = 0; i <= iMax;) {
                     final int index = offset + i;
-                    final int flag = flagByIndex[index];
+                    final int flag = flagManager.getFlagAt(index);
                     final boolean lit = (flag != FLAG_PENDING);
                     if (lit) {
                         if (!foundLitPoint) {
@@ -783,7 +888,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 clippedLineDrawer,
                 //
                 cbbox,
-                flagByIndex,
+                flagManager,
                 xMinArr,
                 xMaxArr,
                 //
@@ -798,7 +903,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 clippedLineDrawer,
                 //
                 cbbox,
-                flagByIndex,
+                flagManager,
                 xMinArr,
                 xMaxArr,
                 //
@@ -812,7 +917,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 clippedLineDrawer,
                 //
                 cbbox,
-                flagByIndex,
+                flagManager,
                 xMinArr,
                 xMaxArr,
                 //
@@ -832,7 +937,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             GRect cbbox,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int[] xMinArr,
             int[] xMaxArr,
             //
@@ -902,7 +1007,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                             final int indexFrom = ii + jj * cbbox.xSpan();
                             final int indexTo = ii + (xxMax - xxMin);
                             fillWithFlag(
-                                    flagByIndex,
+                                    flagManager,
                                     indexFrom,
                                     indexTo,
                                     leftSegmentFlag);
@@ -926,7 +1031,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             GRect cbbox,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int[] xMinArr,
             int[] xMaxArr,
             //
@@ -995,7 +1100,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceClippedLineDrawer clippedLineDrawer,
             //
             GRect cbbox,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int[] xMinArr,
             int[] xMaxArr,
             //
@@ -1038,7 +1143,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 if (segmentFlag >= FLAG_IN) {
                     i = copySegmentFlagWhilePending(
                             segmentFlag,
-                            flagByIndex,
+                            flagManager,
                             indexOffset,
                             i,
                             iMax);
@@ -1049,7 +1154,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                     // Reached an EDGE pixel at i <= iMax.
                 } else {
                     final int curIndex = indexOffset + i;
-                    final byte curFlag = flagByIndex[curIndex];
+                    final byte curFlag = flagManager.getFlagAt(curIndex);
                     if (curFlag == FLAG_PENDING) {
                         if (segmentStartI < 0) {
                             // First row pixel encountered,
@@ -1064,9 +1169,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                          */
                         if (j > 0) {
                             final int aboveIndex = curIndex - cbbox.xSpan();
-                            final byte aboveFlag = flagByIndex[aboveIndex];
+                            final byte aboveFlag = flagManager.getFlagAt(aboveIndex);
                             if (aboveFlag >= FLAG_IN) {
-                                flagByIndex[curIndex] = aboveFlag;
+                                flagManager.setFlagAt(curIndex, aboveFlag);
                                 if (segmentStartI < 0) {
                                     segmentStartI = i;
                                     segmentFlag = aboveFlag;
@@ -1075,7 +1180,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                                     final int indexFrom = curIndex - (i - segmentStartI);
                                     final int indexTo = curIndex - 1;
                                     fillWithFlag(
-                                            flagByIndex,
+                                            flagManager,
                                             indexFrom,
                                             indexTo,
                                             segmentFlag);
@@ -1123,7 +1228,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                             pointCount,
                             //
                             cbbox,
-                            flagByIndex,
+                            flagManager,
                             y,
                             segmentStartX,
                             segmentEndX,
@@ -1148,7 +1253,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                         pointCount,
                         //
                         cbbox,
-                        flagByIndex,
+                        flagManager,
                         y,
                         segmentStartX,
                         segmentEndX,
@@ -1175,7 +1280,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int pointCount,
             //
             GRect cbbox,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int y,
             int segmentStartX,
             int segmentEndX,
@@ -1205,7 +1310,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             final int indexFrom = j * cbbox.xSpan() + i;
             final int indexTo = indexFrom + (segmentEndX - segmentStartX);
             fillWithFlag(
-                    flagByIndex,
+                    flagManager,
                     indexFrom,
                     indexTo,
                     segmentFlag);
@@ -1248,15 +1353,13 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      */
     private static int copySegmentFlagWhilePending(
             byte segmentFlag,
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int indexOffset,
             int i,
             int iMax) {
         while (i <= iMax) {
             final int curIndex = indexOffset + i;
-            if (flagByIndex[curIndex] == FLAG_PENDING) {
-                flagByIndex[curIndex] = segmentFlag;
-            } else {
+            if (flagManager.setFlagAtIfIsPending(curIndex, segmentFlag)) {
                 break;
             }
             i++;
@@ -1270,12 +1373,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * to the now known flag.
      */
     private static void fillWithFlag(
-            byte[] flagByIndex,
+            MyFlagManager flagManager,
             int indexFrom,
             int indexTo,
             byte flag) {
         for (int index = indexFrom; index <= indexTo; index++) {
-            flagByIndex[index] = flag;
+            flagManager.setFlagAt(index, flag);
         }
     }
     
@@ -1379,10 +1482,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      */
 
     /**
-     * @return Reusable byte array with [0,minCapacity-1] set to zero,
-     *         which is also FLAG_PENDING.
+     * @return Reusable flagByIndex array.
      */
-    private static byte[] getFlagByIndexReset(
+    private static byte[] getFlagByIndex(
             MyTemps temps,
             int minCapacity) {
         if (minCapacity > MAX_FLAG_ARR_REUSE_CAPACITY) {
@@ -1395,10 +1497,6 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             newCap = Math.min(newCap, MAX_FLAG_ARR_REUSE_CAPACITY);
             ret = new byte[newCap];
             temps.tmpFlagByIndex = ret;
-        } else {
-            for (int i = minCapacity; --i >= 0;) {
-                ret[i] = FLAG_PENDING;
-            }
         }
         return ret;
     }

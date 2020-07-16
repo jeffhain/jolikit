@@ -32,7 +32,12 @@ public class GraphicsBencher_drawAndFillPoly {
 
     private static final int DEFAULT_NBR_OF_RUNS = 2;
 
-    private static final int DEFAULT_NBR_OF_CALLS = 100;
+    /**
+     * Large enough to cover multiple periods of
+     * internal flagByIndex array reset,
+     * which is only done when flagOffset cycles.
+     */
+    private static final int DEFAULT_NBR_OF_CALLS = 1000;
     
     private static final double SPIRAL_ROUND_COUNT = 10.0;
     
