@@ -15,6 +15,8 @@
  */
 package net.jolikit.bwd.impl.utils.gprim;
 
+import java.util.Arrays;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
@@ -42,8 +44,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * and makes fill polygons outline consistent with
      * drawPolygon() and with drawLine().
      * We also keep track of min/max lit X in each row,
-     * which allows for nice filling speed-up in case
-     * of fully out rows, or in case of oblique polygons.
+     * which allows for nice filling speed-up in case of rows
+     * not hit by the outline (i.e. fully in or fully out of the polygon),
+     * or in case of oblique polygons.
      */
 
     //--------------------------------------------------------------------------
@@ -51,6 +54,14 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
     //--------------------------------------------------------------------------
 
     private static final boolean DEBUG = false;
+    
+    /**
+     * Makes basic cases slower, should only help for pathological cases,
+     * with particular polygon configurations and a lot of points.
+     * 
+     * Keeping the code not to loose it, but not activating it.
+     */
+    private static final boolean MUST_SET_LR_FLAGS_ABOVE_SUB_LIT_PARTS = false;
     
     /**
      * For a byte[], that's 16Mo.
@@ -82,9 +93,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
     }
 
     private static class MyFlagManager {
-        private byte[] flagByIndex = null;
-        private int flagOffset = 0;
-        private int flagByIndexMaxArea = 0;
+        byte[] flagByIndex = null;
+        int flagOffset = 0;
+        int flagByIndexMaxArea = 0;
         public MyFlagManager() {
         }
         public void reset(
@@ -143,6 +154,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         public void setFlagAt(int index, byte flag) {
             // In [0,255].
             final int offsetFlag = this.flagOffset + flag;
+            this.setOffsetFlagAt(index, offsetFlag);
+        }
+        /**
+         * @param offsetFlag In [0,255], depending on flagOffset.
+         */
+        public void setOffsetFlagAt(int index, int offsetFlag) {
             this.flagByIndex[index] = (byte) offsetFlag;
         }
         /**
@@ -151,11 +168,21 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
          * @param flagToSet In [0,3].
          * @return True if did NOT set, false if did set.
          */
-        public boolean setFlagAtIfIsPending(int index, byte flagToSet) {
-            final int offsetFlagOrLess = (this.flagByIndex[index] & 0xFF);
+        public boolean setFlagAtIfIsPending(int index, byte flag) {
+            final int offsetFlag = this.flagOffset + flag;
+            return this.setOffsetFlagAtIfIsPending(index, offsetFlag);
+        }
+        /**
+         * Returns "inversed" boolean, for caller not to have to not it.
+         * 
+         * @param offsetFlag In [0,255], depending on flagOffset.
+         * @return True if did NOT set, false if did set.
+         */
+        public boolean setOffsetFlagAtIfIsPending(int index, int offsetFlag) {
+            final int oldOffsetFlagOrLess = (this.flagByIndex[index] & 0xFF);
             final boolean ret;
-            if (offsetFlagOrLess - this.flagOffset <= FLAG_PENDING) {
-                this.flagByIndex[index] = (byte) (this.flagOffset + flagToSet);
+            if (oldOffsetFlagOrLess - this.flagOffset <= FLAG_PENDING) {
+                this.flagByIndex[index] = (byte) offsetFlag;
                 ret = false;
             } else {
                 ret = true;
@@ -168,8 +195,8 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         private InterfaceClippedPointDrawer clippedPointDrawer;
         private GRect bbox = GRect.DEFAULT_EMPTY;
         final MyFlagManager flagManager = new MyFlagManager();
-        private int[] xMinArr = null;
-        private int[] xMaxArr = null;
+        int[] xMinArr = null;
+        int[] xMaxArr = null;
         public MyClippedPointDrawerWithFlag() {
         }
         public void reset(
@@ -196,9 +223,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         }
         @Override
         public void drawPointInClip(int x, int y) {
-            final int i = x - bbox.x();
-            final int j = y - bbox.y();
-            final int index = j * bbox.xSpan() + i;
+            final int i = x - this.bbox.x();
+            final int j = y - this.bbox.y();
+            final int index = j * this.bbox.xSpan() + i;
             final boolean didNotSet =
                     this.flagManager.setFlagAtIfIsPending(index, FLAG_EDGE);
             if (didNotSet) {
@@ -494,6 +521,15 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             InterfaceLineDrawer lineDrawer,
             InterfaceRectDrawer rectDrawer) {
 
+        if (DEBUG) {
+            Dbg.log("drawOrFillPoly(" + clip + ",,," + pointCount
+                    + ", " + areHorVerFlipped
+                    + ", " + isFillElseDraw
+                    + ", " + isPolyline
+                    + ",,,,,)");
+            Dbg.log("xArr = " + Arrays.toString(xArr));
+            Dbg.log("yArr = " + Arrays.toString(yArr));
+        }
         /*
          * Clip checks.
          * Usually not doing these early clip checks for other primitives,
@@ -652,7 +688,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
          * Here, must fill.
          */
         
-        fillPolygon_edgePixelsFlagsComputed(
+        fillPolygon_edgesFlagsComputed(
                 xArr,
                 yArr,
                 pointCount,
@@ -754,7 +790,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      *        already set to FLAG_EDGE, and other pixels set to
      *        FLAG_PENDING.
      */
-    private static void fillPolygon_edgePixelsFlagsComputed(
+    private static void fillPolygon_edgesFlagsComputed(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -880,7 +916,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
          * and some non lit points.
          */
         
-        fillPolygon_someLitSomeNonLit_leftSegment(
+        fillPolygon_someLitSomeNot_leftSegments(
                 xArr,
                 yArr,
                 pointCount,
@@ -895,7 +931,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 topLeftNonLitX,
                 topLeftNonLitY);
         
-        fillPolygon_someLitSomeNonLit_rightSegment(
+        fillPolygon_someLitSomeNot_rightSegments(
                 xArr,
                 yArr,
                 pointCount,
@@ -909,7 +945,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                 //
                 topLeftNonLitY);
         
-        fillPolygon_someLitSomeNonLit_litPartsSegment(
+        fillPolygon_someLitSomeNot_litPartsSegments(
                 xArr,
                 yArr,
                 pointCount,
@@ -929,7 +965,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      * 
      */
 
-    private static void fillPolygon_someLitSomeNonLit_leftSegment(
+    private static void fillPolygon_someLitSomeNot_leftSegments(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -945,7 +981,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int topLeftNonLitY) {
 
         if (DEBUG) {
-            Dbg.log("fillPolygon_someLitSomeNonLit_leftSegment()");
+            Dbg.log("fillPolygon_someLitSomeNot_leftSegments()");
         }
 
         byte leftSegmentFlag;
@@ -972,11 +1008,13 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             final int xMaxLit = xMaxArr[j];
             final int leftSegmentXMax;
             if (xMinLit <= xMaxLit) {
+                // Non-lit segment: [xMin, xMinLit - 1].
+                leftSegmentXMax = xMinLit - 1;
                 if (xMinLit == leftSegmentXMin) {
                     leftSegmentFlag = FLAG_EDGE;
                 }
-                leftSegmentXMax = xMinLit - 1;
             } else {
+                // Non-lit segment: the whole row.
                 leftSegmentXMax = cbbox.xMax();
             }
 
@@ -991,39 +1029,29 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                                     leftSegmentXMin,
                                     y);
                     leftSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
-                    /*
-                     * If there is a row below, to avoid belonging tests
-                     * for its pixels in its [xMin + 1, xMax - 1] range,
-                     * we fill our pixels in that range with the flag.
-                     * This should not be a generally useful action,
-                     * but in pathological cases it could speed things up nicely.
-                     */
-                    if (j < cbbox.ySpan() - 1) {
-                        final int jj = j + 1;
-                        final int xxMin = xMinArr[jj];
-                        final int xxMax = xMaxArr[jj];
-                        if (xxMin <= xxMax) {
-                            final int ii = xxMin + 1 - cbbox.x();
-                            final int indexFrom = ii + jj * cbbox.xSpan();
-                            final int indexTo = ii + (xxMax - xxMin);
-                            fillWithFlag(
-                                    flagManager,
-                                    indexFrom,
-                                    indexTo,
-                                    leftSegmentFlag);
-                        }
-                    }
                 }
                 if (leftSegmentFlag == FLAG_IN) {
                     drawHorizontalLineInClip(
                             clippedLineDrawer,
                             leftSegmentXMin, leftSegmentXMax, y);
                 }
+                if (MUST_SET_LR_FLAGS_ABOVE_SUB_LIT_PARTS
+                        && (j < cbbox.ySpan() - 1)) {
+                    fillWithFlagAboveSubLitPart(
+                            cbbox,
+                            flagManager,
+                            xMinArr,
+                            xMaxArr,
+                            j,
+                            leftSegmentXMin,
+                            leftSegmentXMax,
+                            leftSegmentFlag);
+                }
             }
         }
     }
 
-    private static void fillPolygon_someLitSomeNonLit_rightSegment(
+    private static void fillPolygon_someLitSomeNot_rightSegments(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -1038,7 +1066,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int topLeftNonLitY) {
 
         if (DEBUG) {
-            Dbg.log("fillPolygon_someLitSomeNonLit_rightSegment()");
+            Dbg.log("fillPolygon_someLitSomeNot_rightSegments()");
         }
 
         byte rightSegmentFlag;
@@ -1062,14 +1090,15 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             final int xMinLit = xMinArr[j];
             final int xMaxLit = xMaxArr[j];
             if (xMinLit > xMaxLit) {
-                // Nothing lit.
+                // Non-lit segment: the whole row.
                 // Row already taken care of by left segment algo.
                 continue;
             }
+            // Non-lit segment: [xMaxLit + 1, xMax].
+            final int rightSegmentXMin = xMaxLit + 1;
             if (xMaxLit == rightSegmentXMax) {
                 rightSegmentFlag = FLAG_EDGE;
             }
-            final int rightSegmentXMin = xMaxLit + 1;
 
             if (rightSegmentXMin <= rightSegmentXMax) {
                 final int y = cbbox.y() + j;
@@ -1088,11 +1117,23 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
                             clippedLineDrawer,
                             rightSegmentXMin, rightSegmentXMax, y);
                 }
+                if (MUST_SET_LR_FLAGS_ABOVE_SUB_LIT_PARTS
+                        && (j < cbbox.ySpan() - 1)) {
+                    fillWithFlagAboveSubLitPart(
+                            cbbox,
+                            flagManager,
+                            xMinArr,
+                            xMaxArr,
+                            j,
+                            rightSegmentXMin,
+                            rightSegmentXMax,
+                            rightSegmentFlag);
+                }
             }
         }
     }
 
-    private static void fillPolygon_someLitSomeNonLit_litPartsSegment(
+    private static void fillPolygon_someLitSomeNot_litPartsSegments(
             int[] xArr,
             int[] yArr,
             int pointCount,
@@ -1108,7 +1149,7 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int topLeftNonLitY) {
 
         if (DEBUG) {
-            Dbg.log("fillPolygon_someLitSomeNonLit_litPartsSegment()");
+            Dbg.log("fillPolygon_someLitSomeNot_litPartsSegments()");
         }
 
         final int j0 = topLeftNonLitY - cbbox.y();
@@ -1339,6 +1380,56 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
      */
     
     /**
+     * When taking care of left and right non-lit segments,
+     * if there is a row below and it has lit pixels,
+     * we set the flag for segment pixels that are
+     * in its [xMinLit + 1, xMaxLit - 1] range,
+     * to avoid belonging tests.
+     * @param j Row of the segment. Must be < (cbbox.yMax() - 1),
+     *        i.e. there must be a row below.
+     */
+    private static void fillWithFlagAboveSubLitPart(
+            GRect cbbox,
+            MyFlagManager flagManager,
+            int[] xMinArr,
+            int[] xMaxArr,
+            int j,
+            int segmentXMin,
+            int segmentXMax,
+            byte segmentFlag) {
+        
+        final int subJ = j + 1;
+        final int subXMinLit = xMinArr[subJ];
+        final int subXMaxLit = xMaxArr[subJ];
+        if (DEBUG) {
+            Dbg.log("subXMinLit = " + subXMinLit);
+            Dbg.log("subXMaxLit = " + subXMaxLit);
+        }
+        if (subXMinLit <= subXMaxLit) {
+            final int cmnXMin = Math.max(segmentXMin, subXMinLit + 1);
+            final int cmnXMax = Math.min(segmentXMax, subXMaxLit - 1);
+            if (DEBUG) {
+                Dbg.log("cmnXMin = " + cmnXMin);
+                Dbg.log("cmnXMax = " + cmnXMax);
+            }
+            if (cmnXMin <= cmnXMax) {
+                final int tmpI = cmnXMin - cbbox.x();
+                final int indexFrom = tmpI + j * cbbox.xSpan();
+                final int indexTo = indexFrom + (cmnXMax - cmnXMin);
+                if (DEBUG) {
+                    Dbg.log("indexFrom = " + indexFrom);
+                    Dbg.log("indexTo = " + indexTo);
+                }
+                fillWithFlag(
+                        flagManager,
+                        indexFrom,
+                        indexTo,
+                        segmentFlag);
+            }
+        }
+    }
+    
+    /**
      * To copy flag from above row to current row,
      * while current flag is PENDING and above flag
      * is IN or OUT.
@@ -1357,9 +1448,10 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int indexOffset,
             int i,
             int iMax) {
+        final int segmentOffsetFlag = flagManager.flagOffset + segmentFlag;
         while (i <= iMax) {
             final int curIndex = indexOffset + i;
-            if (flagManager.setFlagAtIfIsPending(curIndex, segmentFlag)) {
+            if (flagManager.setOffsetFlagAtIfIsPending(curIndex, segmentOffsetFlag)) {
                 break;
             }
             i++;
@@ -1377,8 +1469,9 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             int indexFrom,
             int indexTo,
             byte flag) {
+        final int offsetFlag = flagManager.flagOffset + flag;
         for (int index = indexFrom; index <= indexTo; index++) {
-            flagManager.setFlagAt(index, flag);
+            flagManager.setOffsetFlagAt(index, offsetFlag);
         }
     }
     
