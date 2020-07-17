@@ -20,8 +20,8 @@ import net.jolikit.bwd.impl.utils.fonts.FontBoxHelperPerf;
 import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtilsPerf;
-import net.jolikit.bwd.impl.utils.gprim.HugeArcDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawerPerf;
+import net.jolikit.bwd.impl.utils.gprim.PolyArcDrawerPerf;
 import net.jolikit.lang.HeisenLoggerPerf;
 import net.jolikit.lang.NumbersUtilsPerf;
 import net.jolikit.lang.ThinTimePerf;
@@ -51,8 +51,8 @@ public class AllPerfs {
         DefaultLineDrawerPerf.newRun(args);
         DefaultPolyDrawerPerf.newRun(args);
         GprimUtilsPerf.newRun(args);
-        HugeArcDrawerPerf.newRun(args);
         MidPointArcDrawerPerf.newRun(args);
+        PolyArcDrawerPerf.newRun(args);
         
         /*
          * net.jolikit.bwd.impl.utils.fonts

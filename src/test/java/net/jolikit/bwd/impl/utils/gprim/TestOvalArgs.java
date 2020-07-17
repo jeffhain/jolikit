@@ -28,7 +28,7 @@ final class TestOvalArgs {
     
     private final GRect oval;
     
-    private final boolean mustUseHugeAlgo;
+    private final boolean mustUsePolyAlgo;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -36,17 +36,17 @@ final class TestOvalArgs {
     
     public TestOvalArgs(
             GRect oval,
-            boolean mustUseHugeAlgo) {
+            boolean mustUsePolyAlgo) {
         this.oval = oval;
         
-        this.mustUseHugeAlgo = mustUseHugeAlgo;
+        this.mustUsePolyAlgo = mustUsePolyAlgo;
     }
     
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         sb.append("[oval = ").append(this.oval);
-        sb.append(", mustUseHugeAlgo = ").append(this.mustUseHugeAlgo);
+        sb.append(", mustUsePolyAlgo = ").append(this.mustUsePolyAlgo);
         sb.append("]");
         return sb.toString();
     }
@@ -55,7 +55,7 @@ final class TestOvalArgs {
         return this.oval;
     }
 
-    public boolean getMustUseHugeAlgo() {
-        return this.mustUseHugeAlgo;
+    public boolean getMustUsePolyAlgo() {
+        return this.mustUsePolyAlgo;
     }
 }

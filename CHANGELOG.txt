@@ -135,6 +135,10 @@ Jolikit X.X, XXXX/XX/XX
       BwdColor.toArgb32() much faster.
     - Optimized mid point algorithm used for non-huge arcs,
       by checking clip (fast) before angular range.
+    - Huge speed-up (i.e. was really slow) for ovals and arcs drawing,
+      arcs filling, and to a lesser extent ovals filling, when spans are
+      not small, by using an algorithm based on polylines and polygons,
+      instead of the pixel-per-pixel brute force algorithm.
     - Optimized text drawing, by only considering the clipped bounding box
       (Allegro5, SDL2, SWT), or by drawing directly on the backing int array
       through a BufferedImage graphics (JOGL, LWJGL3).

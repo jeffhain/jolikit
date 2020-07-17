@@ -18,9 +18,9 @@ package net.jolikit.bwd.impl.utils.gprim;
 import net.jolikit.bwd.api.graphics.GRect;
 
 /**
- * Benches HugeArcDrawer.
+ * Benches PolyArcDrawer.
  */
-public class HugeArcDrawerPerf {
+public class PolyArcDrawerPerf {
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -90,10 +90,10 @@ public class HugeArcDrawerPerf {
     }
 
     public static void newRun(String[] args) {
-        new HugeArcDrawerPerf().run(args);
+        new PolyArcDrawerPerf().run(args);
     }
     
-    public HugeArcDrawerPerf() {
+    public PolyArcDrawerPerf() {
     }
 
     //--------------------------------------------------------------------------
@@ -101,16 +101,26 @@ public class HugeArcDrawerPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
-        System.out.println("--- " + HugeArcDrawerPerf.class.getSimpleName() + "... ---");
+        System.out.println("--- " + PolyArcDrawerPerf.class.getSimpleName() + "... ---");
 
+        final DefaultColorDrawer colorDrawer = new DefaultColorDrawer();
         final MyClippedPointDrawer clippedPointDrawer = new MyClippedPointDrawer();
         final DefaultClippedLineDrawer clippedLineDrawer = new DefaultClippedLineDrawer(clippedPointDrawer);
-        final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedLineDrawer);
         final DefaultClippedRectDrawer clippedRectDrawer = new DefaultClippedRectDrawer(clippedLineDrawer);
+        final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
+        final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedPointDrawer);
         final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, clippedRectDrawer);
-        final HugeArcDrawer arcDrawer = new HugeArcDrawer(
+        final DefaultPolyDrawer polyDrawer = new DefaultPolyDrawer(
+                colorDrawer,
+                clippedPointDrawer,
                 clippedLineDrawer,
+                lineDrawer,
                 rectDrawer);
+        final PolyArcDrawer arcDrawer = new PolyArcDrawer(
+                pointDrawer,
+                lineDrawer,
+                rectDrawer,
+                polyDrawer);
         final MyGraphics g = new MyGraphics(
                 arcDrawer,
                 GRect.valueOf(0, 0, 1000, 1000));
@@ -124,6 +134,6 @@ public class HugeArcDrawerPerf {
             System.out.println("antiOptim");
         }
 
-        System.out.println("--- ..." + HugeArcDrawerPerf.class.getSimpleName() + " ---");
+        System.out.println("--- ..." + PolyArcDrawerPerf.class.getSimpleName() + " ---");
     }
 }

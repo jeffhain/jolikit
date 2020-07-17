@@ -25,9 +25,9 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
     //--------------------------------------------------------------------------
     
     private final MidPointArcDrawer midPointArcDrawer;
-
-    private final HugeArcDrawer hugeArcDrawer;
-
+    
+    private final PolyArcDrawer polyArcDrawer;
+    
     /*
      * temps
      */
@@ -39,7 +39,9 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public AllArcDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer) {
+    public AllArcDrawerTestHelper(
+            InterfaceColorDrawer colorDrawer,
+            InterfaceClippedPointDrawer clippedPointDrawer) {
         
         final DefaultClippedLineDrawer clippedLineDrawer = new DefaultClippedLineDrawer(clippedPointDrawer);
         final DefaultClippedRectDrawer clippedRectDrawer = new DefaultClippedRectDrawer(clippedLineDrawer);
@@ -47,6 +49,12 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
         final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
         final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedLineDrawer);
         final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, clippedRectDrawer);
+        final DefaultPolyDrawer polyDrawer = new DefaultPolyDrawer(
+                colorDrawer,
+                clippedPointDrawer,
+                clippedLineDrawer,
+                lineDrawer,
+                rectDrawer);
         
         final MidPointArcDrawer midPointArcDrawer = new MidPointArcDrawer(
                 clippedPointDrawer,
@@ -56,10 +64,12 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
                 rectDrawer);
         this.midPointArcDrawer = midPointArcDrawer;
         
-        final HugeArcDrawer hugeArcDrawer = new HugeArcDrawer(
-                clippedLineDrawer,
-                rectDrawer);
-        this.hugeArcDrawer = hugeArcDrawer;
+        final PolyArcDrawer polyArcDrawer = new PolyArcDrawer(
+                pointDrawer,
+                lineDrawer,
+                rectDrawer,
+                polyDrawer); 
+        this.polyArcDrawer = polyArcDrawer;
     }
     
     @Override
@@ -72,8 +82,8 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
         final GRect oval = drawingArgs.getOval();
         
         final InterfaceArcDrawer arcDrawer;
-        if (drawingArgs.getMustUseHugeAlgo()) {
-            arcDrawer = this.hugeArcDrawer;
+        if (drawingArgs.getMustUsePolyAlgo()) {
+            arcDrawer = this.polyArcDrawer;
         } else {
             arcDrawer = this.midPointArcDrawer;
         }
@@ -96,8 +106,8 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
         final boolean areHorVerFlipped = false;
         
         final InterfaceArcDrawer arcDrawer;
-        if (drawingArgs.getMustUseHugeAlgo()) {
-            arcDrawer = this.hugeArcDrawer;
+        if (drawingArgs.getMustUsePolyAlgo()) {
+            arcDrawer = this.polyArcDrawer;
         } else {
             arcDrawer = this.midPointArcDrawer;
         }
@@ -119,13 +129,17 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
             TestArcArgs drawingArgs) {
         if (isFillElseDraw) {
             final double spanDeg = drawingArgs.getReworkedSpanDeg();
-            if (spanDeg < 10.0) {
+            final boolean isMidPointAlgo = !drawingArgs.getMustUsePolyAlgo();
+            if (isMidPointAlgo
+                    && (spanDeg < 10.0)) {
                 // Might have many, due to angular constraint
                 // excluding a lot of pixels.
-                return Math.max(
-                        drawingArgs.getOval().xSpan(),
-                        drawingArgs.getOval().ySpan()) / 2;
-            } else if (spanDeg < 90.0) {
+                return (drawingArgs.getOval().maxSpan() / 2);
+            } else if (isMidPointAlgo
+                    && (spanDeg < 30.0)) {
+                // Might still have more than 3.
+                return 6;
+            } else if (spanDeg < 135.0) {
                 // Might have 3, two at edges extremities
                 // and one at center.
                 return 3;
@@ -161,12 +175,8 @@ public class AllArcDrawerTestHelper extends AbstractDrawerTestHelper<TestArcArgs
             GRect drawingBBox,
             boolean isFillElseDraw,
             GPoint pixel) {
-        /*
-         * This algorithm is used for drawing huge arcs,
-         * but has originally been designed for this test class.
-         */
         return PixelFigStatusArcAlgo.computePixelFigStatus(
-                drawingArgs.getPixelFigStatusArcDef(),
+                drawingArgs,
                 isFillElseDraw,
                 pixel.x(),
                 pixel.y(),

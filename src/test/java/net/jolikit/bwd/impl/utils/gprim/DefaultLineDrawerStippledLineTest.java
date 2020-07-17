@@ -189,6 +189,7 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
             if (DEBUG) {
                 Dbg.log("clippedBBox = " + clippedBBox);
             }
+            clippedPointDrawer.setClippedBBox(clippedBBox);
             
             final Set<Integer> expectedDrawnCoordSet =
                     computeExpectedDrawByPixelCoordSet(
@@ -401,6 +402,10 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
         final Map<GPoint,Integer> plainPaintedCountByPixel;
         {
             final TestClippedPointDrawer plainClippedPointDrawer = new TestClippedPointDrawer();
+            
+            final GRect clippedBBox = drawingBBox.intersected(clip);
+            plainClippedPointDrawer.setClippedBBox(clippedBBox);
+            
             plainPaintedCountByPixel = plainClippedPointDrawer.paintedCountByPixel;
             final DefaultLineDrawer plainDrawer = new DefaultLineDrawer(plainClippedPointDrawer);
             plainDrawer.drawLine(

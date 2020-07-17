@@ -110,7 +110,7 @@ class DefaultLineDrawerTestHelper extends AbstractDrawerTestHelper<TestLineArgs>
                         drawingArgs.y2,
                         pixel);
         
-        return GprimUtils.computePixelFigStatus(
+        return PixelFigStatusComputer.computePixelFigStatus(
                 isFillElseDraw,
                 nbrOfSurroundingEightsIn);
     }

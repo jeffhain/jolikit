@@ -51,6 +51,8 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
 
     private final GprimTestUtilz utilz = new GprimTestUtilz(this.random);
 
+    private int testNum = 0;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -101,6 +103,13 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                 clip = drawingBBox;
             } else {
                 clip = this.utilz.randomClipNearRect(drawingBBox);
+            }
+            
+            final GRect clippedBBox = drawingBBox.intersected(clip);
+            if (this.mustThrowOnPixelDrawnOutOfClip()) {
+                clippedPointDrawer.setClippedBBox(clippedBBox);
+            } else {
+                clippedPointDrawer.setClippedBBox(null);
             }
             
             /*
@@ -194,6 +203,14 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
      */
     protected boolean mustAllowMultipaintedPixels(ARG drawingArgs) {
         return false;
+    }
+    
+    /**
+     * @return True by default, which is handy to figure out where
+     *         the issue comes from.
+     */
+    protected boolean mustThrowOnPixelDrawnOutOfClip() {
+        return true;
     }
 
     /*
@@ -399,9 +416,13 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                 && ((!foundMultipaintedPixel) || multipaintedPixelsAllowed)
                 && (!foundTooManyDanglingPixels);
 
+        // Allows to know if we fail further or before.
+        final int myTestNum = (++this.testNum);
+        
         if ((!valid)
                 || DEBUG) {
             Dbg.log();
+            Dbg.log("testNum = " + myTestNum);
             Dbg.log("isFillElseDraw = " + isFillElseDraw);
             Dbg.log("statusByPixel in bounding box:");
             GprimTestUtilz.logStatusByPixel(statusByPixel);

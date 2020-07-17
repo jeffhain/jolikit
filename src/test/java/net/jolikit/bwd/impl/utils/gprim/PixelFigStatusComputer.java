@@ -24,9 +24,22 @@ public class PixelFigStatusComputer {
     public static PixelFigStatus computePixelFigStatus(
             boolean isFillElseDraw,
             int nbrOfSurroundingEightsIn) {
-        return GprimUtils.computePixelFigStatus(
+        
+        final boolean paintingRequired = PixelFigStatusComputer.computePixelPaintingRequired(
                 isFillElseDraw,
                 nbrOfSurroundingEightsIn);
+        if (paintingRequired) {
+            return PixelFigStatus.PIXEL_REQUIRED;
+        }
+        
+        final boolean paintingAllowed = PixelFigStatusComputer.computePixelPaintingAllowed(
+                isFillElseDraw,
+                nbrOfSurroundingEightsIn);
+        if (paintingAllowed) {
+            return PixelFigStatus.PIXEL_ALLOWED;
+        }
+        
+        return PixelFigStatus.PIXEL_NOT_ALLOWED;
     }
 
     //--------------------------------------------------------------------------
@@ -34,5 +47,31 @@ public class PixelFigStatusComputer {
     //--------------------------------------------------------------------------
     
     private PixelFigStatusComputer() {
+    }
+    
+    private static boolean computePixelPaintingAllowed(
+            boolean isFillElseDraw,
+            int nbrOfSurroundingEightsIn) {
+        if (isFillElseDraw) {
+            return (nbrOfSurroundingEightsIn >= 1);
+        } else {
+            return (nbrOfSurroundingEightsIn >= 1)
+                    && (nbrOfSurroundingEightsIn <= 7);
+        }
+    }
+
+    private static boolean computePixelPaintingRequired(
+            boolean isFillElseDraw,
+            int nbrOfSurroundingEightsIn) {
+        if (isFillElseDraw) {
+            return (nbrOfSurroundingEightsIn >= 3);
+        } else {
+            /*
+             * If [3,5] causes some pixel to be erroneously required,
+             * could also just use [4] instead.
+             */
+            return (nbrOfSurroundingEightsIn >= 3)
+                    && (nbrOfSurroundingEightsIn <= 5);
+        }
     }
 }

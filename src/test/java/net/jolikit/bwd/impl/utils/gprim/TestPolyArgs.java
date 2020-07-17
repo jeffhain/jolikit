@@ -42,9 +42,9 @@ final class TestPolyArgs {
     
     @Override
     public String toString() {
-        return "[xArr = " + Arrays.toString(this.xArr)
-        + ", yArr = " + Arrays.toString(this.yArr)
-        + ", pointCount = " + this.pointCount
+        return "[\nxArr = " + Arrays.toString(this.xArr)
+        + ",\nyArr = " + Arrays.toString(this.yArr)
+        + ",\npointCount = " + this.pointCount
         + ", mustDrawAsPolyline = " + this.mustDrawAsPolyline
         + "]";
     }

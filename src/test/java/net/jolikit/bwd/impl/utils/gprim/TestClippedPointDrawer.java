@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 
 class TestClippedPointDrawer implements InterfaceClippedPointDrawer {
@@ -33,7 +34,12 @@ class TestClippedPointDrawer implements InterfaceClippedPointDrawer {
      * Set it to true to help debug where it comes from.
      */
     private static final boolean MUST_FAIL_FAST_ON_PIXEL_MULTIPLE_PAINTING = false;
-    
+
+    /**
+     * Set it to true to help debug where it comes from.
+     */
+    private static final boolean MUST_FAIL_FAST_ON_PIXEL_OUT_OF_CBBOX = false;
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -44,11 +50,22 @@ class TestClippedPointDrawer implements InterfaceClippedPointDrawer {
      */
     final SortedMap<GPoint,Integer> paintedCountByPixel = new TreeMap<GPoint,Integer>();
     
+    private GRect clippedBBox = null;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
     public TestClippedPointDrawer() {
+    }
+    
+    /**
+     * @param clippedBBox Can be null.
+     *        If not null, and class configured for that,
+     *        throws if painting out of it.
+     */
+    public void setClippedBBox(GRect clippedBBox) {
+        this.clippedBBox = clippedBBox;
     }
     
     @Override
@@ -70,5 +87,15 @@ class TestClippedPointDrawer implements InterfaceClippedPointDrawer {
             }
         }
         this.paintedCountByPixel.put(pixel, count);
+        
+        final GRect clippedBBox = this.clippedBBox;
+        if ((clippedBBox != null)
+                && (!clippedBBox.contains(x, y))) {
+            if (MUST_FAIL_FAST_ON_PIXEL_OUT_OF_CBBOX) {
+                final AssertionError e = new AssertionError("out of clippedBBox : " + pixel);
+                Dbg.log("clippedBBox = " + clippedBBox, e);
+                throw e;
+            }
+        }
     }
 }

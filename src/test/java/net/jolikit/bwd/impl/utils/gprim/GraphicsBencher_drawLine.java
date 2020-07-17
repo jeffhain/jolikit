@@ -29,7 +29,7 @@ public class GraphicsBencher_drawLine {
 
     private static final long RANDOM_SEED = (false ? System.nanoTime() : 123456789L);
 
-    private static final int DEFAULT_NBR_OF_RUNS = 4;
+    private static final int DEFAULT_NBR_OF_RUNS = 2;
 
     private static final int DEFAULT_NBR_OF_CALLS = 100 * 1000 * 1000;
 
@@ -419,11 +419,11 @@ public class GraphicsBencher_drawLine {
                         ptsArr[from + 3]);
             }
             long b = System.nanoTime();
-            long ns = Math.max(0, b-a);
+            
             System.out.println(
                     myNbrOfCalls
                     + " calls to drawLine(4int), varying, to clip, took "
-                    + TestUtils.nsToSRounded(ns) + " s");
+                    + TestUtils.nsToSRounded(b-a) + " s");
         }
     }
     

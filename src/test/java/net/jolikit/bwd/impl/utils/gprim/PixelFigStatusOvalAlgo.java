@@ -21,9 +21,6 @@ import net.jolikit.lang.Dbg;
 /**
  * Algorithm to compute whether a pixel must, could, or must not be painted
  * when drawing or filling an oval.
- * Initially designed for unit tests, but then extracted from test code
- * for usage for drawing huge ovals, for which Bresenham-like algorithms
- * are too slow, by iterating on pixels in oval and clip intersection.
  */
 public class PixelFigStatusOvalAlgo {
 
@@ -117,7 +114,7 @@ public class PixelFigStatusOvalAlgo {
             }
         }
 
-        return GprimUtils.computePixelFigStatus(
+        return PixelFigStatusComputer.computePixelFigStatus(
                 isFillElseDraw,
                 nbrOfPointsIn);
     }

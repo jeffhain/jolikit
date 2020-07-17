@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,6 @@ import net.jolikit.lang.Dbg;
 /**
  * Algorithm to compute whether a pixel must, could, or must not be painted
  * when drawing or filling an arc.
- * Initially designed for unit tests, but then extracted from test code
- * for usage for drawing huge arcs, for which Bresenham-like algorithms
- * are too slow, by iterating on pixels in oval and clip intersection.
  */
 public class PixelFigStatusArcAlgo {
     
@@ -38,7 +35,7 @@ public class PixelFigStatusArcAlgo {
     //--------------------------------------------------------------------------
     
     public static PixelFigStatus computePixelFigStatus(
-            PixelFigStatusArcDef hugeArcDef,
+            TestArcArgs hugeArcDef,
             boolean isFillElseDraw,
             int x,
             int y,
@@ -170,19 +167,40 @@ public class PixelFigStatusArcAlgo {
          */
         
         // No need to enlarge, so shrinking to be conservative.
+        // Also, enlarging can cause trouble, if segment is included in the pixel.
         final boolean mustEnlargeElseShrinkPixel = false;
         
-        final boolean isPixelOverStartSegment =
+        final boolean isPixelOverStartSegmentTight =
                 GprimUtils.doSegmentIntersectASurroundingSide(
                         cx, cy, sx, sy,
                         x, y,
                         mustEnlargeElseShrinkPixel);
-        
-        final boolean isPixelOverEndSegment =
+        final boolean isPixelOverStartSegmentLoose =
+                isPixelOverStartSegmentTight
+                || doCloseSegmentIntersectASurroundingSide(
+                        cx, cy, sx, sy,
+                        x, y,
+                        mustEnlargeElseShrinkPixel);
+        if (DEBUG) {
+            Dbg.log("isPixelOverStartSegmentTight = " + isPixelOverStartSegmentTight);
+            Dbg.log("isPixelOverStartSegmentLoose = " + isPixelOverStartSegmentLoose);
+        }
+
+        final boolean isPixelOverEndSegmentTight =
                 GprimUtils.doSegmentIntersectASurroundingSide(
                         cx, cy, ex, ey,
                         x, y,
                         mustEnlargeElseShrinkPixel);
+        final boolean isPixelOverEndSegmentLoose =
+                isPixelOverEndSegmentTight
+                || doCloseSegmentIntersectASurroundingSide(
+                        cx, cy, ex, ey,
+                        x, y,
+                        mustEnlargeElseShrinkPixel);
+        if (DEBUG) {
+            Dbg.log("isPixelOverEndSegmentTight = " + isPixelOverEndSegmentTight);
+            Dbg.log("isPixelOverEndSegmentLoose = " + isPixelOverEndSegmentLoose);
+        }
         
         /*
          * We assume the drawer also checks whether a pixel
@@ -200,34 +218,41 @@ public class PixelFigStatusArcAlgo {
                         sinStart, cosStart,
                         sinEnd, cosEnd,
                         rx, ry);
-
         if (DEBUG) {
-            Dbg.log("isPixelOverStartSegment = " + isPixelOverStartSegment);
-            Dbg.log("isPixelOverEndSegment = " + isPixelOverEndSegment);
             Dbg.log("isPixelCenterInAngularRange = " + isPixelCenterInAngularRange);
         }
         
         final PixelFigStatus ret;
-        if (isPixelCenterInAngularRange) {
+        if (isPixelOverStartSegmentLoose
+                || isPixelOverEndSegmentLoose) {
             /*
-             * Clearly in angular range: using oval status.
-             */
-            ret = pixelOvalStatus;
-        } else if (isPixelOverStartSegment
-                || isPixelOverEndSegment) {
-            /*
-             * Pixel center not in angular range,
-             * but pixel overlaps start or end segment.
+             * Pixel overlaps start or end segment.
              * 
              * Considering the pixel can be drawn for arc
              * if it can be drawn for oval, but taking care
              * not to use PIXEL_REQUIRED, to allow for drawing treatments
              * to be simple and just rule out pixels which center
-             * is not in angular range.
+             * is not in angular range, or to use rounded coordinates
+             * when drawing start and end segments.
              */
             if (pixelOvalStatus == PixelFigStatus.PIXEL_REQUIRED) {
                 ret = PixelFigStatus.PIXEL_ALLOWED;
             } else {
+                ret = pixelOvalStatus;
+            }
+        } else if (isPixelCenterInAngularRange) {
+            if ((pixelOvalStatus == PixelFigStatus.PIXEL_REQUIRED)
+                    && ((oxSpan == 1)
+                            || (oySpan == 1))) {
+                /*
+                 * Oval on a line: angular range for pixels is ambiguous.
+                 * Allowing for pixel not to be painted.
+                 */
+                ret = PixelFigStatus.PIXEL_ALLOWED;
+            } else {
+                /*
+                 * Clearly in angular range: using oval status.
+                 */
                 ret = pixelOvalStatus;
             }
         } else {
@@ -248,5 +273,32 @@ public class PixelFigStatusArcAlgo {
     //--------------------------------------------------------------------------
     
     private PixelFigStatusArcAlgo() {
+    }
+    
+    /**
+     * Checks the eight segments with adjacent extremities (moving both),
+     * to handle the case of arcs drawing based on polygons,
+     * which use rounded coordinates for segments.
+     */
+    private static boolean doCloseSegmentIntersectASurroundingSide(
+            double cx, double cy, double segExtrX, double segExtrY,
+            int x, int y,
+            boolean mustEnlargeElseShrinkPixel) {
+        for (int i = -1; i <= 1; i++) {
+            for (int j = -1; j <= 1; j++) {
+                if ((i == 0) && (j == 0)) {
+                    // Not doing "exact" segment.
+                    continue;
+                }
+                final boolean hit = GprimUtils.doSegmentIntersectASurroundingSide(
+                        cx + i, cy + j, segExtrX + i, segExtrY + j,
+                        x, y,
+                        mustEnlargeElseShrinkPixel);
+                if (hit) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

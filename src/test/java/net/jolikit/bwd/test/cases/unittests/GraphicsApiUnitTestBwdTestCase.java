@@ -42,6 +42,7 @@ import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
+import net.jolikit.lang.Dbg;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -102,7 +103,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
      */
     private static final int[] SPAN_ANY_ARR = new int [] {
         MIN,
-        -1, 0, 1,
+        -1, 0, 1, 2, 3, 4, 5,
         MAX / 3,
         MAX / 2,
         MAX
@@ -1301,13 +1302,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         {
             final int span = MAX;
             
-            g.drawOval(-span/2, 0, span, span);
-            
-            g.drawOval(0, -span/2, span, span);
-            
-            g.fillOval(-span/2, 0, span, span);
-            
-            g.fillOval(0, -span/2, span, span);
+            callDrawOval(g, -span/2, 0, span, span);
+            callDrawOval(g, 0, -span/2, span, span);
+            callFillOval(g, -span/2, 0, span, span);
+            callFillOval(g, 0, -span/2, span, span);
         }
 
         /*
@@ -1316,14 +1314,14 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         
         for (int xSpan : SPAN_ANY_ARR) {
             for (int ySpan : SPAN_ANY_ARR) {
-                g.drawOval(0, 0, xSpan, ySpan);
-                g.fillOval(0, 0, xSpan, ySpan);
+                callDrawOval(g, 0, 0, xSpan, ySpan);
+                callFillOval(g, 0, 0, xSpan, ySpan);
             }
         }
         
         for (GRect rect : RECT_ANY_LIST) {
-            g.drawOval(rect);
-            g.fillOval(rect);
+            callDrawOval(g, rect);
+            callFillOval(g, rect);
         }
     }
     
@@ -1395,13 +1393,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         {
             final int span = MAX;
             
-            g.drawArc(-span/2, 0, span, span, startDeg, spanDeg);
-            
-            g.drawArc(0, -span/2, span, span, startDeg, spanDeg);
-            
-            g.fillArc(-span/2, 0, span, span, startDeg, spanDeg);
-            
-            g.fillArc(0, -span/2, span, span, startDeg, spanDeg);
+            callDrawArc(g, -span/2, 0, span, span, startDeg, spanDeg);
+            callDrawArc(g, 0, -span/2, span, span, startDeg, spanDeg);
+            callFillArc(g, -span/2, 0, span, span, startDeg, spanDeg);
+            callFillArc(g, 0, -span/2, span, span, startDeg, spanDeg);
         }
 
         /*
@@ -1410,14 +1405,14 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
         
         for (int xSpan : SPAN_ANY_ARR) {
             for (int ySpan : SPAN_ANY_ARR) {
-                g.drawArc(0, 0, xSpan, ySpan, startDeg, spanDeg);
-                g.fillArc(0, 0, xSpan, ySpan, startDeg, spanDeg);
+                callDrawArc(g, 0, 0, xSpan, ySpan, startDeg, spanDeg);
+                callFillArc(g, 0, 0, xSpan, ySpan, startDeg, spanDeg);
             }
         }
         
         for (GRect rect : RECT_ANY_LIST) {
-            g.drawArc(rect, startDeg, spanDeg);
-            g.fillArc(rect, startDeg, spanDeg);
+            callDrawArc(g, rect, startDeg, spanDeg);
+            callFillArc(g, rect, startDeg, spanDeg);
         }
     }
     
@@ -1502,7 +1497,13 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          * with appropriate usage of clip.
          */
 
-        g.fillPolygon(
+        callDrawPolygon(
+                g,
+                new int[] {MIN, MAX, MAX, MIN},
+                new int[] {MIN, MIN, MAX, MAX},
+                4);
+        callFillPolygon(
+                g,
                 new int[] {MIN, MAX, MAX, MIN},
                 new int[] {MIN, MIN, MAX, MAX},
                 4);
@@ -1884,6 +1885,144 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                     }
                 }
             }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    private static void callDrawOval(
+            InterfaceBwdGraphics g,
+            GRect oval) {
+        callDrawOval(
+                g,
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan());
+    }
+    
+    private static void callDrawOval(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan) {
+        if (DEBUG) {
+            Dbg.log("calling drawOval("
+                    + x + ", " + y + ", " + xSpan + ", " + ySpan
+                    + ")...");
+        }
+        g.drawOval(x, y, xSpan, ySpan);
+        if (DEBUG) {
+            Dbg.log("...done");
+        }
+    }
+    
+    private static void callFillOval(
+            InterfaceBwdGraphics g,
+            GRect oval) {
+        callFillOval(
+                g,
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan());
+    }
+    
+    private static void callFillOval(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan) {
+        if (DEBUG) {
+            Dbg.log("calling fillOval("
+                    + x + ", " + y + ", " + xSpan + ", " + ySpan
+                    + ")...");
+        }
+        g.fillOval(x, y, xSpan, ySpan);
+        if (DEBUG) {
+            Dbg.log("...done");
+        }
+    }
+    
+    private static void callDrawArc(
+            InterfaceBwdGraphics g,
+            GRect oval,
+            double startDeg, double spanDeg) {
+        callDrawArc(
+                g,
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan(),
+                startDeg, spanDeg);
+    }
+    
+    private static void callDrawArc(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan,
+            double startDeg, double spanDeg) {
+        if (DEBUG) {
+            Dbg.log("calling drawArc("
+                    + x + ", " + y + ", " + xSpan + ", " + ySpan
+                    + ", " + startDeg + ", " + spanDeg
+                    + ")...");
+        }
+        g.drawArc(
+                x, y, xSpan, ySpan,
+                startDeg, spanDeg);
+        if (DEBUG) {
+            Dbg.log("...done");
+        }
+    }
+    
+    private static void callFillArc(
+            InterfaceBwdGraphics g,
+            GRect oval,
+            double startDeg, double spanDeg) {
+        callFillArc(
+                g,
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan(),
+                startDeg, spanDeg);
+    }
+    
+    private static void callFillArc(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan,
+            double startDeg, double spanDeg) {
+        if (DEBUG) {
+            Dbg.log("calling fillArc("
+                    + x + ", " + y + ", " + xSpan + ", " + ySpan
+                    + ", " + startDeg + ", " + spanDeg
+                    + ")...");
+        }
+        g.fillArc(
+                x, y, xSpan, ySpan,
+                startDeg, spanDeg);
+        if (DEBUG) {
+            Dbg.log("...done");
+        }
+    }
+
+    private static void callDrawPolygon(
+            InterfaceBwdGraphics g,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (DEBUG) {
+            Dbg.log("calling drawPolygon(" + Arrays.toString(xArr)
+            + ", " + Arrays.toString(yArr)
+            + ", " + pointCount
+            + ")...");
+        }
+        g.drawPolygon(xArr, yArr, pointCount);
+        if (DEBUG) {
+            Dbg.log("...done");
+        }
+    }
+    
+    private static void callFillPolygon(
+            InterfaceBwdGraphics g,
+            int[] xArr,
+            int[] yArr,
+            int pointCount) {
+        if (DEBUG) {
+            Dbg.log("calling fillPolygon(" + Arrays.toString(xArr)
+            + ", " + Arrays.toString(yArr)
+            + ", " + pointCount
+            + ")...");
+        }
+        g.fillPolygon(xArr, yArr, pointCount);
+        if (DEBUG) {
+            Dbg.log("...done");
         }
     }
     

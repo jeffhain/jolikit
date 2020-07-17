@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,11 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
-public class HugeArcDrawer implements InterfaceArcDrawer {
+/**
+ * Arc drawer based on a poly drawer.
+ * Much faster than bresenham-like algorithm for large arcs.
+ */
+public class PolyArcDrawer implements InterfaceArcDrawer {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -31,22 +35,24 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final InterfaceClippedLineDrawer clippedLineDrawer;
-
+    private final InterfacePointDrawer pointDrawer;
+    private final InterfaceLineDrawer lineDrawer;
     private final InterfaceRectDrawer rectDrawer;
-    
+    private final InterfacePolyDrawer polyDrawer;
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public HugeArcDrawer(
-            InterfaceClippedLineDrawer clippedLineDrawer,
-            //
-            InterfaceRectDrawer rectDrawer) {
-        
-        this.clippedLineDrawer = LangUtils.requireNonNull(clippedLineDrawer);
-
+    public PolyArcDrawer(
+            InterfacePointDrawer pointDrawer,
+            InterfaceLineDrawer lineDrawer,
+            InterfaceRectDrawer rectDrawer,
+            InterfacePolyDrawer polyDrawer) {
+        this.pointDrawer = LangUtils.requireNonNull(pointDrawer);
+        this.lineDrawer = LangUtils.requireNonNull(lineDrawer);
         this.rectDrawer = LangUtils.requireNonNull(rectDrawer);
+        this.polyDrawer = LangUtils.requireNonNull(polyDrawer);
     }
 
     /*
@@ -63,7 +69,10 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 //
-                this.clippedLineDrawer);
+                this.pointDrawer,
+                this.lineDrawer,
+                this.rectDrawer,
+                this.polyDrawer);
     }
 
     @Override
@@ -78,9 +87,10 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
                 startDeg, spanDeg,
                 areHorVerFlipped,
                 //
-                this.clippedLineDrawer,
-                //
-                this.rectDrawer);
+                this.pointDrawer,
+                this.lineDrawer,
+                this.rectDrawer,
+                this.polyDrawer);
     }
 
     /*
@@ -95,7 +105,10 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg,
             //
-            InterfaceClippedLineDrawer clippedLineDrawer) {
+            InterfacePointDrawer pointDrawer,
+            InterfaceLineDrawer lineDrawer,
+            InterfaceRectDrawer rectDrawer,
+            InterfacePolyDrawer polyDrawer) {
 
         if (DEBUG) {
             Dbg.log();
@@ -103,7 +116,7 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
                     + clip
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
-                    + ",)");
+                    + ",,,,)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -112,21 +125,20 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
         startDeg = GprimUtils.computeReworkedStartDeg(startDeg, spanDeg);
         spanDeg = GprimUtils.computeReworkedSpanDeg(spanDeg);
 
-        final boolean mustFill = false;
         final boolean areHorVerFlipped = false;
+        final boolean isFillElseDraw = false;
         
-        final InterfaceRectDrawer rectDrawer = null;
-        
-        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
+        OvalOrArc_asPoly.drawOrFillOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 areHorVerFlipped,
-                mustFill,
+                isFillElseDraw,
                 //
-                clippedLineDrawer,
-                //
-                rectDrawer);
+                pointDrawer,
+                lineDrawer,
+                rectDrawer,
+                polyDrawer);
     }
 
     /**
@@ -138,9 +150,10 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
             double startDeg, double spanDeg,
             boolean areHorVerFlipped,
             //
-            InterfaceClippedLineDrawer clippedLineDrawer,
-            //
-            InterfaceRectDrawer rectDrawer) {
+            InterfacePointDrawer pointDrawer,
+            InterfaceLineDrawer lineDrawer,
+            InterfaceRectDrawer rectDrawer,
+            InterfacePolyDrawer polyDrawer) {
         
         if (DEBUG) {
             Dbg.log();
@@ -149,7 +162,7 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
                     + ", " + x + ", " + y + ", " + xSpan + ", " + ySpan
                     + ", " + startDeg + ", " + spanDeg
                     + ", " + areHorVerFlipped
-                    + ",,)");
+                    + ",,,,)");
         }
         
         startDeg = GprimUtils.computeNormalizedStartDeg(startDeg);
@@ -158,17 +171,18 @@ public class HugeArcDrawer implements InterfaceArcDrawer {
         startDeg = GprimUtils.computeReworkedStartDeg(startDeg, spanDeg);
         spanDeg = GprimUtils.computeReworkedSpanDeg(spanDeg);
 
-        final boolean mustFill = true;
+        final boolean isFillElseDraw = true;
         
-        OvalOrArc_huge.drawOrFillHugeOvalOrArc(
+        OvalOrArc_asPoly.drawOrFillOvalOrArc(
                 clip,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 areHorVerFlipped,
-                mustFill,
+                isFillElseDraw,
                 //
-                clippedLineDrawer,
-                //
-                rectDrawer);
+                pointDrawer,
+                lineDrawer,
+                rectDrawer,
+                polyDrawer);
     }
 }

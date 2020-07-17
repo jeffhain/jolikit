@@ -25,9 +25,9 @@ class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
     //--------------------------------------------------------------------------
     
     private final MidPointOvalDrawer midPointOvalDrawer;
-
-    private final HugeOvalDrawer hugeOvalDrawer;
-
+    
+    private final PolyOvalDrawer polyOvalDrawer;
+    
     /*
      * temps
      */
@@ -40,6 +40,7 @@ class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
     //--------------------------------------------------------------------------
     
     public AllOvalDrawerTestHelper(
+            InterfaceColorDrawer colorDrawer,
             InterfaceClippedPointDrawer clippedPointDrawer) {
         
         final DefaultClippedLineDrawer clippedLineDrawer = new DefaultClippedLineDrawer(clippedPointDrawer);
@@ -48,6 +49,12 @@ class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
         final DefaultPointDrawer pointDrawer = new DefaultPointDrawer(clippedPointDrawer);
         final DefaultLineDrawer lineDrawer = new DefaultLineDrawer(clippedLineDrawer);
         final DefaultRectDrawer rectDrawer = new DefaultRectDrawer(lineDrawer, clippedRectDrawer);
+        final DefaultPolyDrawer polyDrawer = new DefaultPolyDrawer(
+                colorDrawer,
+                clippedPointDrawer,
+                clippedLineDrawer,
+                lineDrawer,
+                rectDrawer);
         
         final MidPointOvalDrawer midPointOvalDrawer = new MidPointOvalDrawer(
                 clippedPointDrawer,
@@ -57,10 +64,12 @@ class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
                 rectDrawer);
         this.midPointOvalDrawer = midPointOvalDrawer;
         
-        final HugeOvalDrawer hugeOvalDrawer = new HugeOvalDrawer(
-                clippedLineDrawer,
-                rectDrawer);
-        this.hugeOvalDrawer = hugeOvalDrawer;
+        final PolyOvalDrawer polyOvalDrawer = new PolyOvalDrawer(
+                pointDrawer,
+                lineDrawer,
+                rectDrawer,
+                polyDrawer);
+        this.polyOvalDrawer = polyOvalDrawer;
     }
     
     @Override
@@ -70,37 +79,37 @@ class AllOvalDrawerTestHelper extends AbstractDrawerTestHelper<TestOvalArgs> {
     
     @Override
     public void callDrawMethod(GRect clip, TestOvalArgs drawingArgs) {
-        final GRect rect = drawingArgs.getOval();
+        final GRect oval = drawingArgs.getOval();
         
         final InterfaceOvalDrawer ovalDrawer;
-        if (drawingArgs.getMustUseHugeAlgo()) {
-            ovalDrawer = this.hugeOvalDrawer;
+        if (drawingArgs.getMustUsePolyAlgo()) {
+            ovalDrawer = this.polyOvalDrawer;
         } else {
             ovalDrawer = this.midPointOvalDrawer;
         }
         
         ovalDrawer.drawOval(
                 clip,
-                rect.x(), rect.y(), rect.xSpan(), rect.ySpan());
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan());
     }
     
     @Override
     public void callFillMethod(GRect clip, TestOvalArgs drawingArgs) {
-        final GRect rect = drawingArgs.getOval();
+        final GRect oval = drawingArgs.getOval();
         
         // NB: True not tested, but not implemented.
         final boolean areHorVerFlipped = false;
         
         final InterfaceOvalDrawer ovalDrawer;
-        if (drawingArgs.getMustUseHugeAlgo()) {
-            ovalDrawer = this.hugeOvalDrawer;
+        if (drawingArgs.getMustUsePolyAlgo()) {
+            ovalDrawer = this.polyOvalDrawer;
         } else {
             ovalDrawer = this.midPointOvalDrawer;
         }
         
         ovalDrawer.fillOval(
                 clip,
-                rect.x(), rect.y(), rect.xSpan(), rect.ySpan(),
+                oval.x(), oval.y(), oval.xSpan(), oval.ySpan(),
                 areHorVerFlipped);
     }
 

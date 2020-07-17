@@ -22,8 +22,6 @@ import net.jolikit.bwd.impl.utils.gprim.DefaultLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPointDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.DefaultRectDrawer;
-import net.jolikit.bwd.impl.utils.gprim.HugeArcDrawer;
-import net.jolikit.bwd.impl.utils.gprim.HugeOvalDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedLineDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceClippedPointDrawer;
@@ -36,6 +34,8 @@ import net.jolikit.bwd.impl.utils.gprim.InterfacePolyDrawer;
 import net.jolikit.bwd.impl.utils.gprim.InterfaceRectDrawer;
 import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawer;
 import net.jolikit.bwd.impl.utils.gprim.MidPointOvalDrawer;
+import net.jolikit.bwd.impl.utils.gprim.PolyArcDrawer;
+import net.jolikit.bwd.impl.utils.gprim.PolyOvalDrawer;
 
 /**
  * Optional abstract class, that makes it easier to implement graphics,
@@ -81,17 +81,51 @@ InterfacePolyDrawer {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final int HUGE_SPAN_THRESHOLD = 20 * 1000 * 1000;
-    private static boolean mustUseHugeAlgorithm(int xSpan, int ySpan) {
-        return isHuge(xSpan)
-                || isHuge(ySpan);
-    }
-    private static boolean isHuge(int span) {
-        // > and not >=, so that Integer.MAX_VALUE
-        // can be used to disable huge-specific algorithm.
-        return (span > HUGE_SPAN_THRESHOLD);
-    }
-
+    /*
+     * Draw oval thresholds.
+     */
+    
+    /**
+     * Above that, always using poly.
+     */
+    private static final int DRAW_OVAL_FIG_SPAN_THRESHOLD_UP_FOR_POLY = 20 * 1000;
+    
+    /*
+     * Draw arc thresholds.
+     */
+    
+    /**
+     * Above that, always using poly.
+     */
+    private static final int DRAW_ARC_FIG_SPAN_THRESHOLD_UP_FOR_POLY = 10 * 1000;
+    
+    /*
+     * Fill oval thresholds.
+     */
+    
+    /**
+     * Above that, always using poly.
+     */
+    private static final int FILL_OVAL_FIG_SPAN_THRESHOLD_UP_FOR_POLY = 100 * 1000;
+    
+    /*
+     * Fill arc thresholds.
+     */
+    
+    /**
+     * When angular span is below that we use poly,
+     * which is much faster for small angles.
+     * Also, allows to be consistent, since for small angles (< 30 deg)
+     * our mid point algorithm might cause some dangling pixels.
+     */
+    private static final double FILL_ARC_SPAN_DEG_THRESHOLD_DOWN_FOR_POLY = 180.0;
+    
+    /**
+     * Above that, always using poly,
+     * which is faster-or-so regardless of angular span.
+     */
+    private static final int FILL_ARC_FIG_SPAN_THRESHOLD_UP_FOR_POLY = 250;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -294,13 +328,17 @@ InterfacePolyDrawer {
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
-        
-        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
-            HugeOvalDrawer.drawOval(
+        final InterfacePolyDrawer polyDrawer = this;
+
+        if (Math.max(xSpan, ySpan) >= DRAW_OVAL_FIG_SPAN_THRESHOLD_UP_FOR_POLY) {
+            PolyOvalDrawer.drawOval(
                     clip,
                     x, y, xSpan, ySpan,
                     //
-                    clippedLineDrawer);
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer,
+                    polyDrawer);
         } else {
             MidPointOvalDrawer.drawOval(
                     clip,
@@ -327,16 +365,18 @@ InterfacePolyDrawer {
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
-        
-        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
-            HugeOvalDrawer.fillOval(
+        final InterfacePolyDrawer polyDrawer = this;
+
+        if (Math.max(xSpan, ySpan) >= FILL_OVAL_FIG_SPAN_THRESHOLD_UP_FOR_POLY) {
+            PolyOvalDrawer.fillOval(
                     clip,
                     x, y, xSpan, ySpan,
                     areHorVerFlipped,
                     //
-                    clippedLineDrawer,
-                    //
-                    rectDrawer);
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer,
+                    polyDrawer);
         } else {
             MidPointOvalDrawer.fillOval(
                     clip,
@@ -368,14 +408,18 @@ InterfacePolyDrawer {
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
-        
-        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
-            HugeArcDrawer.drawArc(
+        final InterfacePolyDrawer polyDrawer = this;
+
+        if (Math.max(xSpan, ySpan) >= DRAW_ARC_FIG_SPAN_THRESHOLD_UP_FOR_POLY) {
+            PolyArcDrawer.drawArc(
                     clip,
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg,
                     //
-                    clippedLineDrawer);
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer,
+                    polyDrawer);
         } else {
             MidPointArcDrawer.drawArc(
                     clip,
@@ -404,17 +448,28 @@ InterfacePolyDrawer {
         final InterfacePointDrawer pointDrawer = this;
         final InterfaceLineDrawer lineDrawer = this;
         final InterfaceRectDrawer rectDrawer = this;
+        final InterfacePolyDrawer polyDrawer = this;
         
-        if (mustUseHugeAlgorithm(xSpan, ySpan)) {
-            HugeArcDrawer.fillArc(
+        final int maxSpan = Math.max(xSpan, ySpan);
+        
+        final boolean mustUsePoly;
+        if (spanDeg <= FILL_ARC_SPAN_DEG_THRESHOLD_DOWN_FOR_POLY) {
+            mustUsePoly = true;
+        } else {
+            mustUsePoly = (maxSpan >= FILL_ARC_FIG_SPAN_THRESHOLD_UP_FOR_POLY);
+        }
+        
+        if (mustUsePoly) {
+            PolyArcDrawer.fillArc(
                     clip,
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg,
                     areHorVerFlipped,
                     //
-                    clippedLineDrawer,
-                    //
-                    rectDrawer);
+                    pointDrawer,
+                    lineDrawer,
+                    rectDrawer,
+                    polyDrawer);
         } else {
             MidPointArcDrawer.fillArc(
                     clip,

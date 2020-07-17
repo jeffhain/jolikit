@@ -77,13 +77,13 @@ public class GraphicsBencher_drawAndFillArc {
      */
 
     public void bench_drawArc(InterfaceBwdGraphics g) {
-        final boolean isFill = false;
-        this.bench_drawOrFillArc(g, isFill);
+        final boolean isFillElseDraw = false;
+        this.bench_drawOrFillArc(g, isFillElseDraw);
     }
 
     public void bench_fillArc(InterfaceBwdGraphics g) {
-        final boolean isFill = true;
-        this.bench_drawOrFillArc(g, isFill);
+        final boolean isFillElseDraw = true;
+        this.bench_drawOrFillArc(g, isFillElseDraw);
     }
 
     /*
@@ -92,7 +92,7 @@ public class GraphicsBencher_drawAndFillArc {
 
     public void bench_drawOrFillArc(
             InterfaceBwdGraphics g,
-            boolean isFill) {
+            boolean isFillElseDraw) {
 
         final GRect clipInBase = g.getClipInBase();
         final int clipSpan = clipInBase.xSpan();
@@ -150,7 +150,7 @@ public class GraphicsBencher_drawAndFillArc {
                     for (int k = 0; k < this.nbrOfRuns; k++) {
                         long a = System.nanoTime();
                         for (int i = 0; i < this.nbrOfCalls; i++) {
-                            if (isFill) {
+                            if (isFillElseDraw) {
                                 g.fillArc(
                                         ovalX, ovalY, ovalXSpan, ovalYSpan,
                                         startDeg, spanDeg);
@@ -163,13 +163,13 @@ public class GraphicsBencher_drawAndFillArc {
                         long b = System.nanoTime();
 
                         final StringBuilder sb = new StringBuilder();
-                        sb.append(isFill ? "fillArc()" : "drawArc()");
+                        sb.append(isFillElseDraw ? "fillArc()" : "drawArc()");
                         sb.append(": (" + ovalXSpan);
                         sb.append(", " + spanDeg + ")");
                         sb.append(", clip: " + (clipAtCenterElseOnArc ? "at center" : "on arc"));
                         System.out.println(
-                                sb.toString() + ", took "
-                                        + TestUtils.nsToSRounded(b-a) + " s");
+                                sb.toString()
+                                + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
             }

@@ -64,6 +64,10 @@ public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
     
     private static final boolean ALLOW_HUGE_COORDS = true;
     
+    /**
+     * Use at least 100_000 when changing the code,
+     * some issues being hard to trigger.
+     */
     private static final int NBR_OF_CALLS_RANDOM = 1000;
     
     private static final int MAX_RANDOM_OVAL_SPAN = 50;
@@ -85,6 +89,12 @@ public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
     private static final int NBR_OF_CALLS =
             NBR_OF_CALLS_COMPREHENSIVE
             + NBR_OF_CALLS_RANDOM;
+    
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    private final DefaultColorDrawer colorDrawer = new DefaultColorDrawer();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -115,6 +125,7 @@ public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
     protected AbstractDrawerTestHelper<TestArcArgs> newDrawerTestHelper(
             InterfaceClippedPointDrawer clippedPointDrawer) {
         return new AllArcDrawerTestHelper(
+                this.colorDrawer,
                 clippedPointDrawer);
     }
 
@@ -177,17 +188,23 @@ public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
 
         final GRect oval = GRect.valueOf(x, y, xSpan, ySpan);
         
-        final boolean mustUseHugeAlgo = this.random.nextBoolean();
+        final boolean mustUsePolyAlgo = this.random.nextBoolean();
         
         final TestArcArgs drawingArgs = new TestArcArgs(
                 oval,
                 startDeg,
                 spanDeg,
-                mustUseHugeAlgo);
+                mustUsePolyAlgo);
         if (DEBUG) {
             Dbg.log();
             Dbg.log("drawingArgs = " + drawingArgs);
         }
         return drawingArgs;
+    }
+    
+    @Override
+    protected boolean mustAllowMultipaintedPixels(TestArcArgs drawingArgs) {
+        return drawingArgs.getMustUsePolyAlgo()
+                && this.colorDrawer.isColorOpaque();
     }
 }

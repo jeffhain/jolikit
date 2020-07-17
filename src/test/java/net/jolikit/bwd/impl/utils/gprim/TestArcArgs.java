@@ -26,11 +26,6 @@ final class TestArcArgs {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * Here until we get rid of huge algo.
-     */
-    private final PixelFigStatusArcDef pixelFigStatusArcDef;
-    
     private final GRect oval;
     
     private final double startDeg;
@@ -52,7 +47,7 @@ final class TestArcArgs {
     private final double sinEnd;
     private final double cosEnd;
 
-    private final boolean mustUseHugeAlgo;
+    private final boolean mustUsePolyAlgo;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -62,9 +57,7 @@ final class TestArcArgs {
             GRect oval,
             double startDeg,
             double spanDeg,
-            boolean mustUseHugeAlgo) {
-        
-        this.pixelFigStatusArcDef = new PixelFigStatusArcDef(oval, startDeg, spanDeg);
+            boolean mustUsePolyAlgo) {
         
         this.oval = oval;
         this.startDeg = startDeg;
@@ -91,7 +84,7 @@ final class TestArcArgs {
         this.sinEnd = GprimUtils.sinDeg(endDeg);
         this.cosEnd = GprimUtils.cosDeg(endDeg);
         
-        this.mustUseHugeAlgo = mustUseHugeAlgo;
+        this.mustUsePolyAlgo = mustUsePolyAlgo;
     }
     
     @Override
@@ -102,13 +95,9 @@ final class TestArcArgs {
         sb.append(", spanDeg = ").append(this.spanDeg);
         sb.append(", reworkedStartDeg = ").append(this.reworkedStartDeg);
         sb.append(", reworkedSpanDeg = ").append(this.reworkedSpanDeg);
-        sb.append(", mustUseHugeAlgo = ").append(this.mustUseHugeAlgo);
+        sb.append(", mustUsePolyAlgo = ").append(this.mustUsePolyAlgo);
         sb.append("]");
         return sb.toString();
-    }
-    
-    public PixelFigStatusArcDef getPixelFigStatusArcDef() {
-        return this.pixelFigStatusArcDef;
     }
     
     public GRect getOval() {
@@ -153,7 +142,7 @@ final class TestArcArgs {
         return this.cosEnd;
     }
     
-    public boolean getMustUseHugeAlgo() {
-        return this.mustUseHugeAlgo;
+    public boolean getMustUsePolyAlgo() {
+        return this.mustUsePolyAlgo;
     }
 }

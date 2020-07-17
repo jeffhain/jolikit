@@ -56,6 +56,12 @@ public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
             + NBR_OF_CALLS_RANDOM;
 
     //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    private final DefaultColorDrawer colorDrawer = new DefaultColorDrawer();
+    
+    //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
@@ -81,8 +87,10 @@ public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
     //--------------------------------------------------------------------------
 
     @Override
-    protected AbstractDrawerTestHelper<TestOvalArgs> newDrawerTestHelper(InterfaceClippedPointDrawer clippedPointDrawer) {
+    protected AbstractDrawerTestHelper<TestOvalArgs> newDrawerTestHelper(
+            InterfaceClippedPointDrawer clippedPointDrawer) {
         return new AllOvalDrawerTestHelper(
+                this.colorDrawer,
                 clippedPointDrawer);
     }
 
@@ -127,15 +135,21 @@ public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
 
         final GRect oval = GRect.valueOf(x, y, xSpan, ySpan);
         
-        final boolean mustUseHugeAlgo = this.random.nextBoolean();
+        final boolean mustUsePolyAlgo = this.random.nextBoolean();
         
         final TestOvalArgs drawingArgs = new TestOvalArgs(
                 oval,
-                mustUseHugeAlgo);
+                mustUsePolyAlgo);
         if (DEBUG) {
             Dbg.log();
             Dbg.log("drawingArgs = " + drawingArgs);
         }
         return drawingArgs;
+    }
+    
+    @Override
+    protected boolean mustAllowMultipaintedPixels(TestOvalArgs drawingArgs) {
+        return drawingArgs.getMustUsePolyAlgo()
+                && this.colorDrawer.isColorOpaque();
     }
 }

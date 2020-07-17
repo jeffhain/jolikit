@@ -68,7 +68,8 @@ abstract class AbstractDrawerTestHelper<ARG> {
      * Allowed to leak some around actual drawing,
      * to make it easier to compute (for example in case of line stipple).
      * 
-     * @return The bounding box for the specified drawing arguments.
+     * @return The bounding box for the figure to be drawn
+     *         for specified drawing arguments.
      */
     public abstract GRect computeBoundingBox(ARG drawingArgs);
     
