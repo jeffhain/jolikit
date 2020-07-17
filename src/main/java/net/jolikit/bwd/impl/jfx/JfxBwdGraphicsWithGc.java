@@ -76,6 +76,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      * like (0, Integer.MAX_VALUE/2), for some reason the origin
      * of the actually filled area is a few pixels away from (0,0)
      * (the larger the spans, the further away).
+     * This might be due to JavaFX casting double coordinates
+     * into floats internally, loosing accuracy for large ints.
      * To avoid this issue, we clip rectangles before using
      * backing treatments.
      */

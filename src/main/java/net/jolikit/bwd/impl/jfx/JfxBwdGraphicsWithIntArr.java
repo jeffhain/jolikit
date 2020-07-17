@@ -477,10 +477,7 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
              * (cf. MUST_CLIP_RECTS_BEFORE_USING_BACKING_GRAPHICS
              * in other graphics implementation),
              * but text spans should not be huge so
-             * we prefer to keep code simple
-             * (would need to take transform into account,
-             * and we don't even know what the actual problematic cases
-             * exactly are besides that it's somewhere deep in JavaFX).
+             * we prefer to keep code simple.
              */
             fillRect_raw_shifted(
                     textGc,
