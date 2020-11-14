@@ -69,7 +69,7 @@ public class BwdMainLaunchUtils {
     /**
      * Separator for classpath entries.
      */
-    private static final String CP_SEP = (OsUtils.isMac() ? ":" : ";");
+    private static final String CP_SEP = (OsUtils.isWindows() ? ";" : ":");
     
     protected static final int KILL_AREA_SPANS = 50;
 

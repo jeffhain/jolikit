@@ -378,7 +378,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
      */
 
     private static final int INITIAL_WIDTH = 800 + (NBR_OF_MEASURES * 300);
-    private static final int INITIAL_HEIGHT = 400;
+    private static final int INITIAL_HEIGHT = 500;
     private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
     //--------------------------------------------------------------------------
