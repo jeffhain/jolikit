@@ -20,13 +20,13 @@ Apache License V2.0
 
 - src/build/java:
   - Java 6
-  - Jadecy 2
+  - Jadecy 2.0.1
 
 - src/test/java:
   - Java 6 (or newer, to avoid an issue (looks like JDK-8012453)
     with Runtime.getRuntime().exec(String) for tests launching JVMs)
   - BWD bindings libraries (JavaFX 8, SWT, etc.)
-  - Jadecy 2
+  - Jadecy 2.0.1
   - JUnit 3.8.1
 
 - src/samples/java:

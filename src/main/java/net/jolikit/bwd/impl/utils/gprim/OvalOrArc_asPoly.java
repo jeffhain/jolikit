@@ -271,6 +271,12 @@ public class OvalOrArc_asPoly {
     //--------------------------------------------------------------------------
 
     private static final double H = 0.5;
+    
+    /**
+     * Large enough to always add to or subtract from angle values.
+     */
+    private static final double ULP_360 =
+            360.0 - Math.nextAfter(360.0, Double.NEGATIVE_INFINITY);
 
     /**
      * Span growth on each side, to obtain extended clipped oval box
@@ -538,27 +544,18 @@ public class OvalOrArc_asPoly {
         } else {
             double endDeg = plusZero360(startDeg, spanDeg);
 
-            // Large enough to always add/subtract to angle values.
-            final double ulp360 = 360.0 - Math.nextAfter(360.0, Double.NEGATIVE_INFINITY);
-
-            if (startDeg == 0.0) {
-                startDeg = startDeg + Math.min(ulp360, spanDeg * 0.25);
-            } else if (startDeg == 90.0) {
-                startDeg = startDeg + Math.min(ulp360, spanDeg * 0.25);
-            } else if (startDeg == 180.0) {
-                startDeg = startDeg + Math.min(ulp360, spanDeg * 0.25);
-            } else if (startDeg == 270.0) {
-                startDeg = startDeg + Math.min(ulp360, spanDeg * 0.25);
+            if ((startDeg == 0.0)
+                    || (startDeg == 90.0)
+                    || (startDeg == 180.0)
+                    || (startDeg == 270.0)) {
+                startDeg = startDeg + Math.min(ULP_360, spanDeg * 0.25);
             }
 
-            if (endDeg == 90.0) {
-                endDeg = endDeg - Math.min(ulp360, spanDeg * 0.25);
-            } else if (endDeg == 180.0) {
-                endDeg = endDeg - Math.min(ulp360, spanDeg * 0.25);
-            } else if (endDeg == 270.0) {
-                endDeg = endDeg - Math.min(ulp360, spanDeg * 0.25);
-            } else if (endDeg == 360.0) {
-                endDeg = endDeg - Math.min(ulp360, spanDeg * 0.25);
+            if ((endDeg == 90.0)
+                    || (endDeg == 180.0)
+                    || (endDeg == 270.0)
+                    || (endDeg == 360.0)) {
+                endDeg = endDeg - Math.min(ULP_360, spanDeg * 0.25);
             }
 
             spanDeg = minusZero360(endDeg, startDeg);
@@ -620,13 +617,13 @@ public class OvalOrArc_asPoly {
         final XyArrs arrs = temps.arrs;
         arrs.clear();
 
-        // If full span, not using point for center,
-        // to make polygon convex (faster filling,
-        // especially if filling algorithm can see
-        // that clip is fully inside polygon).
         if (isFillElseDraw) {
             final boolean mustAddCenterPoint;
             if (temps.isCenterInEcob) {
+                // If full span, not using point for center,
+                // to make polygon convex (faster filling,
+                // especially if filling algorithm can see
+                // that clip is fully inside polygon).
                 mustAddCenterPoint = !temps.isFull;
             } else {
                 // Even if full, used arc span can be reduced.

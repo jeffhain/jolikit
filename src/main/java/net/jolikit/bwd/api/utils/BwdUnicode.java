@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,6 +87,8 @@ import net.jolikit.lang.NumbersUtils;
  * - https://en.wikipedia.org/wiki/Unicode_control_characters
  * - https://unicode-table.com/en/search/?q=U%2B0020
  * - https://unicodelookup.com
+ * - https://richardjharris.github.io/unicode-in-five-minutes.html
+ * - https://begriffs.com/posts/2019-05-23-unicode-icu.html
  */
 public class BwdUnicode {
     

@@ -251,6 +251,7 @@ or toolkits on top of which UIs can be built.
   primitive).
   Also, thickness can always be added later (or aside) to the API without
   backward compatibility issue, with a graphics.setThickness(double) method.
+  Thick outlines can also be drawn using fillPolygon().
 
 - "Why no draw/fillRoundRect(...) methods?"
   These are easy to implement on top of ovals and lines/rectangles methods, but
