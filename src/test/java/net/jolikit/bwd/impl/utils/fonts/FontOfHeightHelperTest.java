@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,11 +29,8 @@ import net.jolikit.bwd.api.fonts.BwdFontId;
 import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
-import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFont;
-import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontMetrics;
-import net.jolikit.bwd.impl.utils.fonts.FontOfHeightHelper;
-import net.jolikit.bwd.impl.utils.fonts.InterfaceCanFontDisplayComputer;
 import net.jolikit.bwd.impl.utils.fonts.FontOfHeightHelper.InterfaceFontCreator;
+import net.jolikit.test.utils.TestUtils;
 
 public class FontOfHeightHelperTest extends TestCase {
 
@@ -406,7 +403,7 @@ public class FontOfHeightHelperTest extends TestCase {
     /**
      * Fixed seed for determinism.
      */
-    private final Random randomSeedGenerator = new Random(123456789L);
+    private final Random randomSeedGenerator = TestUtils.newRandom123456789L();
 
     /*
      * Stats.

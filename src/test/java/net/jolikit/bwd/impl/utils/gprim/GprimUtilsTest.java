@@ -19,8 +19,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import net.jolikit.bwd.api.graphics.GRect;
 import junit.framework.TestCase;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.test.utils.TestUtils;
 
 public class GprimUtilsTest extends TestCase {
 
@@ -68,8 +69,7 @@ public class GprimUtilsTest extends TestCase {
          * 
          */
         
-        final long randomSeed = 123456789L;
-        final Random random = new Random(randomSeed);
+        final Random random = TestUtils.newRandom123456789L();
         final int nbrOfCalls = 1000;
         for (int i = 0; i < nbrOfCalls; i++) {
             final double angDeg = (1.0 - 2.0 * random.nextDouble()) * 10000.0;
@@ -108,8 +108,7 @@ public class GprimUtilsTest extends TestCase {
          * 
          */
         
-        final long randomSeed = 123456789L;
-        final Random random = new Random(randomSeed);
+        final Random random = TestUtils.newRandom123456789L();
         final int nbrOfCalls = 1000;
         for (int i = 0; i < nbrOfCalls; i++) {
             final double angDeg = (1.0 - 2.0 * random.nextDouble()) * 10000.0;
@@ -359,7 +358,7 @@ public class GprimUtilsTest extends TestCase {
             assertEquals(-1.0, GprimUtils.sinDeg(-90.0 + 360.0 * k));
         }
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         for (int i = 0; i < 10000; i++) {
             final double angDeg = 1000.0 * (1.0 - 2.0 * random.nextDouble());
             final double ref = Math.sin(Math.toRadians(angDeg));
@@ -375,7 +374,7 @@ public class GprimUtilsTest extends TestCase {
             assertEquals(-1.0, GprimUtils.cosDeg(180.0 + 360.0 * k));
         }
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         for (int i = 0; i < 10000; i++) {
             final double angDeg = 1000.0 * (1.0 - 2.0 * random.nextDouble());
             final double ref = Math.cos(Math.toRadians(angDeg));
@@ -674,7 +673,7 @@ public class GprimUtilsTest extends TestCase {
         
         final int nbrOfCalls = 100 * 1000;
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         for (int i = 0; i < nbrOfCalls; i++) {
             final double dx = (2.0 * random.nextDouble() - 1.0);

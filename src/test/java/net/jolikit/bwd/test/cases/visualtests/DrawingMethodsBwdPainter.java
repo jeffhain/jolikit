@@ -32,6 +32,7 @@ import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.test.utils.TestUtils;
 
 /**
  * Mock using all painting methods (primitives, text, images...),
@@ -259,13 +260,6 @@ public class DrawingMethodsBwdPainter {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-    
-    /**
-     * @return A new Random instance, always using a same seed.
-     */
-    private static Random newRandom() {
-        return new Random(123456789L);
-    }
     
     private static BwdColor randomColor(Random random) {
         final double red = random.nextDouble();
@@ -1254,7 +1248,7 @@ public class DrawingMethodsBwdPainter {
          * Result is OK if we only see a single line for each x.
          */
         
-        final Random random = newRandom();
+        final Random random = TestUtils.newRandom123456789L();
         
         final int yMax = y + ySpan - 1;
         final int halfYSpan = ySpan / 2;

@@ -18,6 +18,7 @@ package net.jolikit.test.utils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Random;
 
 /**
  * Utility treatments for tests or benches.
@@ -44,6 +45,16 @@ public class TestUtils {
      */
     public static String getJVMInfo() {
         return JVM_INFO;
+    }
+    
+    /**
+     * Handy not to have to type 123456789L (or whatever other constants)
+     * every time we want a (single) deterministic Random instance.
+     * 
+     * @return A new Random instance seeded with 123456789L.
+     */
+    public static Random newRandom123456789L() {
+        return new Random(123456789L);
     }
     
     /*
@@ -181,7 +192,8 @@ public class TestUtils {
 
     /**
      * @return A new temp file, configured to be deleted on exit
-     *         (not deleted if not properly closed, or if JVM crash).
+     *         (not deleted if not properly closed,
+     *         or in case of JVM crash).
      */
     public static File newTempFile() {
         try {

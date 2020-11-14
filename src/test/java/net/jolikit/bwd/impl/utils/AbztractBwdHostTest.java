@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import net.jolikit.bwd.api.events.BwdEventType;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.lang.Dbg;
+import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
@@ -50,8 +51,6 @@ public class AbztractBwdHostTest extends TestCase {
     private static final boolean DEBUG = false;
 
     private static final int NBR_OF_CALLS = 100 * 1000;
-    
-    private static final long RANDOM_SEED = 123456789L;
     
     /**
      * After this delay, all asynchronous but ASAP side effects must have
@@ -247,7 +246,7 @@ public class AbztractBwdHostTest extends TestCase {
 
     private final MyCheckRunnable checkRunnable = new MyCheckRunnable();
     
-    private final Random random = new Random(RANDOM_SEED);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private BindingForApiTests binding;
     

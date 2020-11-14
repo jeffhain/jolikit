@@ -33,6 +33,7 @@ import junit.framework.TestCase;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
+import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.locks.MonitorCondilock;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.InterfaceClock;
@@ -43,7 +44,6 @@ import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
 import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
-import net.jolikit.time.sched.hard.HardScheduler;
 
 public class HardSchedulerTest extends TestCase {
 
@@ -280,7 +280,7 @@ public class HardSchedulerTest extends TestCase {
     private static final long REAL_TIME_TOLERANCE_NS = REAL_TIME_TOLERANCE_MS * 1000L * 1000L;
     private static final double REAL_TIME_TOLERANCE_S = REAL_TIME_TOLERANCE_MS * 1e-3;
 
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final AtomicLong counter = new AtomicLong();
 
@@ -2628,8 +2628,7 @@ public class HardSchedulerTest extends TestCase {
                 clock,
                 nbrOfThreads);
 
-        final Random random = new Random();
-        random.setSeed(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
 
         for (final HardScheduler scheduler : schedulerList) {
 
@@ -2704,8 +2703,7 @@ public class HardSchedulerTest extends TestCase {
                 clock,
                 nbrOfThreads);
 
-        final Random random = new Random();
-        random.setSeed(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
 
         for (final HardScheduler scheduler : schedulerList) {
 

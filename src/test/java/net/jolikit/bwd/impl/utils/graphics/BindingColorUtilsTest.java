@@ -20,6 +20,7 @@ import java.util.Random;
 import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.test.utils.TestUtils;
 
 public class BindingColorUtilsTest extends TestCase {
 
@@ -28,8 +29,6 @@ public class BindingColorUtilsTest extends TestCase {
     //--------------------------------------------------------------------------
     
     private static final boolean DEBUG = false;
-    
-    private static final long RANDOM_SEED = (false ? System.nanoTime() : 123456789L);
     
     private static final int NBR_OF_CALLS = 1000 * 1000;
     
@@ -147,7 +146,7 @@ public class BindingColorUtilsTest extends TestCase {
     }
     
     public void test_blendPremulAxyz32_srcOver_2int_random() {
-        final Random random = new Random(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         for (int i = 0; i < NBR_OF_CALLS; i++) {
             final int srcAxyz32 = random.nextInt();
@@ -172,7 +171,7 @@ public class BindingColorUtilsTest extends TestCase {
     }
 
     public void test_blendPremulXyza32_srcOver_2int_random() {
-        final Random random = new Random(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         for (int i = 0; i < NBR_OF_CALLS; i++) {
             final int srcXyza32 = random.nextInt();
@@ -218,7 +217,7 @@ public class BindingColorUtilsTest extends TestCase {
         // to the theoretical value.
         final int maxDelta = 0;
         
-        final Random random = new Random(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         for (int i = 0; i < NBR_OF_CALLS; i++) {
             final int a = random.nextInt(256);

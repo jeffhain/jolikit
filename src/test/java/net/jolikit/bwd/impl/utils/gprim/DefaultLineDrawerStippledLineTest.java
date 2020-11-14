@@ -26,6 +26,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.test.utils.TestUtils;
 
 public class DefaultLineDrawerStippledLineTest extends TestCase {
 
@@ -55,8 +56,6 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
      * Random.
      */
     
-    private static final long RANDOM_SEED = 123456789L;
-    
     private static final int NBR_OF_CALLS_RANDOM = 1000;
     
     private static final int MAX_RANDOM_SEGMENT_SPAN = 50;
@@ -75,7 +74,7 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final Random random = new Random(RANDOM_SEED);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final GprimTestUtilz utilz = new GprimTestUtilz(this.random);
     

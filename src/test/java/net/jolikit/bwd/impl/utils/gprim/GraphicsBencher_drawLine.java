@@ -27,8 +27,6 @@ public class GraphicsBencher_drawLine {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
-    private static final long RANDOM_SEED = (false ? System.nanoTime() : 123456789L);
-
     private static final int DEFAULT_NBR_OF_RUNS = 2;
 
     private static final int DEFAULT_NBR_OF_CALLS = 100 * 1000 * 1000;
@@ -175,7 +173,7 @@ public class GraphicsBencher_drawLine {
      * Fixed coordinates, to exclude cache misses overhead, in clip.
      */
     public void bench_drawLine_inClip(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         final GRect clip = g.getClipInUser();
         
@@ -215,7 +213,7 @@ public class GraphicsBencher_drawLine {
     }
 
     public void bench_drawLineStipple_inClip_factor1(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         final GRect clip = g.getClipInUser();
         
@@ -256,7 +254,7 @@ public class GraphicsBencher_drawLine {
     }
     
     public void bench_drawLineStipple_inClip_factor3(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
         
         final GRect clip = g.getClipInUser();
         
@@ -343,7 +341,7 @@ public class GraphicsBencher_drawLine {
      * Varying coordinates, to include cache misses overhead, in clip.
      */
     public void bench_drawLine_varying_inClip(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
 
         final GRect clip = g.getClipInUser();
         
@@ -387,7 +385,7 @@ public class GraphicsBencher_drawLine {
      * Varying coordinates, to include cache misses overhead, to clip.
      */
     public void bench_drawLine_varying_toClip(InterfaceBwdGraphics g) {
-        final Random random = newRandom(RANDOM_SEED);
+        final Random random = TestUtils.newRandom123456789L();
 
         final GRect clip = g.getClipInUser();
         
@@ -430,10 +428,6 @@ public class GraphicsBencher_drawLine {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-    
-    private static Random newRandom(long seed) {
-        return new Random(seed);
-    }
     
     private static int getLineLength(GRect clip) {
         return Math.min(TARGET_MAX_LINE_LENGTH, clip.minSpan());

@@ -31,6 +31,7 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ConcUnit;
+import net.jolikit.test.utils.TestUtils;
 
 /**
  * Basic tests for parallelizers.
@@ -400,7 +401,7 @@ public class ParallelizersTest extends TestCase {
     private static class MyThrower {
         private final double exceptionProbability;
         private final AtomicReference<Throwable> exceptionThrown = new AtomicReference<Throwable>();
-        private final Random random = new Random(123456789L);
+        private final Random random = TestUtils.newRandom123456789L();
         public MyThrower() {
             this(DEFAULT_EXCEPTION_PROBABILITY);
         }
@@ -755,7 +756,7 @@ public class ParallelizersTest extends TestCase {
             Dbg.log("test_reentrant_splittable(" + computeDescr(parallelizer) + ")");
         }
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         // Rather large, to allow for many splits.
         final int n = 10 * parallelizer.getParallelism();
@@ -799,7 +800,7 @@ public class ParallelizersTest extends TestCase {
             Dbg.log("test_reentrant_splitmergable(" + computeDescr(parallelizer) + ")");
         }
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         // Rather large, to allow for many splits.
         final int n = 10 * parallelizer.getParallelism();

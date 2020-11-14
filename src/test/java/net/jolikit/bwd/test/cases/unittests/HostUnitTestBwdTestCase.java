@@ -51,6 +51,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -121,8 +122,6 @@ public class HostUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase {
     //--------------------------------------------------------------------------
 
     private static final boolean DEBUG = false;
-
-    private static final long RANDOM_SEED = 123456789L;
 
     /**
      * For debug, better exit ASAP than just throw.
@@ -663,7 +662,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
 
     private boolean done = false;
 
-    private final Random random = new Random(RANDOM_SEED);
+    private final Random random = TestUtils.newRandom123456789L();
 
     /**
      * To avoid hosts being superimposed.

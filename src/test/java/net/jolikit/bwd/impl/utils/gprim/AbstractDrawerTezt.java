@@ -27,6 +27,7 @@ import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
+import net.jolikit.test.utils.TestUtils;
 
 /**
  * For tests for (point, line, rect, oval, arc) drawers/fillers.
@@ -41,13 +42,11 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
 
     private static final boolean DEBUG = false;
 
-    private static final long RANDOM_SEED = 123456789L;
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
 
-    protected final Random random = new Random(RANDOM_SEED);
+    protected final Random random = TestUtils.newRandom123456789L();
 
     private final GprimTestUtilz utilz = new GprimTestUtilz(this.random);
 

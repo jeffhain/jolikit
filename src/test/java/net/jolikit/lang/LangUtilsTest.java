@@ -24,9 +24,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.Unchecked;
 import junit.framework.TestCase;
+import net.jolikit.test.utils.TestUtils;
 
 public class LangUtilsTest extends TestCase {
 
@@ -40,7 +39,7 @@ public class LangUtilsTest extends TestCase {
 
     private static final int NBR_OF_CASES = 100 * 1000;
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -107,7 +106,7 @@ public class LangUtilsTest extends TestCase {
         // Making sure we do some random cases.
         final int m = n2 + 10*1000;
         
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         for (int i = 0; i < m; i++) {
             final int previousLength;
             final int minLength;

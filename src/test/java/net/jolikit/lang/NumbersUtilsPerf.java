@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -249,7 +249,7 @@ public class NumbersUtilsPerf {
      */
     
     private void bench_isMathematicalInteger_float() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -292,7 +292,7 @@ public class NumbersUtilsPerf {
     }
     
     private void bench_isMathematicalInteger_double() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -335,7 +335,7 @@ public class NumbersUtilsPerf {
     }
     
     private void bench_isEquidistant_float() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -378,7 +378,7 @@ public class NumbersUtilsPerf {
     }
 
     private void bench_isEquidistant_double() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -425,7 +425,7 @@ public class NumbersUtilsPerf {
      */
 
     private void bench_floorPowerOfTwo_int() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -452,7 +452,7 @@ public class NumbersUtilsPerf {
     }
 
     private void bench_floorPowerOfTwo_long() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -479,7 +479,7 @@ public class NumbersUtilsPerf {
     }
     
     private void bench_ceilingPowerOfTwo_int() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -506,7 +506,7 @@ public class NumbersUtilsPerf {
     }
 
     private void bench_ceilingPowerOfTwo_long() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -770,7 +770,7 @@ public class NumbersUtilsPerf {
      */
     
     private void bench_toStringCSN_double() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         
@@ -873,7 +873,7 @@ public class NumbersUtilsPerf {
     }
     
     private void bench_toStringNoCSN_double() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         System.out.println();
         

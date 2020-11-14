@@ -17,9 +17,10 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import java.util.Random;
 
+import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.test.utils.NumbersTestUtils;
-import junit.framework.TestCase;
+import net.jolikit.test.utils.TestUtils;
 
 public class ScaledRectUtilsTest extends TestCase {
 
@@ -35,7 +36,7 @@ public class ScaledRectUtilsTest extends TestCase {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final NumbersTestUtils ntu = new NumbersTestUtils(this.random);
     

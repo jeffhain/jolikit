@@ -76,7 +76,7 @@ public class BindingCoordsUtilsPerf {
     }
     
     private void bench_roundToInt_double_nonIntegers(double maxMagnitude) {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         // Power of two.
         final int nbrOfValues = (1<<10);
@@ -104,7 +104,7 @@ public class BindingCoordsUtilsPerf {
     }
     
     private void bench_roundToInt_double_integers(int maxMagnitude) {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         
         // Power of two.
         final int nbrOfValues = (1<<10);

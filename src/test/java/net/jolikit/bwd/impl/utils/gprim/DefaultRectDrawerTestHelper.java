@@ -19,6 +19,7 @@ import java.util.Random;
 
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.test.utils.TestUtils;
 
 class DefaultRectDrawerTestHelper extends AbstractDrawerTestHelper<GRect> {
     
@@ -26,7 +27,7 @@ class DefaultRectDrawerTestHelper extends AbstractDrawerTestHelper<GRect> {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final DefaultRectDrawer rectDrawer;
     

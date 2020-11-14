@@ -27,6 +27,7 @@ import junit.framework.TestCase;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.Unchecked;
+import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.hard.ControllableSystemTimeClock;
 import net.jolikit.time.sched.AbstractProcess;
@@ -379,7 +380,7 @@ public class AbztractProcessHardTest extends TestCase {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

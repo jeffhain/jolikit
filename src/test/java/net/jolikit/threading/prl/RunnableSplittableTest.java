@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.prl.InterfaceSplittable;
-import net.jolikit.threading.prl.RunnableSplittable;
 import junit.framework.TestCase;
 
 public class RunnableSplittableTest extends TestCase {
@@ -206,7 +206,7 @@ public class RunnableSplittableTest extends TestCase {
      * Tests with only regular Runnables.
      */
     public void test_runnablesOnly() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         final int size = 20;
         
         for (double splitProba : new double[]{0.0, 0.1, 0.5, 0.9, 1.0}) {
@@ -232,7 +232,7 @@ public class RunnableSplittableTest extends TestCase {
      * Tests with both regular Runnables, and splittables.
      */
     public void test_runnablesAndSplittables() {
-        final Random random = new Random(123456789L);
+        final Random random = TestUtils.newRandom123456789L();
         final int size = 20;
         final double splittableProba = 0.5;
         final int maxRunQuotaPerSplittable = 5;

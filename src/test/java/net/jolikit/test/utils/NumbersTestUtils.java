@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,10 +60,11 @@ public class NumbersTestUtils {
     //--------------------------------------------------------------------------
 
     /**
-     * Uses a default and specific Random instance.
+     * Uses a default and specific Random instance,
+     * always using the same seed (deterministic).
      */
     public NumbersTestUtils() {
-        this(new Random());
+        this(TestUtils.newRandom123456789L());
     }
 
     /**
@@ -653,7 +654,9 @@ public class NumbersTestUtils {
      * For settings.
      */
     private static void ___main(String[] args) {
-        NumbersTestUtils utils = new NumbersTestUtils(new Random(123456789L));
+        NumbersTestUtils utils =
+                new NumbersTestUtils(
+                        TestUtils.newRandom123456789L());
         final int n = 10 * 1000;
         {
             System.out.println();

@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Random;
 
 import net.jolikit.test.utils.NumbersTestUtils;
+import net.jolikit.test.utils.TestUtils;
 import junit.framework.TestCase;
 
 public class NumbersUtilsTest extends TestCase {
@@ -128,7 +129,7 @@ public class NumbersUtilsTest extends TestCase {
         ODD_LONG_VALUES = Collections.unmodifiableList(values);
     }
 
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final NumbersTestUtils utils = new NumbersTestUtils(this.random);
 

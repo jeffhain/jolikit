@@ -20,6 +20,7 @@ import java.util.Random;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.test.utils.TestUtils;
 
 public class DefaultPolyDrawerTestHelper extends AbstractDrawerTestHelper<TestPolyArgs> {
     
@@ -27,7 +28,7 @@ public class DefaultPolyDrawerTestHelper extends AbstractDrawerTestHelper<TestPo
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private final DefaultPolyDrawer polyDrawer;
     

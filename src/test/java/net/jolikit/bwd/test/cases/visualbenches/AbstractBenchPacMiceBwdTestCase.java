@@ -36,6 +36,7 @@ import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.HertzHelper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.test.utils.TestUtils;
 
 /**
  * Mock to play with image scaling, rotation,
@@ -173,7 +174,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
     private final boolean alphaBg;
     private final boolean alphaFg;
     
-    private final Random random = new Random(123456789L);
+    private final Random random = TestUtils.newRandom123456789L();
     
     private boolean initCalled = false;
     
