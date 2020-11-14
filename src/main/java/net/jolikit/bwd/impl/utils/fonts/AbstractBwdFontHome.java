@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -591,7 +591,7 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
                     this.homeId,
                     // Reusing existing fontId instance,
                     // for eventual hazardous "==" tests to work.
-                    alreadyCreatedFont.fontId(),
+                    alreadyCreatedFont.id(),
                     alreadyCreatedFont.getCanFontDisplayComputer(),
                     disposeCallListener,
                     alreadyCreatedFont.getBackingFont());
@@ -983,7 +983,7 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
      * (due to a concurrent disposal).
      */
     private void disposeDisposableFont(AbstractBwdFont<BF> font) {
-        final BwdFontId fontId = font.fontId();
+        final BwdFontId fontId = font.id();
 
         final AbstractBwdFont<BF> removed;
         synchronized (this.homeMutex) {
@@ -993,7 +993,7 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
             return;
         }
 
-        final BwdFontId removedFontId = removed.fontId();
+        final BwdFontId removedFontId = removed.id();
         // Could just use "!=", since we reuse fontId instances,
         // but that's just an optimization and guard against
         // bad "=="/"!=" tests done by user.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,7 +158,7 @@ public class FontApiUnitTestBwdTestCase extends AbstractFontUnitTestBwdTestCase 
          * only consider user fonts here.
          */
         
-        final boolean canRelyOnCanDisplay = fontHome.getLoadedUserFontKindSet().contains(font.fontKind());
+        final boolean canRelyOnCanDisplay = fontHome.getLoadedUserFontKindSet().contains(font.kind());
         if (canRelyOnCanDisplay) {
             for (int[] minMaxCpArr : CP_RANGE_ARR) {
                 final int minCp = minMaxCpArr[0];

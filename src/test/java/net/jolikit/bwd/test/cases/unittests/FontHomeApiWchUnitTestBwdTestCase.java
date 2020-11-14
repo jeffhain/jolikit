@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -146,14 +146,14 @@ public class FontHomeApiWchUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
         final int minFontSize = fontHome.getMinFontSize();
         final int maxFontSize = fontHome.getMaxFontSize();
         
-        final int fontSize = font.fontSize();
+        final int fontSize = font.size();
         if ((targetFontHeight > minFontSize)
                 && (targetFontHeight < maxFontSize)) {
             // Not this method's business.
             return;
         }
         
-        final String family = font.fontFamily();
+        final String family = font.family();
         if (this.isCrazyFontFamily(family)) {
             return;
         }
@@ -189,8 +189,8 @@ public class FontHomeApiWchUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
             InterfaceBwdFont font,
             int targetFontHeight) {
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int fontHeight = metrics.fontHeight();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
+        final int fontHeight = metrics.height();
         
         boolean gotError = false;
         
@@ -203,7 +203,7 @@ public class FontHomeApiWchUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
             return;
         }
         
-        final String family = font.fontFamily();
+        final String family = font.family();
         if (this.isCrazyFontFamily(family)) {
             return;
         }

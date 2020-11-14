@@ -161,7 +161,7 @@ public class BenchNewChildGBwdTestCase extends AbstractBwdTestCase {
             
             g.setColor(BwdColor.WHITE);
             
-            final int dh = 1 + g.getFont().fontMetrics().fontHeight();
+            final int dh = 1 + g.getFont().metrics().height();
             int textY = 0;
 
             g.drawText(0, textY, "cell span = " + CELL_SPAN + ", nbr of cells = " + this.nbrOfCells

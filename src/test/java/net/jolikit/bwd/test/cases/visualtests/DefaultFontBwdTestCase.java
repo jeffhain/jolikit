@@ -105,16 +105,16 @@ public class DefaultFontBwdTestCase extends AbstractBwdTestCase {
         int tmpY = yMin;
         
         final InterfaceBwdFont defaultFont = g.getFont();
-        final BwdFontKind defaultFontKind = defaultFont.fontKind();
+        final BwdFontKind defaultFontKind = defaultFont.kind();
         
         for (int i = 0; i < NBR_OF_FONT_SIZE; i++) {
             final int fontSize = MIN_FONT_SIZE + i;
-            final boolean isDefaultFontSize = (fontSize == defaultFont.fontSize());
+            final boolean isDefaultFontSize = (fontSize == defaultFont.size());
             
             final InterfaceBwdFont font = fontHome.newFontWithSize(defaultFontKind, fontSize);
             try {
-                final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-                final int fontHeight = metrics.fontHeight();
+                final InterfaceBwdFontMetrics metrics = font.metrics();
+                final int fontHeight = metrics.height();
                 
                 final String text = "" + font;
                 

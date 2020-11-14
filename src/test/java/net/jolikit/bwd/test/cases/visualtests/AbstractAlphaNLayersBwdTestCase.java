@@ -273,7 +273,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
                     }
                     if (bestKind == null) {
                         // Using default font kind.
-                        bestKind = fontHome.getDefaultFont().fontKind();
+                        bestKind = fontHome.getDefaultFont().kind();
                     }
                     this.bigBoldFont = fontHome.newFontWithClosestHeight(bestKind, BIG_TARGET_FONT_HEIGHT);
                 }

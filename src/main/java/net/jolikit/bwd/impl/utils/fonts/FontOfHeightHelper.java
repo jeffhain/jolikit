@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -293,7 +293,7 @@ public class FontOfHeightHelper {
             if (DEBUG) {
                 Dbg.log("onlyFont (initial) = " + onlyFont);
             }
-            final int onlyH = onlyFont.fontMetrics().fontHeight();
+            final int onlyH = onlyFont.metrics().height();
             if ((onlyH == targetFontHeight)
                     || (nbrOfFontsCreated == maxNbrOfFontCreations)) {
                 logResultFont(onlyFont, targetFontHeight);
@@ -326,8 +326,8 @@ public class FontOfHeightHelper {
             // in which case bestFont must be set to null.
             while (nbrOfFontsCreated < maxNbrOfFontCreations) {
                 loopNbr++;
-                final int onlyS = onlyFont.fontSize();
-                final int onlyH = onlyFont.fontMetrics().fontHeight();
+                final int onlyS = onlyFont.size();
+                final int onlyH = onlyFont.metrics().height();
                 if (DEBUG) {
                     Dbg.log();
                     Dbg.log("loop1 : " + loopNbr);
@@ -377,8 +377,8 @@ public class FontOfHeightHelper {
                 if (DEBUG) {
                     Dbg.log("newFont = " + newFont);
                 }
-                final int newS = newFont.fontSize();
-                final int newH = newFont.fontMetrics().fontHeight();
+                final int newS = newFont.size();
+                final int newH = newFont.metrics().height();
                 if (newH == targetFontHeight) {
                     // Bingo.
                     onlyFont.dispose();
@@ -433,7 +433,7 @@ public class FontOfHeightHelper {
 
         if (onlyFont != null) {
             // Could not find an (aboveFont,belowFont) couple.
-            final int bestH = onlyFont.fontMetrics().fontHeight();
+            final int bestH = onlyFont.metrics().height();
             final boolean bestIsBelowElseAbove = (bestH < targetFontHeight);
             if (bestIsBelowElseAbove) {
                 result[0] = onlyFont;
@@ -449,10 +449,10 @@ public class FontOfHeightHelper {
             while (nbrOfFontsCreated < maxNbrOfFontCreations) {
                 loopNbr++;
                 if (DEBUG) {
-                    final int belowS = belowFont.fontSize();
-                    final int belowH = belowFont.fontMetrics().fontHeight();
-                    final int aboveS = aboveFont.fontSize();
-                    final int aboveH = aboveFont.fontMetrics().fontHeight();
+                    final int belowS = belowFont.size();
+                    final int belowH = belowFont.metrics().height();
+                    final int aboveS = aboveFont.size();
+                    final int aboveH = aboveFont.metrics().height();
                     Dbg.log();
                     Dbg.log("loop2 : " + loopNbr);
                     Dbg.log("nbrOfFontsCreated = " + nbrOfFontsCreated);
@@ -468,10 +468,10 @@ public class FontOfHeightHelper {
                 
                 int tmpNewFontSize = -1;
                 {
-                    final int belowS = belowFont.fontSize();
-                    final int belowH = belowFont.fontMetrics().fontHeight();
-                    final int aboveS = aboveFont.fontSize();
-                    final int aboveH = aboveFont.fontMetrics().fontHeight();
+                    final int belowS = belowFont.size();
+                    final int belowH = belowFont.metrics().height();
+                    final int aboveS = aboveFont.size();
+                    final int aboveH = aboveFont.metrics().height();
                     if (loopNbr <= maxLinearTriesForLoop2) {
                         final double ratio = (targetFontHeight - belowH) / (double) (aboveH - belowH);
                         tmpNewFontSize = BindingCoordsUtils.roundToInt(belowS + ratio * (aboveS - belowS));
@@ -503,9 +503,9 @@ public class FontOfHeightHelper {
                 if (DEBUG) {
                     Dbg.log("newFont = " + newFont);
                 }
-                final int newH = newFont.fontMetrics().fontHeight();
+                final int newH = newFont.metrics().height();
                 if (newH < targetFontHeight) {
-                    if (newH < belowFont.fontMetrics().fontHeight()) {
+                    if (newH < belowFont.metrics().height()) {
                         // Craziness.
                         if (DEBUG) {
                             Dbg.log("craziness (below)");
@@ -517,7 +517,7 @@ public class FontOfHeightHelper {
                     belowFont.dispose();
                     belowFont = newFont;
                 } else if (newH > targetFontHeight) {
-                    if (newH > aboveFont.fontMetrics().fontHeight()) {
+                    if (newH > aboveFont.metrics().height()) {
                         // Craziness.
                         if (DEBUG) {
                             Dbg.log("craziness (above)");
@@ -541,8 +541,8 @@ public class FontOfHeightHelper {
                  * Checking what we can do with new (below,above) couple.
                  */
                 
-                final int belowS = belowFont.fontSize();
-                final int aboveS = aboveFont.fontSize();
+                final int belowS = belowFont.size();
+                final int aboveS = aboveFont.size();
                 if (aboveS - belowS == 1) {
                     // Can't try anything more.
                     if (DEBUG) {
@@ -603,8 +603,8 @@ public class FontOfHeightHelper {
         } else if (font2 == null) {
             bestFont = font1;
         } else {
-            final int h1 = font1.fontMetrics().fontHeight();
-            final int h2 = font2.fontMetrics().fontHeight();
+            final int h1 = font1.metrics().height();
+            final int h2 = font2.metrics().height();
 
             final double relDelta1 = relDeltaOfStrictPos(h1, targetFontHeight);
             final double relDelta2 = relDeltaOfStrictPos(h2, targetFontHeight);
@@ -672,7 +672,7 @@ public class FontOfHeightHelper {
      */
     private void logResultFont(InterfaceBwdFont resultFont, int targetFontHeight) {
         if (DEBUG) {
-            final int bestFontHeight = resultFont.fontMetrics().fontHeight();
+            final int bestFontHeight = resultFont.metrics().height();
             Dbg.log("targetFontHeight = " + targetFontHeight);
             if (bestFontHeight == targetFontHeight) {
                 Dbg.log("exact height");

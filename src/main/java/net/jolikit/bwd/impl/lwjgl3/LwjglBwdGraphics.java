@@ -153,9 +153,9 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
             throw new IllegalStateException("current font is disposed: " + font);
         }
 
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
 
-        final int theoTextHeight = metrics.fontHeight();
+        final int theoTextHeight = metrics.height();
 
         if (theoTextHeight <= 0) {
             return;
@@ -163,7 +163,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
 
         this.ensureUpToDateG();
 
-        final int ascent = font.fontMetrics().fontAscent();
+        final int ascent = font.metrics().ascent();
 
         final int _x = x + this.xShiftInUser;
         final int _y = y + this.yShiftInUser + ascent;

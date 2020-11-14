@@ -142,7 +142,7 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
         
         final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
-        final InterfaceBwdFont font = fontHome.newFontWithClosestHeight(defaultFont.fontKind(), TARGET_FONT_HEIGHT);
+        final InterfaceBwdFont font = fontHome.newFontWithClosestHeight(defaultFont.kind(), TARGET_FONT_HEIGHT);
         g.setFont(font);
         
         for (int i = 0; i < BwdCursors.cursorList().size(); i++) {

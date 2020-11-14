@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -293,7 +293,7 @@ public abstract class AbstractFontUnitTestBwdTestCase extends AbstractUnitTestBw
                 
                 g.drawText(
                         TEXT_X,
-                        TEXT_Y + (g.getFont().fontMetrics().fontHeight() + 1),
+                        TEXT_Y + (g.getFont().metrics().height() + 1),
                         "(" + (fontKindIndex + 1) + " / " + this.fontKindList.size() + ")"
                         + ", (" + (fontSizeOrHeightIndex + 1) + " / " + this.fontSizeOrHeightList.size() + ")"
                         + ", error count = " + this.errorCount);
@@ -389,7 +389,7 @@ public abstract class AbstractFontUnitTestBwdTestCase extends AbstractUnitTestBw
      */
     private static void checkNoVerticalFontLoaded(SortedSet<BwdFontKind> loadedFontKindSet) {
         for (BwdFontKind fontKind : loadedFontKindSet) {
-            final String family = fontKind.fontFamily();
+            final String family = fontKind.family();
             if (family.startsWith("@")) {
                 throw new AssertionError("vertical font kind: " + fontKind);
             }

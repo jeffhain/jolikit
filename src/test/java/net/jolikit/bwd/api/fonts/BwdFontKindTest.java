@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,6 @@ package net.jolikit.bwd.api.fonts;
 import java.util.Arrays;
 import java.util.List;
 
-import net.jolikit.bwd.api.fonts.BwdFontKind;
-import net.jolikit.bwd.api.fonts.BwdFontStyles;
 import junit.framework.TestCase;
 
 public class BwdFontKindTest extends TestCase {
@@ -59,8 +57,8 @@ public class BwdFontKindTest extends TestCase {
 
         {
             final BwdFontKind fontKind = new BwdFontKind(FONT_FAMILY);
-            assertSame(FONT_FAMILY, fontKind.fontFamily());
-            assertEquals(BwdFontStyles.NORMAL, fontKind.fontStyle());
+            assertSame(FONT_FAMILY, fontKind.family());
+            assertEquals(BwdFontStyles.NORMAL, fontKind.style());
         }
     }
     
@@ -76,8 +74,8 @@ public class BwdFontKindTest extends TestCase {
         
         for (int fontStyle : FONT_STYLE_ARR) {
             final BwdFontKind fontKind = new BwdFontKind(FONT_FAMILY, fontStyle);
-            assertSame(FONT_FAMILY, fontKind.fontFamily());
-            assertEquals(fontStyle, fontKind.fontStyle());
+            assertSame(FONT_FAMILY, fontKind.family());
+            assertEquals(fontStyle, fontKind.style());
         }
     }
     
@@ -96,7 +94,7 @@ public class BwdFontKindTest extends TestCase {
         for (boolean bold : BOOL_ARR) {
             for (boolean italic : BOOL_ARR) {
                 final BwdFontKind fontKind = new BwdFontKind(FONT_FAMILY, bold, italic);
-                assertSame(FONT_FAMILY, fontKind.fontFamily());
+                assertSame(FONT_FAMILY, fontKind.family());
                 assertEquals(bold, fontKind.isBold());
                 assertEquals(italic, fontKind.isItalic());
             }
@@ -112,8 +110,8 @@ public class BwdFontKindTest extends TestCase {
 
         final BwdFontKind fontKind2 = fontKind.withStyle(FONT_STYLE);
 
-        assertEquals(fontKind.fontFamily(), fontKind2.fontFamily());
-        assertEquals(FONT_STYLE, fontKind2.fontStyle());
+        assertEquals(fontKind.family(), fontKind2.family());
+        assertEquals(FONT_STYLE, fontKind2.style());
     }
     
     public void test_withBold_boolean() {
@@ -123,9 +121,9 @@ public class BwdFontKindTest extends TestCase {
             for (boolean bold : BOOL_ARR) {
                 final BwdFontKind fontKind2 = fontKind.withBold(bold);
 
-                assertEquals(fontKind.fontFamily(), fontKind2.fontFamily());
-                final int expectedStyle = BwdFontStyles.withBold(fontKind.fontStyle(), bold);
-                assertEquals(expectedStyle, fontKind2.fontStyle());
+                assertEquals(fontKind.family(), fontKind2.family());
+                final int expectedStyle = BwdFontStyles.withBold(fontKind.style(), bold);
+                assertEquals(expectedStyle, fontKind2.style());
             }
         }
     }
@@ -137,9 +135,9 @@ public class BwdFontKindTest extends TestCase {
             for (boolean italic : BOOL_ARR) {
                 final BwdFontKind fontKind2 = fontKind.withItalic(italic);
 
-                assertEquals(fontKind.fontFamily(), fontKind2.fontFamily());
-                final int expectedStyle = BwdFontStyles.withItalic(fontKind.fontStyle(), italic);
-                assertEquals(expectedStyle, fontKind2.fontStyle());
+                assertEquals(fontKind.family(), fontKind2.family());
+                final int expectedStyle = BwdFontStyles.withItalic(fontKind.style(), italic);
+                assertEquals(expectedStyle, fontKind2.style());
             }
         }
     }
@@ -183,7 +181,7 @@ public class BwdFontKindTest extends TestCase {
             
             assertTrue(fontKind.equals(fontKind));
             
-            assertTrue(fontKind.equals(new BwdFontKind(fontKind.fontFamily(), fontKind.fontStyle())));
+            assertTrue(fontKind.equals(new BwdFontKind(fontKind.family(), fontKind.style())));
         }
         
         assertFalse(new BwdFontKind("m", 5).equals(new BwdFontKind("n", 5)));
@@ -218,16 +216,16 @@ public class BwdFontKindTest extends TestCase {
      * 
      */
     
-    public void test_fontFamily() {
+    public void test_family() {
         final BwdFontKind fontKind = new BwdFontKind(FONT_FAMILY, FONT_STYLE);
         // Checking String identity: might (annoyingly) work "by chance"
-        assertSame(FONT_FAMILY, fontKind.fontFamily());
+        assertSame(FONT_FAMILY, fontKind.family());
     }
     
-    public void test_fontStyle() {
+    public void test_style() {
         for (int style : FONT_STYLE_ARR) {
             final BwdFontKind fontKind = new BwdFontKind(FONT_FAMILY, style);
-            assertEquals(style, fontKind.fontStyle());
+            assertEquals(style, fontKind.style());
         }
     }
     

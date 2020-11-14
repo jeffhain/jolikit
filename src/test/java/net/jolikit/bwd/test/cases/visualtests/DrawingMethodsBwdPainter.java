@@ -1092,7 +1092,7 @@ public class DrawingMethodsBwdPainter {
         InterfaceBwdFont font = this.font;
         if (font == null) {
             final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
-            font = fontHome.newFontWithClosestHeight(defaultFont.fontKind(), TARGET_FONT_HEIGHT);
+            font = fontHome.newFontWithClosestHeight(defaultFont.kind(), TARGET_FONT_HEIGHT);
             this.font = font;
         }
         
@@ -1108,7 +1108,7 @@ public class DrawingMethodsBwdPainter {
         final InterfaceBwdFont font = this.ensureAndGetFont();
         g.setFont(font);
         
-        final int fontHeight = font.fontMetrics().fontHeight();
+        final int fontHeight = font.metrics().height();
         
         final String text = "Moy";
         

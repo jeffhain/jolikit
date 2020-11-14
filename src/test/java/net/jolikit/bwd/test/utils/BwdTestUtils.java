@@ -424,9 +424,9 @@ public class BwdTestUtils {
             int centerX, int centerY,
             String text) {
         final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         final int textWidth = metrics.computeTextWidth(text);
-        final int textHeight = metrics.fontHeight();
+        final int textHeight = metrics.height();
         final int textX = centerX - (textWidth / 2);
         final int textY = centerY - (textHeight / 2);
         g.drawText(textX, textY, text);
@@ -452,9 +452,9 @@ public class BwdTestUtils {
             int y,
             String text) {
         final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         final int bgXSpan = metrics.computeTextWidth(text);
-        final int bgYSpan = metrics.fontHeight();
+        final int bgYSpan = metrics.height();
         final int x = centerX - bgXSpan / 2;
         drawTextAndSpannedBg(g, bgColor, fgColor, x, y, text, bgXSpan, bgYSpan);
     }
@@ -469,9 +469,9 @@ public class BwdTestUtils {
             int x,
             int y,
             String text) {
-        final InterfaceBwdFontMetrics fontMetrics = g.getFont().fontMetrics();
+        final InterfaceBwdFontMetrics fontMetrics = g.getFont().metrics();
         final int bgXSpan = fontMetrics.computeTextWidth(text);
-        final int bgYSpan = fontMetrics.fontHeight();
+        final int bgYSpan = fontMetrics.height();
         drawTextAndSpannedBg(g, bgColor, fgColor, x, y, text, bgXSpan, bgYSpan);
     }
 

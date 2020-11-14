@@ -520,7 +520,7 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             final double textXShifted = xShift - maxClippedTextRectInText.x();
             final double textYShifted = yShift - maxClippedTextRectInText.y();
             
-            final InterfaceBwdFontMetrics fontMetrics = fontImpl.fontMetrics();
+            final InterfaceBwdFontMetrics fontMetrics = fontImpl.metrics();
             drawText_raw_shifted(
                     textGc,
                     textXShifted,
@@ -790,7 +790,7 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             String text,
             GRotation rotation,
             InterfaceBwdFontMetrics fontMetrics) {
-        final int ascent = fontMetrics.fontAscent();
+        final int ascent = fontMetrics.ascent();
         final double dx;
         final double dy;
         if (JfxUtils.H_IN_T) {

@@ -169,13 +169,13 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
         InterfaceBwdFont font = this.font;
         if (font == null) {
             font = fontHome.newFontWithClosestHeight(
-                    fontHome.getDefaultFont().fontKind(),
+                    fontHome.getDefaultFont().kind(),
                     TARGET_FONT_HEIGHT);
             this.font = font;
         }
 
         g.setFont(font);
-        final int lineHeight = font.fontMetrics().fontHeight() + 1;
+        final int lineHeight = font.metrics().height() + 1;
         
         int tmpY = y;
         g.setColor(BwdColor.BLACK);

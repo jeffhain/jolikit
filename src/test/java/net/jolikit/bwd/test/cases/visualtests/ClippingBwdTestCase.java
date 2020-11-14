@@ -231,7 +231,7 @@ public class ClippingBwdTestCase extends AbstractBwdTestCase {
                 
                 final int fontSize = CELL_Y_SPAN;
                 final InterfaceBwdFontHome fontHome = getBinding().getFontHome();
-                final BwdFontKind fontKind = fontHome.getDefaultFont().fontKind();
+                final BwdFontKind fontKind = fontHome.getDefaultFont().kind();
                 final InterfaceBwdFont font = fontHome.newFontWithSize(fontKind, fontSize);
                 try {
                     g.setFont(font);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,26 +61,26 @@ public abstract class AbstractBwdFontMetrics implements InterfaceBwdFontMetrics 
     @Override
     public String toString() {
         return "[h = "
-                + this.fontHeight()
+                + this.height()
                 + ", a = "
-                + this.fontAscent()
+                + this.ascent()
                 + ", d = "
-                + this.fontDescent()
+                + this.descent()
                 + "]";
     }
     
     @Override
-    public int fontAscent() {
+    public int ascent() {
         return this.ascent;
     }
     
     @Override
-    public int fontDescent() {
+    public int descent() {
         return this.descent;
     }
     
     @Override
-    public int fontHeight() {
+    public int height() {
         return this.ascent + this.descent;
     }
     
@@ -259,7 +259,7 @@ public abstract class AbstractBwdFontMetrics implements InterfaceBwdFontMetrics 
         if (DEBUG) {
             Dbg.log("ascent = " + ascent);
             Dbg.log("descent = " + descent);
-            Dbg.log("fontHeight = " + this.fontHeight());
+            Dbg.log("fontHeight = " + this.height());
         }
     }
     

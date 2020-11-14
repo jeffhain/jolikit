@@ -186,7 +186,7 @@ public class FontOfHeightHelperTest extends TestCase {
             this.metrics = new MyFontMetrics(fontHeight);
         }
         @Override
-        public InterfaceBwdFontMetrics fontMetrics() {
+        public InterfaceBwdFontMetrics metrics() {
             return this.metrics;
         }
     }
@@ -311,15 +311,15 @@ public class FontOfHeightHelperTest extends TestCase {
                 if (closestFont == null) {
                     closestFont = newFont;
                     closestDelta = FontOfHeightHelper.relDeltaOfStrictPos(
-                            closestFont.fontMetrics().fontHeight(),
+                            closestFont.metrics().height(),
                             targetFontHeight);
                 } else {
                     final double newDelta = FontOfHeightHelper.relDeltaOfStrictPos(
-                            newFont.fontMetrics().fontHeight(),
+                            newFont.metrics().height(),
                             targetFontHeight);
                     if ((newDelta < closestDelta)
                             || ((newDelta == closestDelta)
-                                    && (newFont.fontMetrics().fontHeight() > closestFont.fontMetrics().fontHeight()))) {
+                                    && (newFont.metrics().height() > closestFont.metrics().height()))) {
                         closestFont.dispose();
                         closestFont = newFont;
                         closestDelta = newDelta;
@@ -332,8 +332,8 @@ public class FontOfHeightHelperTest extends TestCase {
              *    and result.
              */
 
-            final int closestS = closestFont.fontSize();
-            final int closestH = closestFont.fontMetrics().fontHeight();
+            final int closestS = closestFont.size();
+            final int closestH = closestFont.metrics().height();
 
             if (closestH < targetFontHeight) {
                 result[0] = closestFont;
@@ -342,7 +342,7 @@ public class FontOfHeightHelperTest extends TestCase {
                 InterfaceBwdFont ceilingFont = null;
                 for (int tmpFontSize = closestS + 1; tmpFontSize <= MAX_FONT_SIZE; tmpFontSize++) {
                     final InterfaceBwdFont tmpFont = fontCreator.newFontWithSize(FONT_KIND, tmpFontSize);
-                    if (tmpFont.fontMetrics().fontHeight() > targetFontHeight) {
+                    if (tmpFont.metrics().height() > targetFontHeight) {
                         ceilingFont = tmpFont;
                         break;
                     }
@@ -353,7 +353,7 @@ public class FontOfHeightHelperTest extends TestCase {
                 InterfaceBwdFont floorFont = null;
                 for (int tmpFontSize = closestS - 1; tmpFontSize >= MIN_FONT_SIZE; tmpFontSize--) {
                     final InterfaceBwdFont tmpFont = fontCreator.newFontWithSize(FONT_KIND, tmpFontSize);
-                    if (tmpFont.fontMetrics().fontHeight() < targetFontHeight) {
+                    if (tmpFont.metrics().height() < targetFontHeight) {
                         floorFont = tmpFont;
                         break;
                     }
@@ -844,8 +844,8 @@ public class FontOfHeightHelperTest extends TestCase {
     }
 
     private static void checkSameHeight(InterfaceBwdFont refFont, InterfaceBwdFont resFont) {
-        final int refH = refFont.fontMetrics().fontHeight();
-        final int resH = resFont.fontMetrics().fontHeight();
+        final int refH = refFont.metrics().height();
+        final int resH = resFont.metrics().height();
         if (resH != refH) {
             throw new AssertionError(resH + " != " + refH);
         }

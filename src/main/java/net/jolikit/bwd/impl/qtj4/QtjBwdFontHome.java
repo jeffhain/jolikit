@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ public class QtjBwdFontHome extends AbstractBwdFontHome<QtjCompleteBackingFont,Q
                  */
                 backingMetrics.inFontUcs4(codePoint);
             }
-            final int width = fontImpl.fontMetrics().computeCharWidth(codePoint);
+            final int width = fontImpl.metrics().computeCharWidth(codePoint);
             return (width > 0);
         }
     }
@@ -360,9 +360,9 @@ public class QtjBwdFontHome extends AbstractBwdFontHome<QtjCompleteBackingFont,Q
             BwdFontId fontId,
             MyDisposableFontDisposeCallListener disposeCallListener) {
         
-        final int fontSize = fontId.fontSize();
+        final int fontSize = fontId.size();
         
-        final BwdFontKind fontKind = fontId.fontKind();
+        final BwdFontKind fontKind = fontId.kind();
 
         final MyLoadedFontData lfd = this.getLfdForLoadedFontKind(fontKind);
         if (lfd == null) {
@@ -377,7 +377,7 @@ public class QtjBwdFontHome extends AbstractBwdFontHome<QtjCompleteBackingFont,Q
         final QFont backingFont;
         if (false) {
             // Should work as well.
-            final String family = fontKind.fontFamily();
+            final String family = fontKind.family();
             backingFont = new QFont(family);
         } else {
             backingFont = bfg.backingFont.clone();

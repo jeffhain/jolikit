@@ -213,7 +213,7 @@ public class ClientRepaintTestBwdTestCase extends AbstractBwdTestCase {
             
             final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
             final InterfaceBwdFont font = fontHome.getDefaultFont();
-            final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+            final InterfaceBwdFontMetrics fontMetrics = font.metrics();
             
             final int pseudoMaxTextWidth = fontMetrics.computeTextWidth("paintCount = 999");
             int x = (box.xMax() - box.x() - pseudoMaxTextWidth) / 2;

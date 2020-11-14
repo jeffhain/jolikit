@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,6 @@ package net.jolikit.bwd.api.fonts;
 import java.util.Arrays;
 import java.util.List;
 
-import net.jolikit.bwd.api.fonts.BwdFontId;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
-import net.jolikit.bwd.api.fonts.BwdFontStyles;
 import junit.framework.TestCase;
 
 public class BwdFontIdTest extends TestCase {
@@ -64,8 +61,8 @@ public class BwdFontIdTest extends TestCase {
         
         for (int fontSize : GOOD_FONT_SIZE_ARR) {
             final BwdFontId fontId = new BwdFontId(FONT_KIND, fontSize);
-            assertSame(FONT_KIND, fontId.fontKind());
-            assertEquals(fontSize, fontId.fontSize());
+            assertSame(FONT_KIND, fontId.kind());
+            assertEquals(fontSize, fontId.size());
         }
     }
     
@@ -94,9 +91,9 @@ public class BwdFontIdTest extends TestCase {
         for (int fontStyle : FONT_STYLE_ARR) {
             for (int fontSize : GOOD_FONT_SIZE_ARR) {
                 final BwdFontId fontId = new BwdFontId(FONT_FAMILY, fontStyle, fontSize);
-                assertSame(FONT_FAMILY, fontId.fontKind().fontFamily());
-                assertEquals(fontStyle, fontId.fontKind().fontStyle());
-                assertEquals(fontSize, fontId.fontSize());
+                assertSame(FONT_FAMILY, fontId.kind().family());
+                assertEquals(fontStyle, fontId.kind().style());
+                assertEquals(fontSize, fontId.size());
             }
         }
     }
@@ -108,7 +105,7 @@ public class BwdFontIdTest extends TestCase {
     public void test_toString() {
         final BwdFontId fontId = new BwdFontId(FONT_KIND, 7);
         assertEquals(
-                "[" + FONT_KIND.fontFamily() + ", " + BwdFontStyles.toString(FONT_KIND.fontStyle()) + ", 7]",
+                "[" + FONT_KIND.family() + ", " + BwdFontStyles.toString(FONT_KIND.style()) + ", 7]",
                 fontId.toString());
     }
     
@@ -139,7 +136,7 @@ public class BwdFontIdTest extends TestCase {
             
             assertTrue(fontId.equals(fontId));
             
-            assertTrue(fontId.equals(new BwdFontId(fontId.fontKind(), fontId.fontSize())));
+            assertTrue(fontId.equals(new BwdFontId(fontId.kind(), fontId.size())));
         }
         
         assertFalse(new BwdFontId("m", 5, 7).equals(new BwdFontId("n", 5, 7)));
@@ -179,15 +176,15 @@ public class BwdFontIdTest extends TestCase {
      * 
      */
     
-    public void test_fontKind() {
+    public void test_kind() {
         final BwdFontId fontId = new BwdFontId(FONT_KIND, 7);
         
-        assertSame(FONT_KIND, fontId.fontKind());
+        assertSame(FONT_KIND, fontId.kind());
     }
     
-    public void test_fontSize() {
+    public void test_size() {
         final BwdFontId fontId = new BwdFontId(FONT_KIND, 7);
         
-        assertSame(7, fontId.fontSize());
+        assertSame(7, fontId.size());
     }
 }

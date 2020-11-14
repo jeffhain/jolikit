@@ -859,7 +859,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
          */
 
         final InterfaceBwdFont font = g.getFont();
-        final int fontHeight = font.fontMetrics().fontHeight();
+        final int fontHeight = font.metrics().height();
         final int size = lineList.size();
         for (int i = 0; i < size; i++) {
             final String line = lineList.get(i);

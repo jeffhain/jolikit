@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package net.jolikit.bwd.api.fonts;
 
 import java.util.List;
 
-import net.jolikit.bwd.api.fonts.BwdFontStyles;
 import junit.framework.TestCase;
 
 public class BwdFontStylesTest extends TestCase {

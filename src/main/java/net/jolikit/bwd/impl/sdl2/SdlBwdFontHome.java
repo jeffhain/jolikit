@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -339,9 +339,9 @@ public class SdlBwdFontHome extends AbstractBwdFontHome<Pointer,SdlBwdFontHome.M
             BwdFontId fontId,
             MyDisposableFontDisposeCallListener disposeCallListener) {
         
-        final int fontSize = fontId.fontSize();
+        final int fontSize = fontId.size();
         
-        final BwdFontKind fontKind = fontId.fontKind();
+        final BwdFontKind fontKind = fontId.kind();
 
         final MyLoadedFontData lfd = this.getLfdForLoadedFontKind(fontKind);
         if (lfd == null) {

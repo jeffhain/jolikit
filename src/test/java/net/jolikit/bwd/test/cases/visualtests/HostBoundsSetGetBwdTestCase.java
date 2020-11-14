@@ -156,7 +156,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             
             g.setColor(BwdColor.BLACK);
             
-            final int fh = g.getFont().fontMetrics().fontHeight();
+            final int fh = g.getFont().metrics().height();
             final int tlo = 10;
             final int th = fh + 1;
             

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,18 +152,18 @@ public class FontMetricsApiUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
         
         boolean gotError = false;
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int ascent = metrics.fontAscent();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
+        final int ascent = metrics.ascent();
         if (ascent < 0) {
             Dbg.log("ERROR : ascent [" + ascent + "] must be >= 0");
             gotError = true;
         }
-        final int descent = metrics.fontDescent();
+        final int descent = metrics.descent();
         if (descent < 0) {
             Dbg.log("ERROR : descent [" + descent + "] must be >= 0");
             gotError = true;
         }
-        final int fontHeight = metrics.fontHeight();
+        final int fontHeight = metrics.height();
         if (fontHeight <= 0) {
             Dbg.log("ERROR : fontHeight [" + fontHeight + "] must be >= 1");
             gotError = true;
@@ -182,7 +182,7 @@ public class FontMetricsApiUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
         
         boolean gotError = false;
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         
         /*
          * Invalid code points.

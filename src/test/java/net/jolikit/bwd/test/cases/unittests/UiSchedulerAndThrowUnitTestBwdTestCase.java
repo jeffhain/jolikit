@@ -281,7 +281,7 @@ public class UiSchedulerAndThrowUnitTestBwdTestCase extends AbstractUnitTestBwdT
         g.setColor(BwdColor.WHITE);
         g.fillRect(box);
 
-        final int dh = g.getFont().fontMetrics().fontHeight() + 1;
+        final int dh = g.getFont().metrics().height() + 1;
         int textX = x + 10;
         int textY = y + 10;
         

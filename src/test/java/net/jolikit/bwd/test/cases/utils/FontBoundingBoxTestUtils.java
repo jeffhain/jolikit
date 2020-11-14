@@ -62,9 +62,9 @@ public class FontBoundingBoxTestUtils {
         
         final String text = LangUtils.stringOfCodePoint(codePoint);
         
-        final int fontSize = font.fontSize();
+        final int fontSize = font.size();
         
-        final int textTheoWidth = font.fontMetrics().computeCharWidth(codePoint);
+        final int textTheoWidth = font.metrics().computeCharWidth(codePoint);
         // Possibly larger than font height.
         final int textTheoHeight = fontSize;
         
@@ -116,7 +116,7 @@ public class FontBoundingBoxTestUtils {
         
         final GRect clientBox = g.getBox();
         
-        final int fontHeight = font.fontMetrics().fontHeight();
+        final int fontHeight = font.metrics().height();
         final int textTheoHeight = fontHeight;
         final int leakBonus = fontHeight;
         final int srBorder = 2 * leakBonus;
@@ -157,7 +157,7 @@ public class FontBoundingBoxTestUtils {
             }
             
             final String text = LangUtils.stringOfCodePoint(cp);
-            final int textTheoWidth = font.fontMetrics().computeCharWidth(cp);
+            final int textTheoWidth = font.metrics().computeCharWidth(cp);
             final int srWidth = textTheoWidth + 2 * srBorder;
             
             final GRect searchRect = GRect.valueOf(

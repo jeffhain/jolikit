@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,9 +130,9 @@ public class BwdFontMetricsTest extends TestCase {
                 if (DEBUG) {
                     System.out.println("metrics = " + metrics);
                 }
-                assertEquals(expectedAscent, metrics.fontAscent());
-                assertEquals(expectedDescent, metrics.fontDescent());
-                assertEquals(expectedFontHeight, metrics.fontHeight());
+                assertEquals(expectedAscent, metrics.ascent());
+                assertEquals(expectedDescent, metrics.descent());
+                assertEquals(expectedFontHeight, metrics.height());
             }
         }
     }

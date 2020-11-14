@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -178,7 +178,7 @@ public class FontBoxHelperTest extends TestCase {
                 if (canComputeFontKind) {
                     LangUtils.requireNonNull(fontKind);
                     for (String familyPart : familyPartArr) {
-                        assertTrue(BindingStringUtils.containsIgnoreCase(fontKind.fontFamily(), familyPart));
+                        assertTrue(BindingStringUtils.containsIgnoreCase(fontKind.family(), familyPart));
                     }
                 } else {
                     assertNull(fontKind);

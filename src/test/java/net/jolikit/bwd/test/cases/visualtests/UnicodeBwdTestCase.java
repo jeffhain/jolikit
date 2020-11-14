@@ -268,7 +268,7 @@ public class UnicodeBwdTestCase extends AbstractBwdTestCase {
         final GRect box = g.getBox();
 
         final InterfaceBwdFont defaultFont = g.getFont();
-        final int dh = defaultFont.fontMetrics().fontHeight() + 1;
+        final int dh = defaultFont.metrics().height() + 1;
         
         /*
          * 
@@ -296,7 +296,7 @@ public class UnicodeBwdTestCase extends AbstractBwdTestCase {
         
         g.setColor(BwdColor.BLACK);
         
-        final int fh = this.unifont.fontMetrics().fontHeight() + 1;
+        final int fh = this.unifont.metrics().height() + 1;
         int y = 0;
         
         for (boolean mustInsertSpecial : new boolean[]{false, true}) {
@@ -327,12 +327,12 @@ public class UnicodeBwdTestCase extends AbstractBwdTestCase {
                     int ci = 0;
                     while (ci < text.length()) {
                         final int cp = text.codePointAt(ci);
-                        width += this.unifont.fontMetrics().computeCharWidth(cp);
+                        width += this.unifont.metrics().computeCharWidth(cp);
                         ci += Character.charCount(cp);
                     }
                     g.drawText(0, y, "glyphs widths sum = " + width);
                 } else {
-                    width = this.unifont.fontMetrics().computeTextWidth(text);
+                    width = this.unifont.metrics().computeTextWidth(text);
                     g.drawText(0, y, "text width = " + width);
                 }
                 y += dh;

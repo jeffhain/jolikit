@@ -258,8 +258,8 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
         
         if (!this.initialized) {
             final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
-            final int fontSize = g.getFont().fontSize() + FONT_SIZE_DELTA;
-            this.font = fontHome.newFontWithSize(g.getFont().fontKind(), fontSize);
+            final int fontSize = g.getFont().size() + FONT_SIZE_DELTA;
+            this.font = fontHome.newFontWithSize(g.getFont().kind(), fontSize);
             
             this.image = this.getBinding().newImage(IMG_FILE_PATH);
             
@@ -531,7 +531,7 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
 
         g.setColor(BwdColor.BLACK);
         
-        final int fontHeight = font.fontMetrics().fontHeight();
+        final int fontHeight = font.metrics().height();
         final int size = lineList.size();
         for (int i = 0; i < size; i++) {
             final String line = lineList.get(i);

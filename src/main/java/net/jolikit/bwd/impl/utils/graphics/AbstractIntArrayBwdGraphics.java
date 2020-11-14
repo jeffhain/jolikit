@@ -223,10 +223,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             throw new IllegalStateException("current font is disposed: " + font);
         }
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         
         final int theoTextWidth = metrics.computeTextWidth(text);
-        final int theoTextHeight = metrics.fontHeight();
+        final int theoTextHeight = metrics.height();
         
         if (theoTextHeight <= 0) {
             /*
@@ -457,8 +457,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         // Font heights can be quite far from font size,
         // so we use the max of both.
         final int magnitude = Math.max(
-                font.fontSize(),
-                font.fontMetrics().fontHeight());
+                font.size(),
+                font.metrics().height());
         
         final int leftLeakTolerance = magnitude;
         final int topLeakTolerance = magnitude;

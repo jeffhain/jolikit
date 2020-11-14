@@ -76,6 +76,11 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
   - Modifications:
+    - InterfaceBwdFont, InterfaceBwdFontMetrics,
+      BwdFontId, BwdFontKind: removed "font" prefix
+      from getters names, for shorter code, and because
+      code is still clear that way and methods easily
+      discoverable (not many of them).
     - Bindings must now call client's paintClient() method
       within calls to graphics init() and finish(),
       so that clients don't have to bother with these

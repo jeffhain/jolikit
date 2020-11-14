@@ -128,25 +128,25 @@ public class TextWidthBwdTestCase extends AbstractBwdTestCase {
         g.setColor(BwdColor.BLACK);
         
         final InterfaceBwdFont defaultFont = g.getFont();
-        final InterfaceBwdFontMetrics defaultFontMetrics = defaultFont.fontMetrics();
+        final InterfaceBwdFontMetrics defaultFontMetrics = defaultFont.metrics();
         
         int textX = 0;
         int textY = 0;
         g.drawText(textX, textY, "{cw(cp), tw(cp), tw(cpcp), tw(cpcpcp)}");
-        textY += defaultFontMetrics.fontHeight() + 1;
+        textY += defaultFontMetrics.height() + 1;
         
         final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
         
         // Just using default font kind,
         // since behaviors seem consistent across fonts.
-        final BwdFontKind fontKind = defaultFont.fontKind();
+        final BwdFontKind fontKind = defaultFont.kind();
 
         final InterfaceBwdFont font = fontHome.newFontWithClosestHeight(fontKind, TARGET_FONT_HEIGHT);
         try {
-            final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+            final InterfaceBwdFontMetrics fontMetrics = font.metrics();
 
             g.drawText(textX, textY, "font = " + font);
-            textY += defaultFontMetrics.fontHeight() + 1;
+            textY += defaultFontMetrics.height() + 1;
 
             for (int cp : CP_ARR) {
                 final String cps = LangUtils.stringOfCodePoint(cp);
@@ -161,7 +161,7 @@ public class TextWidthBwdTestCase extends AbstractBwdTestCase {
                                 + charWidth + ", " + text1Width + ", " + text2Width + ", " + text3Width
                                 + "} (cp = " + LangUtils.stringOfCodePoint(cp) + ")");
 
-                textY += defaultFontMetrics.fontHeight() + 1;
+                textY += defaultFontMetrics.height() + 1;
             }
         } finally {
             font.dispose();

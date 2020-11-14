@@ -143,9 +143,9 @@ public class JfxDirtySnapshotHelper {
          * not leak outside its theoretical box.
          */
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         final int xSpan = metrics.computeTextWidth(text);
-        final int ySpan = metrics.fontHeight();
+        final int ySpan = metrics.height();
         
         this.onRectDrawing(transform, x, y, xSpan, ySpan);
     }

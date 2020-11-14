@@ -353,7 +353,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
                  * but for some fonts (like Impact, or Interface)
                  * we have to remove descent to be properly located.
                  */
-                textY = -fontImpl.fontMetrics().fontDescent() - maxClippedTextRectInText.y();
+                textY = -fontImpl.metrics().descent() - maxClippedTextRectInText.y();
             } else {
                 textY = 0 - maxClippedTextRectInText.y();
             }

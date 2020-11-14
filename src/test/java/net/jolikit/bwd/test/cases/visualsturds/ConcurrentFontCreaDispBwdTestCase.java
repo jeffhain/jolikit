@@ -214,9 +214,9 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
         final List<InterfaceBwdFont> fontList;
         {
             final InterfaceBwdFont font = g.getFont();
-            final AtomicInteger fontSizeGenerator = new AtomicInteger(font.fontSize());
+            final AtomicInteger fontSizeGenerator = new AtomicInteger(font.size());
             final MyFontCreationSplitmergable splitmergable = new MyFontCreationSplitmergable(
-                    font.fontKind(),
+                    font.kind(),
                     fontSizeGenerator,
                     SPLIT_COUNT);
             parallelizer.execute(splitmergable);
@@ -244,14 +244,14 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
                         public int compare(
                                 InterfaceBwdFont o1,
                                 InterfaceBwdFont o2) {
-                            return o1.fontId().compareTo(o2.fontId());
+                            return o1.id().compareTo(o2.id());
                         }
                     });
             
             for (InterfaceBwdFont font : fontList) {
                 g.setFont(font);
                 g.drawText(x, y + yOffset, text);
-                yOffset += font.fontMetrics().fontHeight();
+                yOffset += font.metrics().height();
             }
         }
         

@@ -187,7 +187,7 @@ public class SampleBwd {
              * 
              */
             
-            final int defaultFontHeight = g.getFont().fontMetrics().fontHeight();
+            final int defaultFontHeight = g.getFont().metrics().height();
             
             g.drawText(2, 2, "Press X key to close.");
             

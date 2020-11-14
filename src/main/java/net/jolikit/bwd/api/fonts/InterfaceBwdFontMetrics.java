@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,14 +68,14 @@ public interface InterfaceBwdFontMetrics {
      * 
      * @return Font ascent, i.e. max ascent for any of its glyphs.
      */
-    public int fontAscent();
+    public int ascent();
     
     /**
      * This value is >= 0.
      * 
      * @return Font descent, i.e. max descent for any of its glyphs.
      */
-    public int fontDescent();
+    public int descent();
     
     /**
      * This value is > 0.
@@ -85,7 +85,7 @@ public interface InterfaceBwdFontMetrics {
      * 
      * @return Font height, which is ascent + descent.
      */
-    public int fontHeight();
+    public int height();
     
     /**
      * Convenience method not to force a string creation

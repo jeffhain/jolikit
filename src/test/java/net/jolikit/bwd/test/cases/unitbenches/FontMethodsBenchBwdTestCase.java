@@ -230,7 +230,7 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
             }
             final InterfaceBwdFont font = this.currentFont;
             try {
-                final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+                final InterfaceBwdFontMetrics metrics = font.metrics();
                 
                 int antiOptim = 0;
                 {
@@ -242,7 +242,7 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                     final long b = System.nanoTime();
                     final double dtS = TestUtils.nsToSRounded(b - a);
                     final String report =
-                            fontKind + ", h = " + metrics.fontHeight()
+                            fontKind + ", h = " + metrics.height()
                             + ", " + NBR_OF_CALLS + " calls to " + methodType
                             + ", " + dtS + " s";
                     this.reportList.add(report);
@@ -289,10 +289,10 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         if (methodType == MyMethodType.CAN_DISPLAY) {
             return font.canDisplay(codePoint);
         } else if (methodType == MyMethodType.COMPUTE_CHAR_WIDTH) {
-            return font.fontMetrics().computeCharWidth(codePoint);
+            return font.metrics().computeCharWidth(codePoint);
         } else if (methodType == MyMethodType.COMPUTE_TEXT_WIDTH) {
             final String text = LangUtils.stringOfCodePoint(codePoint);
-            return font.fontMetrics().computeTextWidth(text);
+            return font.metrics().computeTextWidth(text);
         } else {
             throw new IllegalArgumentException("" + methodType);
         }
@@ -300,7 +300,7 @@ public class FontMethodsBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     
     private void drawReport(InterfaceBwdGraphics g) {
         final InterfaceBwdFont font = g.getFont();
-        final int lineHeight = font.fontMetrics().fontHeight() + 1;
+        final int lineHeight = font.metrics().height() + 1;
 
         g.setColor(BwdColor.BLACK);
         

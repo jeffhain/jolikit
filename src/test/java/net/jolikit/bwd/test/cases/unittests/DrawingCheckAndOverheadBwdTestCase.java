@@ -1078,8 +1078,8 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         final InterfaceBwdFontHome fontHome = getBinding().getFontHome();
         final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
         this.nonDefaultFont = fontHome.newFontWithSize(
-                defaultFont.fontKind(),
-                defaultFont.fontSize() + 1);
+                defaultFont.kind(),
+                defaultFont.size() + 1);
         
         this.srcImage_opaque_png = binding.newImage(IMAGE_OPAQUE_PNG_FILE_PATH);
         this.srcImage_opaque_bmp4 = binding.newImage(IMAGE_OPAQUE_BMP4_FILE_PATH);
@@ -1146,7 +1146,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     protected void drawCurrentState(InterfaceBwdGraphics g) {
 
         final InterfaceBwdFont font = g.getFont();
-        final int lineHeight = font.fontMetrics().fontHeight() + 1;
+        final int lineHeight = font.metrics().height() + 1;
 
         g.setColor(BwdColor.BLACK);
 
@@ -1689,7 +1689,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         return testG.getArgb32()
                 + testG.getClipInBase().x()
                 + testG.getTransform().frame2XIn1()
-                + testG.getFont().fontSize();
+                + testG.getFont().size();
     }
 
     private static int callConfigMethods_static(

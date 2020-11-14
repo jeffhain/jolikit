@@ -574,7 +574,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
             g.setColor(COLOR_FG);
             BwdTestUtils.drawRectStipple(g, box);
 
-            final int h = g.getFont().fontMetrics().fontHeight() + 1;
+            final int h = g.getFont().metrics().height() + 1;
             int textY = 2;
 
             g.drawText(box.xMid(), textY, this.getHost().getTitle());
@@ -933,7 +933,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
             }
         }
 
-        final int h = g.getFont().fontMetrics().fontHeight() + 1;
+        final int h = g.getFont().metrics().height() + 1;
         g.setColor(COLOR_FG);
 
         int textY = TEXT_Y;

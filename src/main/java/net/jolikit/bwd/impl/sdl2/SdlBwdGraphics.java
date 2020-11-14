@@ -427,7 +427,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
         final Pointer backingFont = font.getBackingFont();
 
-        final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics fontMetrics = font.metrics();
 
         final ArrayList<MyGlyphData> glyphDataList =
                 new ArrayList<MyGlyphData>();
@@ -631,7 +631,7 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
         final Pointer backingFont = font.getBackingFont();
 
-        final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics fontMetrics = font.metrics();
 
         /*
          * TODO sdl TTF_RenderText_Blended(...)

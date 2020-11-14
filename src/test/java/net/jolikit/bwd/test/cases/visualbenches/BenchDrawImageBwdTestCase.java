@@ -131,7 +131,7 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
          * 
          */
         
-        final int dh = defaultFont.fontMetrics().fontHeight() + 1;
+        final int dh = defaultFont.metrics().height() + 1;
         g.setColor(BwdColor.BLACK);
         int y = 0;
         

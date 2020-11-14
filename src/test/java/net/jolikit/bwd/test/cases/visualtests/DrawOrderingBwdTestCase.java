@@ -185,7 +185,7 @@ public class DrawOrderingBwdTestCase extends AbstractBwdTestCase {
 
         if (this.font == null) {
             this.font = binding.getFontHome().newFontWithFloorElseClosestHeight(
-                    g.getFont().fontKind(),
+                    g.getFont().kind(),
                     DRAWING_HEIGHT);
         }
         

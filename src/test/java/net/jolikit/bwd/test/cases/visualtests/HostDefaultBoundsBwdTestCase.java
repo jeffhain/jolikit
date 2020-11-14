@@ -113,7 +113,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
             // Font created by main test host.
             g.setFont(font);
             
-            final int fh = font.fontMetrics().fontHeight();
+            final int fh = font.metrics().height();
             final int lineH = fh + 1;
             int textY = 1;
             
@@ -284,7 +284,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
         if (this.font == null) {
             final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
             this.font = fontHome.newFontWithClosestHeight(
-                    fontHome.getDefaultFont().fontKind(),
+                    fontHome.getDefaultFont().kind(),
                     TARGET_FONT_HEIGHT);
         }
         g.setFont(this.font);

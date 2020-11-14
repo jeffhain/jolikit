@@ -132,8 +132,8 @@ public class UiSchedulerTimedBwdTestCase extends AbstractBwdTestCase {
         g.fillRect(box);
         
         final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int dh = metrics.fontHeight() + 1;
+        final InterfaceBwdFontMetrics metrics = font.metrics();
+        final int dh = metrics.height() + 1;
         
         int textY = y;
         

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,9 +85,9 @@ public final class BwdFontId implements Comparable<BwdFontId> {
     @Override
     public String toString() {
         return "["
-                + this.kind.fontFamily()
+                + this.kind.family()
                 + ", "
-                + BwdFontStyles.toString(this.kind.fontStyle())
+                + BwdFontStyles.toString(this.kind.style())
                 + ", "
                 + this.size
                 + "]";
@@ -135,14 +135,14 @@ public final class BwdFontId implements Comparable<BwdFontId> {
     /**
      * @return Font kind.
      */
-    public BwdFontKind fontKind() {
+    public BwdFontKind kind() {
         return this.kind;
     }
     
     /**
      * @return Font size in pixels. Always > 0.
      */
-    public int fontSize() {
+    public int size() {
         return this.size;
     }
 }

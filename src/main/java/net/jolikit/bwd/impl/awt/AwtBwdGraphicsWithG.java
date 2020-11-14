@@ -682,7 +682,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             throw new IllegalStateException("font is disposed: " + font);
         }
         
-        final int ascent = font.fontMetrics().fontAscent();
+        final int ascent = font.metrics().ascent();
         
         final int _x = x + this.xShiftInUser;
         final int _y = y + this.yShiftInUser + ascent;

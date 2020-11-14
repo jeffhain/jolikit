@@ -130,8 +130,8 @@ public class KeyEventsBwdTestCase extends AbstractBwdTestCase {
         final int ySpan = box.ySpan();
 
         final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int lineHeight = metrics.fontHeight();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
+        final int lineHeight = metrics.height();
         
         /*
          * "Background".

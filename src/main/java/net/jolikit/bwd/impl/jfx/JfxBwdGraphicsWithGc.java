@@ -590,7 +590,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         final double _x = x + this.xShiftInUser;
         final double _y = y + this.yShiftInUser;
         final GRotation rotation = this.getTransform().rotation();
-        final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics fontMetrics = font.metrics();
         drawText_raw_shifted(this.gc, _x, _y, text, rotation, fontMetrics);
         
         this.dirtySnapshotHelper.onTextDrawing(this.getTransform(), x, y, text, font);
@@ -1027,7 +1027,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             String text,
             GRotation rotation,
             InterfaceBwdFontMetrics fontMetrics) {
-        final int ascent = fontMetrics.fontAscent();
+        final int ascent = fontMetrics.ascent();
         final double dx;
         final double dy;
         if (JfxUtils.H_IN_T) {

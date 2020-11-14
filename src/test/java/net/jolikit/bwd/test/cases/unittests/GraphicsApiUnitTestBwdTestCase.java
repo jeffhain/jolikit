@@ -334,8 +334,8 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
 
         g.setColor(BwdColor.BLACK);
         
-        final InterfaceBwdFontMetrics fontMetrics = g.getFont().fontMetrics();
-        final int dy = 1 + fontMetrics.fontHeight();
+        final InterfaceBwdFontMetrics fontMetrics = g.getFont().metrics();
+        final int dy = 1 + fontMetrics.height();
         
         int tmpY = 10;
         g.drawText(10, tmpY, graphicsDescrStr);
@@ -512,8 +512,8 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
 
                 final InterfaceBwdFont otherFont =
                         getBinding().getFontHome().newFontWithSize(
-                                initialFont.fontKind(),
-                                initialFont.fontSize() + 1);
+                                initialFont.kind(),
+                                initialFont.size() + 1);
 
                 childG.setArgb32(Argb32.inverted(initialArgb32));
                 childG.addClipInUser(initialClip.withSpans(1, 1));
@@ -1142,11 +1142,11 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          * 
          */
         
-        final BwdFontKind defaultFontKind = defaultFont.fontKind();
+        final BwdFontKind defaultFontKind = defaultFont.kind();
         
         final InterfaceBwdFont createdFont = fontHome.newFontWithSize(
                 defaultFontKind,
-                defaultFont.fontSize() + 1);
+                defaultFont.size() + 1);
         g.setFont(createdFont);
         checkSame(createdFont, g.getFont());
     }

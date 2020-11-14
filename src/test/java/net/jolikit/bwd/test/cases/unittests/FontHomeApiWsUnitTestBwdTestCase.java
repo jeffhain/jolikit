@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ public class FontHomeApiWsUnitTestBwdTestCase extends AbstractFontUnitTestBwdTes
         
         boolean gotError = false;
         
-        final int fontSize = font.fontSize();
+        final int fontSize = font.size();
         if (fontSize != specifiedFontSize) {
             Dbg.log("ERROR : fontSize [" + fontSize + "] != specified fontSize [" + specifiedFontSize + "]");
             gotError = true;
@@ -147,22 +147,22 @@ public class FontHomeApiWsUnitTestBwdTestCase extends AbstractFontUnitTestBwdTes
         
         boolean gotError = false;
         
-        final int fontSize = font.fontSize();
+        final int fontSize = font.size();
         
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
-        final int ascent = metrics.fontAscent();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
+        final int ascent = metrics.ascent();
         if (ascent < 1) {
             Dbg.log("ERROR : ascent [" + ascent + "] < 1");
             gotError = true;
         }
-        final int descent = metrics.fontDescent();
+        final int descent = metrics.descent();
         if (descent < 0) {
             Dbg.log("ERROR : descent [" + descent + "] < 0");
             gotError = true;
         }
-        final int fontHeight = metrics.fontHeight();
+        final int fontHeight = metrics.height();
         
-        final String family = font.fontFamily();
+        final String family = font.family();
         if (this.isCrazyFontFamily(family)) {
             return;
         }

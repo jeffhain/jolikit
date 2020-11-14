@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ public abstract class AbstractBwdFont<BF> implements InterfaceBwdFont {
         return "["
                 + this.fontId
                 + ", "
-                + this.fontMetrics()
+                + this.metrics()
                 + "]";
     }
     
@@ -117,18 +117,18 @@ public abstract class AbstractBwdFont<BF> implements InterfaceBwdFont {
      */
 
     @Override
-    public BwdFontId fontId() {
+    public BwdFontId id() {
         return this.fontId;
     }
 
     @Override
-    public BwdFontKind fontKind() {
-        return this.fontId.fontKind();
+    public BwdFontKind kind() {
+        return this.fontId.kind();
     }
     
     @Override
-    public String fontFamily() {
-        return this.fontId.fontKind().fontFamily();
+    public String family() {
+        return this.fontId.kind().family();
     }
 
     /*
@@ -136,18 +136,18 @@ public abstract class AbstractBwdFont<BF> implements InterfaceBwdFont {
      */
     
     @Override
-    public int fontStyle() {
-        return this.fontId.fontKind().fontStyle();
+    public int style() {
+        return this.fontId.kind().style();
     }
 
     @Override
     public boolean isBold() {
-        return this.fontId.fontKind().isBold();
+        return this.fontId.kind().isBold();
     }
 
     @Override
     public boolean isItalic() {
-        return this.fontId.fontKind().isItalic();
+        return this.fontId.kind().isItalic();
     }
     
     /*
@@ -155,8 +155,8 @@ public abstract class AbstractBwdFont<BF> implements InterfaceBwdFont {
      */
     
     @Override
-    public int fontSize() {
-        return this.fontId.fontSize();
+    public int size() {
+        return this.fontId.size();
     }
     
     /*

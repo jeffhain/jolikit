@@ -159,14 +159,14 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
         InterfaceBwdFont font = this.font;
         if (font == null) {
             font = binding.getFontHome().newFontWithClosestHeight(
-                    g.getFont().fontKind(),
+                    g.getFont().kind(),
                     TARGET_FONT_HEIGHT);
             this.font = font;
         }
         
         g.setFont(font);
         
-        final int yJump = font.fontMetrics().fontHeight();
+        final int yJump = font.metrics().height();
         final GRect cb = computeCenteredBox(box, font, yJump, strArr);
         int tmpY = 0;
         
@@ -197,7 +197,7 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
             String[] strArr) {
         int xSpan = 0;
         for (String str : strArr) {
-            final int length = font.fontMetrics().computeTextWidth(str);
+            final int length = font.metrics().computeTextWidth(str);
             xSpan = Math.max(xSpan, length);
         }
         

@@ -192,9 +192,9 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 throw new IllegalStateException("current font is disposed: " + font);
             }
             
-            final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+            final InterfaceBwdFontMetrics metrics = font.metrics();
             
-            final int theoTextHeight = metrics.fontHeight();
+            final int theoTextHeight = metrics.height();
             
             if (theoTextHeight <= 0) {
                 return;
@@ -202,7 +202,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             
             this.ensureUpToDateG();
             
-            final int ascent = font.fontMetrics().fontAscent();
+            final int ascent = font.metrics().ascent();
             
             final int _x = x + this.xShiftInUser;
             final int _y = y + this.yShiftInUser + ascent;
@@ -373,7 +373,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             g2d.setColor(awtColor);
 
             final int x = 0 - maxClippedTextRectInText.x();
-            final int y = font.fontMetrics().fontAscent() - maxClippedTextRectInText.y();
+            final int y = font.metrics().ascent() - maxClippedTextRectInText.y();
             g2d.drawString(text, x, y);
         } finally {
             g2d.dispose();

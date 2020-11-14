@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -133,11 +133,11 @@ public class DefaultDefaultFontInfoComputer implements InterfaceDefaultFontInfoC
         BwdFontKind defaultFontKind = null;
 
         for (BwdFontKind fontKind : fontKindSet) {
-            if (fontKind.fontStyle() != BwdFontStyles.NORMAL) {
+            if (fontKind.style() != BwdFontStyles.NORMAL) {
                 continue;
             }
             
-            final String family = fontKind.fontFamily();
+            final String family = fontKind.family();
             boolean onePartNotFound = false;
             for (String part : parts) {
                 if (!BindingStringUtils.containsIgnoreCase(family, part)) {

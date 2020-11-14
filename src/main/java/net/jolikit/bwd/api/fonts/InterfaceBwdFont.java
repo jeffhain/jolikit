@@ -65,42 +65,42 @@ public interface InterfaceBwdFont {
      * @return The font id of this font, i.e. its identifier among fonts
      *         of a same font home, i.e. everything that defines it.
      */
-    public BwdFontId fontId();
+    public BwdFontId id();
     
     /**
-     * Convenience method, equivalent to fontId().fontKind().
+     * Convenience method, equivalent to id().kind().
      * 
      * @return The kind of this font, i.e. everything that defines it except its size.
      */
-    public BwdFontKind fontKind();
+    public BwdFontKind kind();
     
     /**
-     * Convenience method, equivalent to fontKind().fontFamily().
+     * Convenience method, equivalent to kind().family().
      * 
      * @return The family of this font.
      */
-    public String fontFamily();
+    public String family();
 
     /*
      * Style.
      */
 
     /**
-     * Convenience method, equivalent to fontKind().fontStyle().
+     * Convenience method, equivalent to kind().style().
      * 
      * @return The style of this font.
      */
-    public int fontStyle();
+    public int style();
     
     /**
-     * Convenience method, equivalent to fontKind().isBold().
+     * Convenience method, equivalent to kind().isBold().
      * 
      * @return Whether this font is bold.
      */
     public boolean isBold();
 
     /**
-     * Convenience method, equivalent to fontKind().isItalic().
+     * Convenience method, equivalent to kind().isItalic().
      * 
      * Using "italic" wording, because it's much more common that the two others,
      * and should not cause much confusion if ever.
@@ -114,14 +114,14 @@ public interface InterfaceBwdFont {
      */
     
     /**
-     * Convenience method, equivalent to fontId().fontSize().
+     * Convenience method, equivalent to id().size().
      * 
-     * Note that fontMetrics().fontHeight() is a better measure
+     * Note that metrics().height() is a better measure
      * of the actual number of pixels used vertically by the font.
      * 
      * @return The size in pixels. Must be > 0.
      */
-    public int fontSize();
+    public int size();
     
     /*
      * Glyphs.
@@ -175,7 +175,7 @@ public interface InterfaceBwdFont {
     /**
      * @return This font's metrics.
      */
-    public InterfaceBwdFontMetrics fontMetrics();
+    public InterfaceBwdFontMetrics metrics();
     
     /*
      * Disposal.

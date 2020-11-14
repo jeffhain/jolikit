@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ public class JfxBwdFontHome extends AbstractBwdFontHome<Font,JfxBwdFontHome.MyBf
              * TODO jfx No way to tell exactly. Doing best effort.
              */
             final JfxBwdFont fontImpl = (JfxBwdFont) font;
-            final int width = fontImpl.fontMetrics().computeCharWidth(codePoint);
+            final int width = fontImpl.metrics().computeCharWidth(codePoint);
             return (width > 0);
         }
     }
@@ -238,9 +238,9 @@ java.lang.NullPointerException
             BwdFontId fontId,
             MyDisposableFontDisposeCallListener disposeCallListener) {
         
-        final int fontSize = fontId.fontSize();
+        final int fontSize = fontId.size();
         
-        final BwdFontKind fontKind = fontId.fontKind();
+        final BwdFontKind fontKind = fontId.kind();
 
         final MyLoadedFontData lfd = this.getLfdForLoadedFontKind(fontKind);
         if (lfd == null) {
@@ -420,7 +420,7 @@ java.lang.NullPointerException
                         final BwdFontId actualFontId = this.computeFontIdFromBackingFont(backingFont);
                         
                         if (actualFontId.equals(expectedFontId)) {
-                            final BwdFontKind fontKind = actualFontId.fontKind();
+                            final BwdFontKind fontKind = actualFontId.kind();
                             if (tmpKindSet.add(fontKind)) {
                                 backingFontList.add(backingFont);
                             }

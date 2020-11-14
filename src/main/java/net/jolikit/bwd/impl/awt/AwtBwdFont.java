@@ -77,7 +77,7 @@ public class AwtBwdFont extends AbstractBwdFont<Font> implements Comparable<AwtB
      */
 
     @Override
-    public InterfaceBwdFontMetrics fontMetrics() {
+    public InterfaceBwdFontMetrics metrics() {
         return this.metrics;
     }
 }

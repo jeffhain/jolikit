@@ -154,7 +154,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
          * 
          */
         
-        final int dh = defaultFont.fontMetrics().fontHeight() + 1;
+        final int dh = defaultFont.metrics().height() + 1;
         g.setColor(BwdColor.BLACK);
         int y = 0;
         
@@ -173,7 +173,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
          */
         
         if (this.fontList.size() == 0) {
-            final BwdFontKind defaultFontKind = defaultFont.fontKind();
+            final BwdFontKind defaultFontKind = defaultFont.kind();
             for (int fontSize : FONT_SIZE_ARR) {
                 this.fontList.add(fontHome.newFontWithSize(defaultFontKind, fontSize));
             }
@@ -188,7 +188,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
         final String text = TEXT;
         
         for (InterfaceBwdFont font : this.fontList) {
-            final int fh = font.fontMetrics().fontHeight() + 1;
+            final int fh = font.metrics().height() + 1;
             
             g.setFont(font);
             
@@ -215,7 +215,7 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
             final String comment =
                     nbrOfCalls + " calls, "
                             + text.length() + " chars, fontSize = "
-                            + font.fontSize() + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
+                            + font.size() + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
             g.drawText(0, y, comment);
             
             y += (2 * dh + fh);

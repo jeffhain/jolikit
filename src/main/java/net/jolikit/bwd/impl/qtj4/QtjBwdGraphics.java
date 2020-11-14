@@ -584,7 +584,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             throw new IllegalStateException("font is disposed: " + font);
         }
         
-        final int ascent = font.fontMetrics().fontAscent();
+        final int ascent = font.metrics().ascent();
         
         final QPainter painter = this.getConfiguredPainter();
         

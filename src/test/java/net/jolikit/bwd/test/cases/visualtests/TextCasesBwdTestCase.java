@@ -167,12 +167,12 @@ public class TextCasesBwdTestCase extends AbstractBwdTestCase {
                 
                 final String hexCpStr = computeHexCpStr(toInsert);
                 final String sample = "a" + toInsert + "b";
-                final int sampleWidth = font.fontMetrics().computeTextWidth(sample);
+                final int sampleWidth = font.metrics().computeTextWidth(sample);
                 final String text = "a+" + hexCpStr + "+b -> w = " + sampleWidth + ", " + sample;
                 g.drawText(tmpX, tmpY, text);
                 
                 // 2 * in case of newline
-                tmpY += 2 * font.fontMetrics().fontHeight() + 1;
+                tmpY += 2 * font.metrics().height() + 1;
             }
             tmpX += xSpan / NBR_OF_COLUMNS;
         }

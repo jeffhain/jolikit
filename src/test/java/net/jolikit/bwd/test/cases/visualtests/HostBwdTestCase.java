@@ -400,7 +400,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
         if (this.font == null) {
             final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
             this.font = fontHome.newFontWithClosestHeight(
-                    fontHome.getDefaultFont().fontKind(),
+                    fontHome.getDefaultFont().kind(),
                     TARGET_FONT_HEIGHT);
         }
         g.setFont(this.font);
@@ -572,7 +572,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect box) {
         
-        final int h = g.getFont().fontMetrics().fontHeight() + 1;
+        final int h = g.getFont().metrics().height() + 1;
         
         int tmpY = box.y();
         

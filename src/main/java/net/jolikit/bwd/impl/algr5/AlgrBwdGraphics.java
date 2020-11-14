@@ -296,7 +296,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                     if (MUST_DRAW_TEXT_GLYPH_BY_GLYPH) {
                         float x = x0;
                         
-                        final InterfaceBwdFontMetrics fontMetrics = font.fontMetrics();
+                        final InterfaceBwdFontMetrics fontMetrics = font.metrics();
                         
                         int ci = 0;
                         while (ci < text.length()) {

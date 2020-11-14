@@ -283,9 +283,9 @@ public class BenchParallelFillBwdTestCase extends AbstractBwdTestCase {
         final int textY = box.y();
         
         final InterfaceBwdFont font = g.getFont();
-        final InterfaceBwdFontMetrics metrics = font.fontMetrics();
+        final InterfaceBwdFontMetrics metrics = font.metrics();
         final int textWidth = metrics.computeTextWidth(textForWidth);
-        final int textHeight = metrics.fontHeight();
+        final int textHeight = metrics.height();
         
         BwdTestUtils.drawTextAndSpannedBg(
                 g, BwdColor.WHITE, BwdColor.BLACK,

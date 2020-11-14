@@ -488,7 +488,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         int index = -1;
         for (int i = 0; i < fontKindList.size(); i++) {
             final BwdFontKind fontKind = fontKindList.get(i);
-            final String family = fontKind.fontFamily();
+            final String family = fontKind.family();
             if (family.length() >= lookupString.length()) {
                 final String familyStart = family.substring(0, lookupString.length());
                 if (familyStart.equalsIgnoreCase(lookupString)) {
@@ -604,8 +604,8 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
                             final GRect theoBbox = GRect.valueOf(
                                     0,
                                     0,
-                                    font.fontMetrics().computeCharWidth(cp),
-                                    font.fontMetrics().fontHeight());
+                                    font.metrics().computeCharWidth(cp),
+                                    font.metrics().height());
                             theoBboxByCpIndex.add(theoBbox);
 
                             final GRect actuBbox = this.bboxUtils.computeCpBoundingBox(g, font, cp);
@@ -630,8 +630,8 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
                         final GRect theoBbox = GRect.valueOf(
                                 0,
                                 0,
-                                font.fontMetrics().computeCharWidth(cp),
-                                font.fontMetrics().fontHeight());
+                                font.metrics().computeCharWidth(cp),
+                                font.metrics().height());
                         theoBboxByCpIndex.add(theoBbox);
                     } else {
                         // The drawn glyph might be from another font,
@@ -795,7 +795,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
                     g.drawText(
                             numberData.numberBox.x(),
                             numberData.numberBox.y(),
-                            "" + this.glyphsFont.fontId().fontSize());
+                            "" + this.glyphsFont.id().size());
                     {
                         final GRect box = numberData.incrCharBox;
                         g.drawText(box.x(), box.y(), "+");
@@ -808,7 +808,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
                     }
                 }
                 {
-                    final String str = "" + this.glyphsFont.fontMetrics();
+                    final String str = "" + this.glyphsFont.metrics();
                     final int x = clientBox.xSpan() / 2 + FONT_METRICS_OFFSET;
                     final int y = interLineY;
                     g.drawText(x, y, str);
@@ -963,7 +963,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         
         if (this.infoFont == null) {
             this.infoFont = home.newFontWithClosestHeight(
-                    home.getDefaultFont().fontKind(),
+                    home.getDefaultFont().kind(),
                     INFO_FONT_TARGET_HEIGHT);
         }
     }
@@ -1019,14 +1019,14 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         final BwdFontKind newGlyphFontKind = fontKindList.get(fontKindIndex);
         
         if ((this.glyphsFont != null)
-                && (this.glyphsFont.fontKind().equals(newGlyphFontKind))) {
+                && (this.glyphsFont.kind().equals(newGlyphFontKind))) {
             // Already up.
         } else {
             final int fontSize;
             if (this.glyphsFont == null) {
                 fontSize = DEFAULT_GLYPHS_FONT_SIZE;
             } else {
-                fontSize = this.glyphsFont.fontSize();
+                fontSize = this.glyphsFont.size();
             }
             
             if (this.glyphsFont != null) {
@@ -1041,8 +1041,8 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
             return;
         }
         
-        final BwdFontId oldFontId = this.glyphsFont.fontId();
-        final int oldSize = oldFontId.fontSize();
+        final BwdFontId oldFontId = this.glyphsFont.id();
+        final int oldSize = oldFontId.size();
         if (oldSize <= this.getBinding().getFontHome().getMinFontSize()) {
             return;
         }
@@ -1050,7 +1050,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         
         final InterfaceBwdFontHome home = this.getBinding().getFontHome();
         final int newSize = oldSize - 1;
-        this.glyphsFont = home.newFontWithSize(oldFontId.fontKind(), newSize);
+        this.glyphsFont = home.newFontWithSize(oldFontId.kind(), newSize);
     }
 
     private void incrementGlyphsFontSize() {
@@ -1058,8 +1058,8 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
             return;
         }
         
-        final BwdFontId oldFontId = this.glyphsFont.fontId();
-        final int oldSize = oldFontId.fontSize();
+        final BwdFontId oldFontId = this.glyphsFont.id();
+        final int oldSize = oldFontId.size();
         if (oldSize >= MAX_GLYPHS_FONT_SIZE) {
             return;
         }
@@ -1067,7 +1067,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         
         final InterfaceBwdFontHome home = this.getBinding().getFontHome();
         final int newSize = oldSize + 1;
-        this.glyphsFont = home.newFontWithSize(oldFontId.fontKind(), newSize);
+        this.glyphsFont = home.newFontWithSize(oldFontId.kind(), newSize);
     }
 
     /*
