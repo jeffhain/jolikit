@@ -123,13 +123,22 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    public AlgrBwdGraphics newChildGraphics(GRect childBox) {
+    public AlgrBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
         }
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         return new AlgrBwdGraphics(
                 this.getBinding(),
                 this.isImageGraphics(),

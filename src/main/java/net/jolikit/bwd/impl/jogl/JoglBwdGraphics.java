@@ -103,13 +103,22 @@ public class JoglBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    public InterfaceBwdGraphics newChildGraphics(GRect childBox) {
+    public InterfaceBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
         }
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         return new JoglBwdGraphics(
                 this.getBinding(),
                 this.isImageGraphics(),

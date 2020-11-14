@@ -34,6 +34,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.ObjectWrapper;
 
 /**
@@ -62,6 +63,12 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      * TODO jfx For line stipples, Shape.getStrokeDashArray() doesn't suit
      * our needs (but I don't remember why), so we use our default algorithm.
      */
+    
+    //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    private static final boolean DEBUG = false;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -167,10 +174,22 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    public JfxBwdGraphicsWithIntArr newChildGraphics(GRect childBox) {
+    public JfxBwdGraphicsWithIntArr newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        if (DEBUG) {
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
+        }
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         return new JfxBwdGraphicsWithIntArr(
                 this.getBinding(),
                 this.isImageGraphics(),

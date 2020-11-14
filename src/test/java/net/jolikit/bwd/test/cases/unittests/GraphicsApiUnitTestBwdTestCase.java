@@ -421,11 +421,49 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             // ok
         }
         
+        try {
+            g.newChildGraphics(GRect.DEFAULT_EMPTY, null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        try {
+            g.newChildGraphics(null, GRect.DEFAULT_EMPTY);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
         /*
          * 
          */
         
         final GRect box = g.getBox();
+        
+        /*
+         * Box and initial clip.
+         */
+        
+        {
+            final GRect subBoxA = box.withBordersDeltas(0, 0, -2, -2);
+            final GRect subBoxB = box.withBordersDeltas(2, 2, 0, 0);
+            final GRect subBoxAB = subBoxA.intersected(subBoxB);
+            
+            final InterfaceBwdGraphics childG1 = g.newChildGraphics(subBoxA);
+            checkEqual(subBoxA, childG1.getBox());
+            checkEqual(subBoxA, childG1.getInitialClipInBase());
+            
+            final InterfaceBwdGraphics childG2 = childG1.newChildGraphics(subBoxB);
+            checkEqual(subBoxB, childG2.getBox());
+            checkEqual(subBoxAB, childG2.getInitialClipInBase());
+            
+            final InterfaceBwdGraphics childG3 = g.newChildGraphics(
+                    subBoxA,
+                    subBoxB);
+            checkEqual(subBoxA, childG3.getBox());
+            checkEqual(subBoxAB, childG3.getInitialClipInBase());
+        }
         
         /*
          * Nested calls.

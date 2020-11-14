@@ -250,6 +250,26 @@ public interface InterfaceBwdGraphics {
      *        to create.
      *        Not necessarily included in this graphics box (for example
      *        in case of a component in a scroll pane). Can be empty.
+     * @param childMaxInitialClip Max clip for the child graphics to create.
+     * @return A new child graphics with the specified box, and an initial clip
+     *         equal to the intersection of this graphics initial clip with the
+     *         specified box and with the specified max clip.
+     * @throws NullPointerException if the specified box is null.
+     * @throws IllegalStateException if finish() has been called.
+     */
+    public InterfaceBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip);
+
+    /**
+     * Convenience method, equivalent to newChildGraphics(childBox, childBox),
+     * for the usual case where child initial clip is the intersection
+     * of parent initial clip and child box.
+     * 
+     * @param childBox The box, in base coordinates, for the child graphics
+     *        to create.
+     *        Not necessarily included in this graphics box (for example
+     *        in case of a component in a scroll pane). Can be empty.
      * @return A new child graphics with the specified box, and an initial clip
      *         equal to the intersection of this graphics initial clip with the
      *         specified box.

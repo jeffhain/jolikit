@@ -264,10 +264,22 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      */
 
     @Override
-    public JfxBwdGraphicsWithGc newChildGraphics(GRect childBox) {
+    public JfxBwdGraphicsWithGc newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        if (DEBUG) {
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
+        }
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         return new JfxBwdGraphicsWithGc(
                 this.getBinding(),
                 this.gc,

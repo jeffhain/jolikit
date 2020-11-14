@@ -400,13 +400,22 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      */
 
     @Override
-    public AwtBwdGraphicsWithG newChildGraphics(GRect childBox) {
+    public AwtBwdGraphicsWithG newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
         }
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         return new AwtBwdGraphicsWithG(
                 this.getBinding(),
                 this.isImageGraphics,

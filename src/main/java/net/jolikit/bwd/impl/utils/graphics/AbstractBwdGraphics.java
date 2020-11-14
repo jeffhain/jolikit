@@ -220,6 +220,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
         return paintingParallelizer;
     }
+    
+    @Override
+    public InterfaceBwdGraphics newChildGraphics(GRect childBox) {
+        return this.newChildGraphics(childBox, childBox);
+    }
 
     /**
      * This method is final to make sure user will override initImpl() instead,

@@ -65,6 +65,7 @@ Jolikit X.X, XXXX/XX/XX
     - GRect.area() and areaLong().
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().
+    - InterfaceBwdGraphics.newChildGraphics(GRect,GRect).
     - InterfaceBwdGraphics.reset().
     - InterfaceBwdGraphics.isClipEmpty().
     - InterfaceBwdGraphics.drawPolyline().

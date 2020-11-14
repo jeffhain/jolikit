@@ -160,13 +160,21 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
-    public SwtBwdGraphics newChildGraphics(GRect childBox) {
+    public SwtBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
         }
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
         
         final SwtBwdGraphics parentGraphics = this;
         return new SwtBwdGraphics(

@@ -42,6 +42,13 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
+    public InterfaceBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public InterfaceBwdGraphics newChildGraphics(GRect childBox) {
         throw new UnsupportedOperationException();
     }

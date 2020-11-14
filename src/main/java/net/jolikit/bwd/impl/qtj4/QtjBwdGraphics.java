@@ -272,13 +272,22 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
-    public QtjBwdGraphics newChildGraphics(GRect childBox) {
+    public QtjBwdGraphics newChildGraphics(
+            GRect childBox,
+            GRect childMaxInitialClip) {
         this.checkFinishNotCalled();
         
         if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + "-" + this.hashCode() + ".newChildGraphics(" + childBox + ")");
+            Dbg.log(
+                    this.getClass().getSimpleName() + "-" + this.hashCode()
+                    + ".newChildGraphics(" + childBox
+                    + "," + childMaxInitialClip + ")");
         }
-        final GRect childInitialClip = this.getInitialClipInBase().intersected(childBox);
+        
+        final GRect childInitialClip =
+                this.getInitialClipInBase().intersected(
+                        childMaxInitialClip.intersected(childBox));
+        
         final boolean childIsRootGraphics = false;
         return new QtjBwdGraphics(
                 this.getBinding(),
