@@ -13,19 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.impl.utils.drag;
+package net.jolikit.bwd.ext.drag;
 
 import net.jolikit.bwd.api.BwdCursors;
 import net.jolikit.bwd.api.InterfaceBwdCursorManager;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.InterfaceHostSupplier;
+import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
 /**
- * Factors code for dragging handling, such as for split panes or scroll bars.
+ * Factors code for drag handling.
  */
 public abstract class AbstractDragController implements InterfaceDragController {
 

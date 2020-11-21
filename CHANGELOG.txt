@@ -115,6 +115,12 @@ Jolikit X.X, XXXX/XX/XX
     must not be both zero.
   - InterfaceBwdFont: added spec for hashCode() and equals(Object).
   
+- BWD EXTENSION:
+  - Created bwd.ext package, for extensions based on BWD API
+    that can be useful for BWD tests and toolkits based on BWD,
+    and moved InterfaceHostSupplier and drag utilities package
+    from bwd.impl to there.
+
 - BWD IMPLS:
   - BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
     instead of to available parallelism, for multi-threading not to hurt

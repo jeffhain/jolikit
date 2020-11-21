@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,6 +207,17 @@ public class JlkDepsTest extends TestCase {
                 });
 
         depUnit.addAllowedDirectDeps(
+            ElemType.PACKAGE,
+            NameFilters.equalsName("net.jolikit.bwd.ext"),
+            new InterfaceNameFilter[]{
+                NameFilters.startsWithName("java.lang"),
+                NameFilters.startsWithName("net.jolikit.lang"),
+                NameFilters.startsWithName("net.jolikit.threading"),
+                NameFilters.startsWithName("net.jolikit.time"),
+                NameFilters.startsWithName("net.jolikit.bwd.api"),
+            });
+
+        depUnit.addAllowedDirectDeps(
                 ElemType.PACKAGE,
                 NameFilters.startsWithName("net.jolikit.io"),
                 new InterfaceNameFilter[]{
@@ -257,6 +268,13 @@ public class JlkDepsTest extends TestCase {
                 new InterfaceNameFilter[]{
                     NameFilters.startsWithName("net.jolikit.bwd.impl"),
                 });
+
+        depUnit.addIllegalDirectDeps(
+            ElemType.PACKAGE,
+            NameFilters.startsWithName("net.jolikit.bwd.ext"),
+            new InterfaceNameFilter[]{
+                NameFilters.startsWithName("net.jolikit.bwd.impl"),
+            });
 
         depUnit.addIllegalDirectDeps(
                 ElemType.PACKAGE,

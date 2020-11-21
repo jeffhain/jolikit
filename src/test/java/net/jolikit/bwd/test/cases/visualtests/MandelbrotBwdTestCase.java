@@ -31,7 +31,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
-import net.jolikit.bwd.impl.utils.drag.AbstractDragController;
+import net.jolikit.bwd.ext.drag.AbstractDragController;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.cases.utils.fractals.FracColoring;
 import net.jolikit.bwd.test.cases.utils.fractals.FracPoint;

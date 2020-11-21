@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.impl.utils.drag;
+package net.jolikit.bwd.ext.drag;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,7 +22,7 @@ import net.jolikit.bwd.api.BwdCursors;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.InterfaceHostSupplier;
+import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.Dbg;
 
 /**

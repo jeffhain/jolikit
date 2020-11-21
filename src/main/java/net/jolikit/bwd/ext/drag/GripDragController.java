@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.impl.utils.drag;
+package net.jolikit.bwd.ext.drag;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.InterfaceHostSupplier;
+import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.LangUtils;
 
 /**

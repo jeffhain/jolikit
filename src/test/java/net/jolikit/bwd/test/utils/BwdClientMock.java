@@ -23,7 +23,7 @@ import net.jolikit.bwd.api.events.BwdEvent;
 import net.jolikit.bwd.api.events.BwdEventType;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
-import net.jolikit.bwd.impl.utils.basics.InterfaceHostSupplier;
+import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 

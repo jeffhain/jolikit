@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,11 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.impl.utils.basics;
+package net.jolikit.bwd.ext.drag;
 
-import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.graphics.GRect;
 
-public interface InterfaceHostSupplier {
+/**
+ * Interface for drag controllers that drag client bounds around.
+ */
+public interface InterfaceGripRectComputer {
 
-    public InterfaceBwdHost getHost();
+    /**
+     * Mainly useful for the position,
+     * but for the sake of completeness and locality
+     * we have it compute the whole bounds.
+     */
+    public GRect computeGripRectInClientBox(
+            GRect clientBox,
+            GripType gripType);
 }
