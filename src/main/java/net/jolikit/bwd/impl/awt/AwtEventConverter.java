@@ -28,11 +28,11 @@ import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.OsUtils;
 
 /**
  * For key events: KeyEvent

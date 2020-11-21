@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,11 +33,11 @@ import net.jolikit.bwd.impl.sdl2.jlib.SdlMouseWheelDirection;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseWheelEvent;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.OsUtils;
 
 /**
  * For key events: SDL_KeyboardEvent

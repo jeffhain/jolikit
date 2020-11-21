@@ -29,11 +29,11 @@ import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingStringUtils;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.OsUtils;
 
 /**
  * To factor test code.

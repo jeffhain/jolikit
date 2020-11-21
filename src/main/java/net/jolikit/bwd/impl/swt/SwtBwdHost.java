@@ -27,9 +27,9 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Device;

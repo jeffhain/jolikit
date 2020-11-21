@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import net.jolikit.build.JlkBinConfig;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
@@ -31,6 +30,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.lang.RuntimeExecHelper;
 import net.jolikit.lang.RuntimeExecHelper.InterfaceExecution;
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@ package net.jolikit.bwd.impl.lwjgl3;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
 import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 
 import org.lwjgl.glfw.GLFW;
 

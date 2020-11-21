@@ -41,7 +41,6 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.impl.utils.HostStateUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.utils.WindowStateTestUtils;
 import net.jolikit.bwd.test.utils.BwdClientMock;
@@ -51,6 +50,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 

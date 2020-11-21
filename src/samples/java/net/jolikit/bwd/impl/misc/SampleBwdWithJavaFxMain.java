@@ -22,7 +22,7 @@ import net.jolikit.build.JlkBinConfig;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.jfx.JfxBwdBinding;
 import net.jolikit.bwd.impl.jfx.JfxBwdBindingConfig;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.lang.RuntimeExecHelper;
 
 /**

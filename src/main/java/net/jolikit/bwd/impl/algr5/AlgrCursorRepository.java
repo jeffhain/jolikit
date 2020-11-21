@@ -25,8 +25,8 @@ import net.jolikit.bwd.impl.algr5.jlib.AlgrSystemMouseCursor;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.cursor.FallbackCursors;
+import net.jolikit.lang.OsUtils;
 
 import com.sun.jna.Pointer;
 

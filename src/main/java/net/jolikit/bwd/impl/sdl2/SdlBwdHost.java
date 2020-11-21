@@ -43,9 +43,9 @@ import net.jolikit.bwd.impl.sdl2.jlib.SdlWindowFlag;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 
 public class SdlBwdHost extends AbstractBwdHost {
     

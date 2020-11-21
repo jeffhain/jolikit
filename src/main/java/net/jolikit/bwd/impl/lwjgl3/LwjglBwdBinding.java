@@ -30,11 +30,11 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFontHome;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 
 import org.lwjgl.glfw.GLFW;

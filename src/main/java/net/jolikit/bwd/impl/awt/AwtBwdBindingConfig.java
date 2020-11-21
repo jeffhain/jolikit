@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.awt;
 import java.util.Locale;
 
 import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
+import net.jolikit.lang.OsUtils;
 
 public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
     

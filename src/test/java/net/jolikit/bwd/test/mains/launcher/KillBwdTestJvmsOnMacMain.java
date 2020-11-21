@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 package net.jolikit.bwd.test.mains.launcher;
 
 import net.jadecy.utils.MemPrintStream;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.lang.RuntimeExecHelper;
 import net.jolikit.lang.Unchecked;
 

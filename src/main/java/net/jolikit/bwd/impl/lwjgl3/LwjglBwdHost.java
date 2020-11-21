@@ -44,10 +44,10 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 

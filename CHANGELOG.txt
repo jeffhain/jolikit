@@ -178,6 +178,10 @@ Jolikit X.X, XXXX/XX/XX
       - AwtBwdGraphics into AwtBwdGraphicsWithG.
       - JfxBwdGraphics into JfxBwdGraphicsWithGc.
 
+- Moved OsUtils from BWD impls to net.jolikit.lang package
+  (was used from other places than BWD impls,
+  and could be used anywhere).
+
 - Added finals for Java 7 (or less) source compatibility.
 
 - Comments/internals : now using "interrupt status" instead of

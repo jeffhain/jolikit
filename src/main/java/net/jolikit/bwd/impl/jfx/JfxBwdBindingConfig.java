@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.jfx;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
-import net.jolikit.bwd.impl.utils.basics.OsUtils;
+import net.jolikit.lang.OsUtils;
 
 public class JfxBwdBindingConfig extends BaseBwdBindingConfig {
     
