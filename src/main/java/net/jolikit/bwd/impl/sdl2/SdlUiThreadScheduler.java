@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -138,16 +138,31 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
         }
         @Override
         protected long process(long theoreticalTimeNs, long actualTimeNs) {
-            onPollTime(theoreticalTimeNs, actualTimeNs);
+            if (hardScheduler.isShutdown()) {
+                // Shutting down.
+                this.stop();
+                return 0;
+            }
+            
+            if (DEBUG) {
+                Dbg.logPr(this, "process(" + theoreticalTimeNs + "," + actualTimeNs + ")");
+            }
+            pollEvents();
+            
             /*
-             * Using theoretical time could cause ramp-up if processing
-             * always takes more time than polling period.
-             * Using actual time at method start suffices to prevent ramp-up,
-             * without having to use freshly clock time here, which would
-             * unnecessarily increase actual period from the amount
-             * of time processing took.
+             * Using theoretical time to compute next time,
+             * because this treatment should have some priority,
+             * but still taking care not to schedule in the past,
+             * to avoid lateness drift that could prevent other repetitions
+             * and overbusiness once we can keep up again.
              */
-            return plusBounded(actualTimeNs, this.pollPeriodNs);
+            final long nextNs = Math.max(
+                plusBounded(theoreticalTimeNs, this.pollPeriodNs),
+                actualTimeNs);
+            if (DEBUG) {
+                Dbg.logPr(this, "nextNs = " + nextNs);
+            }
+            return nextNs;
         }
     }
 
@@ -413,7 +428,7 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
      * 
      */
     
-    private void onPollTime(long theoreticalTimeNs, long actualTimeNs) {
+    private void pollEvents() {
         
         /*
          * Not calling SDL_PumpEvents after each event processing,
@@ -435,7 +450,7 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
          * and secondly process them.
          */
 
-        final ArrayList<SDL_Event> eventUnionList = new ArrayList<SDL_Event>();
+        ArrayList<SDL_Event> eventUnionList = null;
         while (true) {
             final SDL_Event eventUnion = new SDL_Event();
             final int ret = LIB.SDL_PollEvent(eventUnion);
@@ -445,13 +460,19 @@ public class SdlUiThreadScheduler extends AbstractScheduler implements Interface
                     // Shutting down.
                     return;
                 }
+                if (eventUnionList == null) {
+                    eventUnionList = new ArrayList<SDL_Event>();
+                }
                 eventUnionList.add(eventUnion);
             } else {
                 break;
             }
         }
         
-        final int size = eventUnionList.size();
+        final int size = ((eventUnionList != null) ? eventUnionList.size() : 0);
+        if (DEBUG) {
+            Dbg.log("events in batch: " + size);
+        }
         for (int i = 0; i < size; i++) {
             if (this.hardScheduler.isShutdown()) {
                 // Shutting down.

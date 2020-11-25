@@ -49,7 +49,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
     /**
      * TODO algr The NUL character (cp = 0) causes following characters
      * not to be drawn. We prefer to just remove NULs from the text
-     * to draw, then draw glyph by glyph, to allow for characters
+     * to draw, then use al_draw_text(), to allow for characters
      * combining etc., even if it causes NUL not to be drawn when
      * the font has a glyph for it.
      */
@@ -303,6 +303,8 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                             final int cp = text.codePointAt(ci);
                             
                             /*
+                             * TODO algr On Windows at least, can be very slow.
+                             * 
                              * TODO algr If glyph width is zero,
                              * something might actually be drawn,
                              * such as for NUL (cp = 0), but we still draw it,
@@ -321,8 +323,6 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                             ci += Character.charCount(cp);
                         }
                     } else {
-                        text = BindingTextUtils.withoutNul(text);
-                        
                         /*
                          * TODO algr On Windows at least, can be very slow.
                          * 
@@ -344,6 +344,8 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
                          * ===> Whatever, giving up on drawing text with Allegro on Mac.
                          */
                         final int flags = AlgrJnaLibFont.ALLEGRO_ALIGN_LEFT;
+                        // Removing nuls else stops early.
+                        text = BindingTextUtils.withoutNul(text);
                         LIB_FONT.al_draw_text(
                                 backingFont,
                                 this.backingColor,

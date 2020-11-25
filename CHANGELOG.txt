@@ -183,6 +183,11 @@ Jolikit X.X, XXXX/XX/XX
       - AwtBwdGraphics into AwtBwdGraphicsWithG.
       - JfxBwdGraphics into JfxBwdGraphicsWithGc.
 
+- Repeated processes : taking care not to schedule (too much)
+  in the past when using theoretical date as reference, to avoid
+  indefinite lateness growth, which can cause other repetitions
+  to be postponed and overbusiness once we can keep up again.
+
 - Moved OsUtils from BWD impls to net.jolikit.lang package
   (was used from other places than BWD impls,
   and could be used anywhere).

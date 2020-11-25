@@ -18,6 +18,7 @@ package net.jolikit.time.sched;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
@@ -48,6 +49,8 @@ public abstract class AbstractProcess {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+    
+    private static final boolean DEBUG = false;
     
     private static final boolean AZZERTIONS = false;
     
@@ -112,6 +115,14 @@ public abstract class AbstractProcess {
                 // Not setting next theoretical time,
                 // which could cause a new call.
             } else {
+                if (DEBUG) {
+                    // Allows to see scheduling times per implementation.
+                    Dbg.log(
+                        AbstractProcess.this.getClass().getName()
+                        + " : theoNs = " + theoreticalTimeNs
+                        + ", actuNs = " + actualTimeNs
+                        + ", nextNs = " + nextNs);
+                }
                 this.setNextTheoreticalTimeNs(nextNs);
             }
         }

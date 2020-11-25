@@ -405,6 +405,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             final long minPaintTimeNs = plusBounded(this.lastPaintTimeNs, clientPaintDelayNs);
 
             final boolean mustPaintNow = (actualTimeNs >= minPaintTimeNs - toleranceNs);
+            final long nextNs;
             if (mustPaintNow) {
                 /*
                  * Taking care NOT to call stop() after painting,
@@ -432,7 +433,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                 // Here repetition is either stopped,
                 // or restarted (due to a call to start()),
                 // so what we return doesn't matter.
-                return 0;
+                nextNs = 0;
             } else {
                 /*
                  * Subtracting the lateness we had for previous painting,
@@ -441,12 +442,15 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                  * else we could pass here a lot of times in busy mode
                  * until we reach the next allowed paint time.
                  */
-                final long nextTheoreticalTimeNs = minPaintTimeNs - Math.min(toleranceNs, this.lastPaintLatenessNs);
+                final long nextTheoreticalTimeNs =
+                    minPaintTimeNs
+                    - Math.min(toleranceNs, this.lastPaintLatenessNs);
                 if (DEBUG) {
                     hostLog(this, "process(...) : nextTheoreticalTimeNs = " + nextTheoreticalTimeNs);
                 }
-                return nextTheoreticalTimeNs;
+                nextNs = nextTheoreticalTimeNs;
             }
+            return nextNs;
         }
     }
 
@@ -498,14 +502,16 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                 }
             }
 
+            final long nextNs;
             if (mustRunAgain) {
                 // Input time still valid, since we didn't do anything heavy
                 // (no synchronous painting).
-                return plusBounded(actualTimeNs, this.delayNs);
+                nextNs = plusBounded(actualTimeNs, this.delayNs);
             } else {
                 this.stop();
-                return 0;
+                nextNs = 0;
             }
+            return nextNs;
         }
     }
 

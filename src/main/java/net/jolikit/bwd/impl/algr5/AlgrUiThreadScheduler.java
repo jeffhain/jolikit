@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import com.sun.jna.Pointer;
+
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrEventType;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
@@ -36,8 +38,6 @@ import net.jolikit.time.sched.AbstractScheduler;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 import net.jolikit.time.sched.hard.HardScheduler;
-
-import com.sun.jna.Pointer;
 
 public class AlgrUiThreadScheduler extends AbstractScheduler implements InterfaceWorkerAwareScheduler {
     
@@ -86,16 +86,25 @@ public class AlgrUiThreadScheduler extends AbstractScheduler implements Interfac
                 return 0;
             }
             
-            onPollTime(theoreticalTimeNs, actualTimeNs);
+            if (DEBUG) {
+                Dbg.logPr(this, "process(" + theoreticalTimeNs + "," + actualTimeNs + ")");
+            }
+            pollEvents();
+            
             /*
-             * Using theoretical time could cause ramp-up if processing
-             * always takes more time than polling period.
-             * Using actual time at method start suffices to prevent ramp-up,
-             * without having to use freshly clock time here, which would
-             * unnecessarily increase actual period from the amount
-             * of time processing took.
+             * Using theoretical time to compute next time,
+             * because this treatment should have some priority,
+             * but still taking care not to schedule in the past,
+             * to avoid lateness drift that could prevent other repetitions
+             * and overbusiness once we can keep up again.
              */
-            return plusBounded(actualTimeNs, this.pollPeriodNs);
+            final long nextNs = Math.max(
+                plusBounded(theoreticalTimeNs, this.pollPeriodNs),
+                actualTimeNs);
+            if (DEBUG) {
+                Dbg.logPr(this, "nextNs = " + nextNs);
+            }
+            return nextNs;
         }
     }
     
@@ -241,16 +250,17 @@ public class AlgrUiThreadScheduler extends AbstractScheduler implements Interfac
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private void onPollTime(long theoreticalTimeNs, long actualTimeNs) {
-        
+    private void pollEvents() {
+
         /*
          * To avoid eventual infinite loop due to processing events
          * pushed while processing polled events, we first poll all
          * the events we can, and then process them.
          */
-
-        final ArrayList<ALLEGRO_EVENT> eventUnionList = new ArrayList<ALLEGRO_EVENT>();
-        while (true) {
+        
+        ArrayList<ALLEGRO_EVENT> eventUnionList = null;
+        // Not while (true) to avoid event garbage if empty.
+        while (!LIB.al_is_event_queue_empty(this.event_queue)) {
             final ALLEGRO_EVENT eventUnion = new ALLEGRO_EVENT();
             final boolean gotSome = LIB.al_get_next_event(this.event_queue, eventUnion);
             if (gotSome) {
@@ -258,13 +268,19 @@ public class AlgrUiThreadScheduler extends AbstractScheduler implements Interfac
                     // Shutting down.
                     return;
                 }
+                if (eventUnionList == null) {
+                    eventUnionList = new ArrayList<ALLEGRO_EVENT>();
+                }
                 eventUnionList.add(eventUnion);
             } else {
                 break;
             }
         }
         
-        final int size = eventUnionList.size();
+        final int size = ((eventUnionList != null) ? eventUnionList.size() : 0);
+        if (DEBUG) {
+            Dbg.log("events in batch: " + size);
+        }
         for (int i = 0; i < size; i++) {
             if (this.uiScheduler.isShutdown()) {
                 // Shutting down.
