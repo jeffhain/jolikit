@@ -52,20 +52,12 @@ import java.util.List;
  * key pressed events just after focus gain if some keys are already
  * down.
  * What we do:
- * Firstly, we want for bindings to generate repetitions for key typed
- * events, for it's both a nice feature, and doable even if the backing
- * library doesn't generate repeated events.
- * Secondly, to keep things consistent and intuitive, we assume that
- * "key pressed" and "key released" events are more precisely
- * "key has been pressed" and "key has been released" events,
- * not "key is being pressed" and "key is being released" events,
- * which would require repetition of "key released" events for all keys
- * not being pressed, which would be crazy.
- * As a result, bindings must not repeat key pressed events, only key typed
- * events (which should rather be called "character generated" events, but
- * that we call "key typed" events because everyone is used to it).
- * This can be done by ignoring key pressed events for keys already pressed
- * and not yet released, with a proper state cleanup on focus loss (or gain).
+ * Firstly, we want for bindings to generate repetitions,
+ * for it's both a nice feature, and doable even if the
+ * backing library doesn't generate repeated events.
+ * Secondly, we want to do it both for key pressed events and
+ * for key typed events, since it's so useful in each case
+ * (arrows, characters, etc.).
  * Thirdly, if keys are held down, we allow for synthetic key pressed or
  * key released events to be generated respectively at focus gain or loss.
  * 
@@ -190,6 +182,8 @@ public enum BwdEventType {
      * Multiple presses can happen for a same key without intermediary releases,
      * for example if window looses focus in-between.
      * 
+     * Can be repeated if key is held down.
+     * 
      * Precondition: (!closed).
      */
     KEY_PRESSED,
@@ -197,11 +191,14 @@ public enum BwdEventType {
      * Must be generated when a character is generated,
      * typically due to a key or combination of keys being pressed.
      * 
-     * Can be repeated if keys are held down, and for this reason
-     * alone it must take place between between corresponding
-     * key pressed and key released events.
+     * Must occur after corresponding key pressed event,
+     * and before key released event.
      * Note that it's therefore not homogeneous with mouse
      * pressed/released/clicked events, which always occur in this order.
+     * 
+     * Can be repeated if key is held down, in which case events order
+     * must be: pressed (non-repeat), typed (non-repeat),
+     * pressed(repeat), typed(repeat), ..., released.
      * 
      * Precondition: (!closed).
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,7 @@ public class BwdKeyEventT extends AbstractBwdModAwareEvent {
     private final String unicodeCharacter;
     
     /**
-     * Whether this event is a repetition of a previous event
-     * with same code point.
+     * Whether this event is a repetition of a previous event.
      */
     private final boolean isRepeat;
     
@@ -58,8 +57,7 @@ public class BwdKeyEventT extends AbstractBwdModAwareEvent {
     /**
      * @param codePoint Must be a valid code point, i.e. positive
      *        and <= 0x10FFFF. Must not be the NUL character (0).
-     * @param isRepeat Whether this event is a repetition of a previous event
-     *        with same code point.
+     * @param isRepeat Whether this event is a repetition of a previous event.
      */
     public BwdKeyEventT(
             Object source,
@@ -69,7 +67,7 @@ public class BwdKeyEventT extends AbstractBwdModAwareEvent {
             //
             SortedSet<Integer> modifierKeyDownSet) {
         this(
-                null,
+                (Void) null,
                 //
                 source,
                 //
@@ -122,7 +120,7 @@ public class BwdKeyEventT extends AbstractBwdModAwareEvent {
             return this;
         }
         return new BwdKeyEventT(
-                null,
+                (Void) null,
                 //
                 this.getSource(),
                 //
@@ -160,8 +158,7 @@ public class BwdKeyEventT extends AbstractBwdModAwareEvent {
     }
     
     /**
-     * @return Whether this event is a repetition of a previous event
-     *         with same code point.
+     * @return Whether this event is a repetition of a previous event.
      */
     public boolean isRepeat() {
         return this.isRepeat;

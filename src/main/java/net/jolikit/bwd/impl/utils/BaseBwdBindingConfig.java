@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -294,22 +294,22 @@ public class BaseBwdBindingConfig {
      */
     
     /**
-     * Duration, in seconds, since key pressed event,
-     * after which key typed events repetition starts.
+     * Duration, in seconds, since key pressed and/or typed event,
+     * after which key pressed and/or typed events repetition starts.
      */
-    private double keyRepetitionTriggerDelayS = 0.5;
+    private double keyRepetitionTriggerDelayS = 0.3;
     
     /**
-     * Period, in seconds, of key typed events repetition.
+     * Period, in seconds, of key pressed and typed events repetition.
      */
-    private double keyRepetitionPeriodS = 0.1;
+    private double keyRepetitionPeriodS = 0.03;
     
     /*
      * Window state : behavior.
      * 
      * Booleans to ensure expected window behavior in case the
      * backing library and/or OS wouldn't ensure it already.
-     *  
+     * 
      * "onShow" means when host.show() is called.
      * "onShown" means when SHOWN event is fired.
      * "onBackingShown" means on backing SHOWN event.

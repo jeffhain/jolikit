@@ -75,7 +75,10 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdWritableImage class.
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
+    - BwdKeyEventPr.isRepeat().
   - Modifications:
+    - Now requiring repetition of key pressed events,
+      in addition to key typed events.
     - InterfaceBwdFont, InterfaceBwdFontMetrics,
       BwdFontId, BwdFontKind: removed "font" prefix
       from getters names, for shorter code, and because
@@ -122,9 +125,11 @@ Jolikit X.X, XXXX/XX/XX
     from bwd.impl to there.
 
 - BWD IMPLS:
-  - BaseBwdBindingConfig : parallelizerParallelism set to 1 by default,
-    instead of to available parallelism, for multi-threading not to hurt
-    incognizant users.
+  - BaseBwdBindingConfig :
+    - parallelizerParallelism set to 1 by default, instead of
+      to available parallelism, for multi-threading not to hurt
+      incognizant users.
+    - Reduced default delay and period for key repetition.
   - Corrections:
     - Corrected an issue in DefaultLineDrawer, where pixels out of clip
       could be drawn when coordinates were huge (>= 500_000_000 or so).

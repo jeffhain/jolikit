@@ -51,7 +51,6 @@ import net.jolikit.bwd.test.cases.visualbenches.BenchRepaint_1Over60s_BwdTestCas
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentFontCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ConcurrentImageCreaDispBwdTestCase;
 import net.jolikit.bwd.test.cases.visualsturds.ParallelPaintingBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.AllEventsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinOpaqueBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinOpaqueBwdTestCase;
@@ -66,6 +65,7 @@ import net.jolikit.bwd.test.cases.visualtests.DefaultFontBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.DrawOrderingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsCliBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsWiBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.EventsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.FontGlyphTableBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HelloBindingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostBoundsGripsBwdTestCase;
@@ -75,7 +75,7 @@ import net.jolikit.bwd.test.cases.visualtests.HostCoordsHugeBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.KeyEventsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
@@ -85,7 +85,6 @@ import net.jolikit.bwd.test.cases.visualtests.TextClippingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextWidthBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TheoreticalOvalOnGridBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.UnicodeBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestCaseHomesColumn;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
@@ -168,8 +167,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              * Devices (Key/Mouse/Wheel) events.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new AllEventsBwdTestCase(),
-                    new KeyEventsBwdTestCase(),
+                    new EventsBwdTestCase(),
             });
         }
         {

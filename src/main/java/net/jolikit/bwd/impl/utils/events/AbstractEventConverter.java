@@ -58,16 +58,22 @@ public abstract class AbstractEventConverter {
      * Key events.
      */
     
+    /**
+     * The "isRepeat" boolean of the returned event doesn't matter,
+     * repetition being synthesized later by our bindings.
+     */
     public BwdKeyEventPr newKeyPressedEvent(Object backingEvent) {
         
         this.updateFromBackingEvent(backingEvent);
         
+        final boolean isRepeat = false;
         return new BwdKeyEventPr(
                 this.host,
                 BwdEventType.KEY_PRESSED,
                 //
                 this.getKey(backingEvent),
                 this.getKeyLocation(backingEvent),
+                isRepeat,
                 //
                 this.commonState.getModifierKeyDownSet());
     }
@@ -76,12 +82,14 @@ public abstract class AbstractEventConverter {
         
         this.updateFromBackingEvent(backingEvent);
         
+        final boolean isRepeat = false;
         return new BwdKeyEventPr(
                 this.host,
                 BwdEventType.KEY_RELEASED,
                 //
                 this.getKey(backingEvent),
                 this.getKeyLocation(backingEvent),
+                isRepeat,
                 //
                 this.commonState.getModifierKeyDownSet());
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,12 +42,20 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
      */
     private final int keyLocation;
     
+    /**
+     * Whether this event is a repetition of a previous event.
+     */
+    private final boolean isRepeat;
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     /**
      * @param eventType The type of event, either KEY_PRESSED or KEY_RELEASED.
+     * @param isRepeat Whether this event is a repetition of a previous event.
+     * @throws IllegalArgumentException if isRepeat is true and eventType
+     *         is not KEY_PRESSED.
      */
     public BwdKeyEventPr(
             Object source,
@@ -55,6 +63,7 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
             //
             int key,
             int keyLocation,
+            boolean isRepeat,
             //
             SortedSet<Integer> modifierKeyDownSet) {
         this(
@@ -65,6 +74,7 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
                 //
                 key,
                 keyLocation,
+                isRepeat,
                 //
                 newImmutableSortedSet(modifierKeyDownSet));
     }
@@ -83,6 +93,10 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
         
         sb.append(", key location = ").append(BwdKeyLocations.toString(this.keyLocation));
         
+        if (this.getEventType() == BwdEventType.KEY_PRESSED) {
+            sb.append(", is repeat = ").append(this.isRepeat());
+        }
+        
         /*
          * 
          */
@@ -92,6 +106,41 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
         sb.append("]");
         
         return sb.toString();
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Only works for KEY_PRESSED events.
+     * 
+     * Note: the fact that we preserve modifiers should not hurt,
+     * since on key press or release the repetition should stop.
+     * 
+     * @return An event, identical to this one modulo that its isRepeat
+     *         boolean is the specified one.
+     * @throws UnsupportedOperationException if the type of this event
+     *         is not KEY_PRESSED. 
+     */
+    public BwdKeyEventPr withIsRepeat(boolean isRepeat) {
+        if (this.getEventType() != BwdEventType.KEY_PRESSED) {
+            throw new UnsupportedOperationException();
+        }
+        if (isRepeat == this.isRepeat) {
+            return this;
+        }
+        return new BwdKeyEventPr(
+                (Void) null,
+                //
+                this.getSource(),
+                this.getEventType(),
+                //
+                this.key,
+                this.keyLocation,
+                isRepeat,
+                //
+                this.getModifierKeyDownSet());
     }
 
     /*
@@ -120,6 +169,15 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
         return this.keyLocation;
     }
     
+    /**
+     * Can be true only for KEY_PRESSED events.
+     * 
+     * @return Whether this event is a repetition of a previous event.
+     */
+    public boolean isRepeat() {
+        return this.isRepeat;
+    }
+
     //--------------------------------------------------------------------------
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -129,6 +187,8 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
      * 
      * @param eventType Must be KEY_PRESSED or KEY_RELEASED (not checked).
      * @param modifierKeyDownSet Instance to use internally. Must never be modified.
+     * @throws IllegalArgumentException if isRepeat is true and eventType
+     *         is not KEY_PRESSED.
      */
     BwdKeyEventPr(
             Void nnul,
@@ -138,6 +198,7 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
             //
             int key,
             int keyLocation,
+            boolean isRepeat,
             //
             SortedSet<Integer> modifierKeyDownSet) {
         super(
@@ -147,9 +208,13 @@ public class BwdKeyEventPr extends AbstractBwdModAwareEvent {
                 eventType,
                 //
                 modifierKeyDownSet);
-        
+        if (isRepeat
+            && (eventType != BwdEventType.KEY_PRESSED)) {
+            throw new IllegalArgumentException("can't repeat " + eventType);
+        }
         this.key = key;
         this.keyLocation = keyLocation;
+        this.isRepeat = isRepeat;
     }
 
     //--------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import net.jolikit.bwd.impl.utils.basics.InterfaceDoubleSupplier;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NumbersUtils;
-import net.jolikit.time.TimeUtils;
+import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
@@ -36,8 +36,8 @@ import net.jolikit.time.sched.InterfaceScheduler;
  * and if the backing library repeats both key press and release events,
  * then there must be a way to know whether backing events are repetitions,
  * and in these cases not call press (nor typed, if it's the same backing event)
- * and release methods, in which case repetition would occur at least at
- * the same rate than for the backing library.
+ * and release methods, else repetition would occur at least at the same rate
+ * as for the backing library.
  * 
  * Repetition is stopped on any key release, even if it's a modifier
  * (consistent with what JavaFX does, but not with AWT/Swing for example).
@@ -60,16 +60,24 @@ public class KeyRepetitionHelper {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
 
-    private class MyKeyTypedRepetitionProcess extends AbstractProcess {
+    /**
+     * Repeats both key pressed and key types events,
+     * but in a specific process() call for each,
+     * to avoid try/finally and allow exception eventually thrown
+     * by each call to reach proper exception handler if any.
+     */
+    private class MyRepetitionProcess extends AbstractProcess {
         private boolean firstCall;
-        private BwdKeyEventT repeatEvent;
-        public MyKeyTypedRepetitionProcess(InterfaceScheduler scheduler) {
+        private BwdKeyEventPr repeatEventP;
+        private BwdKeyEventT repeatEventT;
+        public MyRepetitionProcess(InterfaceScheduler scheduler) {
             super(scheduler);
         }
         @Override
         protected void onBegin() {
             this.firstCall = true;
-            this.repeatEvent = null;
+            this.repeatEventP = null;
+            this.repeatEventT = null;
         }
         @Override
         protected long process(long theoreticalTimeNs, long actualTimeNs) {
@@ -82,39 +90,72 @@ public class KeyRepetitionHelper {
                                 + NumbersUtils.toStringNoCSN(nsToS(actualTimeNs)));
             }
 
-            final long nextNs;
-            
+            final long delayNs;
             if (this.firstCall) {
                 this.firstCall = false;
-                final long delayNs = sToNsNoUnderflow(
-                        keyRepetitionTriggerDelaySSupplier.get());
-                nextNs = plusBounded(actualTimeNs, delayNs);
+                delayNs = sToNsNoUnderflow(
+                        repetitionTriggerDelaySSupplier.get());
             } else {
-                final BwdKeyEventT event = keyTyped_eventToBlockAndRepeat;
-                if (event == null) {
-                    // NB: Should never happen, but just in case.
+                /*
+                 * Handling the case where key pressed to repeat is null,
+                 * even if it should not occur in practice
+                 * (bindings generating key pressed events before key typed),
+                 * for symmetry, safety, and in case it does occur.
+                 */
+                final BwdKeyEventPr eventP = keyPressedToRepeat;
+                final BwdKeyEventT eventT = keyTypedToRepeat;
+                if ((eventP == null)
+                    && (eventT == null)) {
+                    // Nothing to repeat.
                     this.stop();
                     return 0;
                 }
-                BwdKeyEventT repeatEvent = this.repeatEvent;
-                if (repeatEvent == null) {
-                    final boolean isRepeat = true;
-                    repeatEvent = event.withIsRepeat(isRepeat);
-                    this.repeatEvent = repeatEvent;
-                }
-                eventListener.onKeyTyped(repeatEvent);
                 
-                final long periodNs = TimeUtils.sToNsNoUnderflow(
-                        keyRepetitionPeriodSSupplier.get());
-                // Using theoretical time, for repetition speed to match user's
-                // mental extrapolation.
-                nextNs = plusBounded(theoreticalTimeNs, periodNs);
+                BwdKeyEventPr repeatEventP = null;
+                if (eventP != null) {
+                    repeatEventP = this.repeatEventP;
+                    if (repeatEventP == null) {
+                        repeatEventP = eventP.withIsRepeat(true);
+                        this.repeatEventP = repeatEventP;
+                    }
+                }
+                BwdKeyEventT repeatEventT = null;
+                if (eventT != null) {
+                    repeatEventT = this.repeatEventT;
+                    if (repeatEventT == null) {
+                        repeatEventT = eventT.withIsRepeat(true);
+                        this.repeatEventT = repeatEventT;
+                    }
+                }
+                
+                /*
+                 * If any listener call throws, the repetition stops.
+                 */
+
+                if (repeatEventP != null) {
+                    eventListener.onKeyPressed(repeatEventP);
+                }
+                if (repeatEventT != null) {
+                    eventListener.onKeyTyped(repeatEventT);
+                }
+                
+                delayNs = sToNsNoUnderflow(
+                    repetitionPeriodSSupplier.get());
             }
             
+            /*
+             * Using theoretical time as reference,
+             * for repetition speed to match user's mental extrapolation,
+             * but still taking care not to schedule in the past,
+             * to avoid lateness drift that could prevent other repetitions
+             * and overbusiness once we can keep up again.
+             */
+            final long nextNs = Math.max(
+                plusBounded(theoreticalTimeNs, delayNs),
+                actualTimeNs);
             if (DEBUG) {
                 Dbg.log("nextS = " + NumbersUtils.toStringNoCSN(nsToS(nextNs)));
             }
-            
             return nextNs;
         }
     }
@@ -123,15 +164,14 @@ public class KeyRepetitionHelper {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final InterfaceDoubleSupplier keyRepetitionTriggerDelaySSupplier;
-    private final InterfaceDoubleSupplier keyRepetitionPeriodSSupplier;
+    private final InterfaceDoubleSupplier repetitionTriggerDelaySSupplier;
+    private final InterfaceDoubleSupplier repetitionPeriodSSupplier;
     
     private final InterfaceBwdEventListener eventListener;
     
-    private BwdKeyEventPr keyPressed_eventToBlock = null;
-    
-    private BwdKeyEventT keyTyped_eventToBlockAndRepeat = null;
-    private final MyKeyTypedRepetitionProcess keyTyped_repetitionProcess;
+    private BwdKeyEventPr keyPressedToRepeat = null;
+    private BwdKeyEventT keyTypedToRepeat = null;
+    private final MyRepetitionProcess repetitionProcess;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -143,90 +183,87 @@ public class KeyRepetitionHelper {
      * cyclic dependency with config class.
      */
     public KeyRepetitionHelper(
-            InterfaceDoubleSupplier keyRepetitionTriggerDelaySSupplier,
-            InterfaceDoubleSupplier keyRepetitionPeriodSSupplier,
+            InterfaceDoubleSupplier repetitionTriggerDelaySSupplier,
+            InterfaceDoubleSupplier repetitionPeriodSSupplier,
             InterfaceScheduler scheduler,
             InterfaceBwdEventListener eventListener) {
         
-        this.keyRepetitionTriggerDelaySSupplier =
-                LangUtils.requireNonNull(keyRepetitionTriggerDelaySSupplier);
+        this.repetitionTriggerDelaySSupplier =
+                LangUtils.requireNonNull(repetitionTriggerDelaySSupplier);
         
-        this.keyRepetitionPeriodSSupplier =
-                LangUtils.requireNonNull(keyRepetitionPeriodSSupplier);
+        this.repetitionPeriodSSupplier =
+                LangUtils.requireNonNull(repetitionPeriodSSupplier);
         
         this.eventListener = LangUtils.requireNonNull(eventListener);
         
-        this.keyTyped_repetitionProcess = new MyKeyTypedRepetitionProcess(
-                scheduler);
+        this.repetitionProcess = new MyRepetitionProcess(scheduler);
     }
 
     /**
      * Should be called even in case it's known to be a repetition,
-     * for behavioral homogeneity, because when a key is held down,
-     * most libraries generate such an event just after focus gain
-     * before the repeated key typed events.
+     * because some libraries (such as jogl and qt4) indicate the
+     * first event after focus gain as a repetition.
      */
     public void onKeyPressed(BwdKeyEventPr event) {
-        final BwdKeyEventPr eventToBlock = this.keyPressed_eventToBlock;
-        if (eventToBlock != null) {
-            if (haveSameKey(eventToBlock, event)) {
-                // Ignoring, in case backing library does repeat these ones.
+        final BwdKeyEventPr eventToRepeat = this.keyPressedToRepeat;
+        if (DEBUG) {
+            Dbg.log("keyPressedToRepeat = " + eventToRepeat);
+        }
+        if (eventToRepeat != null) {
+            if (haveSameKeyAndLocation(eventToRepeat, event)) {
+                // Ignoring, we do repetitions ourselves.
                 return;
             } else {
                 /*
-                 * A new key has been pressed: stopping current repetition if any.
+                 * A new key has been pressed.
+                 * No need to stop repetition
+                 * due to following start.
                  */
-                this.keyTyped_repetitionProcess.stop();
-                this.keyTyped_eventToBlockAndRepeat = null;
             }
         }
-        this.keyPressed_eventToBlock = event;
         
-        this.eventListener.onKeyPressed(event);
+        this.startKeyPressedRepetition(event);
+        
+        final boolean isRepeat = false;
+        this.eventListener.onKeyPressed(event.withIsRepeat(isRepeat));
     }
     
     /**
      * Should be called even in case it's known to be a repetition,
      * because some libraries (such as jogl and qt4) indicate the
-     * first event after focus gain as a repetition, and ignoring it
-     * would prevent us from pursuing the repetition by starting
-     * our own.
+     * first event after focus gain as a repetition.
      */
     public void onKeyTyped(BwdKeyEventT event) {
         // Not true in case of multiple presses of a same key,
         // since we nullify the field on key release.
-        final BwdKeyEventT eventToBlock = this.keyTyped_eventToBlockAndRepeat;
+        final BwdKeyEventT eventToRepeat = this.keyTypedToRepeat;
         if (DEBUG) {
-            Dbg.log("eventToBlock = " + eventToBlock);
+            Dbg.log("keyTypedToRepeat = " + eventToRepeat);
         }
-        if (eventToBlock != null) {
-            if (haveSameCodePoint(eventToBlock, event)) {
+        if (eventToRepeat != null) {
+            if (haveSameCodePoint(eventToRepeat, event)) {
                 // Ignoring, we do repetitions ourselves.
                 return;
+            } else {
+                /*
+                 * A new key has been typed.
+                 */
+                this.stopAndClearRepetition();
             }
         }
         
-        this.keyTyped_eventToBlockAndRepeat = event;
-        this.keyTyped_repetitionProcess.start();
+        /*
+         * If key pressed is being repeated,
+         * we don't want to stop it.
+         */
+        this.ensureKeyTypedRepetition(event);
         
         final boolean isRepeat = false;
         this.eventListener.onKeyTyped(event.withIsRepeat(isRepeat));
     }
     
     public void onKeyReleased(BwdKeyEventPr event) {
-        this.keyTyped_repetitionProcess.stop();
-        this.keyTyped_eventToBlockAndRepeat = null;
-        
-        final BwdKeyEventPr eventToBlock = this.keyPressed_eventToBlock;
-        if (eventToBlock != null) {
-            if (haveSameKey(eventToBlock, event)) {
-                // Making sure we don't ignore next press of this key.
-                this.keyPressed_eventToBlock = null;
-            } else {
-                // Another key has been released.
-                // We might still have to block the repetition so we don't nullify.
-            }
-        }
+        this.stopAndClearRepetition();
         
         this.eventListener.onKeyReleased(event);
     }
@@ -236,19 +273,53 @@ public class KeyRepetitionHelper {
             Dbg.log("repetitionHelper.onFocusLost()");
         }
 
-        this.keyPressed_eventToBlock = null;
-        
-        this.keyTyped_repetitionProcess.stop();
-        this.keyTyped_eventToBlockAndRepeat = null;
+        this.stopAndClearRepetition();
     }
 
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private static boolean haveSameKey(BwdKeyEventPr event1, BwdKeyEventPr event2) {
-        // NB: True if both are "unknown", but shouldn't hurt.
-        return (event1.getKey() == event2.getKey());
+    private void startKeyPressedRepetition(BwdKeyEventPr event) {
+        if (DEBUG) {
+            Dbg.log("startKeyPressedRepetition(" + event + ")");
+        }
+        this.keyPressedToRepeat = event;
+        /*
+         * Starting key pressed repetition
+         * resets key typed repetition.
+         */
+        this.keyTypedToRepeat = null;
+        this.repetitionProcess.start();
+    }
+    
+    private void ensureKeyTypedRepetition(BwdKeyEventT event) {
+        if (DEBUG) {
+            Dbg.log("ensureKeyTypedRepetition(" + event + ")");
+        }
+        this.keyTypedToRepeat = event;
+        if (!this.repetitionProcess.isStarted()) {
+            this.repetitionProcess.start();
+        }
+    }
+    
+    private void stopAndClearRepetition() {
+        if (DEBUG) {
+            Dbg.log("stopAndClearRepetition()");
+        }
+        this.repetitionProcess.stop();
+        this.keyPressedToRepeat = null;
+        this.keyTypedToRepeat = null;
+    }
+    
+    private static boolean haveSameKeyAndLocation(
+        BwdKeyEventPr event1,
+        BwdKeyEventPr event2) {
+        /*
+         * NB: True if both are "unknown", but shouldn't hurt.
+         */
+        return (event1.getKey() == event2.getKey())
+            && (event1.getKeyLocation() == event2.getKeyLocation());
     }
     
     private static boolean haveSameCodePoint(BwdKeyEventT event1, BwdKeyEventT event2) {
