@@ -2139,7 +2139,8 @@ public class HardSchedulerTest extends TestCase {
     
     /**
      * Testing that timed schedules are properly ordered,
-     * first according to time, second according to a sequence number.
+     * i.e. according to their theoretical time when it's in the future,
+     * and by sequence number for those currently executable.
      */
     public void test_executeAt_ordering() {
         final EnslavedControllableHardClock clock = getClockForTest();
@@ -2153,28 +2154,36 @@ public class HardSchedulerTest extends TestCase {
             // Reseting counter.
             this.counter.set(0);
 
+            /*
+             * "timed fairness" : according to theoretical times,
+             * order of s1 to s5 should be s5, s2, s4, s3 and then s1,
+             * but since at first execution time their theoretical times
+             * will already all be in the past, they will be executed
+             * by submit order.
+             */
+            
             final MyRunnable s7 = new MyRunnable(clock);
             scheduler.executeAtNs(s7, Long.MAX_VALUE);
             final MyRunnable s8 = new MyRunnable(clock);
             scheduler.executeAtNs(s8, Long.MAX_VALUE);
 
-            final MyRunnable s5 = new MyRunnable(clock);
-            scheduler.executeAtNs(s5, Long.MAX_VALUE - 1);
             final MyRunnable s6 = new MyRunnable(clock);
-            scheduler.executeAtNs(s6, Long.MAX_VALUE - 1);
-
-            final MyRunnable s3 = new MyRunnable(clock);
-            scheduler.executeAtNs(s3, nowNs + 1L);
-            final MyRunnable s4 = new MyRunnable(clock);
-            scheduler.executeAtNs(s4, nowNs + 1L);
+            scheduler.executeAtNs(s6, nowNs + 2 * REAL_TIME_TOLERANCE_NS);
 
             final MyRunnable s1 = new MyRunnable(clock);
-            scheduler.executeAtNs(s1, Long.MIN_VALUE);
+            scheduler.executeAtNs(s1, nowNs);
             final MyRunnable s2 = new MyRunnable(clock);
-            scheduler.executeAtNs(s2, Long.MIN_VALUE);
+            scheduler.executeAtNs(s2, nowNs - 1);
+            final MyRunnable s3 = new MyRunnable(clock);
+            scheduler.executeAtNs(s3, nowNs - 2);
+            final MyRunnable s4 = new MyRunnable(clock);
+            scheduler.executeAtNs(s4, nowNs);
+            final MyRunnable s5 = new MyRunnable(clock);
+            scheduler.executeAtNs(s5, Long.MIN_VALUE);
             
             /*
-             * Real time speed: s1 to s4 will be quickly executed.
+             * Real time speed: s1 to s5 will be quickly executed,
+             * and then s6.
              */
             
             clock.setTimeSpeed(1.0);
@@ -2182,26 +2191,27 @@ public class HardSchedulerTest extends TestCase {
             
             assertEquals(1, s1.waitAndGetReport().orderNum);
             assertEquals(2, s2.waitAndGetReport().orderNum);
-            
             assertEquals(3, s3.waitAndGetReport().orderNum);
             assertEquals(4, s4.waitAndGetReport().orderNum);
+            assertEquals(5, s5.waitAndGetReport().orderNum);
             
-            assertEquals(0, s5.nbrOfRunCalls);
             assertEquals(0, s6.nbrOfRunCalls);
+            assertEquals(0, s7.nbrOfRunCalls);
+            assertEquals(0, s8.nbrOfRunCalls);
             
+            sleepMS(2 * REAL_TIME_TOLERANCE_MS);
+            
+            assertEquals(6, s6.waitAndGetReport().orderNum);
             assertEquals(0, s7.nbrOfRunCalls);
             assertEquals(0, s8.nbrOfRunCalls);
             
             /*
-             * Infinite time speed: s5 to s8 will be quickly executed,
-             * (Long.MAV_VALUE is not a special value here).
+             * Infinite time speed: s7 and s8 will be quickly executed,
+             * (Long.MAX_VALUE is not a special value here).
              */
             
             clock.setTimeSpeed(Double.POSITIVE_INFINITY);
             sleepMS(REAL_TIME_TOLERANCE_MS);
-            
-            assertEquals(5, s5.waitAndGetReport().orderNum);
-            assertEquals(6, s6.waitAndGetReport().orderNum);
             
             assertEquals(7, s7.waitAndGetReport().orderNum);
             assertEquals(8, s8.waitAndGetReport().orderNum);
@@ -2343,6 +2353,9 @@ public class HardSchedulerTest extends TestCase {
         shutdownNowAndWait(schedulerList);
     }
 
+    /**
+     * Tests sequenceNumber usage between ASAP and timed schedules.
+     */
     public void test_schedulingFairness() {
         final EnslavedControllableHardClock clock = getClockForTest();
         clock.setTimeSpeed(0.0);

@@ -39,6 +39,12 @@ Jolikit X.X, XXXX/XX/XX
     executed first.
     Note that this was already the behavior of SoftScheduler,
     so now these schedulers behave consistently.
+    Also, implemented "timed fairness": if two timed schedules
+    that can currently be executed, the one that was submitted first
+    will be executed first, regardless of their theoretical time.
+    This is done to avoid recent schedules for times far in the past
+    to postpone (potentially forever) execution of older schedules
+    for more recent times inferior to current time.
 
   - Renamed AbstractSmartSchedulable into AbstractRepeatableRunnable,
     AbstractTask into AbstractRepeatableTask, and AbstractRepeatedProcess into

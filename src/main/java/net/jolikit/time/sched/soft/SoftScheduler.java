@@ -156,7 +156,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
     private final Queue<MyTimedSchedule> currentSchedules =
             new PriorityQueue<MyTimedSchedule>(
                     INITIAL_QUEUE_CAPACITY,
-                    new MyTimedScheduleComparator());
+                    TIMED_SCHEDULE_COMPARATOR);
 
     private final ArrayList<MyTimedSchedule> futureSchedules =
             new ArrayList<MyTimedSchedule>();

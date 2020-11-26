@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,6 +63,25 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
         }
     }
     
+    /**
+     * Compares sequence numbers.
+     */
+    protected static class MySequencedScheduleComparator implements Comparator<MySequencedSchedule> {
+        public MySequencedScheduleComparator() {
+        }
+        @Override
+        public int compare(
+                final MySequencedSchedule a,
+                final MySequencedSchedule b) {
+            return compareSequenceNumbers(
+                a.sequenceNumber,
+                b.sequenceNumber);
+        }
+    }
+    
+    /**
+     * Compares theoretical times, then sequence numbers.
+     */
     protected static class MyTimedScheduleComparator implements Comparator<MyTimedSchedule> {
         public MyTimedScheduleComparator() {
         }
@@ -78,7 +97,11 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
             } else if (aNs > bNs) {
                 cmpI = 1;
             } else {
-                // Breaking ties with sequence number.
+                /*
+                 * Breaking ties with sequence number.
+                 * NB: Only useful if not ordering currently executable
+                 * schedules in a separate queue (using only sequence number).
+                 */
                 cmpI = compareSequenceNumbers(
                         a.sequenceNumber,
                         b.sequenceNumber);
@@ -86,6 +109,24 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
             return cmpI;
         }
     }
+    
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Default instance.
+     * Compares sequence numbers.
+     */
+    protected static final Comparator<MySequencedSchedule> SEQUENCED_SCHEDULE_COMPARATOR =
+        new MySequencedScheduleComparator();
+    
+    /**
+     * Default instance.
+     * Compares theoretical times, then sequence numbers.
+     */
+    protected static final Comparator<MyTimedSchedule> TIMED_SCHEDULE_COMPARATOR =
+        new MyTimedScheduleComparator();
     
     //--------------------------------------------------------------------------
     // PROTECTED METHODS

@@ -58,6 +58,11 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  *     over which schedules are rejected.
  * - different:
  *   - Uses fixed threads instead of a thread pool.
+ *   - Timed fairness: timed schedules that can currently be executed
+ *     are executed by submission order, and not by theoretical time order,
+ *     which would cause recent schedules for times far in the past
+ *     to postpone (potentially forever) execution of older schedules
+ *     for more recent times inferior to current time.
  * 
  * This scheduler provides methods to:
  * - start/stop schedules acceptance,
@@ -329,6 +334,98 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         }
     }
     
+    /**
+     * PriorityQueue allowing to use different priorities
+     * depending on whether the schedules are to be executed
+     * in the future (using theoretical time), or if they are
+     * eligible to be executed now (using sequence number).
+     */
+    private static class MyFairPriorityQueue {
+        /**
+         * NB: Could merge this queue with ASAP-specific queue,
+         * since all currently executable schedules are to be executed
+         * according to their sequence number,
+         * but we prefer to keep the ASAP/timed separation,
+         * in part because it is already visible in the API
+         * (separate counts), and for performances
+         * (ASAP queue much simpler (no comparator)
+         * and likely faster).
+         */
+        private final PriorityQueue<MyTimedSchedule> currentQueue =
+            new PriorityQueue<MyTimedSchedule>(
+                INITIAL_PRIORITY_QUEUE_CAPACITY,
+                SEQUENCED_SCHEDULE_COMPARATOR);
+        private final PriorityQueue<MyTimedSchedule> futureQueue =
+            new PriorityQueue<MyTimedSchedule>(
+                INITIAL_PRIORITY_QUEUE_CAPACITY,
+                TIMED_SCHEDULE_COMPARATOR);
+        public MyFairPriorityQueue() {
+        }
+        /**
+         * Moves schedules of theoretical time <= nowNs
+         * from futureQueue to currentQueue,
+         * for them to be ordered by sequence number
+         * instead of by theoretical time.
+         * 
+         * to be called before peek()/poll()/remove() usages
+         * when time might have changed or queue might have been modified,
+         * if caring about related ordering change.
+         * 
+         * If never called, this queue just behaves like a PriorityQueue
+         * using TIMED_SCHEDULE_COMPARATOR.
+         */
+        public void moveCurrentSchedulesToTheirQueue(long nowNs) {
+            while (true) {
+                final MyTimedSchedule sched = this.futureQueue.peek();
+                if ((sched != null)
+                    && (sched.getTheoreticalTimeNs() <= nowNs)) {
+                    final MySequencedSchedule forCheck = this.futureQueue.remove();
+                    if(AZZERTIONS)LangUtils.azzert(forCheck == sched);
+                    this.currentQueue.add(sched);
+                } else {
+                    break;
+                }
+            }
+        }
+        public int size() {
+            return this.currentQueue.size() + this.futureQueue.size();
+        }
+        /**
+         * @return true
+         */
+        public boolean add(MyTimedSchedule sched) {
+            return this.futureQueue.add(sched);
+        }
+        public MyTimedSchedule peek() {
+            final MyTimedSchedule ret;
+            if (this.currentQueue.size() != 0) {
+                ret = this.currentQueue.peek();
+            } else {
+                ret = this.futureQueue.peek();
+            }
+            return ret;
+        }
+        public MyTimedSchedule poll() {
+            final MyTimedSchedule ret;
+            if (this.currentQueue.size() != 0) {
+                ret = this.currentQueue.poll();
+            } else {
+                ret = this.futureQueue.poll();
+            }
+            return ret;
+        }
+        public MyTimedSchedule remove() {
+            final MyTimedSchedule ret;
+            if (this.currentQueue.size() != 0) {
+                // Faster than remove(), and we know not empty.
+                ret = this.currentQueue.poll();
+            } else {
+                ret = this.futureQueue.remove();
+            }
+            return ret;
+        }
+    }
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -510,10 +607,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * Guarded by schedLock.
      */
-    private final PriorityQueue<MyTimedSchedule> timedSchedQueue =
-            new PriorityQueue<MyTimedSchedule>(
-                    INITIAL_PRIORITY_QUEUE_CAPACITY,
-                    new MyTimedScheduleComparator());
+    private final MyFairPriorityQueue timedSchedQueue =
+            new MyFairPriorityQueue();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -1713,11 +1808,20 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                     // Here, we have schedule(s) in queues, and we are supposed to work.
                     
                     // Peeking earliest timed schedule if any.
-                    final MyTimedSchedule firstTimedSched = this.timedSchedQueue.peek();
+                    final MyTimedSchedule firstTimedSched;
                     final long timeAfterWaitNs;
-                    if (firstTimedSched != null) {
-                        timeAfterWaitNs = this.clock.getTimeNs();
+                    if (this.timedSchedQueue.size() != 0) {
+                        final long nowNs = this.clock.getTimeNs();
+                        this.timedSchedQueue.moveCurrentSchedulesToTheirQueue(nowNs);
+                        firstTimedSched = this.timedSchedQueue.peek();
+                        if (firstTimedSched != null) {
+                            timeAfterWaitNs = nowNs;
+                        } else {
+                            // Won't be used this time.
+                            timeAfterWaitNs = Long.MIN_VALUE;
+                        }
                     } else {
+                        firstTimedSched = null;
                         // Won't be used this time.
                         timeAfterWaitNs = Long.MIN_VALUE;
                     }
