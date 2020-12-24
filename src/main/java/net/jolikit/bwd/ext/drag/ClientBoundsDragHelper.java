@@ -24,6 +24,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.NumbersUtils;
 
 /**
  * Helper to implement client area resizing using a draggable border.
@@ -40,9 +41,12 @@ public class ClientBoundsDragHelper {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final int minClientXSpan;
-    private final int minClientYSpan;
-    
+    private int clientMinXSpan;
+    private int clientMinYSpan;
+
+    private int clientMaxXSpan = Integer.MAX_VALUE;
+    private int clientMaxYSpan = Integer.MAX_VALUE;
+
     /*
      * 
      */
@@ -59,31 +63,57 @@ public class ClientBoundsDragHelper {
     //--------------------------------------------------------------------------
     
     /**
-     * @param minClientXSpan Must be >= 0.
-     * @param minClientYSpan Must be >= 0.
+     * Uses zero min spans.
      */
     public <DC extends AbstractDragController> ClientBoundsDragHelper(
-            int minClientXSpan,
-            int minClientYSpan,
+            InterfaceHostSupplier hostSupplier,
+            InterfaceGripRectComputer gripRectComputer,
+            Map<GripType,DC> dragControllerByGripType) {
+        this(0, 0, hostSupplier, gripRectComputer, dragControllerByGripType);
+    }
+    
+    /**
+     * @param clientMinXSpan Must be >= 0.
+     * @param clientMinYSpan Must be >= 0.
+     */
+    public <DC extends AbstractDragController> ClientBoundsDragHelper(
+            int clientMinXSpan,
+            int clientMinYSpan,
             InterfaceHostSupplier hostSupplier,
             InterfaceGripRectComputer gripRectComputer,
             Map<GripType,DC> dragControllerByGripType) {
         
-        if (minClientXSpan < 0) {
-            throw new IllegalArgumentException("minClientXSpan [" + minClientXSpan + "] must be >= 0");
-        }
-        if (minClientYSpan < 0) {
-            throw new IllegalArgumentException("minClientYSpan [" + minClientYSpan + "] must be >= 0");
-        }
-        
-        this.minClientXSpan = minClientXSpan;
-        this.minClientYSpan = minClientYSpan;
+        this.setClientMinMaxSpans_final(
+            clientMinXSpan,
+            clientMinYSpan,
+            Integer.MAX_VALUE,
+            Integer.MAX_VALUE);
         
         this.hostSupplier = hostSupplier;
         
         this.gripRectComputer = gripRectComputer;
         
         this.dragControllerByGripType.putAll(dragControllerByGripType);
+    }
+    
+    /**
+     * Max spans are Integer.MAX_VALUE by default.
+     * 
+     * @param clientMinXSpan Must be >= 0.
+     * @param clientMinYSpan Must be >= 0.
+     * @param clientMaxXSpan Must be >= clientMinXSpan.
+     * @param clientMaxYSpan Must be >= clientMaxYSpan.
+     */
+    public void setClientMinMaxSpans(
+        int clientMinXSpan,
+        int clientMinYSpan,
+        int clientMaxXSpan,
+        int clientMaxYSpan) {
+        this.setClientMinMaxSpans_final(
+            clientMinXSpan,
+            clientMinYSpan,
+            clientMaxXSpan,
+            clientMaxYSpan);
     }
     
     /*
@@ -209,7 +239,9 @@ public class ClientBoundsDragHelper {
         // Set to true if top involved.
         final boolean mustFixBottom = (gripType.ySide < 0);
         
-        final GRect oldGripRect = this.gripRectComputer.computeGripRectInClientBox(oldClientBox, gripType);
+        final GRect oldGripRect =
+            this.gripRectComputer.computeGripRectInClientBox(
+                oldClientBox, gripType);
         
         switch (gripType) {
         /*
@@ -269,7 +301,11 @@ public class ClientBoundsDragHelper {
         if (!newClientBounds.equals(oldClientBounds)) {
             final boolean restoreBoundsIfNotExact = false;
             if (DEBUG) {
-                Dbg.log("onMouseDragged() : scheduling setClientBoundsSmart(" + newClientBounds + "," + mustFixRight + "," + mustFixBottom + "," + restoreBoundsIfNotExact + ")");
+                Dbg.log(
+                    "onMouseDragged() : scheduling setClientBoundsSmart("
+                        + newClientBounds
+                        + "," + mustFixRight + "," + mustFixBottom
+                        + "," + restoreBoundsIfNotExact + ")");
             }
             /*
              * Not setting bounds synchronously,
@@ -279,7 +315,10 @@ public class ClientBoundsDragHelper {
                 @Override
                 public void run() {
                     if (DEBUG) {
-                        Dbg.log("setClientBoundsSmart(" + newClientBounds + "," + mustFixRight + "," + mustFixBottom + "," + restoreBoundsIfNotExact + ")");
+                        Dbg.log("setClientBoundsSmart("
+                            + newClientBounds
+                            + "," + mustFixRight + "," + mustFixBottom
+                            + "," + restoreBoundsIfNotExact + ")");
                     }
                     host.setClientBoundsSmart(
                             newClientBounds,
@@ -305,6 +344,34 @@ public class ClientBoundsDragHelper {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
+    private final void setClientMinMaxSpans_final(
+        int clientMinXSpan,
+        int clientMinYSpan,
+        int clientMaxXSpan,
+        int clientMaxYSpan) {
+        if (clientMinXSpan < 0) {
+            throw new IllegalArgumentException(
+                "clientMinXSpan [" + clientMinXSpan + "] must be >= 0");
+        }
+        if (clientMinYSpan < 0) {
+            throw new IllegalArgumentException(
+                "clientMinYSpan [" + clientMinYSpan + "] must be >= 0");
+        }
+        if (clientMaxXSpan < clientMinXSpan) {
+            throw new IllegalArgumentException(
+                "clientMaxXSpan [" + clientMaxXSpan + "] must be >= " + clientMinXSpan);
+        }
+        if (clientMaxYSpan < clientMinYSpan) {
+            throw new IllegalArgumentException(
+                "clientMaxYSpan [" + clientMaxYSpan + "] must be >= " + clientMinYSpan);
+        }
+        
+        this.clientMinXSpan = clientMinXSpan;
+        this.clientMinYSpan = clientMinYSpan;
+        this.clientMaxXSpan = clientMaxXSpan;
+        this.clientMaxYSpan = clientMaxYSpan;
+    }
+    
     private int computeNewClientXSpanOnBorderDrag(
             InterfaceDragController horizDragController,
             GRect oldGripRect,
@@ -323,9 +390,10 @@ public class ClientBoundsDragHelper {
         
         final int desiredDx = (desiredX - oldGripRect.x());
 
-        final int newClientXSpan = Math.max(
-                clientXSpan + (leftElseRightDrag ? -1 : 1) * desiredDx,
-                this.minClientXSpan);
+        final int newClientXSpan = NumbersUtils.toRange(
+            this.clientMinXSpan,
+            this.clientMaxXSpan,
+            clientXSpan + (leftElseRightDrag ? -1 : 1) * desiredDx);
         
         if (DEBUG) {
             Dbg.log("---");
@@ -358,9 +426,10 @@ public class ClientBoundsDragHelper {
         
         final int desiredDy = (desiredY - oldGripRect.y());
 
-        final int newClientYSpan = Math.max(
-                clientYSpan + (topElseBottomDrag ? -1 : 1) * desiredDy,
-                this.minClientYSpan);
+        final int newClientYSpan = NumbersUtils.toRange(
+            this.clientMinYSpan,
+            this.clientMaxYSpan,
+            clientYSpan + (topElseBottomDrag ? -1 : 1) * desiredDy);
         
         if (DEBUG) {
             Dbg.log("---");
