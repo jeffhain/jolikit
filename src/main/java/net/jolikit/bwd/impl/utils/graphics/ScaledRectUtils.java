@@ -16,7 +16,7 @@
 package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class ScaledRectUtils {
 
@@ -163,7 +163,7 @@ public class ScaledRectUtils {
         }
 
         // Avoiding overflows when reworking coordinates.
-        newPeerPos =  NumbersUtils.plusBounded(oldPeerPos, peerMinSidePad);
+        newPeerPos =  NbrsUtils.plusBounded(oldPeerPos, peerMinSidePad);
         if (newSpan == 0) {
             newPeerSpan = 0;
         } else {

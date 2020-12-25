@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultLineDrawerPlainLineTest extends AbstractDrawerTezt<TestLineArgs> {
 
@@ -55,7 +55,7 @@ public class DefaultLineDrawerPlainLineTest extends AbstractDrawerTezt<TestLineA
      */
 
     private static final int NBR_OF_CALLS_COMPREHENSIVE_EACH =
-            NumbersUtils.pow2(MAX_COMPREHENSIVE_SEGMENT_SPAN + 1);
+            NbrsUtils.pow2(MAX_COMPREHENSIVE_SEGMENT_SPAN + 1);
     private static final int NBR_OF_CALLS_COMPREHENSIVE = 2 * NBR_OF_CALLS_COMPREHENSIVE_EACH;
     private static final int NBR_OF_CALLS_RANDOM = 2 * NBR_OF_CALLS_RANDOM_EACH;
     private static final int NBR_OF_CALLS = NBR_OF_CALLS_COMPREHENSIVE + NBR_OF_CALLS_RANDOM;

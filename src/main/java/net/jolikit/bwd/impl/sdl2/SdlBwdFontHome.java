@@ -43,7 +43,7 @@ import net.jolikit.bwd.impl.utils.fonts.FontBoxHelper;
 import net.jolikit.bwd.impl.utils.fonts.InterfaceCanFontDisplayComputer;
 import net.jolikit.bwd.impl.utils.fonts.InterfaceFontDisposeCallListener;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class SdlBwdFontHome extends AbstractBwdFontHome<Pointer,SdlBwdFontHome.MyBfg> {
     
@@ -217,7 +217,7 @@ public class SdlBwdFontHome extends AbstractBwdFontHome<Pointer,SdlBwdFontHome.M
             }
             backingFontList.add(backingFont);
             if (fontIndex == 0) {
-                backingFontCount = NumbersUtils.asInt(LIB_TTF.TTF_FontFaces(backingFont));
+                backingFontCount = NbrsUtils.asInt(LIB_TTF.TTF_FontFaces(backingFont));
             }
         }
 

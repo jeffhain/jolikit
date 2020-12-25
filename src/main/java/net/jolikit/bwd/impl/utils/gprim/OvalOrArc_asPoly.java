@@ -21,7 +21,7 @@ import java.util.Comparator;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Algorithm to draw or fill arcs as polylines or polygons.
@@ -877,7 +877,7 @@ public class OvalOrArc_asPoly {
                 Dbg.log("startDeg = " + startDeg);
                 Dbg.log("endDeg = " + endDeg);
             }
-            if (NumbersUtils.isOdd(oval.xSpan())) {
+            if (NbrsUtils.isOdd(oval.xSpan())) {
                 // Exact.
                 this.cx = oval.xMid();
             } else {
@@ -896,7 +896,7 @@ public class OvalOrArc_asPoly {
                     this.cx = oval.xMid() - 1;
                 }
             }
-            if (NumbersUtils.isOdd(oval.ySpan())) {
+            if (NbrsUtils.isOdd(oval.ySpan())) {
                 // Exact.
                 this.cy = oval.yMid();
             } else {
@@ -1076,7 +1076,7 @@ public class OvalOrArc_asPoly {
 
         for (int k = 0; k < 4; k++) {
             final double coordX = ((k >= 2) ? ecobXMax : ecobXMin);
-            final double coordY = (NumbersUtils.isOdd(k) ? ecobYMax : ecobYMin);
+            final double coordY = (NbrsUtils.isOdd(k) ? ecobYMax : ecobYMin);
             this.baseWaypointArr[this.baseWaypointCount++].configureCorner(
                     coordX,
                     coordY);
@@ -1146,7 +1146,7 @@ public class OvalOrArc_asPoly {
 
                         final double coord = (hiCoord ? coordHi : coordLo);
 
-                        if (NumbersUtils.isInRange(coordMin, coordMax, coord)) {
+                        if (NbrsUtils.isInRange(coordMin, coordMax, coord)) {
                             this.baseWaypointArr[this.baseWaypointCount++].configureInterWithOval(
                                     sideType,
                                     (hiCoord ? angRadHi : angRadLo),
@@ -1204,8 +1204,8 @@ public class OvalOrArc_asPoly {
             final MyWaypoint wp = this.baseWaypointArr[i];
             if (wp.type == MyWaypointType.ECOB_CORNER) {
                 final double distSq =
-                        NumbersUtils.pow2(wp.xd - this.cxd)
-                        + NumbersUtils.pow2(wp.yd - this.cyd);
+                        NbrsUtils.pow2(wp.xd - this.cxd)
+                        + NbrsUtils.pow2(wp.yd - this.cyd);
                 if ((closestCornerWp == null)
                         || (distSq < closestDistSq)) {
                     closestCornerWp = wp;
@@ -1596,7 +1596,7 @@ public class OvalOrArc_asPoly {
     private static int roundArcCoord_x(double centerCoord, double sin, double cos, double coord) {
         final int coordI;
         if ((coord == centerCoord)
-                && NumbersUtils.isEquidistant(coord)) {
+                && NbrsUtils.isEquidistant(coord)) {
             coordI = roundArcCoord_x_ties(sin, cos, coord);
         } else {
             coordI = BindingCoordsUtils.roundToInt(coord);
@@ -1607,7 +1607,7 @@ public class OvalOrArc_asPoly {
     private static int roundArcCoord_y(double centerCoord, double sin, double cos, double coord) {
         final int coordI;
         if ((coord == centerCoord)
-                && NumbersUtils.isEquidistant(coord)) {
+                && NbrsUtils.isEquidistant(coord)) {
             coordI = roundArcCoord_y_ties(sin, cos, coord);
         } else {
             coordI = BindingCoordsUtils.roundToInt(coord);

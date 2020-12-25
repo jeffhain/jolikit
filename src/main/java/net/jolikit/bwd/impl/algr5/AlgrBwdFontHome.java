@@ -41,7 +41,7 @@ import net.jolikit.bwd.impl.utils.fonts.FontBoxHelper;
 import net.jolikit.bwd.impl.utils.fonts.InterfaceCanFontDisplayComputer;
 import net.jolikit.bwd.impl.utils.fonts.InterfaceFontDisposeCallListener;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 import com.sun.jna.Pointer;
 
@@ -365,7 +365,7 @@ public class AlgrBwdFontHome extends AbstractBwdFontHome<ALLEGRO_FONT,AlgrBwdFon
                     ranges);
         }
 
-        final int capacity = NumbersUtils.timesExact(2, actual_range_count);
+        final int capacity = NbrsUtils.timesExact(2, actual_range_count);
         final int[] ranges = new int[capacity];
         LIB_FONT.al_get_font_ranges(
                 backingFont,

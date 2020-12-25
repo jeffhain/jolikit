@@ -24,7 +24,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Helper to implement client area resizing using a draggable border.
@@ -390,7 +390,7 @@ public class ClientBoundsDragHelper {
         
         final int desiredDx = (desiredX - oldGripRect.x());
 
-        final int newClientXSpan = NumbersUtils.toRange(
+        final int newClientXSpan = NbrsUtils.toRange(
             this.clientMinXSpan,
             this.clientMaxXSpan,
             clientXSpan + (leftElseRightDrag ? -1 : 1) * desiredDx);
@@ -426,7 +426,7 @@ public class ClientBoundsDragHelper {
         
         final int desiredDy = (desiredY - oldGripRect.y());
 
-        final int newClientYSpan = NumbersUtils.toRange(
+        final int newClientYSpan = NbrsUtils.toRange(
             this.clientMinYSpan,
             this.clientMaxYSpan,
             clientYSpan + (topElseBottomDrag ? -1 : 1) * desiredDy);

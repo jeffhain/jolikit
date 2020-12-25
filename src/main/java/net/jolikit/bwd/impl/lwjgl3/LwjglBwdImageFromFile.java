@@ -25,7 +25,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * TODO lwjgl 1-bit BMPs are not supported.
@@ -123,7 +123,7 @@ public class LwjglBwdImageFromFile extends AbstractLwjglBwdImage {
             final GRect box = this.getRect();
             final int bytesPerPixel = req_comp;
             final int pixelCapacity = box.area();
-            final int expectedByteCapacity = NumbersUtils.timesExact(pixelCapacity, bytesPerPixel);
+            final int expectedByteCapacity = NbrsUtils.timesExact(pixelCapacity, bytesPerPixel);
             if (data.capacity() != expectedByteCapacity) {
                 throw new BindingError("data = " + data + ", expectedByteCapacity = " + expectedByteCapacity);
             }

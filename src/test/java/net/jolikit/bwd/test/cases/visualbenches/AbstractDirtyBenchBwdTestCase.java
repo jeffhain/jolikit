@@ -23,7 +23,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -162,8 +162,8 @@ public abstract class AbstractDirtyBenchBwdTestCase extends AbstractBwdTestCase 
                 Dbg.log(
                         this.nbrOfRepaint + " repaints, "
                                 + this.getBinding().getClass().getSimpleName()
-                                + ", took " + NumbersUtils.toStringNoCSN(durationS) + " s, mean = "
-                                + NumbersUtils.toStringNoCSN(meanDurationS) + " s");
+                                + ", took " + NbrsUtils.toStringNoCSN(durationS) + " s, mean = "
+                                + NbrsUtils.toStringNoCSN(meanDurationS) + " s");
                 Dbg.flush();
             }
 

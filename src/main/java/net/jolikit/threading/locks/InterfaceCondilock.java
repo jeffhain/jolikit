@@ -135,7 +135,7 @@ public interface InterfaceCondilock extends Condition, InterfaceLocker {
      * 
      * Ex.: instead of:
      * public Train waitForTrain(long timeoutNs) {
-     *    final long endTimeoutTimeNs = NumbersUtils.plusBounded(System.nanoTime(), timeoutNs);
+     *    final long endTimeoutTimeNs = NbrsUtils.plusBounded(System.nanoTime(), timeoutNs);
      *    final TrainWaitStopBc booleanCondition = new TrainWaitStopBc();
      *    while (true) {
      *       final Train train = getNextTrainToArrive();
@@ -158,7 +158,7 @@ public interface InterfaceCondilock extends Condition, InterfaceLocker {
      * }
      * one can do:
      * public Train waitForTrain(long timeoutNs) {
-     *    final long endTimeoutTimeNs = NumbersUtils.plusBounded(condilock.timeoutTimeNs(), timeoutNs);
+     *    final long endTimeoutTimeNs = NbrsUtils.plusBounded(condilock.timeoutTimeNs(), timeoutNs);
      *    final TrainWaitStopBc booleanCondition = new TrainWaitStopBc();
      *    while (true) {
      *       final Train train = getNextTrainToArrive();

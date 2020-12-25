@@ -25,7 +25,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * To bench g.newChildGraphics(...) and related init()/finish() overhead
@@ -231,7 +231,7 @@ public class BenchNewChildGBwdTestCase extends AbstractBwdTestCase {
                     if (MUST_CHANGE_COLORS_WITH_EACH_PAINTING) {
                         evenOrNot += pNum;
                     }
-                    if (NumbersUtils.isEven(evenOrNot)) {
+                    if (NbrsUtils.isEven(evenOrNot)) {
                         c = c1;
                     } else {
                         c = c2;
@@ -305,6 +305,6 @@ public class BenchNewChildGBwdTestCase extends AbstractBwdTestCase {
     private static String nsToMsStr(long ns) {
         // Truncating below 1 microsecond.
         final double ms = (ns / 1000) / 1000.0;
-        return NumbersUtils.toStringNoCSN(ms);
+        return NbrsUtils.toStringNoCSN(ms);
     }
 }

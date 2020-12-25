@@ -20,7 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import junit.framework.TestCase;
 
 public class GRectTest extends TestCase {
@@ -1085,13 +1085,13 @@ public class GRectTest extends TestCase {
                 final long xMaxExcl1Long = rect1.x() + (long) rect1.xSpan();
                 final long xMaxExcl2Long = rect2.x() + (long) rect2.xSpan();
                 final long expectedXSpanLong = Math.max(0, Math.min(xMaxExcl1Long, xMaxExcl2Long) - expectedX);
-                final int expectedXSpan = NumbersUtils.asInt(expectedXSpanLong);
+                final int expectedXSpan = NbrsUtils.asInt(expectedXSpanLong);
                 assertEquals(expectedXSpan, res.xSpan());
 
                 final long yMaxExcl1Long = rect1.y() + (long) rect1.ySpan();
                 final long yMaxExcl2Long = rect2.y() + (long) rect2.ySpan();
                 final long expectedYSpanLong = Math.max(0, Math.min(yMaxExcl1Long, yMaxExcl2Long) - expectedY);
-                final int expectedYSpan = NumbersUtils.asInt(expectedYSpanLong);
+                final int expectedYSpan = NbrsUtils.asInt(expectedYSpanLong);
                 assertEquals(expectedYSpan, res.ySpan());
             }
         }
@@ -1313,7 +1313,7 @@ public class GRectTest extends TestCase {
                         
                         final int expectedXSpan;
                         if ((rect1.xSpan() > 0) && (rect2.xSpan() > 0)) {
-                            expectedXSpan = NumbersUtils.asInt(Math.max(0, theoXMaxExclLong - theoX));
+                            expectedXSpan = NbrsUtils.asInt(Math.max(0, theoXMaxExclLong - theoX));
                         } else {
                             expectedXSpan = 0;
                         }
@@ -1321,7 +1321,7 @@ public class GRectTest extends TestCase {
                         
                         final int expectedYSpan;
                         if ((rect1.ySpan() > 0) && (rect2.ySpan() > 0)) {
-                            expectedYSpan = NumbersUtils.asInt(Math.max(0, theoYMaxExclLong - theoY));
+                            expectedYSpan = NbrsUtils.asInt(Math.max(0, theoYMaxExclLong - theoY));
                         } else {
                             expectedYSpan = 0;
                         }

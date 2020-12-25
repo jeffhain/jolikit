@@ -19,7 +19,7 @@ import java.util.Random;
 
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 public class DefaultPolyDrawerTestHelper extends AbstractDrawerTestHelper<TestPolyArgs> {
@@ -101,7 +101,7 @@ public class DefaultPolyDrawerTestHelper extends AbstractDrawerTestHelper<TestPo
         if (isSimple(drawingArgs)) {
             return drawingArgs.pointCount;
         } else {
-            return NumbersUtils.pow2((long) drawingArgs.pointCount);
+            return NbrsUtils.pow2((long) drawingArgs.pointCount);
         }
     }
 

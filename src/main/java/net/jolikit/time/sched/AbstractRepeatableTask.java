@@ -19,7 +19,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -448,7 +448,7 @@ public abstract class AbstractRepeatableTask implements InterfaceCancellable {
      * @return The closest long to the mathematical sum of v1 and v2.
      */
     protected final long plusBounded(long v1, long v2) {
-        return NumbersUtils.plusBounded(v1, v2);
+        return NbrsUtils.plusBounded(v1, v2);
     }
     
     /**
@@ -458,7 +458,7 @@ public abstract class AbstractRepeatableTask implements InterfaceCancellable {
      * @return The closest long to the mathematical difference between v1 and v2.
      */
     protected final long minusBounded(long v1, long v2) {
-        return NumbersUtils.minusBounded(v1, v2);
+        return NbrsUtils.minusBounded(v1, v2);
     }
     
     /**

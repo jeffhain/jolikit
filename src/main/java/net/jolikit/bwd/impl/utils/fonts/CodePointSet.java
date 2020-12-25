@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.utils.fonts;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Immutable.
@@ -48,7 +48,7 @@ public final class CodePointSet {
      */
     public CodePointSet(int[] minMaxCpArr) {
         // Sanity check.
-        if (!NumbersUtils.isEven(minMaxCpArr.length)) {
+        if (!NbrsUtils.isEven(minMaxCpArr.length)) {
             throw new IllegalArgumentException("array length [" + minMaxCpArr.length + "] must be even");
         }
         final int rangeCount = minMaxCpArr.length / 2;
@@ -91,11 +91,11 @@ public final class CodePointSet {
             }
             sb.append("[");
             if (minCp == maxCp) {
-                sb.append(NumbersUtils.toString(minCp, 16));
+                sb.append(NbrsUtils.toString(minCp, 16));
             } else {
-                sb.append(NumbersUtils.toString(minCp, 16));
+                sb.append(NbrsUtils.toString(minCp, 16));
                 sb.append(",");
-                sb.append(NumbersUtils.toString(maxCp, 16));
+                sb.append(NbrsUtils.toString(maxCp, 16));
             }
             sb.append("]");
         }
@@ -145,7 +145,7 @@ public final class CodePointSet {
      * @throws IllegalArgumentException if the specified index is out of range.
      */
     public int getRangeMin(int rangeIndex) {
-        NumbersUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
+        NbrsUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
         return this.minMaxCpArr[2 * rangeIndex];
     }
 
@@ -155,7 +155,7 @@ public final class CodePointSet {
      * @throws IllegalArgumentException if the specified index is out of range.
      */
     public int getRangeMax(int rangeIndex) {
-        NumbersUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
+        NbrsUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
         return this.minMaxCpArr[2 * rangeIndex + 1];
     }
 
@@ -179,7 +179,7 @@ public final class CodePointSet {
         } else {
             // Can't be 0 due to early checks.
             final int insertionIndex = -(binarySearchResult+1);
-            if (NumbersUtils.isOdd(insertionIndex)) {
+            if (NbrsUtils.isOdd(insertionIndex)) {
                 // Code point is in a range.
                 return true;
             } else {

@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Algorithms specific for oval or arc filling.
@@ -185,8 +185,8 @@ public class OvalOrArc_midPointFill {
          * instead of just points.
          */
 
-        final boolean oddXSpan = NumbersUtils.isOdd(oxSpan);
-        final boolean oddYSpan = NumbersUtils.isOdd(oySpan);
+        final boolean oddXSpan = NbrsUtils.isOdd(oxSpan);
+        final boolean oddYSpan = NbrsUtils.isOdd(oySpan);
 
         final double rx = ((oxSpan - 1) * 0.5);
         final double ry = ((oySpan - 1) * 0.5);

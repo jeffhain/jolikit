@@ -31,7 +31,7 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.OsUtils;
 
 /**
@@ -286,7 +286,7 @@ public class AwtEventConverter extends AbstractEventConverter {
             }
         } else {
             final int backingPreciseWheelRotationRounded =
-                    NumbersUtils.roundToInt(backingPreciseWheelRotation);
+                    NbrsUtils.roundToInt(backingPreciseWheelRotation);
             if (OsUtils.isMac()
                     && mouseWheelEvent.isShiftDown()) {
                 /*

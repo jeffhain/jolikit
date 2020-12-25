@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
 import net.jolikit.lang.InterfaceBooleanCondition;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.threading.locks.InterfaceCondilock;
 import net.jolikit.time.clocks.ClocksUtils;
@@ -394,7 +394,7 @@ public class HardClockCondilock implements InterfaceCondilock {
      */
     private long awaitUntilNanos_internal(long deadlineNs, double absoluteTimeSpeed) throws InterruptedException {
         final long beforeNs = this.deadlineTimeNs();
-        final long clockWaitTimeNs = NumbersUtils.minusBounded(deadlineNs, beforeNs);
+        final long clockWaitTimeNs = NbrsUtils.minusBounded(deadlineNs, beforeNs);
         return this.awaitNanos_internal(clockWaitTimeNs, absoluteTimeSpeed);
     }
 

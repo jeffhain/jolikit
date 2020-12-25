@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package net.jolikit.time.clocks.soft;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.locks.MonitorCondilock;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.ClockListeners;
@@ -267,10 +267,10 @@ public class RootSoftClock implements InterfaceSoftClock {
         synchronized (this.waitMutex) {
             while (true) {
                 // Hard time, not considering annulled lateness.
-                final long rectifiedHardTimeNs = NumbersUtils.minusBounded(
+                final long rectifiedHardTimeNs = NbrsUtils.minusBounded(
                         this.hardClock.getTimeNs(),
                         this.annulledLatenessNs);
-                final long clockWaitTimeNs = NumbersUtils.minusBounded(
+                final long clockWaitTimeNs = NbrsUtils.minusBounded(
                         requestedTimeNs,
                         rectifiedHardTimeNs);
                 if (clockWaitTimeNs <= 0) {
@@ -285,7 +285,7 @@ public class RootSoftClock implements InterfaceSoftClock {
                          * "lateness" = "minus soft clock wait time",
                          * but we don't take minus, for -Long.MIN_VALUE does not exist as long.
                          */
-                        this.annulledLatenessNs = NumbersUtils.minusBounded(
+                        this.annulledLatenessNs = NbrsUtils.minusBounded(
                                 this.annulledLatenessNs,
                                 clockWaitTimeNs);
                     }

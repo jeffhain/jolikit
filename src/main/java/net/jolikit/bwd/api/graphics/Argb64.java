@@ -15,7 +15,7 @@
  */
 package net.jolikit.bwd.api.graphics;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities to deal with argb64 colors, as a primitive long.
@@ -113,7 +113,7 @@ public class Argb64 {
      * @return A string of the form 0xAAAARRRRGGGGBBBB.
      */
     public static String toString(long argb64) {
-        return NumbersUtils.toStringHex(argb64);
+        return NbrsUtils.toStringHex(argb64);
     }
     
     /*

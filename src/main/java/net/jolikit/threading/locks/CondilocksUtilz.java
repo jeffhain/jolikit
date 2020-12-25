@@ -22,7 +22,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities to implement condilocks.
@@ -246,7 +246,7 @@ class CondilocksUtilz {
              * than accumulating error with intermediate timeouts computations.
              */
             final long currentTimeoutTimeNs = condilock.timeoutTimeNs();
-            final long endTimeoutTimeNs = NumbersUtils.plusBounded(currentTimeoutTimeNs, timeoutNs);
+            final long endTimeoutTimeNs = NbrsUtils.plusBounded(currentTimeoutTimeNs, timeoutNs);
             return mainWaitWhileFalse_TT_until_orChunk_withCurrentTime(
                     condilock,
                     booleanCondition,
@@ -304,7 +304,7 @@ class CondilocksUtilz {
             long endTimeoutTimeNs,
             long currentTimeoutTimeNs,
             long elapsedTimeNs) throws InterruptedException {
-        final long timeoutNs = NumbersUtils.minusBounded(
+        final long timeoutNs = NbrsUtils.minusBounded(
                 endTimeoutTimeNs,
                 currentTimeoutTimeNs);
         ConditionsUtilz.mainWait_TT_timeout_orChunk(
@@ -437,7 +437,7 @@ class CondilocksUtilz {
          * Switching to timeout time.
          */
         if (condilock.areMainWaitsTimed()) {
-            final long timeoutNs = NumbersUtils.minusBounded(
+            final long timeoutNs = NbrsUtils.minusBounded(
                     deadlineNs,
                     currentDeadlineTimeNs);
             final long reducedTimeoutNs = Math.min(

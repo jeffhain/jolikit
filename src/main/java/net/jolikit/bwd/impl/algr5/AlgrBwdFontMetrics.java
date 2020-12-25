@@ -20,7 +20,7 @@ import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibFont;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontMetrics;
 import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class AlgrBwdFontMetrics extends AbstractBwdFontMetrics {
 
@@ -110,7 +110,7 @@ public class AlgrBwdFontMetrics extends AbstractBwdFontMetrics {
                 // Will compute on next.
             } else {
                 final int advance = backingGlyphAdvance(prevCp, cp);
-                textWidth = NumbersUtils.plusExact(textWidth, advance);
+                textWidth = NbrsUtils.plusExact(textWidth, advance);
             }
             prevCp = cp;
 
@@ -119,7 +119,7 @@ public class AlgrBwdFontMetrics extends AbstractBwdFontMetrics {
         if (prevCp >= 0) {
             // Last glyph width.
             final int glyphWidth = backingGlyphWidth(prevCp);
-            textWidth = NumbersUtils.plusExact(textWidth, glyphWidth);
+            textWidth = NbrsUtils.plusExact(textWidth, glyphWidth);
         }
         return textWidth;
     }

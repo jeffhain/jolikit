@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package net.jolikit.threading.locks;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities to implement conditions.
@@ -188,7 +188,7 @@ class ConditionsUtilz {
                 isEndTimeNotHuge_and_areMainWaitsTimed(condition, deadlineNs);
         final long timeoutNs;
         if (mustComputeTimeToWaitFor) {
-            final long deltaNs = NumbersUtils.minusBounded(
+            final long deltaNs = NbrsUtils.minusBounded(
                     deadlineNs,
                     condition.deadlineTimeNs());
             timeoutNs = Math.min(

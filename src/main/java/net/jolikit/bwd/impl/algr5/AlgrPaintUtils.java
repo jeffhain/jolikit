@@ -30,7 +30,7 @@ import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.InterfaceScaledRowPartDrawer;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class AlgrPaintUtils {
     
@@ -121,7 +121,7 @@ public class AlgrPaintUtils {
             throw new BindingError("" + format);
         }
         
-        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final int pixelCapacity = NbrsUtils.timesExact(width, height);
         final int[] argb32Arr = new int[pixelCapacity];
         
         for (int y = 0; y < height; y++) {

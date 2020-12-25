@@ -29,7 +29,7 @@ import junit.framework.TestCase;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ConcUnit;
@@ -906,19 +906,19 @@ public class CondilocksTest extends TestCase {
         }
         case AWAIT_UNTIL_Date: {
             final long nowNs = condilock.deadlineTimeNs();
-            final long endTimeNs = NumbersUtils.plusBounded(nowNs, timeoutNs);
+            final long endTimeNs = NbrsUtils.plusBounded(nowNs, timeoutNs);
             final Date endDate = newDate(endTimeNs);
             return condilock.awaitUntil(endDate);
         }
         case AWAIT_UNTIL_NANOS_TIMEOUT_TIME_long: {
             final long nowNs = condilock.timeoutTimeNs();
-            final long endTimeNs = NumbersUtils.plusBounded(nowNs, timeoutNs);
+            final long endTimeNs = NbrsUtils.plusBounded(nowNs, timeoutNs);
             condilock.awaitUntilNanosTimeoutTime(endTimeNs);
             return null;
         }
         case AWAIT_UNTIL_NANOS_long: {
             final long nowNs = condilock.deadlineTimeNs();
-            final long endTimeNs = NumbersUtils.plusBounded(nowNs, timeoutNs);
+            final long endTimeNs = NbrsUtils.plusBounded(nowNs, timeoutNs);
             return condilock.awaitUntilNanos(endTimeNs);
         }
         /*
@@ -936,12 +936,12 @@ public class CondilocksTest extends TestCase {
         }
         case AWAIT_UNTIL_NANOS_TIMEOUT_TIME_WHILE_FALSE_IN_LOCK__bc: {
             final long nowNs = condilock.timeoutTimeNs();
-            final long endTimeNs = NumbersUtils.plusBounded(nowNs, timeoutNs);
+            final long endTimeNs = NbrsUtils.plusBounded(nowNs, timeoutNs);
             return condilock.awaitUntilNanosTimeoutTimeWhileFalseInLock(bc, endTimeNs);
         }
         case AWAIT_UNTLI_NANOS_WHILE_FALSE_IN_LOCK__bc: {
             final long nowNs = condilock.deadlineTimeNs();
-            final long endTimeNs = NumbersUtils.plusBounded(nowNs, timeoutNs);
+            final long endTimeNs = NbrsUtils.plusBounded(nowNs, timeoutNs);
             return condilock.awaitUntilNanosWhileFalseInLock(bc, endTimeNs);
         }
         default:

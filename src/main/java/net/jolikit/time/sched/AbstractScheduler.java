@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package net.jolikit.time.sched;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -38,7 +38,7 @@ public abstract class AbstractScheduler implements InterfaceScheduler {
         // Bounded not to throw if user specifies a huge delay,
         // in which case it's fine to have the time wrong
         // since the execution should never occur in practice.
-        final long timeNs = NumbersUtils.plusBounded(nowNs, delayNs);
+        final long timeNs = NbrsUtils.plusBounded(nowNs, delayNs);
         this.executeAtNs(runnable, timeNs);
     }
 
@@ -66,7 +66,7 @@ public abstract class AbstractScheduler implements InterfaceScheduler {
          */
         final long delayNs = TimeUtils.sToNs(delayS);
         final long nowNs = this.getClock().getTimeNs();
-        final long timeNs = NumbersUtils.plusBounded(nowNs, delayNs);
+        final long timeNs = NbrsUtils.plusBounded(nowNs, delayNs);
         this.executeAtNs(runnable, timeNs);
     }
 }

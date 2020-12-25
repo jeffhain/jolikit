@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ import net.jolikit.bwd.impl.utils.fontbox.TrueTypeCollection.TrueTypeFontProcess
 import net.jolikit.bwd.impl.utils.fontbox.TrueTypeFont;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.time.TimeUtils;
 
@@ -306,7 +306,7 @@ public class FontBoxHelper implements Closeable {
     static int[] toMinMaxCpArr(int[] sortedCpArr) {
         final int rangeCount = computeRangeCount(sortedCpArr);
 
-        final int capacity = NumbersUtils.timesExact(2, rangeCount);
+        final int capacity = NbrsUtils.timesExact(2, rangeCount);
         final int[] minMaxCpArr = new int[capacity];
 
         int prevCp = -2;

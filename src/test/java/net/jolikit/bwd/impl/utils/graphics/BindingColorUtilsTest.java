@@ -19,7 +19,7 @@ import java.util.Random;
 
 import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 public class BindingColorUtilsTest extends TestCase {
@@ -330,7 +330,7 @@ public class BindingColorUtilsTest extends TestCase {
     private static String toString_0_1(double cpt) {
         final StringBuilder sb = new StringBuilder();
         
-        sb.append(NumbersUtils.toStringNoCSN(cpt));
+        sb.append(NbrsUtils.toStringNoCSN(cpt));
         
         // "0." and up to 17 digits.
         final int maxSize = 2 + 17;

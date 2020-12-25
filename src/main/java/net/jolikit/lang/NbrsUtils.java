@@ -16,11 +16,11 @@
 package net.jolikit.lang;
 
 /**
- * TODO Copy-paste from Jafama 2.3.1, with some round/ceil/floor methods added
- * to avoid having to use and depend on FastMath just for these,
- * and toStringHex() methods.
+ * NB: Copy-paste from Jafama 2.3.1's NumbersUtils,
+ * with some round/ceil/floor methods added to avoid having to use
+ * and depend on FastMath just for these, and toStringHex() methods.
  * See later if want to merge all of Jafama into this library (and in this
- * package), and make FastMath delegate to methods copied into NumbersUtils
+ * package), and make FastMath delegate to methods copied into NbrsUtils
  * (or not, due to eventual strictfp issues).
  * Also upgraded some toString(...) methods.
  * Also added asShort(int/long)/toShort(int/long) and the likes.
@@ -40,7 +40,7 @@ package net.jolikit.lang;
  * instead of longs), or to be used in an int use case (like methods
  * checking whether or not a signed int can fit in such number of bits).
  */
-public final class NumbersUtils {
+public final class NbrsUtils {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -1777,7 +1777,7 @@ public final class NumbersUtils {
          * pathologically large values, which should not be a common case
          * when dealing with ints, so we just use round(double).
          */
-        return NumbersUtils.toInt(round(value));
+        return NbrsUtils.toInt(round(value));
     }
     
     /**
@@ -2961,7 +2961,7 @@ public final class NumbersUtils {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private NumbersUtils() {
+    private NbrsUtils() {
     }
     
     /*

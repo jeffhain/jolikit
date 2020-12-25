@@ -11,6 +11,13 @@ Jolikit X.X, XXXX/XX/XX
   or to call stopAccepting() and then drain or cancellation methods before
   calling shutdownNow(...).
 
+- Renamed NumbersUtils into NbrsUtils
+  (low level and used a lot, so a short name is better).
+
+- Added NbrsUtils.toStringHex(byte/short/int/long) methods,
+  with same semantics as Argb32.toString(int) and Argb64.toString(long)
+  but now a faster implementation.
+
 - Added exceptions handling in finally blocks to avoid exceptions thrown
   from them to suppress exceptions thrown from the try block
   (cf. the new ExceptionsUtils class).
@@ -58,10 +65,6 @@ Jolikit X.X, XXXX/XX/XX
     to the scheduler, since it's no longer computed by the scheduler.
     If it's not set, it will be equal to actual time (which is fine for ASAP
     schedules, or if you don't care about it).
-
-- Added NumbersUtils.toStringHex(byte/short/int/long) methods,
-  with same semantics as Argb32.toString(int) and Argb64.toString(long)
-  but now a faster implementation.
 
 - BWD API:
   - Additions:

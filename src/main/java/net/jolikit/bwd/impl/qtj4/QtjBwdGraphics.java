@@ -45,7 +45,7 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.ObjectWrapper;
 
 public class QtjBwdGraphics extends AbstractBwdGraphics {
@@ -1114,7 +1114,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         // Qt pattern must contain an even number of elements,
         // i.e. starts with a length of painted part,
         // and ends with a length of non-painted part.
-        if (NumbersUtils.isOdd(qtPattern.size())) {
+        if (NbrsUtils.isOdd(qtPattern.size())) {
             // Adding empty length of non-painted part.
             qtPattern.add(0.0);
         }

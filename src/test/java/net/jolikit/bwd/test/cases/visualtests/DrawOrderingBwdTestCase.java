@@ -31,7 +31,7 @@ import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * To test that drawings are properly ordered, i.e. that drawn operations,
@@ -335,7 +335,7 @@ public class DrawOrderingBwdTestCase extends AbstractBwdTestCase {
                     for (int i = 0; i < DRAWING_WIDTH; i++) {
                         // Only drawing when sum is even,
                         // to make it obvious it's not fillRect().
-                        if (NumbersUtils.isEven(i+j)) {
+                        if (NbrsUtils.isEven(i+j)) {
                             g.drawPoint(x + i, y + j);
                         }
                     }

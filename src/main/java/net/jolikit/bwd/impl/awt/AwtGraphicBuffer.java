@@ -19,7 +19,7 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.impl.utils.graphics.AbstractGraphicBuffer;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Resizable graphic buffer of pixels, using an hysteresis for spans of the
@@ -164,7 +164,7 @@ public class AwtGraphicBuffer extends AbstractGraphicBuffer<BufferedImage> {
             int heightToCopy) {
         final BufferedImage image;
         if (this.mustUseIntArrayRaster) {
-            final int pixelCapacity = NumbersUtils.timesExact(newStorageWidth, newStorageHeight);
+            final int pixelCapacity = NbrsUtils.timesExact(newStorageWidth, newStorageHeight);
             final int[] pixelArr = new int[pixelCapacity];
             image = BufferedImageHelper.newBufferedImageWithIntArray(
                     pixelArr,

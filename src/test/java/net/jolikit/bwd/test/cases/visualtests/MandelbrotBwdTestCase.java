@@ -42,7 +42,7 @@ import net.jolikit.bwd.test.cases.utils.fractals.MandDrawer;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplitmergable;
 import net.jolikit.time.sched.AbstractProcess;
@@ -678,13 +678,13 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
                 this.onDrawingInputUpdate();
             }
         } else if (event.isShiftDown()) {
-            int sign = NumbersUtils.signum(event.yRoll());
+            int sign = NbrsUtils.signum(event.yRoll());
             if (sign == 0) {
                 /*
                  * For some libraries, when holding shift,
                  * y rolls become x rolls.
                  */
-                sign = NumbersUtils.signum(event.xRoll());
+                sign = NbrsUtils.signum(event.xRoll());
             }
             if (sign != 0) {
                 final int min = 1;
@@ -910,10 +910,10 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
      */
     private boolean tryModifyMaxIter(int toAdd) {
         final int oldValue = this.targetMaxIter;
-        final int newValue = NumbersUtils.toRange(
+        final int newValue = NbrsUtils.toRange(
                 MIN_MAX_ITER,
                 MAX_MAX_ITER,
-                NumbersUtils.plusBounded(oldValue, toAdd));
+                NbrsUtils.plusBounded(oldValue, toAdd));
         final boolean modif = (newValue != oldValue);
         if (modif) {
             this.targetMaxIter = newValue;

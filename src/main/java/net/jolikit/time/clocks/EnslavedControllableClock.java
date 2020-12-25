@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package net.jolikit.time.clocks;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.locks.InterfaceCheckerLock;
 import net.jolikit.threading.locks.ReentrantCheckerLock;
 import net.jolikit.time.TimeUtils;
@@ -262,7 +262,7 @@ public class EnslavedControllableClock implements InterfaceEnslavedControllableC
 
     private void setTimeOffsetNS_NO_NOTIFICATION(long timeOffsetNS) {
         final long masterTimeNs = this.masterClock.getTimeNs();
-        this.setRefTimesNS_NO_NOTIFICATION(masterTimeNs, NumbersUtils.plusBounded(masterTimeNs, timeOffsetNS));
+        this.setRefTimesNS_NO_NOTIFICATION(masterTimeNs, NbrsUtils.plusBounded(masterTimeNs, timeOffsetNS));
     }
     
     private void setRefTimesNS_NO_NOTIFICATION(long masterTimeNs, long timeNs) {
@@ -309,7 +309,7 @@ public class EnslavedControllableClock implements InterfaceEnslavedControllableC
 
     private void setTimeOffsetNSAndTimeSpeed_NO_NOTIFICATION(long timeOffsetNS, double timeSpeed) {
         final long masterTimeNs = this.masterClock.getTimeNs();
-        this.setRefTimesNSAndTimeSpeed_NO_NOTIFICATION(masterTimeNs, NumbersUtils.plusBounded(masterTimeNs, timeOffsetNS), timeSpeed);
+        this.setRefTimesNSAndTimeSpeed_NO_NOTIFICATION(masterTimeNs, NbrsUtils.plusBounded(masterTimeNs, timeOffsetNS), timeSpeed);
     }
     
     private void setRefTimesNSAndTimeSpeed_NO_NOTIFICATION(long masterTimeNs, long timeNs, double timeSpeed) {

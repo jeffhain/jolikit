@@ -36,7 +36,7 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.OsUtils;
 
 /**
@@ -177,8 +177,8 @@ public class SdlEventConverter extends AbstractEventConverter {
             if (MUST_ENSURE_MOUSE_POS_IN_CLIENT_STAYS_IN) {
                 final GRect clientBounds = this.getHost().getClientBounds();
                 if (!clientBounds.isEmpty()) {
-                    xInClient = NumbersUtils.toRange(0, clientBounds.xSpan(), xInClient);
-                    yInClient = NumbersUtils.toRange(0, clientBounds.ySpan(), yInClient);
+                    xInClient = NbrsUtils.toRange(0, clientBounds.xSpan(), xInClient);
+                    yInClient = NbrsUtils.toRange(0, clientBounds.ySpan(), yInClient);
                 }
             }
             

@@ -35,7 +35,7 @@ import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.HertzHelper;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 /**
@@ -591,8 +591,8 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             MySpriteInfo info) {
 
         // Back into the box, in case of resize.
-        info.x = NumbersUtils.toRange(spritesMovingBox.x(), spritesMovingBox.xMax(), info.x);
-        info.y = NumbersUtils.toRange(spritesMovingBox.y(), spritesMovingBox.yMax(), info.y);
+        info.x = NbrsUtils.toRange(spritesMovingBox.x(), spritesMovingBox.xMax(), info.x);
+        info.y = NbrsUtils.toRange(spritesMovingBox.y(), spritesMovingBox.yMax(), info.y);
         
         // Seldom random orientation change.
         if (random.nextDouble() < SPRITE_KINE_ORIENTATION_CHANGE_PROBA) {

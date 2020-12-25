@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
  */
 package net.jolikit.time.clocks;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 class ClockLinearTimeRef {
 
@@ -78,15 +78,15 @@ class ClockLinearTimeRef {
     }
 
     public long computeSlaveTimeNs(long masterTimeNs) {
-        long dtNs = NumbersUtils.minusBounded(masterTimeNs, this.refMasterTimeNs);
+        long dtNs = NbrsUtils.minusBounded(masterTimeNs, this.refMasterTimeNs);
         dtNs = ClocksUtils.computeDtNsMulTimeSpeed(dtNs, this.timeSpeed);
-        return NumbersUtils.plusBounded(this.refTimeNs, dtNs);
+        return NbrsUtils.plusBounded(this.refTimeNs, dtNs);
     }
     
     public long computeMasterTimeNs(long slaveTimeNs) {
-        long dtNs = NumbersUtils.minusBounded(slaveTimeNs, this.refTimeNs);
+        long dtNs = NbrsUtils.minusBounded(slaveTimeNs, this.refTimeNs);
         dtNs = ClocksUtils.computeDtNsMulTimeSpeed(dtNs, this.timeSpeedInv);
-        return NumbersUtils.plusBounded(this.refMasterTimeNs, dtNs);
+        return NbrsUtils.plusBounded(this.refMasterTimeNs, dtNs);
     }
     
     /**
@@ -104,8 +104,8 @@ class ClockLinearTimeRef {
     public void computeSlaveTimeExtrapolationAtMasterTimeInto(
             long masterTimeNs,
             ClockLinearTimeRef extrapolation) {
-        long dtNs = NumbersUtils.minusBounded(masterTimeNs, this.refMasterTimeNs);
+        long dtNs = NbrsUtils.minusBounded(masterTimeNs, this.refMasterTimeNs);
         dtNs = ClocksUtils.computeDtNsMulTimeSpeed(dtNs, this.timeSpeed);
-        extrapolation.refTimeNs = NumbersUtils.plusBounded(this.refTimeNs, dtNs);
+        extrapolation.refTimeNs = NbrsUtils.plusBounded(this.refTimeNs, dtNs);
     }
 }

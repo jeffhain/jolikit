@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.swt;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Image;
@@ -90,7 +90,7 @@ public class SwtBwdImageFromFile extends AbstractSwtBwdImage {
 
             width = imageData.width;
             height = imageData.height;
-            final int pixelCapacity = NumbersUtils.timesExact(width, height);
+            final int pixelCapacity = NbrsUtils.timesExact(width, height);
             premulArgb32Arr = new int[pixelCapacity];
 
             int index = 0;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
 import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.widgets.Shell;
@@ -159,7 +159,7 @@ public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
          */
         final boolean mustThrowIfWeird = false;
         if (mustThrowIfWeird
-                && NumbersUtils.isOdd(dxSpan)) {
+                && NbrsUtils.isOdd(dxSpan)) {
             throw new BindingError("window = " + windowRectangle + ", client area = " + clientAreaRectangle);
         }
         

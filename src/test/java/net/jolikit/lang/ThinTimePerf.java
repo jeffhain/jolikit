@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +18,6 @@ package net.jolikit.lang;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.jolikit.lang.NumbersUtils;
-import net.jolikit.lang.ThinTime;
-import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
 
 public class ThinTimePerf {
@@ -30,7 +27,7 @@ public class ThinTimePerf {
     //--------------------------------------------------------------------------
     
     private static final int NBR_OF_PROC = Runtime.getRuntime().availableProcessors();
-    private static final int CEILED_NBR_OF_PROC = NumbersUtils.ceilingPowerOfTwo(NBR_OF_PROC);
+    private static final int CEILED_NBR_OF_PROC = NbrsUtils.ceilingPowerOfTwo(NBR_OF_PROC);
     
     private static final int MIN_PARALLELISM = 1;
     private static final int MAX_PARALLELISM = 2 * CEILED_NBR_OF_PROC;

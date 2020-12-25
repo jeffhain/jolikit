@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
 import net.jolikit.time.sched.SchedUtils;
@@ -178,7 +178,7 @@ public class ExecutorHardScheduler extends AbstractScheduler {
     public void executeAtNs(
             Runnable runnable,
             long timeNs) {
-        final long delayNs = NumbersUtils.minusBounded(timeNs, this.clock.getTimeNs());
+        final long delayNs = NbrsUtils.minusBounded(timeNs, this.clock.getTimeNs());
         this.executeDelayed(runnable, delayNs);
     }
 

@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultLineDrawer implements InterfaceLineDrawer {
 
@@ -430,10 +430,10 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
                 y2d = a * x2d + b;
             }
             if (DEBUG) {
-                Dbg.log("x1d (1) = " + NumbersUtils.toStringNoCSN(x1d));
-                Dbg.log("y1d (1) = " + NumbersUtils.toStringNoCSN(y1d));
-                Dbg.log("x2d (1) = " + NumbersUtils.toStringNoCSN(x2d));
-                Dbg.log("y2d (1) = " + NumbersUtils.toStringNoCSN(y2d));
+                Dbg.log("x1d (1) = " + NbrsUtils.toStringNoCSN(x1d));
+                Dbg.log("y1d (1) = " + NbrsUtils.toStringNoCSN(y1d));
+                Dbg.log("x2d (1) = " + NbrsUtils.toStringNoCSN(x2d));
+                Dbg.log("y2d (1) = " + NbrsUtils.toStringNoCSN(y2d));
             }
             if (Math.max(y1d,y2d) < clipYExtended) {
                 // Line above clip (all cases).
@@ -542,10 +542,10 @@ public class DefaultLineDrawer implements InterfaceLineDrawer {
         if (someXOut || someYOut) {
             if (DEBUG) {
                 Dbg.log("CLIPPED (general)");
-                Dbg.log("x1d (2) = " + NumbersUtils.toStringNoCSN(x1d));
-                Dbg.log("y1d (2) = " + NumbersUtils.toStringNoCSN(y1d));
-                Dbg.log("x2d (2) = " + NumbersUtils.toStringNoCSN(x2d));
-                Dbg.log("y2d (2) = " + NumbersUtils.toStringNoCSN(y2d));
+                Dbg.log("x1d (2) = " + NbrsUtils.toStringNoCSN(x1d));
+                Dbg.log("y1d (2) = " + NbrsUtils.toStringNoCSN(y1d));
+                Dbg.log("x2d (2) = " + NbrsUtils.toStringNoCSN(x2d));
+                Dbg.log("y2d (2) = " + NbrsUtils.toStringNoCSN(y2d));
             }
             
             pixelNum = clippedLineDrawer.drawGeneralLineClipped(

@@ -21,8 +21,7 @@ import net.jolikit.bwd.api.events.InterfaceBwdEventListener;
 import net.jolikit.bwd.impl.utils.basics.InterfaceDoubleSupplier;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
-import net.jolikit.time.clocks.hard.NanoTimeClock;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 
@@ -85,9 +84,9 @@ public class KeyRepetitionHelper {
             if (DEBUG) {
                 Dbg.log(
                         "repetitor ... : theoS = "
-                                + NumbersUtils.toStringNoCSN(nsToS(theoreticalTimeNs))
+                                + NbrsUtils.toStringNoCSN(nsToS(theoreticalTimeNs))
                                 + ", actualS = "
-                                + NumbersUtils.toStringNoCSN(nsToS(actualTimeNs)));
+                                + NbrsUtils.toStringNoCSN(nsToS(actualTimeNs)));
             }
 
             final long delayNs;
@@ -154,7 +153,7 @@ public class KeyRepetitionHelper {
                 plusBounded(theoreticalTimeNs, delayNs),
                 actualTimeNs);
             if (DEBUG) {
-                Dbg.log("nextS = " + NumbersUtils.toStringNoCSN(nsToS(nextNs)));
+                Dbg.log("nextS = " + NbrsUtils.toStringNoCSN(nsToS(nextNs)));
             }
             return nextNs;
         }

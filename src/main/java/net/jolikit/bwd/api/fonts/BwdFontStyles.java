@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities to deal with font styles, which are bits fields,
@@ -240,6 +240,6 @@ public class BwdFontStyles {
     private static String toHexString(int value) {
         final long valueLong = ((long) value) & 0xFFFFFFFFL;
         final int radix = 16;
-        return "0x" + NumbersUtils.toString(valueLong, radix);
+        return "0x" + NbrsUtils.toString(valueLong, radix);
     }
 }

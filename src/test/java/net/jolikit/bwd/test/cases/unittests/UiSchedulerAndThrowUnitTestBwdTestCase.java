@@ -29,7 +29,7 @@ import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.sched.InterfaceScheduler;
@@ -267,7 +267,7 @@ public class UiSchedulerAndThrowUnitTestBwdTestCase extends AbstractUnitTestBwdT
         if (isLastStep) {
             return Long.MAX_VALUE;
         } else {
-            return NumbersUtils.plusBounded(nowNs, TimeUtils.sToNs(PERIOD_S));
+            return NbrsUtils.plusBounded(nowNs, TimeUtils.sToNs(PERIOD_S));
         }
     }
 

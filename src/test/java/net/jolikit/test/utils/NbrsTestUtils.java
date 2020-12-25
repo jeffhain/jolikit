@@ -23,7 +23,7 @@ import java.util.Random;
  * (i.e. not quite uniform, etc.), but that shouldn't
  * hurt for most testing usages.
  */
-public class NumbersTestUtils {
+public class NbrsTestUtils {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -63,14 +63,14 @@ public class NumbersTestUtils {
      * Uses a default and specific Random instance,
      * always using the same seed (deterministic).
      */
-    public NumbersTestUtils() {
+    public NbrsTestUtils() {
         this(TestUtils.newRandom123456789L());
     }
 
     /**
      * @param random Random instance to use.
      */
-    public NumbersTestUtils(Random random) {
+    public NbrsTestUtils(Random random) {
         this.random = random;
     }
     
@@ -654,8 +654,8 @@ public class NumbersTestUtils {
      * For settings.
      */
     private static void ___main(String[] args) {
-        NumbersTestUtils utils =
-                new NumbersTestUtils(
+        NbrsTestUtils utils =
+                new NbrsTestUtils(
                         TestUtils.newRandom123456789L());
         final int n = 10 * 1000;
         {

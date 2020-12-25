@@ -16,7 +16,7 @@
 package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Resizable graphic buffer of pixels, using an hysteresis for spans of the
@@ -40,7 +40,7 @@ public class IntArrayGraphicBuffer extends AbstractGraphicBuffer<IntArrayGraphic
         public MyStorage(
                 int storageWidth,
                 int storageHeight) {
-            final int pixelCapacity = NumbersUtils.timesExact(storageWidth, storageHeight);
+            final int pixelCapacity = NbrsUtils.timesExact(storageWidth, storageHeight);
             this.pixelArr = new int[pixelCapacity];
             this.storageWidth = storageWidth;
             this.storageHeight = storageHeight;

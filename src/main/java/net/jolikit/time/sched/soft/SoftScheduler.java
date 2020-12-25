@@ -25,7 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.lang.ExceptionsUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.soft.InterfaceSoftClock;
 import net.jolikit.time.sched.AbstractDefaultScheduler;
@@ -533,7 +533,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
                  */
                 this.rootClock.setTimeNs(theoreticalTimeNs);
                 nowNs = this.rootClock.getTimeNs();
-                if (!NumbersUtils.isInRange(timeNsBeforeSet, theoreticalTimeNs, nowNs)) {
+                if (!NbrsUtils.isInRange(timeNsBeforeSet, theoreticalTimeNs, nowNs)) {
                     throw new IllegalArgumentException(
                             "new current time ["
                                     + nowNs

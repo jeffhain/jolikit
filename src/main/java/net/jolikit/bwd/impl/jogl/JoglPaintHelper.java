@@ -32,7 +32,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class JoglPaintHelper {
     
@@ -463,7 +463,7 @@ public class JoglPaintHelper {
             if (internalArr.length >= pixelCountInClip) {
                 mustUseInternalArr = true;
             } else {
-                final int pixelCountInClient = NumbersUtils.timesExact(width, height);
+                final int pixelCountInClient = NbrsUtils.timesExact(width, height);
                 final double ratio = pixelCountInClip / (double) pixelCountInClient;
                 if (ratio <= TEXTURE_ARRAY_RATIO_THRESHOLD) {
                     // Creating large enough array.

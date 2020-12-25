@@ -16,7 +16,7 @@
 package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Package-private class for line (actually, segment) drawing arguments.
@@ -80,7 +80,7 @@ final class TestLineArgs {
         sb.append(", y2 = ").append(this.y2);
         if (this.isLineStipple()) {
             sb.append(", factor = ").append(this.factor);
-            sb.append(", pattern = ").append(NumbersUtils.toStringBits(pattern));
+            sb.append(", pattern = ").append(NbrsUtils.toStringBits(pattern));
             sb.append(", pixelNum = ").append(this.pixelNum);
         }
         sb.append("]");

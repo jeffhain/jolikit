@@ -30,7 +30,7 @@ import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.sched.InterfaceScheduler;
 
@@ -188,7 +188,7 @@ public class NoLeakBwdTestCase extends AbstractBwdTestCase {
         
         final double ppsDelayS = 1.0/TARGET_PPS;
         final long ppsDelayNs = TimeUtils.sToNs(ppsDelayS);
-        final long nextTimeNs = NumbersUtils.plusBounded(lastPaintTimeNs, ppsDelayNs);
+        final long nextTimeNs = NbrsUtils.plusBounded(lastPaintTimeNs, ppsDelayNs);
         scheduler.executeAtNs(new Runnable() {
             @Override
             public void run() {

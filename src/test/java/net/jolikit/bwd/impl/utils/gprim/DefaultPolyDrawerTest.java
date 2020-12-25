@@ -19,7 +19,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultPolyDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
 
@@ -205,7 +205,7 @@ public class DefaultPolyDrawerTest extends AbstractDrawerTezt<TestPolyArgs> {
                     myMaxNbrOfPoints = boundingBoxSpan;
                 } else {
                     // Possibly filling bounding box with just edges drawing.
-                    myMaxNbrOfPoints = NumbersUtils.pow2(boundingBoxSpan);
+                    myMaxNbrOfPoints = NbrsUtils.pow2(boundingBoxSpan);
                 }
             }
             

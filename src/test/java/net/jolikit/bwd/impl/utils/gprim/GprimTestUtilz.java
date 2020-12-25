@@ -21,8 +21,8 @@ import java.util.Random;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
-import net.jolikit.test.utils.NumbersTestUtils;
+import net.jolikit.lang.NbrsUtils;
+import net.jolikit.test.utils.NbrsTestUtils;
 
 class GprimTestUtilz {
 
@@ -38,7 +38,7 @@ class GprimTestUtilz {
     
     private final Random random;
     
-    private final NumbersTestUtils nbrUtils;
+    private final NbrsTestUtils nbrUtils;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -46,7 +46,7 @@ class GprimTestUtilz {
     
     public GprimTestUtilz(Random random) {
         this.random = random;
-        this.nbrUtils = new NumbersTestUtils(random);
+        this.nbrUtils = new NbrsTestUtils(random);
     }
     
     /**
@@ -61,10 +61,10 @@ class GprimTestUtilz {
             clip = GRect.DEFAULT_HUGE;
         } else {
             clip = this.newClipIn(
-                    NumbersUtils.toInt(rect.x() - (long) rect.xSpan()),
-                    NumbersUtils.toInt(rect.y() - (long) rect.ySpan()),
-                    NumbersUtils.toInt(rect.xMax() + (long) rect.xSpan()),
-                    NumbersUtils.toInt(rect.yMax() + (long) rect.ySpan()));
+                    NbrsUtils.toInt(rect.x() - (long) rect.xSpan()),
+                    NbrsUtils.toInt(rect.y() - (long) rect.ySpan()),
+                    NbrsUtils.toInt(rect.xMax() + (long) rect.xSpan()),
+                    NbrsUtils.toInt(rect.yMax() + (long) rect.ySpan()));
         }
         return clip;
     }

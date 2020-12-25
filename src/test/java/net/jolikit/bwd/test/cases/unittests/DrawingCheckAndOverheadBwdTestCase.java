@@ -41,7 +41,7 @@ import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 
@@ -1560,7 +1560,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
             for (int i = 0; i < MAX_NBR_OF_CALLS; i++) {
 
                 if (mustConfigureGBeforeEachCall) {
-                    final boolean flipElseFlop = NumbersUtils.isEven(i);
+                    final boolean flipElseFlop = NbrsUtils.isEven(i);
                     if (flipElseFlop) {
                         testG.setArgb32(argb32_1);
                     } else {

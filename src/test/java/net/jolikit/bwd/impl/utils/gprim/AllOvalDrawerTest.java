@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
 
@@ -50,7 +50,7 @@ public class AllOvalDrawerTest extends AbstractDrawerTezt<TestOvalArgs> {
      */
     
     private static final int NBR_OF_CALLS_COMPREHENSIVE =
-            NumbersUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1);
+            NbrsUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1);
     private static final int NBR_OF_CALLS =
             NBR_OF_CALLS_COMPREHENSIVE
             + NBR_OF_CALLS_RANDOM;

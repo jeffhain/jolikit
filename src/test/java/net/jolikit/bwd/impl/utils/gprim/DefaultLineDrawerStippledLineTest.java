@@ -25,7 +25,7 @@ import junit.framework.TestCase;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 public class DefaultLineDrawerStippledLineTest extends TestCase {
@@ -67,7 +67,7 @@ public class DefaultLineDrawerStippledLineTest extends TestCase {
      */
     
     private static final int NBR_OF_CALLS_COMPREHENSIVE =
-            NumbersUtils.pow2(MAX_COMPREHENSIVE_SEGMENT_SPAN + 1);
+            NbrsUtils.pow2(MAX_COMPREHENSIVE_SEGMENT_SPAN + 1);
     private static final int NBR_OF_CALLS = NBR_OF_CALLS_COMPREHENSIVE + NBR_OF_CALLS_RANDOM;
 
     //--------------------------------------------------------------------------

@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Algorithms specific for full circles outline drawing.
@@ -86,7 +86,7 @@ public class OvalOrArc_midPointDraw_circle {
          * 
          */
 
-        if (NumbersUtils.isOdd(span)) {
+        if (NbrsUtils.isOdd(span)) {
             drawCircle_oddSpan(
                     clip,
                     x, y, span,

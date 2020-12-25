@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.basics;
 
 import java.nio.ByteOrder;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Basic utilities for implementing bindings.
@@ -64,7 +64,7 @@ public class BindingBasicsUtils {
      * storage span jump between K and K * FACTOR when used span
      * oscillates around K.
      */
-    private static final double SPAN_SHRINK_THRESHOLD = NumbersUtils.pow2(SPAN_SHRINK_FACTOR);
+    private static final double SPAN_SHRINK_THRESHOLD = NbrsUtils.pow2(SPAN_SHRINK_FACTOR);
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

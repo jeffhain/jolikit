@@ -19,7 +19,7 @@ import java.util.Random;
 
 import net.jolikit.test.utils.TestUtils;
 
-public class NumbersUtilsPerf {
+public class NbrsUtilsPerf {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -29,7 +29,7 @@ public class NumbersUtilsPerf {
     
     private static final int NBR_OF_CALLS = 10 * 1000 * 1000;
 
-    private static final int NBR_OF_VALUES = NumbersUtils.floorPowerOfTwo(10 * 1000);
+    private static final int NBR_OF_VALUES = NbrsUtils.floorPowerOfTwo(10 * 1000);
 
     private static final int[] RADIX_ARR = new int[]{2,4,8,16,10,11};
 
@@ -57,7 +57,7 @@ public class NumbersUtilsPerf {
         }
         @Override
         public String toString() {
-            return "NumbersUtils.toStringBits(" + primitive + ")";
+            return "NbrsUtils.toStringBits(" + primitive + ")";
         }
     }
 
@@ -81,7 +81,7 @@ public class NumbersUtilsPerf {
         }
         @Override
         public String toString() {
-            return "NumbersUtils.toStringBits(" + primitive + "," + first + "," + lastExcl + "," + bigEndian + "," + padding + ")";
+            return "NbrsUtils.toStringBits(" + primitive + "," + first + "," + lastExcl + "," + bigEndian + "," + padding + ")";
         }
     }
     
@@ -95,7 +95,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((byte)bits).length();
+            return NbrsUtils.toStringBits((byte)bits).length();
         }
     }
 
@@ -105,7 +105,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((short)bits).length();
+            return NbrsUtils.toStringBits((short)bits).length();
         }
     }
 
@@ -115,7 +115,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits(bits).length();
+            return NbrsUtils.toStringBits(bits).length();
         }
     }
 
@@ -125,7 +125,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((long)bits).length();
+            return NbrsUtils.toStringBits((long)bits).length();
         }
     }
     
@@ -139,7 +139,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((byte)bits,first,lastExcl,bigEndian,padding).length();
+            return NbrsUtils.toStringBits((byte)bits,first,lastExcl,bigEndian,padding).length();
         }
     }
 
@@ -149,7 +149,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((short)bits,first,lastExcl,bigEndian,padding).length();
+            return NbrsUtils.toStringBits((short)bits,first,lastExcl,bigEndian,padding).length();
         }
     }
 
@@ -159,7 +159,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits(bits,first,lastExcl,bigEndian,padding).length();
+            return NbrsUtils.toStringBits(bits,first,lastExcl,bigEndian,padding).length();
         }
     }
 
@@ -169,7 +169,7 @@ public class NumbersUtilsPerf {
         }
         //@Override
         public int toStringLength(int bits) {
-            return NumbersUtils.toStringBits((long)bits,first,lastExcl,bigEndian,padding).length();
+            return NbrsUtils.toStringBits((long)bits,first,lastExcl,bigEndian,padding).length();
         }
     }
 
@@ -183,10 +183,10 @@ public class NumbersUtilsPerf {
     }
 
     public static void newRun(String[] args) {
-        new NumbersUtilsPerf().run(args);
+        new NbrsUtilsPerf().run(args);
     }
     
-    public NumbersUtilsPerf() {
+    public NbrsUtilsPerf() {
     }
 
     //--------------------------------------------------------------------------
@@ -194,7 +194,7 @@ public class NumbersUtilsPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
-        System.out.println("--- " + NumbersUtilsPerf.class.getSimpleName() + "... ---");
+        System.out.println("--- " + NbrsUtilsPerf.class.getSimpleName() + "... ---");
         System.out.println("number of calls = " + NBR_OF_CALLS);
         
         bench_isMathematicalInteger_float();
@@ -241,7 +241,7 @@ public class NumbersUtilsPerf {
 
         bench_toStringNoCSN_double();
 
-        System.out.println("--- ..." + NumbersUtilsPerf.class.getSimpleName() + " ---");
+        System.out.println("--- ..." + NbrsUtilsPerf.class.getSimpleName() + " ---");
     }
     
     /*
@@ -263,10 +263,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isMathematicalInteger(float), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isMathematicalInteger(float), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -279,10 +279,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isMathematicalInteger(float), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isMathematicalInteger(float), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -306,10 +306,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isMathematicalInteger(double), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isMathematicalInteger(double), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -322,10 +322,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isMathematicalInteger(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isMathematicalInteger(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isMathematicalInteger(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -349,10 +349,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isEquidistant(float), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isEquidistant(float), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -365,10 +365,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isEquidistant(float), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isEquidistant(float), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -392,10 +392,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isEquidistant(double), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isEquidistant(double), values in [-100,100], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -408,10 +408,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
+                    dummy += NbrsUtils.isEquidistant(values[i&(NBR_OF_VALUES-1)]) ? 1 : -1;
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.isEquidistant(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.isEquidistant(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -439,10 +439,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.floorPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
+                    dummy += NbrsUtils.floorPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.floorPowerOfTwo(int) took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.floorPowerOfTwo(int) took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -466,10 +466,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.floorPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
+                    dummy += NbrsUtils.floorPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.floorPowerOfTwo(long) took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.floorPowerOfTwo(long) took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -493,10 +493,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.ceilingPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
+                    dummy += NbrsUtils.ceilingPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.ceilingPowerOfTwo(int) took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.ceilingPowerOfTwo(int) took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -520,10 +520,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.ceilingPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
+                    dummy += NbrsUtils.ceilingPowerOfTwo(values[i&(NBR_OF_VALUES-1)]);
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop on NumbersUtils.ceilingPowerOfTwo(long) took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop on NbrsUtils.ceilingPowerOfTwo(long) took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -580,7 +580,7 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtilsTest.ref_toString(i, radix, 0).length();
+                    dummy += NbrsUtilsTest.ref_toString(i, radix, 0).length();
                 }
                 long b = System.nanoTime();
                 System.out.println(header + "ref_toString(int," + radix + ",0) took " + TestUtils.nsToSRounded(b-a) + " s");
@@ -589,10 +589,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.toString(i, radix).length();
+                    dummy += NbrsUtils.toString(i, radix).length();
                 }
                 long b = System.nanoTime();
-                System.out.println(header + "NumbersUtils.toString(int," + radix + ") took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println(header + "NbrsUtils.toString(int," + radix + ") took " + TestUtils.nsToSRounded(b-a) + " s");
             }
 
             if (dummy == 0) {
@@ -622,7 +622,7 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtilsTest.ref_toString((long) i, radix, 0).length();
+                    dummy += NbrsUtilsTest.ref_toString((long) i, radix, 0).length();
                 }
                 long b = System.nanoTime();
                 System.out.println(header + "ref_toString(long," + radix + ",0) took " + TestUtils.nsToSRounded(b-a) + " s");
@@ -631,10 +631,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS; i++) {
-                    dummy += NumbersUtils.toString((long) i, radix).length();
+                    dummy += NbrsUtils.toString((long) i, radix).length();
                 }
                 long b = System.nanoTime();
-                System.out.println(header + "NumbersUtils.toString(long," + radix + ") took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println(header + "NbrsUtils.toString(long," + radix + ") took " + TestUtils.nsToSRounded(b-a) + " s");
             }
 
             if (dummy == 0) {
@@ -656,7 +656,7 @@ public class NumbersUtilsPerf {
                 for (int k = 0; k < NBR_OF_RUNS; k++) {
                     long a = System.nanoTime();
                     for (int i = 0; i < NBR_OF_CALLS; i++) {
-                        dummy += NumbersUtilsTest.ref_toString(i, radix, paddingUpTo).length();
+                        dummy += NbrsUtilsTest.ref_toString(i, radix, paddingUpTo).length();
                     }
                     long b = System.nanoTime();
                     System.out.println(header + "ref_toString(int," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
@@ -665,10 +665,10 @@ public class NumbersUtilsPerf {
                 for (int k = 0; k < NBR_OF_RUNS; k++) {
                     long a = System.nanoTime();
                     for (int i = 0; i < NBR_OF_CALLS; i++) {
-                        dummy += NumbersUtils.toString(i, radix, paddingUpTo).length();
+                        dummy += NbrsUtils.toString(i, radix, paddingUpTo).length();
                     }
                     long b = System.nanoTime();
-                    System.out.println(header + "NumbersUtils.toString(int," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
+                    System.out.println(header + "NbrsUtils.toString(int," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
                 }
             }
 
@@ -691,7 +691,7 @@ public class NumbersUtilsPerf {
                 for (int k = 0; k < NBR_OF_RUNS; k++) {
                     long a = System.nanoTime();
                     for (int i = 0; i < NBR_OF_CALLS; i++) {
-                        dummy += NumbersUtilsTest.ref_toString((long) i, radix, paddingUpTo).length();
+                        dummy += NbrsUtilsTest.ref_toString((long) i, radix, paddingUpTo).length();
                     }
                     long b = System.nanoTime();
                     System.out.println(header + "ref_toString(int," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
@@ -700,10 +700,10 @@ public class NumbersUtilsPerf {
                 for (int k = 0; k < NBR_OF_RUNS; k++) {
                     long a = System.nanoTime();
                     for (int i = 0; i < NBR_OF_CALLS; i++) {
-                        dummy += NumbersUtils.toString((long) i, radix, paddingUpTo).length();
+                        dummy += NbrsUtils.toString((long) i, radix, paddingUpTo).length();
                     }
                     long b = System.nanoTime();
-                    System.out.println(header + "NumbersUtils.toString(long," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
+                    System.out.println(header + "NbrsUtils.toString(long," + radix + "," + paddingUpTo + ") took " + TestUtils.nsToSRounded(b-a) + " s");
                 }
             }
 
@@ -798,10 +798,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringCSN(double), values integers in int range, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringCSN(double), values integers in int range, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -827,10 +827,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringCSN(double), values in [-1E20,1E20], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringCSN(double), values in [-1E20,1E20], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
         
@@ -856,10 +856,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringCSN(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringCSN(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
         
@@ -901,10 +901,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringNoCSN(double), values integers in int range, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringNoCSN(double), values integers in int range, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 
@@ -930,10 +930,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringNoCSN(double), values in [-1E20,1E20], took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringNoCSN(double), values in [-1E20,1E20], took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
         
@@ -959,10 +959,10 @@ public class NumbersUtilsPerf {
             for (int k = 0; k < NBR_OF_RUNS; k++) {
                 long a = System.nanoTime();
                 for (int i = 0; i < NBR_OF_CALLS/100; i++) {
-                    dummy += NumbersUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
+                    dummy += NbrsUtils.toStringNoCSN(values[i&(NBR_OF_VALUES-1)]).length();
                 }
                 long b = System.nanoTime();
-                System.out.println("Loop(/100) on NumbersUtils.toStringNoCSN(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
+                System.out.println("Loop(/100) on NbrsUtils.toStringNoCSN(double), values of all magnitudes, took " + TestUtils.nsToSRounded(b-a) + " s");
             }
         }
 

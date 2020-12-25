@@ -31,7 +31,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 /**
@@ -1508,7 +1508,7 @@ public class DrawingMethodsBwdPainter {
         if (length <= 0) {
             throw new IllegalArgumentException("" + length);
         }
-        if (NumbersUtils.isOdd(length)) {
+        if (NbrsUtils.isOdd(length)) {
             return length;
         } else {
             return length - 1;
@@ -1519,7 +1519,7 @@ public class DrawingMethodsBwdPainter {
         if (length < 0) {
             throw new IllegalArgumentException("" + length);
         }
-        if (NumbersUtils.isEven(length)) {
+        if (NbrsUtils.isEven(length)) {
             return length;
         } else {
             return length - 1;

@@ -26,7 +26,7 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class SwtPaintUtils {
 
@@ -103,7 +103,7 @@ public class SwtPaintUtils {
 
         final int bytesPerPixel = 3;
         final int rectSize = paintedRect.area();
-        final int rectByteSize = NumbersUtils.timesExact(bytesPerPixel, rectSize);
+        final int rectByteSize = NbrsUtils.timesExact(bytesPerPixel, rectSize);
 
         byte[] byteArr = this.tmpByteArr;
         if (byteArr.length < rectByteSize) {
@@ -113,7 +113,7 @@ public class SwtPaintUtils {
                  * NB: Could also just do that, i.e. piggybacking
                  * on client pixel array size smart growing logic.
                  */
-                newByteArrLength = NumbersUtils.timesExact(bytesPerPixel, pixelArr.length);
+                newByteArrLength = NbrsUtils.timesExact(bytesPerPixel, pixelArr.length);
             } else {
                 newByteArrLength = LangUtils.increasedArrayLength(byteArr.length, rectByteSize);
             }

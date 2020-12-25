@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * A graphical rectangle, defined as (x,y,xSpan,ySpan),
@@ -551,7 +551,7 @@ public final class GRect implements Comparable<GRect> {
      * @throws ArithmeticException if the product overflows.
      */
     public int area() {
-        return NumbersUtils.timesExact(this.xSpan, this.ySpan);
+        return NbrsUtils.timesExact(this.xSpan, this.ySpan);
     }
     
     /**

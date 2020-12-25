@@ -32,7 +32,7 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Non-static methods may use instance-specific mutable state
@@ -346,7 +346,7 @@ public class BufferedImageHelper {
             int gIndex,
             int bIndex) {
         
-        final int pixelCapacity = NumbersUtils.timesExact(width, height);
+        final int pixelCapacity = NbrsUtils.timesExact(width, height);
         
         final boolean gotAlpha = (aIndex >= 0);
         final int bitSize = (gotAlpha ? 32 : 24);

@@ -15,7 +15,7 @@
  */
 package net.jolikit.bwd.api.utils;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Class to help deal with Unicode characters, i.e. code points,
@@ -1505,9 +1505,9 @@ public class BwdUnicode {
      */
     public static String toDisplayString(int codePoint) {
         if (codePoint < 0) {
-            return "0x" + NumbersUtils.toString(toUnsignedLong(codePoint), 16);
+            return "0x" + NbrsUtils.toString(toUnsignedLong(codePoint), 16);
         } else {
-            return "0x" + NumbersUtils.toString(codePoint, 16);
+            return "0x" + NbrsUtils.toString(codePoint, 16);
         }
     }
 

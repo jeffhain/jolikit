@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -236,7 +236,7 @@ public class HeisenLogger {
                  * and we also indicate hexadecimal identity hash code,
                  * to help make sure which object it is.
                  */
-                sb.append(NumbersUtils.toString(System.identityHashCode(this.thread), 16));
+                sb.append(NbrsUtils.toString(System.identityHashCode(this.thread), 16));
                 sb.append("@");
                 sb.append(LangUtils.toString(this.thread));
             }

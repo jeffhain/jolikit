@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
 
@@ -328,10 +328,10 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                     + ", " + x1 + ", " + y1 + ", " + x2 + ", " + y2
                     + ", x1d, y1d, x2d, y2d"
                     + ", " + factor + ", " + pattern + ", " + pixelNum + ",)");
-            Dbg.log("x1d (1) = " + NumbersUtils.toStringNoCSN(x1d));
-            Dbg.log("y1d (1) = " + NumbersUtils.toStringNoCSN(y1d));
-            Dbg.log("x2d (1) = " + NumbersUtils.toStringNoCSN(x2d));
-            Dbg.log("y2d (1) = " + NumbersUtils.toStringNoCSN(y2d));
+            Dbg.log("x1d (1) = " + NbrsUtils.toStringNoCSN(x1d));
+            Dbg.log("y1d (1) = " + NbrsUtils.toStringNoCSN(y1d));
+            Dbg.log("x2d (1) = " + NbrsUtils.toStringNoCSN(x2d));
+            Dbg.log("y2d (1) = " + NbrsUtils.toStringNoCSN(y2d));
         }
 
         /*
@@ -368,10 +368,10 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
          */
 
         if (DEBUG) {
-            Dbg.log("x1d (2) = " + NumbersUtils.toStringNoCSN(x1d));
-            Dbg.log("y1d (2) = " + NumbersUtils.toStringNoCSN(y1d));
-            Dbg.log("x2d (2) = " + NumbersUtils.toStringNoCSN(x2d));
-            Dbg.log("y2d (2) = " + NumbersUtils.toStringNoCSN(y2d));
+            Dbg.log("x1d (2) = " + NbrsUtils.toStringNoCSN(x1d));
+            Dbg.log("y1d (2) = " + NbrsUtils.toStringNoCSN(y1d));
+            Dbg.log("x2d (2) = " + NbrsUtils.toStringNoCSN(x2d));
+            Dbg.log("y2d (2) = " + NbrsUtils.toStringNoCSN(y2d));
         }
         final int roundedX1 = BindingCoordsUtils.roundToInt(x1d);
         final int roundedY1 = BindingCoordsUtils.roundToInt(y1d);
@@ -482,7 +482,7 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                                     factor, pattern, myPixelNum);
                     if (DEBUG) {
                         Dbg.log("(loop 1) (" + x + ", " + y
-                                + " from " + NumbersUtils.toStringNoCSN(yd)
+                                + " from " + NbrsUtils.toStringNoCSN(yd)
                                 + "), pixelNum = " + myPixelNum
                                 + " : mustDraw = " + mustDraw);
                     }
@@ -535,7 +535,7 @@ public class DefaultClippedLineDrawer implements InterfaceClippedLineDrawer {
                             || LineStippleUtils.mustDraw(
                                     factor, pattern, myPixelNum);
                     if (DEBUG) {
-                        Dbg.log("(loop 2) (" + x + " from " + NumbersUtils.toStringNoCSN(xd)
+                        Dbg.log("(loop 2) (" + x + " from " + NbrsUtils.toStringNoCSN(xd)
                                 + ", " + y
                                 + "), pixelNum = " + myPixelNum
                                 + " : mustDraw = " + mustDraw);

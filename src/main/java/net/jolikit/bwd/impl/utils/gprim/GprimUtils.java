@@ -18,7 +18,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities for graphical primitives.
@@ -137,10 +137,10 @@ public class GprimUtils {
     }
 
     public static void checkArcAngles(double startDeg, double spanDeg) {
-        if (NumbersUtils.isNaNOrInfinite(startDeg)) {
+        if (NbrsUtils.isNaNOrInfinite(startDeg)) {
             throw new IllegalArgumentException("startDeg [" + startDeg + "] must not be NaN of +-Infinity");
         }
-        if (NumbersUtils.isNaNOrInfinite(spanDeg)) {
+        if (NbrsUtils.isNaNOrInfinite(spanDeg)) {
             throw new IllegalArgumentException("spanDeg [" + spanDeg + "] must not be NaN of +-Infinity");
         }
     }
@@ -291,7 +291,7 @@ public class GprimUtils {
      * @return Span in degrees, clamped into [-360.0,360.0].
      */
     public static double computeClampedSpanDeg(double spanDeg) {
-        return NumbersUtils.toRange(-360.0, 360.0, spanDeg);
+        return NbrsUtils.toRange(-360.0, 360.0, spanDeg);
     }
     
     /**
@@ -944,7 +944,7 @@ public class GprimUtils {
         
         final double distSqOnCurve;
         if (isCircle) {
-            distSqOnCurve = NumbersUtils.pow2(rx);
+            distSqOnCurve = NbrsUtils.pow2(rx);
         } else {
             // Not angle in the plane, but angle in formula.
             final double pAngRad = Math.atan2(pdy * rx, pdx * ry);

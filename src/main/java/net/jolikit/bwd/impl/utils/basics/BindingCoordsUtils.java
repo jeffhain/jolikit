@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class BindingCoordsUtils {
 
@@ -28,25 +28,25 @@ public class BindingCoordsUtils {
     //--------------------------------------------------------------------------
     
     public static int ceilToInt(double value) {
-        return NumbersUtils.ceilToInt(value);
+        return NbrsUtils.ceilToInt(value);
     }
     
     public static int floorToInt(double value) {
-        return NumbersUtils.floorToInt(value);
+        return NbrsUtils.floorToInt(value);
     }
     
     /**
      * @return The closest int to the argument, with ties rounding to positive infinity.
      */
     public static int roundToInt(double value) {
-        return NumbersUtils.roundToInt(value);
+        return NbrsUtils.roundToInt(value);
     }
     
     /**
      * @return The closest long to the argument, with ties rounding to positive infinity.
      */
     public static long roundToLong(double value) {
-        return NumbersUtils.round(value);
+        return NbrsUtils.round(value);
     }
     
     /*

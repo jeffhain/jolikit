@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Class to implement font homes newFontWithXxxHeight(...) methods.
@@ -287,7 +287,7 @@ public class FontOfHeightHelper {
          */
         
         {
-            final int onlyS = NumbersUtils.toRange(minFontSize, maxFontSize, targetFontHeight);
+            final int onlyS = NbrsUtils.toRange(minFontSize, maxFontSize, targetFontHeight);
             onlyFont = fontCreator.newFontWithSize(fontKind, onlyS);
             nbrOfFontsCreated++;
             if (DEBUG) {
@@ -359,13 +359,13 @@ public class FontOfHeightHelper {
                 }
                 final boolean onlyIsBelowElseAbove = (onlyH < targetFontHeight);
                 if (tmpNewFontSize == onlyS) {
-                    tmpNewFontSize = NumbersUtils.plusBounded(tmpNewFontSize, (onlyIsBelowElseAbove ? 1 : -1));
+                    tmpNewFontSize = NbrsUtils.plusBounded(tmpNewFontSize, (onlyIsBelowElseAbove ? 1 : -1));
                     if (DEBUG) {
                         Dbg.log("tmpNewFontSize (+- 1) = " + tmpNewFontSize);
                     }
                 }
                 
-                tmpNewFontSize = NumbersUtils.toRange(minFontSize, maxFontSize, tmpNewFontSize);
+                tmpNewFontSize = NbrsUtils.toRange(minFontSize, maxFontSize, tmpNewFontSize);
                 
                 /*
                  * Creating new font, and checks
@@ -480,7 +480,7 @@ public class FontOfHeightHelper {
                         }
                         if ((tmpNewFontSize == belowS)
                                 || (tmpNewFontSize == aboveS)) {
-                            tmpNewFontSize = NumbersUtils.plusBounded(tmpNewFontSize, ((tmpNewFontSize == belowS) ? 1 : -1));
+                            tmpNewFontSize = NbrsUtils.plusBounded(tmpNewFontSize, ((tmpNewFontSize == belowS) ? 1 : -1));
                             if (DEBUG) {
                                 Dbg.log("tmpNewFontSize (+- 1) = " + tmpNewFontSize + " for " + fontKind + " (aboveS - belowS = " + (aboveS - belowS) + ")");
                             }

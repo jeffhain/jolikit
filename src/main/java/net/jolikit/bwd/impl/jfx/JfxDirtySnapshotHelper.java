@@ -22,7 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Helper class to take snapshots of canvas
@@ -239,8 +239,8 @@ public class JfxDirtySnapshotHelper {
             /*
              * toRange(...) only works for non-zero spans.
              */
-            xInBase = NumbersUtils.toRange(snapshotBox.x(), snapshotBox.xMax(), xInBase);
-            yInBase = NumbersUtils.toRange(snapshotBox.y(), snapshotBox.yMax(), yInBase);
+            xInBase = NbrsUtils.toRange(snapshotBox.x(), snapshotBox.xMax(), xInBase);
+            yInBase = NbrsUtils.toRange(snapshotBox.y(), snapshotBox.yMax(), yInBase);
             this.snapshotDirtyBox = this.snapshotDirtyBox.unionBoundingBox(xInBase, yInBase);
         }
     }

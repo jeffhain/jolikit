@@ -15,7 +15,7 @@
  */
 package net.jolikit.bwd.api.graphics;
 
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities to deal with argb32 colors, as a primitive int.
@@ -102,7 +102,7 @@ public class Argb32 {
      * @return A string of the form 0xAARRGGBB.
      */
     public static String toString(int argb32) {
-        return NumbersUtils.toStringHex(argb32);
+        return NbrsUtils.toStringHex(argb32);
     }
 
     /*

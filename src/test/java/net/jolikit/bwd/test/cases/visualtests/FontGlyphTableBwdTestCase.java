@@ -38,7 +38,7 @@ import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
     
@@ -762,7 +762,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
                         g.drawText(
                                 digitData.digitBox.x(),
                                 digitData.digitBox.y(),
-                                NumbersUtils.toString(digitData.getDigit(), 16));
+                                NbrsUtils.toString(digitData.getDigit(), 16));
                         {
                             final GRect box = digitData.incrCharBox;
                             g.drawText(box.x(), box.y(), "+");
@@ -1097,7 +1097,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
      */
     
     private static String toPaddedHexString(int value, int minDigitCount) {
-        String str = NumbersUtils.toString(value, 16);
+        String str = NbrsUtils.toString(value, 16);
         final int nToAdd = Math.max(0, minDigitCount - str.length());
         for (int i = 0; i < nToAdd; i++) {
             str = "0" + str;

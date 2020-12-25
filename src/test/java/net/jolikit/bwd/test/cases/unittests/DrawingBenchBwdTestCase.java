@@ -40,7 +40,7 @@ import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.TimeUtils;
 
@@ -972,7 +972,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                 testable.resetPixelsForBench();
             }
 
-            final boolean flipElseFlop = NumbersUtils.isEven(i);
+            final boolean flipElseFlop = NbrsUtils.isEven(i);
 
             final boolean isDrawing =
                     (testable.opType() == MyOpType.SET)

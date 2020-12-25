@@ -23,7 +23,7 @@ import net.jolikit.bwd.impl.utils.gprim.GprimUtilsPerf;
 import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.PolyArcDrawerPerf;
 import net.jolikit.lang.HeisenLoggerPerf;
-import net.jolikit.lang.NumbersUtilsPerf;
+import net.jolikit.lang.NbrsUtilsPerf;
 import net.jolikit.lang.ThinTimePerf;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.prl.ParallelizersPerf;
@@ -65,7 +65,7 @@ public class AllPerfs {
          */
         
         HeisenLoggerPerf.newRun(args);
-        NumbersUtilsPerf.newRun(args);
+        NbrsUtilsPerf.newRun(args);
         ThinTimePerf.newRun(args);
         
         /*

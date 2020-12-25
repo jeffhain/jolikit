@@ -29,7 +29,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.locks.InterfaceCondilock;
 import net.jolikit.threading.locks.LockCondilock;
 import net.jolikit.threading.locks.MonitorCondilock;
@@ -1843,7 +1843,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                         if(AZZERTIONS)LangUtils.azzert(firstTimedSched != null);
                         
                         // Wait time (in clock time) before schedule time.
-                        final long clockWaitTimeNs = NumbersUtils.minusBounded(
+                        final long clockWaitTimeNs = NbrsUtils.minusBounded(
                                 firstTimedSched.getTheoreticalTimeNs(),
                                 timeAfterWaitNs);
                         if (clockWaitTimeNs > 0) {

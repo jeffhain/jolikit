@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultPointDrawerTest extends AbstractDrawerTezt<GPoint> {
 
@@ -45,7 +45,7 @@ public class DefaultPointDrawerTest extends AbstractDrawerTezt<GPoint> {
      */
     
     private static final int NBR_OF_CALLS_COMPREHENSIVE =
-            NumbersUtils.pow2(COMP_XY_SPAN);
+            NbrsUtils.pow2(COMP_XY_SPAN);
     private static final int NBR_OF_CALLS =
             NBR_OF_CALLS_COMPREHENSIVE
             + NBR_OF_CALLS_RANDOM;

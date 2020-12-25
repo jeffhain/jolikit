@@ -17,7 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
 
@@ -84,7 +84,7 @@ public class AllArcDrawerTest extends AbstractDrawerTezt<TestArcArgs> {
      */
     
     private static final int NBR_OF_CALLS_COMPREHENSIVE =
-            NumbersUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1)
+            NbrsUtils.pow2(MAX_COMPREHENSIVE_OVAL_SPAN + 1)
             * COMP_START_SPAN_DEG_ARR.length;
     private static final int NBR_OF_CALLS =
             NBR_OF_CALLS_COMPREHENSIVE

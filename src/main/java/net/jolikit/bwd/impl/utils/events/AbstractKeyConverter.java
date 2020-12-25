@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import java.util.Map;
 import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Base class for backing key to key converters, that allows to define
@@ -139,7 +139,7 @@ public abstract class AbstractKeyConverter<BK> {
         
         // Starting at a power of two, for used range to be easy to deal with.
         // NB: throws if > 2^30, but our bindings don't do that.
-        nextKey = NumbersUtils.ceilingPowerOfTwo(nextKey);
+        nextKey = NbrsUtils.ceilingPowerOfTwo(nextKey);
         
         for (BK backingKey : backingKeyColl) {
             LangUtils.requireNonNull(backingKey);

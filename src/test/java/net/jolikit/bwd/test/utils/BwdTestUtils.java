@@ -39,7 +39,7 @@ import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.lang.DefaultExceptionHandler;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NumbersUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.OsUtils;
 import net.jolikit.test.JlkTestConfig;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
@@ -314,7 +314,7 @@ public class BwdTestUtils {
         // ms precision.
         final long nowMs = nowNs / (1000 * 1000);
         final double nowS = nowMs / 1000.0;
-        String nowStr = NumbersUtils.toStringNoCSN(nowS);
+        String nowStr = NbrsUtils.toStringNoCSN(nowS);
         
         final int dotIndex = nowStr.indexOf('.');
         final int pastCommaCount = nowStr.length() - (dotIndex + 1);
@@ -383,7 +383,7 @@ public class BwdTestUtils {
             int[] xArr,
             int[] yArr) {
         
-        if (!NumbersUtils.isEven(pointCount)) {
+        if (!NbrsUtils.isEven(pointCount)) {
             throw new IllegalArgumentException();
         }
         final int halfPointCount = pointCount / 2;
