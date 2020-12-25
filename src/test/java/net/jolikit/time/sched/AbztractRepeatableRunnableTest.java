@@ -18,7 +18,6 @@ package net.jolikit.time.sched;
 import java.util.concurrent.atomic.AtomicLong;
 
 import net.jolikit.time.sched.AbstractRepeatableRunnable;
-import net.jolikit.time.sched.InterfaceScheduler;
 import junit.framework.TestCase;
 
 /**

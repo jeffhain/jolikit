@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import net.jolikit.lang.HeisenLogger;
-import net.jolikit.lang.LongWrapper;
-import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ProcessorsUser;
 import junit.framework.TestCase;
 

@@ -25,7 +25,6 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.soft.RootSoftClock;
 import net.jolikit.time.sched.InterfaceCancellable;
-import net.jolikit.time.sched.soft.SoftScheduler;
 
 public class SoftSchedulerTest extends TestCase {
     

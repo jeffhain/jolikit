@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,8 +26,6 @@ import java.util.concurrent.locks.Lock;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ConcUnit;
-import net.jolikit.threading.locks.InterfaceCheckerLock;
-import net.jolikit.threading.locks.ReentrantCheckerLock;
 import junit.framework.TestCase;
 
 public class ReentrantCheckerLockTest extends TestCase {
