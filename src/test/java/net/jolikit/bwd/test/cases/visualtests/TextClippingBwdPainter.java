@@ -68,8 +68,7 @@ public class TextClippingBwdPainter {
 
     public TextClippingBwdPainter(InterfaceBwdBinding binding) {
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
-        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
-        this.font = fontHome.newFontWithClosestHeight(defaultFont.kind(), TARGET_FONT_HEIGHT);
+        this.font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
     }
     
     public void paint(InterfaceBwdGraphics g) {

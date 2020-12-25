@@ -626,7 +626,6 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
         this.figureHeightFont = binding.getFontHome().newFontWithClosestHeight(
-                fontHome.getDefaultFont().kind(),
                 FIGURE_HEIGHT);
 
         this.srcImage_opaque_png = binding.newImage(IMAGE_OPAQUE_PNG_FILE_PATH);

@@ -399,9 +399,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
         
         if (this.font == null) {
             final InterfaceBwdFontHome fontHome = this.getBinding().getFontHome();
-            this.font = fontHome.newFontWithClosestHeight(
-                    fontHome.getDefaultFont().kind(),
-                    TARGET_FONT_HEIGHT);
+            this.font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
         }
         g.setFont(this.font);
 

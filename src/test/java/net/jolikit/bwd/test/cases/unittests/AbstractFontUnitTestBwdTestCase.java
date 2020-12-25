@@ -168,6 +168,18 @@ public abstract class AbstractFontUnitTestBwdTestCase extends AbstractUnitTestBw
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
         
         /*
+         * 
+         */
+        
+        test_newFontWithSize_int(fontHome);
+        
+        test_newFontWithClosestHeight_int(fontHome);
+        
+        test_newFontWithFloorElseClosestHeight_int(fontHome);
+        
+        test_newFontWithCeilingElseClosestHeight_int(fontHome);
+        
+        /*
          * Initialization.
          */
         
@@ -393,6 +405,77 @@ public abstract class AbstractFontUnitTestBwdTestCase extends AbstractUnitTestBw
             if (family.startsWith("@")) {
                 throw new AssertionError("vertical font kind: " + fontKind);
             }
+        }
+    }
+    
+    private static void test_newFontWithSize_int(InterfaceBwdFontHome fontHome) {
+        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
+        
+        final int fontSize = defaultFont.size() + 1;
+        final InterfaceBwdFont font = fontHome.newFontWithSize(fontSize);
+        try {
+            if (!font.kind().equals(defaultFont.kind())) {
+                throw new AssertionError(font.kind() + " != " + defaultFont.kind());
+            }
+            if (font.size() != fontSize) {
+                throw new AssertionError(font.size() + " != " + fontSize);
+            }
+        } finally {
+            font.dispose();
+        }
+    }
+    
+    private static void test_newFontWithClosestHeight_int(InterfaceBwdFontHome fontHome) {
+        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
+        
+        final int targetFontHeight = 2 * defaultFont.size();
+        final InterfaceBwdFont expected = fontHome.newFontWithClosestHeight(
+            defaultFont.kind(),
+            targetFontHeight);
+        final InterfaceBwdFont actual = fontHome.newFontWithClosestHeight(targetFontHeight);
+        try {
+            if (!actual.equals(expected)) {
+                throw new AssertionError(actual + " != " + expected);
+            }
+        } finally {
+            expected.dispose();
+            actual.dispose();
+        }
+    }
+    
+    private static void test_newFontWithFloorElseClosestHeight_int(InterfaceBwdFontHome fontHome) {
+        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
+        
+        final int targetFontHeight = 1;
+        final InterfaceBwdFont expected = fontHome.newFontWithFloorElseClosestHeight(
+            defaultFont.kind(),
+            targetFontHeight);
+        final InterfaceBwdFont actual = fontHome.newFontWithFloorElseClosestHeight(targetFontHeight);
+        try {
+            if (!actual.equals(expected)) {
+                throw new AssertionError(actual + " != " + expected);
+            }
+        } finally {
+            expected.dispose();
+            actual.dispose();
+        }
+    }
+    
+    private static void test_newFontWithCeilingElseClosestHeight_int(InterfaceBwdFontHome fontHome) {
+        final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
+        
+        final int targetFontHeight = Integer.MAX_VALUE;
+        final InterfaceBwdFont expected = fontHome.newFontWithCeilingElseClosestHeight(
+            defaultFont.kind(),
+            targetFontHeight);
+        final InterfaceBwdFont actual = fontHome.newFontWithCeilingElseClosestHeight(targetFontHeight);
+        try {
+            if (!actual.equals(expected)) {
+                throw new AssertionError(actual + " != " + expected);
+            }
+        } finally {
+            expected.dispose();
+            actual.dispose();
         }
     }
 }

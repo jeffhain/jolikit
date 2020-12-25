@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.BwdColor;
@@ -231,8 +230,7 @@ public class ClippingBwdTestCase extends AbstractBwdTestCase {
                 
                 final int fontSize = CELL_Y_SPAN;
                 final InterfaceBwdFontHome fontHome = getBinding().getFontHome();
-                final BwdFontKind fontKind = fontHome.getDefaultFont().kind();
-                final InterfaceBwdFont font = fontHome.newFontWithSize(fontKind, fontSize);
+                final InterfaceBwdFont font = fontHome.newFontWithSize(fontSize);
                 try {
                     g.setFont(font);
 

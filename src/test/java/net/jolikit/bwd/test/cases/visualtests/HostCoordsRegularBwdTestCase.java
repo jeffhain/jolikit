@@ -168,9 +168,7 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
         
         InterfaceBwdFont font = this.font;
         if (font == null) {
-            font = fontHome.newFontWithClosestHeight(
-                    fontHome.getDefaultFont().kind(),
-                    TARGET_FONT_HEIGHT);
+            font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
             this.font = font;
         }
 

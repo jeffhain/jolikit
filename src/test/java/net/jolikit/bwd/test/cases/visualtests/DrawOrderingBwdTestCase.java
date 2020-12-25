@@ -184,9 +184,7 @@ public class DrawOrderingBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdBinding binding = this.getBinding();
 
         if (this.font == null) {
-            this.font = binding.getFontHome().newFontWithFloorElseClosestHeight(
-                    g.getFont().kind(),
-                    DRAWING_HEIGHT);
+            this.font = binding.getFontHome().newFontWithFloorElseClosestHeight(DRAWING_HEIGHT);
         }
         
         if (this.imageFromFileToDraw == null) {

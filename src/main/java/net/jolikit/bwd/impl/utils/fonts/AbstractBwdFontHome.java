@@ -524,7 +524,39 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
     /*
      * 
      */
-
+    
+    @Override
+    public InterfaceBwdFont newFontWithSize(int fontSize) {
+        return this.newFontWithSize(
+            this.getDefaultFont().kind(),
+            fontSize);
+    }
+    
+    @Override
+    public InterfaceBwdFont newFontWithClosestHeight(int targetFontHeight) {
+        return this.newFontWithClosestHeight(
+            this.getDefaultFont().kind(),
+            targetFontHeight);
+    }
+    
+    @Override
+    public InterfaceBwdFont newFontWithFloorElseClosestHeight(int targetFontHeight) {
+        return this.newFontWithFloorElseClosestHeight(
+            this.getDefaultFont().kind(),
+            targetFontHeight);
+    }
+    
+    @Override
+    public InterfaceBwdFont newFontWithCeilingElseClosestHeight(int targetFontHeight) {
+        return this.newFontWithCeilingElseClosestHeight(
+            this.getDefaultFont().kind(),
+            targetFontHeight);
+    }
+    
+    /*
+     * 
+     */
+    
     @Override
     public InterfaceBwdFont newFontWithSize(BwdFontKind fontKind, int fontSize) {
 

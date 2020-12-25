@@ -1091,8 +1091,7 @@ public class DrawingMethodsBwdPainter {
         
         InterfaceBwdFont font = this.font;
         if (font == null) {
-            final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
-            font = fontHome.newFontWithClosestHeight(defaultFont.kind(), TARGET_FONT_HEIGHT);
+            font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
             this.font = font;
         }
         

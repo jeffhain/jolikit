@@ -164,8 +164,8 @@ public class NoLeakBwdTestCase extends AbstractBwdTestCase {
             
             final InterfaceBwdFont initialFont = g.getFont();
             
-            final int size = 20;
-            final InterfaceBwdFont font = fontHome.newFontWithSize(initialFont.kind(), size);
+            final int size = Math.max(initialFont.size() + 1, 20);
+            final InterfaceBwdFont font = fontHome.newFontWithSize(size);
             
             final int pc = ++this.paintCount;
             

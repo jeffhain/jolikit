@@ -158,9 +158,7 @@ public class HelloBindingBwdTestCase extends AbstractBwdTestCase {
 
         InterfaceBwdFont font = this.font;
         if (font == null) {
-            font = binding.getFontHome().newFontWithClosestHeight(
-                    g.getFont().kind(),
-                    TARGET_FONT_HEIGHT);
+            font = binding.getFontHome().newFontWithClosestHeight(TARGET_FONT_HEIGHT);
             this.font = font;
         }
         

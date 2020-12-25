@@ -25,7 +25,6 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.BwdColor;
@@ -198,10 +197,7 @@ public class SampleBwd {
             InterfaceBwdFont myFont = this.myFont;
             if (myFont == null) {
                 final InterfaceBwdFontHome fontHome = this.binding.getFontHome();
-                
-                final BwdFontKind fontKind = fontHome.getLoadedFontKindSet().first();
-                final int targetFontHeight = MOUSE_POS_FONT_HEIGHT;
-                myFont = fontHome.newFontWithClosestHeight(fontKind, targetFontHeight);
+                myFont = fontHome.newFontWithClosestHeight(MOUSE_POS_FONT_HEIGHT);
                 this.myFont = myFont;
             }
             g.setFont(myFont);

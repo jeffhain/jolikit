@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
@@ -1142,10 +1141,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
          * 
          */
         
-        final BwdFontKind defaultFontKind = defaultFont.kind();
-        
         final InterfaceBwdFont createdFont = fontHome.newFontWithSize(
-                defaultFontKind,
                 defaultFont.size() + 1);
         g.setFont(createdFont);
         checkSame(createdFont, g.getFont());

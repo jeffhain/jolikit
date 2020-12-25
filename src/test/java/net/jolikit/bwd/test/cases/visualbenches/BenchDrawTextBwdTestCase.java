@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.BwdColor;
@@ -173,9 +172,8 @@ public class BenchDrawTextBwdTestCase extends AbstractBwdTestCase {
          */
         
         if (this.fontList.size() == 0) {
-            final BwdFontKind defaultFontKind = defaultFont.kind();
             for (int fontSize : FONT_SIZE_ARR) {
-                this.fontList.add(fontHome.newFontWithSize(defaultFontKind, fontSize));
+                this.fontList.add(fontHome.newFontWithSize(fontSize));
             }
         }
 

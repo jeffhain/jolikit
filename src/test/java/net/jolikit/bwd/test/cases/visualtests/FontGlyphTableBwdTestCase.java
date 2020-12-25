@@ -962,9 +962,7 @@ public class FontGlyphTableBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdFontHome home = this.getBinding().getFontHome();
         
         if (this.infoFont == null) {
-            this.infoFont = home.newFontWithClosestHeight(
-                    home.getDefaultFont().kind(),
-                    INFO_FONT_TARGET_HEIGHT);
+            this.infoFont = home.newFontWithClosestHeight(INFO_FONT_TARGET_HEIGHT);
         }
     }
     

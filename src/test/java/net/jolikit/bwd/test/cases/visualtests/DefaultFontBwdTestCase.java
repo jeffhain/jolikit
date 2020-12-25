@@ -18,7 +18,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
@@ -105,13 +104,12 @@ public class DefaultFontBwdTestCase extends AbstractBwdTestCase {
         int tmpY = yMin;
         
         final InterfaceBwdFont defaultFont = g.getFont();
-        final BwdFontKind defaultFontKind = defaultFont.kind();
         
         for (int i = 0; i < NBR_OF_FONT_SIZE; i++) {
             final int fontSize = MIN_FONT_SIZE + i;
             final boolean isDefaultFontSize = (fontSize == defaultFont.size());
             
-            final InterfaceBwdFont font = fontHome.newFontWithSize(defaultFontKind, fontSize);
+            final InterfaceBwdFont font = fontHome.newFontWithSize(fontSize);
             try {
                 final InterfaceBwdFontMetrics metrics = font.metrics();
                 final int fontHeight = metrics.height();

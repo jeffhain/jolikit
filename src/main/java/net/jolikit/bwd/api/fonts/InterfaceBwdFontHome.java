@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -213,6 +213,64 @@ public interface InterfaceBwdFontHome {
      */
     public int getMaxFontSize();
 
+    /*
+     * 
+     */
+    
+    /**
+     * Uses default font kind.
+     * Equivalent to newFontWithSize(home.getDefaultFont().kind(), fontSize).
+     * 
+     * @param fontSize Size of the font to create, in pixels.
+     * @return A new font with default font kind and the specified size.
+     * @throws IllegalArgumentException if the specified font size is out of
+     *         [getMinFontSize(),getMaxFontSize()] range.
+     * @throws IllegalStateException if this home has been disposed.
+     */
+    public InterfaceBwdFont newFontWithSize(int fontSize);
+    
+    /**
+     * Uses default font kind.
+     * Equivalent to newFontWithClosestHeight(home.getDefaultFont().kind(), targetFontHeight).
+     * 
+     * @param targetFontHeight Must be >= 1.
+     * @return A new font with height closest to the specified target height.
+     * @throws IllegalArgumentException if the specified target font height is
+     *         inferior or equal to zero.
+     * @throws IllegalStateException if this home has been disposed.
+     */
+    public InterfaceBwdFont newFontWithClosestHeight(int targetFontHeight);
+    
+    /**
+     * Uses default font kind.
+     * Equivalent to newFontWithFloorElseClosestHeight(home.getDefaultFont().kind(), targetFontHeight).
+     * 
+     * @param targetFontHeight Must be >= 1.
+     * @return A new font with height closest to the specified target height.
+     * @throws IllegalArgumentException if the specified target font height is
+     *         inferior or equal to zero.
+     * @throws IllegalStateException if this home has been disposed.
+     */
+    public InterfaceBwdFont newFontWithFloorElseClosestHeight(int targetFontHeight);
+    
+    /**
+     * Uses default font kind.
+     * Equivalent to newFontWithCeilingElseClosestHeight(home.getDefaultFont().kind(), targetFontHeight).
+     * 
+     * @param targetFontHeight Must be >= 1.
+     * @return A new font with height closest and inferior or equal to the
+     *         specified target height, or only closest if no such font could
+     *         be computed.
+     * @throws IllegalArgumentException if the specified target font height is
+     *         inferior or equal to zero.
+     * @throws IllegalStateException if this home has been disposed.
+     */
+    public InterfaceBwdFont newFontWithCeilingElseClosestHeight(int targetFontHeight);
+    
+    /*
+     * 
+     */
+    
     /**
      * Depending on the backing library, this method might actually
      * load a font from a file each time, so don't expect it to be always fast,

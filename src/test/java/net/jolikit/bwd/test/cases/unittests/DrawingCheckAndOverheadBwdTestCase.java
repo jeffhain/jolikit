@@ -1078,7 +1078,6 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         final InterfaceBwdFontHome fontHome = getBinding().getFontHome();
         final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
         this.nonDefaultFont = fontHome.newFontWithSize(
-                defaultFont.kind(),
                 defaultFont.size() + 1);
         
         this.srcImage_opaque_png = binding.newImage(IMAGE_OPAQUE_PNG_FILE_PATH);

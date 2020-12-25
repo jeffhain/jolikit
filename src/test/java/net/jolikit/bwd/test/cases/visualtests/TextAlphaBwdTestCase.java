@@ -92,8 +92,7 @@ public class TextAlphaBwdTestCase extends AbstractBwdTestCase {
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
 
         if (this.font == null) {
-            final InterfaceBwdFont defaultFont = fontHome.getDefaultFont();
-            this.font = fontHome.newFontWithClosestHeight(defaultFont.kind(), TARGET_FONT_HEIGHT);
+            this.font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
         }
 
         final GRect box = g.getBox();

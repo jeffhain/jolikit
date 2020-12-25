@@ -82,6 +82,8 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdGraphics.fillPolygon().
     - InterfaceBwdImage.getRect().
     - InterfaceBwdWritableImage class.
+    - InterfaceBwdFontHome.newFontXxx() methods that always use
+      default font kind (no font kind argument).
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
     - BwdKeyEventPr.isRepeat().

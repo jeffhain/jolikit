@@ -19,7 +19,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.fonts.BwdFontKind;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
@@ -139,9 +138,7 @@ public class TextWidthBwdTestCase extends AbstractBwdTestCase {
         
         // Just using default font kind,
         // since behaviors seem consistent across fonts.
-        final BwdFontKind fontKind = defaultFont.kind();
-
-        final InterfaceBwdFont font = fontHome.newFontWithClosestHeight(fontKind, TARGET_FONT_HEIGHT);
+        final InterfaceBwdFont font = fontHome.newFontWithClosestHeight(TARGET_FONT_HEIGHT);
         try {
             final InterfaceBwdFontMetrics fontMetrics = font.metrics();
 
