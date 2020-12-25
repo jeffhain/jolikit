@@ -229,12 +229,7 @@ public class FontBoxHelper implements Closeable {
     public CodePointSet computeCodePointSetElseNull(
             int fontIndex,
             int maxDisplayableCodePoint) {
-        if (maxDisplayableCodePoint < 0) {
-            throw new IllegalArgumentException(
-                    "maxDisplayableCodePoint ["
-                            + maxDisplayableCodePoint
-                            + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, maxDisplayableCodePoint, "maxDisplayableCodePoint");
         this.initIfNeeded();
         try {
             final CodePointSet cps;

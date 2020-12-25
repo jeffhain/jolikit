@@ -227,10 +227,8 @@ public class FontOfHeightHelper {
             BwdFontKind fontKind,
             int targetFontHeight) {
         
-        if (targetFontHeight <= 0) {
-            throw new IllegalArgumentException("targetFontHeight [" + targetFontHeight + "] must be > 0");
-        }
-
+        NbrsUtils.requireSup(0, targetFontHeight, "targetFontHeight");
+        
         if (DEBUG) {
             Dbg.log();
             Dbg.log("computeFloorCeilingFontArr(" + fontKind + "," + targetFontHeight + ")");

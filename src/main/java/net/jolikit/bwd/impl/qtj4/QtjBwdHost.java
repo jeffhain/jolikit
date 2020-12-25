@@ -52,6 +52,7 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.ObjectWrapper;
 
 public class QtjBwdHost extends AbstractBwdHost {
@@ -970,13 +971,9 @@ public class QtjBwdHost extends AbstractBwdHost {
     }
 
     private void updateOffscreenImageSize(int minWidthCap, int minHeightCap) {
-        if (minWidthCap < 0) {
-            throw new IllegalArgumentException("minWidthCap [" + minWidthCap + "] must be >= 0");
-        }
-        if (minHeightCap < 0) {
-            throw new IllegalArgumentException("minHeightCap [" + minHeightCap + "] must be >= 0");
-        }
-
+        NbrsUtils.requireSupOrEq(0, minWidthCap, "minWidthCap");
+        NbrsUtils.requireSupOrEq(0, minHeightCap, "minHeightCap");
+        
         final QImage oldImage = this.offscreenImage;
         final int oldWidthCap = oldImage.width();
         final int oldHeightCap = oldImage.height();

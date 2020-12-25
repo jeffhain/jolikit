@@ -11,12 +11,25 @@ Jolikit X.X, XXXX/XX/XX
   or to call stopAccepting() and then drain or cancellation methods before
   calling shutdownNow(...).
 
-- Renamed NumbersUtils into NbrsUtils
-  (low level and used a lot, so a short name is better).
-
-- Added NbrsUtils.toStringHex(byte/short/int/long) methods,
-  with same semantics as Argb32.toString(int) and Argb64.toString(long)
-  but now a faster implementation.
+- NumbersUtils:
+  - Renamed NumbersUtils into NbrsUtils
+    (low level and used a lot, so a short name is better).
+  - Renamed checkIsInRangeXxx() methods into checkInRangeXxx(),
+    for consistency with new requireInRange() methods
+    (themselves consistent with requireNonNull()).
+  - For int/long/float/double primitive types, added methods:
+    - requireInRange(min,max,value,name)
+      NB: Not deprecating/removing similar checkInRange() methods,
+          as they have their use case in assert(),
+          even though we no longer code like that.
+    - requireSupOrEq(min,value,name)
+    - requireSup(min,value,name)
+    - requireInfOrEq(max,value,name)
+    - requireInf(max,value,name)
+    and used them where appropriate.
+  - Added toStringHex(byte/short/int/long) methods,
+    with same semantics as Argb32.toString(int) and Argb64.toString(long)
+    but now a faster implementation.
 
 - Added exceptions handling in finally blocks to avoid exceptions thrown
   from them to suppress exceptions thrown from the try block

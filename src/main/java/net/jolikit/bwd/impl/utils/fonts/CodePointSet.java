@@ -61,13 +61,9 @@ public final class CodePointSet {
             final int maxCp = minMaxCpArr[2*i+1];
             
             // Sanity checks.
-            if (!(minCp <= maxCp)) {
-                throw new IllegalArgumentException("minCp [" + minCp + "] must be <= maxCp [" + maxCp + "]");
-            }
+            NbrsUtils.requireSupOrEq(minCp, maxCp, "maxCp");
             // At least one empty value between two ranges.
-            if (!(minCp - 1 > prevMaxCp)) {
-                throw new IllegalArgumentException("minCp - 1 [" + (minCp - 1) + "] must be > previous maxCp [" + prevMaxCp + "]");
-            }
+            NbrsUtils.requireSup(prevMaxCp, minCp - 1, "minCp - 1");
             
             prevMaxCp = maxCp;
             
@@ -145,7 +141,7 @@ public final class CodePointSet {
      * @throws IllegalArgumentException if the specified index is out of range.
      */
     public int getRangeMin(int rangeIndex) {
-        NbrsUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
+        NbrsUtils.checkInRange(0, this.rangeCount - 1, rangeIndex);
         return this.minMaxCpArr[2 * rangeIndex];
     }
 
@@ -155,7 +151,7 @@ public final class CodePointSet {
      * @throws IllegalArgumentException if the specified index is out of range.
      */
     public int getRangeMax(int rangeIndex) {
-        NbrsUtils.checkIsInRange(0, this.rangeCount - 1, rangeIndex);
+        NbrsUtils.checkInRange(0, this.rangeCount - 1, rangeIndex);
         return this.minMaxCpArr[2 * rangeIndex + 1];
     }
 

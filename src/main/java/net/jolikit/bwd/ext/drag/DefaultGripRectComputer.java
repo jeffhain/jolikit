@@ -16,6 +16,7 @@
 package net.jolikit.bwd.ext.drag;
 
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.lang.NbrsUtils;
 
 public class DefaultGripRectComputer implements InterfaceGripRectComputer {
 
@@ -34,9 +35,7 @@ public class DefaultGripRectComputer implements InterfaceGripRectComputer {
      *        the whole client area.
      */
     public DefaultGripRectComputer(int gripSpan) {
-        if (gripSpan < 0) {
-            throw new IllegalArgumentException("gripSpan [" + gripSpan + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, gripSpan, "gripSpan");
         this.gripSpan = gripSpan;
     }
     

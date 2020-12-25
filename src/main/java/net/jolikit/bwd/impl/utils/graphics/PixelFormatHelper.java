@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 import java.util.ArrayList;
 
 import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Helper class to convert various pixel formats (typically used
@@ -102,9 +103,7 @@ public class PixelFormatHelper {
             int gMask,
             int bMask) {
         
-        if ((format < 0) || (format > MAX_FORMAT)) {
-            throw new IllegalArgumentException("format [" + format + "] must be in [0," + MAX_FORMAT + "]");
-        }
+        NbrsUtils.requireInRange(0, MAX_FORMAT, format, "format");
         
         final MyFormatData data = new MyFormatData(aMask, rMask, gMask, bMask);
         

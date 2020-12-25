@@ -18,6 +18,7 @@ package net.jolikit.bwd.test.cases.utils.fractals;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public class FracColorComputer {
 
@@ -90,11 +91,7 @@ public class FracColorComputer {
      *        Considered in fractal when iter >= maxIter.
      */
     public final void setMaxIter(int maxIter) {
-        if ((maxIter <= 0) || (maxIter > ITER_BITS_MASK)) {
-            throw new IllegalArgumentException(
-                    "maxIter [" + maxIter
-                    + "] must be in [1," + ITER_BITS_MASK + "]");
-        }
+        NbrsUtils.requireInRange(1, ITER_BITS_MASK, maxIter, "maxIter");
         this.maxIter = maxIter;
     }
     

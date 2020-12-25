@@ -1479,16 +1479,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             int timedQueueCapacity,
             final ThreadFactory threadFactory) {
         
-        if (nbrOfThreads < 1) {
-            throw new IllegalArgumentException("number of threads [" + nbrOfThreads + "] must be >= 1");
-        }
+        NbrsUtils.requireSupOrEq(1, nbrOfThreads, "nbrOfThreads");
         
-        if (asapQueueCapacity <= 0) {
-            throw new IllegalArgumentException("ASAP queue capacity [" + asapQueueCapacity + "] must be > 0");
-        }
-        if (timedQueueCapacity <= 0) {
-            throw new IllegalArgumentException("timed queue capacity [" + asapQueueCapacity + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, asapQueueCapacity, "asapQueueCapacity");
+        NbrsUtils.requireSup(0, timedQueueCapacity, "timedQueueCapacity");
         
         if (isThreadless) {
             final boolean instanceAdaptedForUserWorkerThread =

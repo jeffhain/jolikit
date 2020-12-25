@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.RethrowException;
 
 /**
@@ -549,18 +550,8 @@ public class ExecutorParallelizer implements InterfaceParallelizer {
             int maxDepth,
             UncaughtExceptionHandler exceptionHandler) {
         LangUtils.requireNonNull(executor);
-        if (executorParallelism <= 0) {
-            throw new IllegalArgumentException(
-                    "executorParallelism ["
-                            + executorParallelism
-                            + "] must be >= 1");
-        }
-        if (maxDepth < 0) {
-            throw new IllegalArgumentException(
-                    "maxDepth ["
-                            + maxDepth
-                            + "] must be >= 0");
-        }
+        NbrsUtils.requireSup(0, executorParallelism, "executorParallelism");
+        NbrsUtils.requireSupOrEq(0, maxDepth, "maxDepth");
         this.executor = executor;
         this.parallelism = executorParallelism;
         this.maxDepth = maxDepth;

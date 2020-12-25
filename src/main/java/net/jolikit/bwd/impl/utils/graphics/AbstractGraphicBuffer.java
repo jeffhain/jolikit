@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Abstract class to make it easier to implement a resizable graphic buffer
@@ -84,12 +85,8 @@ public abstract class AbstractGraphicBuffer<S> {
      * @param newHeight Must be >= 0.
      */
     public void setSize(int newWidth, int newHeight) {
-        if (newWidth < 0) {
-            throw new IllegalArgumentException("newWidth [" + newWidth + "] must be >= 0");
-        }
-        if (newHeight < 0) {
-            throw new IllegalArgumentException("newHeight [" + newHeight + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, newWidth, "newWidth");
+        NbrsUtils.requireSupOrEq(0, newHeight, "newHeight");
         
         final int oldStorageWidth = this.getStorageWidth();
         final int oldStorageHeight = this.getStorageHeight();

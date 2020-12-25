@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -283,12 +283,8 @@ public class ThinTime {
                             + futureToleranceRatio
                             + "] must be >= 1.0, or equal to zero");
         }
-        if (initialMinSctmJumpMs <= 0) {
-            throw new IllegalArgumentException(
-                    "initial min sctm jump ["
-                            + initialMinSctmJumpMs
-                            + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, initialMinSctmJumpMs, "initialMinSctmJumpMs");
+        
         this.futureToleranceRatio = futureToleranceRatio;
         this.systemTimeZeroMs = systemTimeZeroMs;
 

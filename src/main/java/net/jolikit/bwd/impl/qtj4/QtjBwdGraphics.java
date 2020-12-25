@@ -1067,9 +1067,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             int factor,
             short pattern,
             List<Double> qtPattern) {
-        if (factor <= 0) {
-            throw new IllegalArgumentException("factor [" + factor + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, factor, "factor");
         if (pattern == 0) {
             throw new IllegalArgumentException("pattern [" + pattern + "] must be != 0");
         }

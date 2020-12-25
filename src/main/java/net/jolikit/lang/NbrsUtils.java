@@ -16,14 +16,10 @@
 package net.jolikit.lang;
 
 /**
- * NB: Copy-paste from Jafama 2.3.1's NumbersUtils,
- * with some round/ceil/floor methods added to avoid having to use
- * and depend on FastMath just for these, and toStringHex() methods.
+ * NB: Copy-paste-modify from Jafama 2.3.1's NumbersUtils.
  * See later if want to merge all of Jafama into this library (and in this
  * package), and make FastMath delegate to methods copied into NbrsUtils
  * (or not, due to eventual strictfp issues).
- * Also upgraded some toString(...) methods.
- * Also added asShort(int/long)/toShort(int/long) and the likes.
  * 
  * Class containing various basic utility methods to deal with numbers.
  * This class is meant to be light (no big look-up tables or such).
@@ -291,24 +287,15 @@ public final class NbrsUtils {
     /**
      * @return True if the specified value is in the specified range (inclusive), false otherwise.
      */
-    public static boolean isInRange(int min, int max, int a) {
-        return (min <= a) && (a <= max);
+    public static boolean isInRange(int min, int max, int value) {
+        return (min <= value) && (value <= max);
     }
 
     /**
      * @return True if the specified value is in the specified range (inclusive), false otherwise.
      */
-    public static boolean isInRange(long min, long max, long a) {
-        return (min <= a) && (a <= max);
-    }
-
-    /**
-     * Returns false if any value is NaN.
-     * 
-     * @return True if the specified value is in the specified range (inclusive), false otherwise.
-     */
-    public static boolean isInRange(float min, float max, float a) {
-        return (min <= a) && (a <= max);
+    public static boolean isInRange(long min, long max, long value) {
+        return (min <= value) && (value <= max);
     }
 
     /**
@@ -316,8 +303,17 @@ public final class NbrsUtils {
      * 
      * @return True if the specified value is in the specified range (inclusive), false otherwise.
      */
-    public static boolean isInRange(double min, double max, double a) {
-        return (min <= a) && (a <= max);
+    public static boolean isInRange(float min, float max, float value) {
+        return (min <= value) && (value <= max);
+    }
+
+    /**
+     * Returns false if any value is NaN.
+     * 
+     * @return True if the specified value is in the specified range (inclusive), false otherwise.
+     */
+    public static boolean isInRange(double min, double max, double value) {
+        return (min <= value) && (value <= max);
     }
 
     /*
@@ -328,10 +324,8 @@ public final class NbrsUtils {
      * @return True if does not throw.
      * @throws IllegalArgumentException if the specified value is not in the specified range (inclusive).
      */
-    public static boolean checkIsInRange(int min, int max, int a) {
-        if (!isInRange(min, max, a)) {
-            throw new IllegalArgumentException(a + " not in [" + min + "," + max + "]");
-        }
+    public static boolean checkInRange(int min, int max, int value) {
+        requireInRange(min, max, value, "value");
         return true;
     }
 
@@ -339,10 +333,8 @@ public final class NbrsUtils {
      * @return True if does not throw.
      * @throws IllegalArgumentException if the specified value is not in the specified range (inclusive).
      */
-    public static boolean checkIsInRange(long min, long max, long a) {
-        if (!isInRange(min, max, a)) {
-            throw new IllegalArgumentException(a + " not in [" + min + "," + max + "]");
-        }
+    public static boolean checkInRange(long min, long max, long value) {
+        requireInRange(min, max, value, "value");
         return true;
     }
 
@@ -351,10 +343,8 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value is not in the specified range (inclusive)
      *         or any parameter is NaN.
      */
-    public static boolean checkIsInRange(float min, float max, float a) {
-        if (!isInRange(min, max, a)) {
-            throw new IllegalArgumentException(a + " not in [" + min + "," + max + "]");
-        }
+    public static boolean checkInRange(float min, float max, float value) {
+        requireInRange(min, max, value, "value");
         return true;
     }
 
@@ -363,13 +353,345 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value is not in the specified range (inclusive)
      *         or any parameter is NaN.
      */
-    public static boolean checkIsInRange(double min, double max, double a) {
-        if (!isInRange(min, max, a)) {
-            throw new IllegalArgumentException(a + " not in [" + min + "," + max + "]");
-        }
+    public static boolean checkInRange(double min, double max, double value) {
+        requireInRange(min, max, value, "value");
         return true;
     }
 
+    /*
+     * Requires in range.
+     */
+    
+    /**
+     * @param min Min value.
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is out of [min,max].
+     */
+    public static int requireInRange(int min, int max, int value, String name) {
+        if (!isInRange(min, max, value)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be in [" + min + "," + max + "]");
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is out of [min,max].
+     */
+    public static long requireInRange(long min, long max, long value, String name) {
+        if (!isInRange(min, max, value)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be in [" + min + "," + max + "]");
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is out of [min,max]
+     *         or any argument is NaN.
+     */
+    public static float requireInRange(float min, float max, float value, String name) {
+        if (!isInRange(min, max, value)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be in [" + min + "," + max + "]");
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is out of [min,max]
+     *         or any argument is NaN.
+     */
+    public static double requireInRange(double min, double max, double value, String name) {
+        if (!isInRange(min, max, value)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be in [" + min + "," + max + "]");
+        }
+        return value;
+    }
+    
+    /*
+     * Requires >= min.
+     */
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is < min.
+     */
+    public static int requireSupOrEq(int min, int value, String name) {
+        if (!(value >= min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be >= " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is < min.
+     */
+    public static long requireSupOrEq(long min, long value, String name) {
+        if (!(value >= min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be >= " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is < min
+     *         or any argument is NaN.
+     */
+    public static float requireSupOrEq(float min, float value, String name) {
+        if (!(value >= min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be >= " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is < min
+     *         or any argument is NaN.
+     */
+    public static double requireSupOrEq(double min, double value, String name) {
+        if (!(value >= min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be >= " + min);
+        }
+        return value;
+    }
+    
+    /*
+     * Requires > min.
+     */
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is <= min.
+     */
+    public static int requireSup(int min, int value, String name) {
+        if (!(value > min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be > " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is <= min.
+     */
+    public static long requireSup(long min, long value, String name) {
+        if (!(value > min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be > " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is <= min
+     *         or any argument is NaN.
+     */
+    public static float requireSup(float min, float value, String name) {
+        if (!(value > min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be > " + min);
+        }
+        return value;
+    }
+    
+    /**
+     * @param min Min value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is <= min
+     *         or any argument is NaN.
+     */
+    public static double requireSup(double min, double value, String name) {
+        if (!(value > min)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be > " + min);
+        }
+        return value;
+    }
+    
+    /*
+     * Requires <= max.
+     */
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is > max.
+     */
+    public static int requireInfOrEq(int max, int value, String name) {
+        if (!(value <= max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be <= " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is > max.
+     */
+    public static long requireInfOrEq(long max, long value, String name) {
+        if (!(value <= max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be <= " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is > max
+     *         or any argument is NaN.
+     */
+    public static float requireInfOrEq(float max, float value, String name) {
+        if (!(value <= max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be <= " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is > max
+     *         or any argument is NaN.
+     */
+    public static double requireInfOrEq(double max, double value, String name) {
+        if (!(value <= max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be <= " + max);
+        }
+        return value;
+    }
+    
+    /*
+     * Requires < max.
+     */
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is >= max.
+     */
+    public static int requireInf(int max, int value, String name) {
+        if (!(value < max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be < " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is >= max.
+     */
+    public static long requireInf(long max, long value, String name) {
+        if (!(value < max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be < " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is >= max
+     *         or any argument is NaN.
+     */
+    public static float requireInf(float max, float value, String name) {
+        if (!(value < max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be < " + max);
+        }
+        return value;
+    }
+    
+    /**
+     * @param max Max value.
+     * @param value A value.
+     * @param name Value's name.
+     * @return The specified value.
+     * @throws IllegalArgumentException if the specified value is >= max
+     *         or any argument is NaN.
+     */
+    public static double requireInf(double max, double value, String name) {
+        if (!(value < max)) {
+            throw new IllegalArgumentException(
+                name + " [" + value + "] must be < " + max);
+        }
+        return value;
+    }
+    
     /*
      * 
      */
@@ -494,7 +816,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value does not fit
      *         as a signed integer over the specified number of bits.
      */
-    public static boolean checkIsInRangeSigned(int a, int bitSize) {
+    public static boolean checkInRangeSigned(int a, int bitSize) {
         if (!isInRangeSigned(a, bitSize)) {
             throw new IllegalArgumentException(a + " does not fit as a signed value over " + bitSize + " bits");
         }
@@ -507,7 +829,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value does not fit
      *         as a signed integer over the specified number of bits.
      */
-    public static boolean checkIsInRangeSigned(long a, int bitSize) {
+    public static boolean checkInRangeSigned(long a, int bitSize) {
         if (!isInRangeSigned(a, bitSize)) {
             throw new IllegalArgumentException(a + " does not fit as a signed value over " + bitSize + " bits");
         }
@@ -520,7 +842,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value does not fit
      *         as an unsigned integer over the specified number of bits.
      */
-    public static boolean checkIsInRangeUnsigned(int a, int bitSize) {
+    public static boolean checkInRangeUnsigned(int a, int bitSize) {
         if (!isInRangeUnsigned(a, bitSize)) {
             throw new IllegalArgumentException(a + " does not fit as an unsigned value over " + bitSize + " bits");
         }
@@ -533,7 +855,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value does not fit
      *         as an unsigned integer over the specified number of bits.
      */
-    public static boolean checkIsInRangeUnsigned(long a, int bitSize) {
+    public static boolean checkInRangeUnsigned(long a, int bitSize) {
         if (!isInRangeUnsigned(a, bitSize)) {
             throw new IllegalArgumentException(a + " does not fit as an unsigned value over " + bitSize + " bits");
         }
@@ -550,7 +872,7 @@ public final class NbrsUtils {
      *         and other bits set with 1.
      */
     public static int intMaskMSBits0(int bitSize) {
-        checkIsInRange(0, 32, bitSize);
+        checkInRange(0, 32, bitSize);
         // Shifting in two times, for >>> doesn't work for full bit size (<< as well).
         final int halfish = (bitSize>>1);
         return ((-1)>>>halfish)>>>(bitSize-halfish);
@@ -593,7 +915,7 @@ public final class NbrsUtils {
      *         and other bits set with 1.
      */
     public static long longMaskMSBits0(int bitSize) {
-        checkIsInRange(0, 64, bitSize);
+        checkInRange(0, 64, bitSize);
         // Shifting in two times, for >>> doesn't work for full bit size (<< as well).
         final int halfish = (bitSize>>1);
         return ((-1L)>>>halfish)>>>(bitSize-halfish);
@@ -849,11 +1171,9 @@ public final class NbrsUtils {
         if (value > 0) {
             return 32-Integer.numberOfLeadingZeros(value);
         } else {
-            if (value == 0) {
-                return 1;
-            } else {
-                throw new IllegalArgumentException("unsigned value [" + value + "] must be >= 0");
-            }
+            NbrsUtils.requireSupOrEq(0, value, "value");
+            // value is 0
+            return 1;
         }
     }
 
@@ -867,11 +1187,9 @@ public final class NbrsUtils {
         if (value > 0) {
             return 64-Long.numberOfLeadingZeros(value);
         } else {
-            if (value == 0) {
-                return 1;
-            } else {
-                throw new IllegalArgumentException("unsigned value [" + value + "] must be >= 0");
-            }
+            NbrsUtils.requireSupOrEq(0, value, "value");
+            // value is 0
+            return 1;
         }
     }
 
@@ -1015,27 +1333,23 @@ public final class NbrsUtils {
     }
 
     /**
-     * @param a A value in [1,Integer.MAX_VALUE].
-     * @return The highest power of two <= a.
+     * @param value A value in [1,Integer.MAX_VALUE].
+     * @return The highest power of two <= value.
      */
-    public static int floorPowerOfTwo(int a) {
-        if (a <= 0) {
-            throw new IllegalArgumentException("a [" + a + "] must be > 0");
-        }
-        return Integer.highestOneBit(a);
+    public static int floorPowerOfTwo(int value) {
+        NbrsUtils.requireSup(0, value, "value");
+        return Integer.highestOneBit(value);
     }
 
     /**
-     * @param a A value in [1,Long.MAX_VALUE].
-     * @return The highest power of two <= a.
+     * @param value A value in [1,Long.MAX_VALUE].
+     * @return The highest power of two <= value.
      */
-    public static long floorPowerOfTwo(long a) {
-        if (a <= 0) {
-            throw new IllegalArgumentException("a [" + a + "] must be > 0");
-        }
+    public static long floorPowerOfTwo(long value) {
+        NbrsUtils.requireSup(0, value, "value");
         // Faster than copying int method
         // (less computations on long).
-        return 1L << (63 - Long.numberOfLeadingZeros(a));
+        return 1L << (63 - Long.numberOfLeadingZeros(value));
     }
 
     /**
@@ -1043,7 +1357,7 @@ public final class NbrsUtils {
      * @return The lowest power of two >= a.
      */
     public static int ceilingPowerOfTwo(int a) {
-        checkIsInRange(0, (1<<30), a);
+        checkInRange(0, (1<<30), a);
         return (a >= 2) ? Integer.highestOneBit((a-1)<<1) : 1;
     }
 
@@ -1052,7 +1366,7 @@ public final class NbrsUtils {
      * @return The lowest power of two >= a.
      */
     public static long ceilingPowerOfTwo(long a) {
-        checkIsInRange(0L, (1L<<62), a);
+        checkInRange(0L, (1L<<62), a);
         // Faster than copying int method
         // (less computations on long).
         return 1L << (64 - Long.numberOfLeadingZeros(a - 1));
@@ -1175,9 +1489,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value is <= 0.
      */
     public static int log2(int value) {
-        if (value <= 0) {
-            throw new IllegalArgumentException("value [" + value + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, value, "value");
         return 31-Integer.numberOfLeadingZeros(value);
     }
 
@@ -1188,9 +1500,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified value is <= 0.
      */
     public static int log2(long value) {
-        if (value <= 0) {
-            throw new IllegalArgumentException("value [" + value + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, value, "value");
         return 63-Long.numberOfLeadingZeros(value);
     }
 
@@ -2166,9 +2476,7 @@ public final class NbrsUtils {
      * @throws IllegalArgumentException if the specified radix is not in [2,36].
      */
     public static boolean checkRadix(int radix) {
-        if (!isInRange(Character.MIN_RADIX, Character.MAX_RADIX, radix)) {
-            throw new IllegalArgumentException("radix [" + radix + "] must be in [" + Character.MIN_RADIX + "," + Character.MAX_RADIX + "]");
-        }
+        NbrsUtils.requireInRange(Character.MIN_RADIX, Character.MAX_RADIX, radix, "radix");
         return true;
     }
 

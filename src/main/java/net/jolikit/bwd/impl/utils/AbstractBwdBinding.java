@@ -42,6 +42,7 @@ import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontHome;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
@@ -295,9 +296,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         }
 
         final int parallelism = bindingConfig.getParallelizerParallelism();
-        if (parallelism <= 0) {
-            throw new IllegalArgumentException("parallelizerParallelism [" + parallelism + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, parallelism, "parallelism");
         
         if (parallelism == 1) {
             this.parallelizer = SequentialParallelizer.getDefault();
@@ -406,14 +405,9 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
 
     @Override
     public InterfaceBwdWritableImage newWritableImage(int width, int height) {
-        if ((width <= 0)
-                || (height <= 0)) {
-            throw new IllegalArgumentException(
-                    "width [" + width
-                    + "] and height [" + height
-                    + "] must be > 0");
-        }
-
+        NbrsUtils.requireSup(0, width, "width");
+        NbrsUtils.requireSup(0, height, "height");
+        
         final InterfaceBwdWritableImage image = this.newWritableImageImpl(
                 width,
                 height,

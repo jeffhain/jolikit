@@ -145,18 +145,14 @@ public final class GRect implements Comparable<GRect> {
             int ySpan) {
         
         if (xSpan <= 0) {
-            if (xSpan < 0) {
-                throw new IllegalArgumentException("xSpan [" + xSpan + "] must be >= 0");
-            }
+            NbrsUtils.requireSupOrEq(0, xSpan, "xSpan");
             // xSpan is zero, quick check to see if args are (0,0,0,0).
             if ((x|y|ySpan) == 0) {
                 return GRect.DEFAULT_EMPTY;
             }
         }
         
-        if (ySpan < 0) {
-            throw new IllegalArgumentException("ySpan [" + ySpan + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, ySpan, "ySpan");
         
         return new GRect(x, y, xSpan, ySpan);
     }

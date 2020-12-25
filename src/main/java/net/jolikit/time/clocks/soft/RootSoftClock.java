@@ -243,10 +243,7 @@ public class RootSoftClock implements InterfaceSoftClock {
     //--------------------------------------------------------------------------
     
     private void setLatenessThresholdNS_private(long latenessThresholdNs) {
-        if (latenessThresholdNs < 0) {
-            throw new IllegalArgumentException(
-                    "lateness threshold [" + latenessThresholdNs + " ns] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, latenessThresholdNs, "latenessThresholdNs");
         this.latenessThresholdNs = latenessThresholdNs;
         if (latenessThresholdNs == Long.MAX_VALUE) {
             this.negLatenessThresholdNs = Long.MIN_VALUE;

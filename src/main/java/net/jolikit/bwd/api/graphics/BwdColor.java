@@ -20,6 +20,8 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import net.jolikit.lang.NbrsUtils;
+
 /**
  * Convenience class to deal with colors, for people uncomfortable
  * with using raw 32 bits or 64 bits ARGB integers.
@@ -1345,10 +1347,7 @@ public final class BwdColor implements Comparable<BwdColor> {
      * @param name Value name, for exception message.
      */
     private static void check_0_1(String name, double value) {
-        // Rejects NaNs.
-        if (!((value >= 0.0) && (value <= 1.0))) {
-            throw new IllegalArgumentException(name + " [" + value + "] must be in [0,1]");
-        }
+        NbrsUtils.requireInRange(0.0, 1.0, value, name);
     }
     
     private static void checkRgbFp(double redFp, double greenFp, double blueFp) {

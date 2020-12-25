@@ -349,22 +349,10 @@ public class ClientBoundsDragHelper {
         int clientMinYSpan,
         int clientMaxXSpan,
         int clientMaxYSpan) {
-        if (clientMinXSpan < 0) {
-            throw new IllegalArgumentException(
-                "clientMinXSpan [" + clientMinXSpan + "] must be >= 0");
-        }
-        if (clientMinYSpan < 0) {
-            throw new IllegalArgumentException(
-                "clientMinYSpan [" + clientMinYSpan + "] must be >= 0");
-        }
-        if (clientMaxXSpan < clientMinXSpan) {
-            throw new IllegalArgumentException(
-                "clientMaxXSpan [" + clientMaxXSpan + "] must be >= " + clientMinXSpan);
-        }
-        if (clientMaxYSpan < clientMinYSpan) {
-            throw new IllegalArgumentException(
-                "clientMaxYSpan [" + clientMaxYSpan + "] must be >= " + clientMinYSpan);
-        }
+        NbrsUtils.requireSupOrEq(0, clientMinXSpan, "clientMinXSpan");
+        NbrsUtils.requireSupOrEq(0, clientMinYSpan, "clientMinYSpan");
+        NbrsUtils.requireSupOrEq(clientMinXSpan, clientMaxXSpan, "clientMaxXSpan");
+        NbrsUtils.requireSupOrEq(clientMinYSpan, clientMaxYSpan, "clientMaxYSpan");
         
         this.clientMinXSpan = clientMinXSpan;
         this.clientMinYSpan = clientMinYSpan;

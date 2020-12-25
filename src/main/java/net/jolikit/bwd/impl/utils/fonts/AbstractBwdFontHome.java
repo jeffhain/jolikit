@@ -38,6 +38,7 @@ import net.jolikit.bwd.impl.utils.basics.OneCallChecker;
 import net.jolikit.bwd.impl.utils.fonts.FontOfHeightHelper.InterfaceFontCreator;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Optional class to make it easier to implement InterfaceBwdFontHome.
@@ -791,15 +792,9 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
             int minRawFontSize,
             int maxRawFontSize,
             double fontSizeFactor) {
-        if (minRawFontSize < 1) {
-            throw new IllegalArgumentException("minRawFontSize [" + minRawFontSize + "] must be >= 1");
-        }
-        if (maxRawFontSize < minRawFontSize) {
-            throw new IllegalArgumentException("maxRawFontSize [" + maxRawFontSize + "] must be >= minRawFontSize [" + minRawFontSize + "]");
-        }
-        if (!(fontSizeFactor > 0.0)) {
-            throw new IllegalArgumentException("fontSizeFactor [" + fontSizeFactor + "] must be > 0");
-        }
+        NbrsUtils.requireSupOrEq(1, minRawFontSize, "minRawFontSize");
+        NbrsUtils.requireSupOrEq(minRawFontSize, maxRawFontSize, "maxRawFontSize");
+        NbrsUtils.requireSup(0.0, fontSizeFactor, "fontSizeFactor");
         // Ceil, and max/floor, to make sure factor
         // doesn't get us into invalid territory.
         this.minFontSize = BindingCoordsUtils.ceilToInt(minRawFontSize / fontSizeFactor);
@@ -917,10 +912,7 @@ public abstract class AbstractBwdFontHome<BF,BFG> implements InterfaceBwdFontHom
     private void checkFontSize(int fontSize) {
         final int min = this.getMinFontSize();
         final int max = this.getMaxFontSize();
-        if ((fontSize < min)
-                || (fontSize > max)) {
-            throw new IllegalArgumentException("font size [" + fontSize + "] must be in [" + min + "," + max + "]");
-        }
+        NbrsUtils.requireInRange(min, max, fontSize, "fontSize");
     }
     
     /*

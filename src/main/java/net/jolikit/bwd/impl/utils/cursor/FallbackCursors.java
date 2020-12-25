@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package net.jolikit.bwd.impl.utils.cursor;
 
 import net.jolikit.bwd.api.BwdCursors;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Cursors that can be used when the backing library doesn't define them.
@@ -332,12 +333,8 @@ public class FallbackCursors {
             if (prod != argb32Arr.length) {
                 throw new IllegalArgumentException(width + " * " + height + " = " + prod + " != " + argb32Arr.length);
             }
-            if ((hotX < 0) || (hotX >= width)) {
-                throw new IllegalArgumentException("hotX [" + hotX + "] must be in [0, " + width + "]");
-            }
-            if ((hotY < 0) || (hotY >= height)) {
-                throw new IllegalArgumentException("hotY [" + hotY + "] must be in [0, " + height + "]");
-            }
+            NbrsUtils.requireInRange(0, width - 1, hotX, "hotX");
+            NbrsUtils.requireInRange(0, height - 1, hotY, "hotY");
             this.width = width;
             this.height = height;
             this.hotX = hotX;

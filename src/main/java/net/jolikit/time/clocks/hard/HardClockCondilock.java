@@ -166,9 +166,7 @@ public class HardClockCondilock implements InterfaceCondilock {
      *        for duration-bound waits. Must be > 0.
      */
     public void setMaxSystemWaitTimeNs(long maxSystemWaitTimeNs) {
-        if (maxSystemWaitTimeNs <= 0) {
-            throw new IllegalArgumentException("max system wait time [" + maxSystemWaitTimeNs + " ns] must be > 0");
-        }
+        NbrsUtils.requireSup(0, maxSystemWaitTimeNs, "maxSystemWaitTimeNs");
         this.maxSystemWaitTimeNs = maxSystemWaitTimeNs;
     }
     

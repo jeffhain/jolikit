@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.threading.prl;
 import java.util.Collection;
 
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * A splittable to run multiple runnables in parallel.
@@ -75,9 +76,7 @@ public class RunnableSplittable implements InterfaceSplittable {
         // Implicit null check.
         LangUtils.checkBounds(runnableArr.length, from, length);
         // Must have something to run.
-        if (length <= 0) {
-            throw new IllegalArgumentException("length [" + length + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, length, "length");
         this.runnableArr = runnableArr;
         this.from = from;
         this.length = length;
@@ -95,9 +94,7 @@ public class RunnableSplittable implements InterfaceSplittable {
         // Implicit null check.
         final Runnable[] runnableArr = runnableColl.toArray(new Runnable[runnableColl.size()]);
         // Must have something to run.
-        if (runnableArr.length == 0) {
-            throw new IllegalArgumentException("length [" + length + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, runnableArr.length, "length");
         this.runnableArr = runnableArr;
         this.from = 0;
         this.length = runnableArr.length;

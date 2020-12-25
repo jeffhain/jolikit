@@ -26,6 +26,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -211,13 +212,9 @@ public class JfxSnapshotHelper {
     }
     
     private void updateSnapshotImageSize(int minWidthCap, int minHeightCap) {
-        if (minWidthCap < 0) {
-            throw new IllegalArgumentException("minWidthCap [" + minWidthCap + "] must be >= 0");
-        }
-        if (minHeightCap < 0) {
-            throw new IllegalArgumentException("minHeightCap [" + minHeightCap + "] must be >= 0");
-        }
-
+        NbrsUtils.requireSupOrEq(0, minWidthCap, "minWidthCap");
+        NbrsUtils.requireSupOrEq(0, minHeightCap, "minHeightCap");
+        
         final WritableImage oldImage = this.snapshotImage;
         if (oldImage == null) {
             final WritableImage newImage =

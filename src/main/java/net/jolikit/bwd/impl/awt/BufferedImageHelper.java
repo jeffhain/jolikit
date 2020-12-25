@@ -818,9 +818,7 @@ public class BufferedImageHelper {
      */
 
     private static int computeCptMask(int bitSize, int cptIndex) {
-        if ((cptIndex < -1) || (cptIndex > 3)) {
-            throw new IllegalArgumentException("cptIndex [" + cptIndex + "] must be in [-1,3]");
-        }
+        NbrsUtils.requireInRange(-1, 3, cptIndex, "cptIndex");
         final int cptMask;
         if (cptIndex < 0) {
             cptMask = 0;

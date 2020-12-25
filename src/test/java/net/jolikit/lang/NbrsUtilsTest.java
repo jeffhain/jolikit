@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import junit.framework.TestCase;
 import net.jolikit.test.utils.NbrsTestUtils;
 import net.jolikit.test.utils.TestUtils;
-import junit.framework.TestCase;
 
 public class NbrsUtilsTest extends TestCase {
 
@@ -433,48 +433,352 @@ public class NbrsUtilsTest extends TestCase {
      * 
      */
     
-    public void test_checkIsInRange_3int() {
+    public void test_checkInRange_3int() {
+        for (int badVal : new int[] {2, 9}) {
+            try {
+                NbrsUtils.checkInRange(3, 7, badVal);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertTrue(NbrsUtils.checkInRange(3, 7, 3));
+        assertTrue(NbrsUtils.checkInRange(3, 7, 5));
+        assertTrue(NbrsUtils.checkInRange(3, 7, 7));
+    }
+    
+    public void test_checkInRange_3long() {
+        for (long badVal : new long[] {2L, 9L}) {
+            try {
+                NbrsUtils.checkInRange(3L, 7L, badVal);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+
+        assertTrue(NbrsUtils.checkInRange(3L, 7L, 3L));
+        assertTrue(NbrsUtils.checkInRange(3L, 7L, 5L));
+        assertTrue(NbrsUtils.checkInRange(3L, 7L, 7L));
+    }
+    
+    public void test_checkInRange_3float() {
+        for (float badVal : new float[] {2.f, 9.f, Float.NaN}) {
+            try {
+                NbrsUtils.checkInRange(3.f, 7.f, badVal);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertTrue(NbrsUtils.checkInRange(3.f, 7.f, 3.f));
+        assertTrue(NbrsUtils.checkInRange(3.f, 7.f, 5.f));
+        assertTrue(NbrsUtils.checkInRange(3.f, 7.f, 7.f));
+    }
+    
+    public void test_checkInRange_3double() {
+        for (double badVal : new double[] {2., 9., Double.NaN}) {
+            try {
+                NbrsUtils.checkInRange(3., 7., badVal);
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+
+        assertTrue(NbrsUtils.checkInRange(3., 7., 3.));
+        assertTrue(NbrsUtils.checkInRange(3., 7., 5.));
+        assertTrue(NbrsUtils.checkInRange(3., 7., 7.));
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_requireInRange_3int_String() {
+        for (int badVal : new int[] {2, 9}) {
+            try {
+                NbrsUtils.requireInRange(3, 7, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3, NbrsUtils.requireInRange(3, 7, 3, "value"));
+        assertEquals(5, NbrsUtils.requireInRange(3, 7, 5, "value"));
+        assertEquals(7, NbrsUtils.requireInRange(3, 7, 7, "value"));
+    }
+    
+    public void test_requireInRange_3long_String() {
+        for (long badVal : new long[] {2L, 9L}) {
+            try {
+                NbrsUtils.requireInRange(3L, 7L, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3L, NbrsUtils.requireInRange(3L, 7L, 3L, "value"));
+        assertEquals(5L, NbrsUtils.requireInRange(3L, 7L, 5L, "value"));
+        assertEquals(7L, NbrsUtils.requireInRange(3L, 7L, 7L, "value"));
+    }
+    
+    public void test_requireInRange_3float_String() {
+        for (float badVal : new float[] {2.f, 9.f, Float.NaN}) {
+            try {
+                NbrsUtils.requireInRange(3.f, 7.f, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3.f, NbrsUtils.requireInRange(3.f, 7.f, 3.f, "value"));
+        assertEquals(5.f, NbrsUtils.requireInRange(3.f, 7.f, 5.f, "value"));
+        assertEquals(7.f, NbrsUtils.requireInRange(3.f, 7.f, 7.f, "value"));
+    }
+    
+    public void test_requireInRange_3double_String() {
+        for (double badVal : new double[] {2., 9., Double.NaN}) {
+            try {
+                NbrsUtils.requireInRange(3., 7., badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3., NbrsUtils.requireInRange(3., 7., 3., "value"));
+        assertEquals(5., NbrsUtils.requireInRange(3., 7., 5., "value"));
+        assertEquals(7., NbrsUtils.requireInRange(3., 7., 7., "value"));
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_requireSupOrEq_2int_String() {
         try {
-            NbrsUtils.checkIsInRange(3, 7, 2);
+            NbrsUtils.requireSupOrEq(3, 2, "value");
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         
-        assertTrue(NbrsUtils.checkIsInRange(3, 7, 5));
+        assertEquals(3, NbrsUtils.requireSupOrEq(3, 3, "value"));
+        assertEquals(5, NbrsUtils.requireSupOrEq(3, 5, "value"));
     }
     
-    public void test_checkIsInRange_3long() {
+    public void test_requireSupOrEq_2long_String() {
         try {
-            NbrsUtils.checkIsInRange(3L, 7L, 2L);
+            NbrsUtils.requireSupOrEq(3L, 2L, "value");
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
-
-        assertTrue(NbrsUtils.checkIsInRange(3L, 7L, 5L));
+        
+        assertEquals(3L, NbrsUtils.requireSupOrEq(3L, 3L, "value"));
+        assertEquals(5L, NbrsUtils.requireSupOrEq(3L, 5L, "value"));
     }
     
-    public void test_checkIsInRange_3float() {
+    public void test_requireSupOrEq_2float_String() {
+        for (float badVal : new float[] {2.f, Float.NaN}) {
+            try {
+                NbrsUtils.requireSupOrEq(3.f, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3.f, NbrsUtils.requireSupOrEq(3.f, 3.f, "value"));
+        assertEquals(5.f, NbrsUtils.requireSupOrEq(3.f, 5.f, "value"));
+    }
+    
+    public void test_requireSupOrEq_2double_String() {
+        for (double badVal : new double[] {2., Double.NaN}) {
+            try {
+                NbrsUtils.requireSupOrEq(3., badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(3., NbrsUtils.requireSupOrEq(3., 3., "value"));
+        assertEquals(5., NbrsUtils.requireSupOrEq(3., 5., "value"));
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_requireSup_2int_String() {
+        for (int badVal : new int[] {2, 3}) {
+            try {
+                NbrsUtils.requireSup(3, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5, NbrsUtils.requireSup(3, 5, "value"));
+    }
+    
+    public void test_requireSup_2long_String() {
+        for (long badVal : new long[] {2L, 3L}) {
+            try {
+                NbrsUtils.requireSup(3L, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5L, NbrsUtils.requireSup(3L, 5L, "value"));
+    }
+    
+    public void test_requireSup_2float_String() {
+        for (float badVal : new float[] {2.f, 3.f, Float.NaN}) {
+            try {
+                NbrsUtils.requireSup(3.f, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5.f, NbrsUtils.requireSup(3.f, 5.f, "value"));
+    }
+    
+    public void test_requireSup_2double_String() {
+        for (double badVal : new double[] {2., 3., Double.NaN}) {
+            try {
+                NbrsUtils.requireSup(3., badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5., NbrsUtils.requireSup(3., 5., "value"));
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_requireInfOrEq_2int_String() {
         try {
-            NbrsUtils.checkIsInRange(3.f, 7.f, 2.f);
+            NbrsUtils.requireInfOrEq(7, 9, "value");
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
-
-        assertTrue(NbrsUtils.checkIsInRange(3.f, 7.f, 5.f));
+        
+        assertEquals(5, NbrsUtils.requireInfOrEq(7, 5, "value"));
+        assertEquals(7, NbrsUtils.requireInfOrEq(7, 7, "value"));
     }
     
-    public void test_checkIsInRange_3double() {
+    public void test_requireInfOrEq_2long_String() {
         try {
-            NbrsUtils.checkIsInRange(3., 7., 2.);
+            NbrsUtils.requireInfOrEq(7L, 9L, "value");
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
-
-        assertTrue(NbrsUtils.checkIsInRange(3., 7., 5.));
+        
+        assertEquals(5L, NbrsUtils.requireInfOrEq(7L, 5L, "value"));
+        assertEquals(7L, NbrsUtils.requireInfOrEq(7L, 7L, "value"));
+    }
+    
+    public void test_requireInfOrEq_2float_String() {
+        for (float badVal : new float[] {9.f, Float.NaN}) {
+            try {
+                NbrsUtils.requireInfOrEq(7.f, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5.f, NbrsUtils.requireInfOrEq(7.f, 5.f, "value"));
+        assertEquals(7.f, NbrsUtils.requireInfOrEq(7.f, 7.f, "value"));
+    }
+    
+    public void test_requireInfOrEq_2double_String() {
+        for (double badVal : new double[] {9., Float.NaN}) {
+            try {
+                NbrsUtils.requireInfOrEq(7., badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5., NbrsUtils.requireInfOrEq(7., 5., "value"));
+        assertEquals(7., NbrsUtils.requireInfOrEq(7., 7., "value"));
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_requireInf_2int_String() {
+        for (int badVal : new int[] {9, 7}) {
+            try {
+                NbrsUtils.requireInf(7, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5, NbrsUtils.requireInf(7, 5, "value"));
+    }
+    
+    public void test_requireInf_2long_String() {
+        for (long badVal : new long[] {9L, 7L}) {
+            try {
+                NbrsUtils.requireInf(7L, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5L, NbrsUtils.requireInf(7L, 5L, "value"));
+    }
+    
+    public void test_requireInf_2float_String() {
+        for (float badVal : new float[] {9.f, 7.f, Float.NaN}) {
+            try {
+                NbrsUtils.requireInf(7.f, badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5.f, NbrsUtils.requireInf(7.f, 5.f, "value"));
+    }
+    
+    public void test_requireInf_2double_String() {
+        for (double badVal : new double[] {9., 7., Double.NaN}) {
+            try {
+                NbrsUtils.requireInf(7., badVal, "value");
+                fail();
+            } catch (IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        assertEquals(5., NbrsUtils.requireInf(7., 5., "value"));
     }
     
     /*
@@ -625,104 +929,104 @@ public class NbrsUtilsTest extends TestCase {
      * 
      */
     
-    public void test_checkIsInRangeSigned_2int() {
+    public void test_checkInRangeSigned_2int() {
         for (int bitSize : new int[]{Integer.MIN_VALUE,0,33,Integer.MAX_VALUE}) {
             try {
-                NbrsUtils.checkIsInRangeSigned(0, bitSize);
+                NbrsUtils.checkInRangeSigned(0, bitSize);
                 fail();
             } catch (IllegalArgumentException e) {
                 // ok
             }
         }
         
-        assertTrue(NbrsUtils.checkIsInRangeSigned(-128, 8));
-        assertTrue(NbrsUtils.checkIsInRangeSigned(127, 8));
+        assertTrue(NbrsUtils.checkInRangeSigned(-128, 8));
+        assertTrue(NbrsUtils.checkInRangeSigned(127, 8));
         try {
-            NbrsUtils.checkIsInRangeSigned(-129, 8);
+            NbrsUtils.checkInRangeSigned(-129, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         try {
-            NbrsUtils.checkIsInRangeSigned(128, 8);
+            NbrsUtils.checkInRangeSigned(128, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
     }
     
-    public void test_checkIsInRangeSigned_long_int() {
+    public void test_checkInRangeSigned_long_int() {
         for (int bitSize : new int[]{Integer.MIN_VALUE,0,65,Integer.MAX_VALUE}) {
             try {
-                NbrsUtils.checkIsInRangeSigned(0L, bitSize);
+                NbrsUtils.checkInRangeSigned(0L, bitSize);
                 fail();
             } catch (IllegalArgumentException e) {
                 // ok
             }
         }
 
-        assertTrue(NbrsUtils.checkIsInRangeSigned(-128L, 8));
-        assertTrue(NbrsUtils.checkIsInRangeSigned(127L, 8));
+        assertTrue(NbrsUtils.checkInRangeSigned(-128L, 8));
+        assertTrue(NbrsUtils.checkInRangeSigned(127L, 8));
         try {
-            NbrsUtils.checkIsInRangeSigned(-129L, 8);
+            NbrsUtils.checkInRangeSigned(-129L, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         try {
-            NbrsUtils.checkIsInRangeSigned(128L, 8);
+            NbrsUtils.checkInRangeSigned(128L, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
     }
     
-    public void test_checkIsInRangeUnsigned_2int() {
+    public void test_checkInRangeUnsigned_2int() {
         for (int bitSize : new int[]{Integer.MIN_VALUE,0,32,Integer.MAX_VALUE}) {
             try {
-                NbrsUtils.checkIsInRangeUnsigned(0, bitSize);
+                NbrsUtils.checkInRangeUnsigned(0, bitSize);
                 fail();
             } catch (IllegalArgumentException e) {
                 // ok
             }
         }
         
-        assertTrue(NbrsUtils.checkIsInRangeUnsigned(0, 8));
-        assertTrue(NbrsUtils.checkIsInRangeUnsigned(255, 8));
+        assertTrue(NbrsUtils.checkInRangeUnsigned(0, 8));
+        assertTrue(NbrsUtils.checkInRangeUnsigned(255, 8));
         try {
-            NbrsUtils.checkIsInRangeUnsigned(-1, 8);
+            NbrsUtils.checkInRangeUnsigned(-1, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         try {
-            NbrsUtils.checkIsInRangeUnsigned(256, 8);
+            NbrsUtils.checkInRangeUnsigned(256, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
     }
     
-    public void test_checkIsInRangeUnsigned_long_int() {
+    public void test_checkInRangeUnsigned_long_int() {
         for (int bitSize : new int[]{Integer.MIN_VALUE,0,64,Integer.MAX_VALUE}) {
             try {
-                NbrsUtils.checkIsInRangeUnsigned(0L, bitSize);
+                NbrsUtils.checkInRangeUnsigned(0L, bitSize);
                 fail();
             } catch (IllegalArgumentException e) {
                 // ok
             }
         }
         
-        assertTrue(NbrsUtils.checkIsInRangeUnsigned(0L, 8));
-        assertTrue(NbrsUtils.checkIsInRangeUnsigned(255L, 8));
+        assertTrue(NbrsUtils.checkInRangeUnsigned(0L, 8));
+        assertTrue(NbrsUtils.checkInRangeUnsigned(255L, 8));
         try {
-            NbrsUtils.checkIsInRangeUnsigned(-1L, 8);
+            NbrsUtils.checkInRangeUnsigned(-1L, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok
         }
         try {
-            NbrsUtils.checkIsInRangeUnsigned(256L, 8);
+            NbrsUtils.checkInRangeUnsigned(256L, 8);
             fail();
         } catch (IllegalArgumentException e) {
             // ok

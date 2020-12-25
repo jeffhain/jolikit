@@ -16,6 +16,7 @@
 package net.jolikit.bwd.api.fonts;
 
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Identifies a font from a same font home.
@@ -52,10 +53,7 @@ public final class BwdFontId implements Comparable<BwdFontId> {
             BwdFontKind kind,
             int size) {
         this.kind = LangUtils.requireNonNull(kind);
-        if (size <= 0) {
-            throw new IllegalArgumentException("size [" + size + "] must be > 0");
-        }
-        this.size = size;
+        this.size = NbrsUtils.requireSup(0, size, "size");
     }
 
     /**

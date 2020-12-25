@@ -21,6 +21,7 @@ import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 public abstract class AbstractBwdImage implements InterfaceBwdImage {
 
@@ -180,11 +181,7 @@ public abstract class AbstractBwdImage implements InterfaceBwdImage {
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     private static void checkWritableImageDims(int width, int height) {
-        if ((width <= 0) || (height <= 0)) {
-            throw new IllegalArgumentException(
-                    "width [" + width
-                    + "] and height [" + height
-                    + "] must be > 0 for writable images");
-        }
+        NbrsUtils.requireSup(0, width, "width");
+        NbrsUtils.requireSup(0, height, "height");
     }
 }

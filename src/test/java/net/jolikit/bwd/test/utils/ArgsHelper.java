@@ -22,6 +22,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Simple helper class to deal with arguments
@@ -59,9 +60,7 @@ public class ArgsHelper {
     public String registedKey(String key, int argCount, boolean mandatory, String argDescr) {
         LangUtils.requireNonNull(key);
         LangUtils.requireNonNull(argDescr);
-        if (argCount < 0) {
-            throw new IllegalArgumentException("argCount [" + argCount + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, argCount, "argCount");
         if (this.argCountByKey.containsKey(key)) {
             throw new IllegalArgumentException("key " + key + " already registered");
         }
@@ -150,9 +149,7 @@ public class ArgsHelper {
     public String getArgN(String[] args, String key, int argNum) {
         LangUtils.requireNonNull(args);
         LangUtils.requireNonNull(key);
-        if (argNum <= 0) {
-            throw new IllegalArgumentException("argNum [" + argNum + "] must be > 0");
-        }
+        NbrsUtils.requireSup(0, argNum, "argNum");
         
         int i = 0;
         while (i < args.length) {
@@ -163,9 +160,7 @@ public class ArgsHelper {
             }
             final int argCount = argCountRef.intValue();
             if (tmpKey.equals(key)) {
-                if (argNum > argCount) {
-                    throw new IllegalArgumentException("argNum [" + argNum + "] must be in [1," + argCount + "]");
-                }
+                NbrsUtils.requireInRange(1, argCount, argNum, "argNum");
                 final int remainingCountPastKey = (args.length - 1) - i;
                 if (remainingCountPastKey < argNum) {
                     throw new IllegalArgumentException(

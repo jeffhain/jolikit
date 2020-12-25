@@ -128,12 +128,8 @@ public class GprimUtils {
     }
 
     public static void checkFactorAndPixelNum(int factor, int pixelNum) {
-        if (!((factor >= 1) && (factor <= 256))) {
-            throw new IllegalArgumentException("factor [" + factor + "] must be in [1,256]");
-        }
-        if (pixelNum < 0) {
-            throw new IllegalArgumentException("pixelNum [" + pixelNum + "] must be >= 0");
-        }
+        NbrsUtils.requireInRange(1, 256, factor, "factor");
+        NbrsUtils.requireSupOrEq(0, pixelNum, "pixelNum");
     }
 
     public static void checkArcAngles(double startDeg, double spanDeg) {
@@ -156,10 +152,7 @@ public class GprimUtils {
          */
         LangUtils.requireNonNull(xArr);
         LangUtils.requireNonNull(yArr);
-        if (pointCount < 0) {
-            throw new IllegalArgumentException(
-                    "pointCount [" + pointCount + "] must be >= 0");
-        }
+        NbrsUtils.requireSupOrEq(0, pointCount, "pointCount");
     }
     
     /*

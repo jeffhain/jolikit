@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2020 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Utilities for parallelization.
@@ -97,12 +98,8 @@ public class PrlUtils {
     public static int computeMaxDepth(
             int parallelism,
             int discrepancy) {
-        if (parallelism <= 0) {
-            throw new IllegalArgumentException("parallelism [" + parallelism + "] must be >= 1");
-        }
-        if (discrepancy < 0) {
-            throw new IllegalArgumentException("discrepancy [" + discrepancy + "] must be >= 0");
-        }
+        NbrsUtils.requireSup(0, parallelism, "parallelism");
+        NbrsUtils.requireSupOrEq(0, discrepancy, "discrepancy");
         /*
          * Wl = Wr * (1 + discrepancy)
          * gives:

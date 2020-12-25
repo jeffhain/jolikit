@@ -259,10 +259,7 @@ public class Argb32 {
             return argb32_2;
         }
         
-        // Rejects NaN.
-        if (!((t >= 0.0) && (t <= 1.0))) {
-            throw new IllegalArgumentException("t [" + t + "] must be in [0,1]");
-        }
+        NbrsUtils.requireInRange(0.0, 1.0, t, "t");
         
         final double a1 = toFpFromInt8_noCheck(getAlpha8(argb32_1));
         final double r1 = toFpFromInt8_noCheck(getRed8(argb32_1));
@@ -320,9 +317,7 @@ public class Argb32 {
     }
 
     static void checkInt8(String name, int value8) {
-        if ((value8 < 0) || (value8 > INT_255)) {
-            throw new IllegalArgumentException(name + " [" + value8 + "] must be in [0,255]");
-        }
+        NbrsUtils.requireInRange(0, INT_255, value8, name);
     }
     
     //--------------------------------------------------------------------------
@@ -349,10 +344,7 @@ public class Argb32 {
      */
     
     private static void checkFp(String name, double valueFp) {
-        // Rejects NaNs.
-        if (!((valueFp >= 0.0) && (valueFp <= 1.0))) {
-            throw new IllegalArgumentException(name + " [" + valueFp + "] must be in [0,1]");
-        }
+        NbrsUtils.requireInRange(0.0, 1.0, valueFp, name);
     }
 
     private static void checkAlpha8(int alpha8) {

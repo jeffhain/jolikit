@@ -307,10 +307,7 @@ public class Argb64 {
             return argb64_2;
         }
         
-        // Rejects NaN.
-        if (!((t >= 0.0) && (t <= 1.0))) {
-            throw new IllegalArgumentException("t [" + t + "] must be in [0,1]");
-        }
+        NbrsUtils.requireInRange(0.0, 1.0, t, "t");
         
         final double a1 = getAlphaFp(argb64_1);
         final double r1 = getRedFp(argb64_1);
@@ -360,9 +357,7 @@ public class Argb64 {
     }
     
     static void checkInt16(String name, int value16) {
-        if ((value16 < 0) || (value16 > INT_65535)) {
-            throw new IllegalArgumentException(name + " [" + value16 + "] must be in [0,65535]");
-        }
+        NbrsUtils.requireInRange(0, INT_65535, value16, name);
     }
 
     //--------------------------------------------------------------------------
@@ -389,10 +384,7 @@ public class Argb64 {
      */
     
     private static void checkFp(String name, double valueFp) {
-        // Rejects NaNs.
-        if (!((valueFp >= 0.0) && (valueFp <= 1.0))) {
-            throw new IllegalArgumentException(name + " [" + valueFp + "] must be in [0,1]");
-        }
+        NbrsUtils.requireInRange(0.0, 1.0, valueFp, name);
     }
     
     private static void checkAlpha16(int alpha16) {
