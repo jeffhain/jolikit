@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.event.WindowStateListener;
 import java.io.PrintStream;
+import java.util.List;
 
 import javax.swing.JDialog;
 import javax.swing.JFrame;
@@ -49,7 +50,9 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.awt.AbstractAwtBwdBinding;
 import net.jolikit.bwd.impl.awt.AwtBwdCursorManager;
 import net.jolikit.bwd.impl.awt.AwtEventConverter;
@@ -60,8 +63,8 @@ import net.jolikit.bwd.impl.awt.AwtUtils;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingCallIfExistsUtils;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.InterfaceFactory;
 
 public class SwingBwdHost extends AbstractBwdHost {
 
@@ -267,7 +270,7 @@ public class SwingBwdHost extends AbstractBwdHost {
                 this.paintComponents(g);
             } else if (PAINT_CALL_0_SUPER_1_PAINT_COMPONENTS_2_PCNOG == 2) {
                 makeAllDirty();
-                paintClientNowOnG((Graphics2D) g);
+                paintClientNowOnBackingG((Graphics2D) g);
             }
         }
         @Override
@@ -297,7 +300,7 @@ public class SwingBwdHost extends AbstractBwdHost {
                     super.paintComponents(g);
                 } else if (PAINT_COMPONENTS_CALL_0_SUPER_1_PCNOG_2_EPCPWDR == 1) {
                     makeDirty(dirtyRect);
-                    paintClientNowOnG((Graphics2D) g);
+                    paintClientNowOnBackingG((Graphics2D) g);
                 } else if (PAINT_COMPONENTS_CALL_0_SUPER_1_PCNOG_2_EPCPWDR == 2) {
                     makeDirtyAndEnsurePendingClientPainting(dirtyRect);
                 }
@@ -349,7 +352,7 @@ public class SwingBwdHost extends AbstractBwdHost {
                 this.paintComponents(g);
             } else if (PAINT_CALL_0_SUPER_1_PAINT_COMPONENTS_2_PCNOG == 2) {
                 makeAllDirty();
-                paintClientNowOnG((Graphics2D) g);
+                paintClientNowOnBackingG((Graphics2D) g);
             }
         }
         @Override
@@ -379,7 +382,7 @@ public class SwingBwdHost extends AbstractBwdHost {
                     super.paintComponents(g);
                 } else if (PAINT_COMPONENTS_CALL_0_SUPER_1_PCNOG_2_EPCPWDR == 1) {
                     makeDirty(dirtyRect);
-                    paintClientNowOnG((Graphics2D) g);
+                    paintClientNowOnBackingG((Graphics2D) g);
                 } else if (PAINT_COMPONENTS_CALL_0_SUPER_1_PCNOG_2_EPCPWDR == 2) {
                     makeDirtyAndEnsurePendingClientPainting(dirtyRect);
                 }
@@ -645,25 +648,10 @@ public class SwingBwdHost extends AbstractBwdHost {
         }
     }
     
-    /*
-     * 
-     */
-    
-    private class MyDirtyRectProvider implements InterfaceFactory<GRect> {
-        public MyDirtyRectProvider() {
-        }
-        @Override
-        public GRect newInstance() {
-            return getAndResetDirtyRectBb();
-        }
-    }
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final MyDirtyRectProvider dirtyRectProvider = new MyDirtyRectProvider();
-    
     private final Window window;
     private final MyJFrame windowAsJFrame;
     private final MyJDialog windowAsJDialog;
@@ -680,6 +668,12 @@ public class SwingBwdHost extends AbstractBwdHost {
     
     private final AwtPaintUtils paintUtils = new AwtPaintUtils();
 
+    /*
+     * 
+     */
+    
+    private Graphics2D  currentPainting_backingG;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -817,6 +811,11 @@ public class SwingBwdHost extends AbstractBwdHost {
      * 
      */
     
+    @Override
+    public SwingBwdBindingConfig getBindingConfig() {
+        return (SwingBwdBindingConfig) super.getBindingConfig();
+    }
+
     @Override
     public AbstractAwtBwdBinding getBinding() {
         return (AbstractAwtBwdBinding) super.getBinding();
@@ -1005,28 +1004,28 @@ public class SwingBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
     
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
 
     /*
@@ -1039,7 +1038,52 @@ public class SwingBwdHost extends AbstractBwdHost {
         // but doesn't hurt to call it twice.
         this.window.dispose();
     }
+    
+    /*
+     * Painting.
+     */
 
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        return this.paintUtils.newRootGraphicsImpl(
+            this.getBinding(),
+            this.getBindingConfig(),
+            this.offscreenBuffer,
+            boxWithBorder);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final Graphics2D backingG = this.currentPainting_backingG;
+        
+        final Container backingGContainer;
+        if (MUST_PAINT_ON_CONTENT_PANE_GRAPHICS) {
+            backingGContainer = this.contentPane;
+        } else {
+            backingGContainer = this.window;
+        }
+
+        this.paintUtils.paintBackingClientImpl(
+            scaleHelper,
+            clientSpansInOs,
+            bufferPosInCliInOs,
+            paintedRectList,
+            //
+            backingGContainer,
+            backingG);
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -1076,7 +1120,7 @@ public class SwingBwdHost extends AbstractBwdHost {
         }
         if (g != null) {
             try {
-                this.paintClientNowOnG((Graphics2D) g);
+                this.paintClientNowOnBackingG((Graphics2D) g);
             } finally {
                 g.dispose();
             }
@@ -1087,30 +1131,11 @@ public class SwingBwdHost extends AbstractBwdHost {
         }
     }
     
-    private void paintClientNowOnG(Graphics2D g) {
-        
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        client.processEventualBufferedEvents();
-
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-
-        final Container backingGContainer;
-        if (MUST_PAINT_ON_CONTENT_PANE_GRAPHICS) {
-            backingGContainer = this.contentPane;
-        } else {
-            backingGContainer = this.window;
-        }
-        this.paintUtils.paintClientOnObThenG(
-                this.getBinding(),
-                this.window,
-                this.getPaintClientHelper(),
-                this.offscreenBuffer,
-                this.dirtyRectProvider,
-                backingGContainer,
-                g);
+    private void paintClientNowOnBackingG(Graphics2D g) {
+        this.currentPainting_backingG = g;
+        this.paintBwdClientNowAndBackingClient(
+            getBindingConfig(),
+            this.hostBoundsHelper);
     }
     
     /*

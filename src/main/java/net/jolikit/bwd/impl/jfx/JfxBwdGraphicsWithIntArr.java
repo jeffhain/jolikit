@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -152,17 +153,18 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      */
     public JfxBwdGraphicsWithIntArr(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
             GRect box,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
             int pixelArrScanlineStride) {
         this(
                 binding,
-                isImageGraphics,
+                topLeftOf(box),
                 box,
                 box, // initialClip
                 //
+                isImageGraphics,
                 pixelArr,
                 pixelArrScanlineStride,
                 //
@@ -192,10 +194,11 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         
         return new JfxBwdGraphicsWithIntArr(
                 this.getBinding(),
-                this.isImageGraphics(),
+                this.getRootBoxTopLeft(),
                 childBox,
                 childInitialClip,
                 //
+                this.isImageGraphics(),
                 this.getPixelArr(),
                 this.getPixelArrScanlineStride(),
                 //
@@ -694,20 +697,22 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
 
     private JfxBwdGraphicsWithIntArr(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
+            GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
             int pixelArrScanlineStride,
             //
             ObjectWrapper<JfxSnapshotHelper> textSnapshotHelperLazyRef) {
         super(
                 binding,
-                isImageGraphics,
+                rootBoxTopLeft,
                 box,
                 initialClip,
                 //
+                isImageGraphics,
                 pixelArr,
                 pixelArrScanlineStride);
         this.textSnapshotHelperLazyRef = textSnapshotHelperLazyRef;

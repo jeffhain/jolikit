@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,10 @@ import com.jogamp.opengl.GL3ES3;
 import com.jogamp.opengl.GLAutoDrawable;
 import com.jogamp.opengl.GLProfile;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
@@ -39,7 +41,7 @@ public class JoglPaintHelper {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
-
+    
     /**
      * Either works.
      * If true, using glBindAttribLocation(...),
@@ -77,9 +79,9 @@ public class JoglPaintHelper {
          */
         final GRect textureRect;
         public MyTextureData(
-                IntBuffer texturePixelsBuffer,
-                int texturePixelsScanlineStride,
-                GRect textureRect) {
+            IntBuffer texturePixelsBuffer,
+            int texturePixelsScanlineStride,
+            GRect textureRect) {
             this.texturePixelsBuffer = texturePixelsBuffer;
             this.texturePixelsScanlineStride = texturePixelsScanlineStride;
             this.textureRect = textureRect;
@@ -96,7 +98,7 @@ public class JoglPaintHelper {
     
     private static final int Float_BYTES = 4;
     private static final int Integer_BYTES = 4;
-
+    
     /*
      * TODO jogl Need buffers to be direct, else doesn't work (but silently!!!).
      * 
@@ -111,7 +113,7 @@ public class JoglPaintHelper {
         0.0f, 1.0f,
     };
     private static final FloatBuffer TEXTURE_COORD_BUFFER = DirectBuffers.newDirectFloatBuffer_nativeOrder(TEXTURE_COORD_ARR);
-
+    
     private static final int[] INDICES_ARR = new int[]{
         0, 1, 2,
         2, 3, 0
@@ -123,7 +125,7 @@ public class JoglPaintHelper {
      */
     private static final int VERTICES_POSITION_BUFFER_LENGTH = 4 * 2;
     private final FloatBuffer vertices_position_buffer = DirectBuffers.newDirectFloatBuffer_nativeOrder(VERTICES_POSITION_BUFFER_LENGTH);
-
+    
     /*
      * When deciding whether we want to create a texture pixel array for
      * textures with only the columns that are in (dirty) clip,  we divide
@@ -149,12 +151,12 @@ public class JoglPaintHelper {
      * Using 20 percents amount as threshold.
      */
     private static final double TEXTURE_ARRAY_RATIO_THRESHOLD = 0.2;
-
+    
     /**
      * Using 20 percents amount as min growth factor.
      */
     private static final double TEXTURE_ARRAY_MIN_GROWTH_FACTOR = 1.2;
-
+    
     private int[] tmpTexturePixelArr = new int[0];
     
     /*
@@ -166,13 +168,13 @@ public class JoglPaintHelper {
     
     private static final String ATTR_VSHADER_IN_POSITION = "vshader_in_position";
     private static final String ATTR_VSHADER_IN_TEXTURE_COORD = "vshader_in_texture_coord";
-
+    
     /*
      * Shader program is created once and for all,
      * for it takes about 1ms to construct, which is negligible for
      * slow renderings, but not for dirty paintings.
      */
-
+    
     private boolean shaderProgramCreated = false;
     private int shaderProgram;
     
@@ -189,7 +191,7 @@ public class JoglPaintHelper {
     
     public JoglPaintHelper() {
     }
-
+    
     public void dispose() {
         if (this.shaderProgramCreated) {
             this.shaderProgramCreated = false;
@@ -203,7 +205,7 @@ public class JoglPaintHelper {
             }
         }
     }
-
+    
     /**
      * @return The GLProfile our implementation is using.
      */
@@ -242,7 +244,7 @@ public class JoglPaintHelper {
     /*
      * 
      */
-
+    
     public static int toInvertedArrayColor32(int premulColor32) {
         return BindingColorUtils.toInvertedPremulNativeRgba32(premulColor32);
     }
@@ -250,7 +252,7 @@ public class JoglPaintHelper {
     public static int getArrayColorAlpha8(int premulColor32) {
         return BindingColorUtils.getNativeRgba32Alpha8(premulColor32);
     }
-
+    
     public static int blendArrayColor32(int srcPremulColor32, int dstPremulColor32) {
         return BindingColorUtils.blendPremulNativeRgba32(srcPremulColor32, dstPremulColor32);
     }
@@ -258,28 +260,31 @@ public class JoglPaintHelper {
     /*
      * 
      */
-
+    
     public void paintPixelsIntoOpenGl(
-            IntArrayGraphicBuffer offscreenBuffer,
-            List<GRect> clipList,
-            GLWindow window) {
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        List<GRect> paintedRectList,
+        //
+        IntArrayGraphicBuffer bufferInBd,
+        GLWindow window) {
         
         final GL3ES3 gl = JoglPaintHelper.getGlToUse(window);
         this.lastGl = gl;
-
+        
         /*
          * 
          */
         
-        final int[] pixelArr = offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
-
-        final int clientWidth = offscreenBuffer.getWidth();
-        final int clientHeight = offscreenBuffer.getHeight();
+        final int[] bufferArr = bufferInBd.getPixelArr();
+        final int bufferArrScanlineStride = bufferInBd.getScanlineStride();
+        final int bufferWidth = bufferInBd.getWidth();
+        final int bufferHeight = bufferInBd.getHeight();
         
         if (MUST_NOT_RENDER_IF_EMPTY_AREA
-                && ((clientWidth <= 0)
-                        || (clientHeight <= 0))) {
+            && ((bufferWidth <= 0)
+                || (bufferHeight <= 0))) {
             return;
         }
         
@@ -287,60 +292,63 @@ public class JoglPaintHelper {
          * Disabling unused stuffs, in case it would
          * make things lighter.
          */
-
+        
         gl.glDisable(GL.GL_DEPTH_TEST);
         gl.glDisable(GL.GL_BLEND);
-
+        
         /*
          * GL arrays and buffers (out of loop).
          */
-
+        
         final int vao = createAndBindVao(gl);
-
+        
         // EAB is part of VAO.
         final int eab = createAndBindEab(gl);
-
+        
         /*
          * 
          */
-
-        for (GRect clip : clipList) {
-
+        
+        for (GRect paintedRect : paintedRectList) {
+            
             /*
              * Texture.
              */
-
+            
             final MyTextureData textureData = computeTextureData(
-                    pixelArr,
-                    pixelArrScanlineStride,
-                    clientWidth,
-                    clientHeight,
-                    clip);
-
+                bufferArr,
+                bufferArrScanlineStride,
+                bufferWidth,
+                bufferHeight,
+                paintedRect);
+            
             final int texture = createTexture(
-                    gl,
-                    textureData);
-
+                gl,
+                textureData);
+            
             this.setTextureVerticesPositions(
-                    clientWidth,
-                    clientHeight,
-                    textureData.textureRect);
-
+                scaleHelper,
+                bufferPosInCliInOs.x(),
+                bufferPosInCliInOs.y(),
+                clientSpansInOs.x(),
+                clientSpansInOs.y(),
+                textureData.textureRect);
+            
             /*
              * GL arrays and buffers (in loop).
              */
-
+            
             // VBO is not part of VAO.
             final int vbo = createAndBindVbo(
-                    gl,
-                    this.vertices_position_buffer);
-
+                gl,
+                this.vertices_position_buffer);
+            
             /*
              * Shader program.
              */
-
+            
             shaderProgramBindingBeforeCreation(gl);
-
+            
             if (!this.shaderProgramCreated) {
                 this.shaderProgram = createShadersAndShaderProgram(gl);
                 this.shaderProgramCreated = true;
@@ -352,26 +360,26 @@ public class JoglPaintHelper {
                  */
                 gl.glUseProgram(this.shaderProgram);
             }
-
+            
             shaderProgramBindingAfterCreation(gl, this.shaderProgram);
-
+            
             /*
              * Rendering.
              * 
              * Must not "clear" before, first because it's useless,
              * and second because it would not allow for dirty painting.
              */
-
+            
             final int mode = GL.GL_TRIANGLES;
             final int count = 6;
             final int type = GL.GL_UNSIGNED_INT;
             final long indices2 = 0L;
             gl.glDrawElements(mode, count, type, indices2);
-
+            
             /*
              * 
              */
-
+            
             glDeleteTexture(gl, texture);
             glDeleteBuffer(gl, vbo);
         }
@@ -390,11 +398,11 @@ public class JoglPaintHelper {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
     /*
      * GL
      */
-
+    
     private static int glGenVertexArray(GL3ES3 gl) {
         final int[] intArr = new int[1];
         gl.glGenVertexArrays(1, intArr, 0);
@@ -430,16 +438,16 @@ public class JoglPaintHelper {
      */
     
     private MyTextureData computeTextureData(
-            int[] pixelArr,
-            int pixelArrScanlineStride,
-            int width,
-            int height,
-            GRect clip) {
+        int[] bufferArr,
+        int bufferArrScanlineStride,
+        int bufferWidth,
+        int bufferHeight,
+        GRect clip) {
         
         final IntBuffer texturePixelsBuffer;
         final int texturePixelsScanlineStride;
         final GRect textureRect;
-
+        
         /*
          * TODO jogl When we only want to paint a part of client area:
          * glTexImage2D allows to ignore first and last rows of the
@@ -450,27 +458,31 @@ public class JoglPaintHelper {
          * To avoid much garbage, we use a same internal array for it,
          * so only do it if the amount of pixels in clip fits in this array.
          */
-
+        
         final boolean mustUseInternalArr;
-
-        final boolean areAllColumnsInClip = (clip.xSpan() == width);
+        
+        final boolean areAllColumnsInClip =
+            (clip.xSpan() == bufferWidth);
         if (areAllColumnsInClip) {
             mustUseInternalArr = false;
         } else {
             final int pixelCountInClip = clip.area();
-
+            
             int[] internalArr = this.tmpTexturePixelArr;
             if (internalArr.length >= pixelCountInClip) {
                 mustUseInternalArr = true;
             } else {
-                final int pixelCountInClient = NbrsUtils.timesExact(width, height);
-                final double ratio = pixelCountInClip / (double) pixelCountInClient;
+                final int pixelCountInBuffer =
+                    NbrsUtils.timesExact(
+                        bufferWidth,
+                        bufferHeight);
+                final double ratio = pixelCountInClip / (double) pixelCountInBuffer;
                 if (ratio <= TEXTURE_ARRAY_RATIO_THRESHOLD) {
                     // Creating large enough array.
                     // No overflow issue as long as threshold is small enough.
                     final int newTmpArrLength = Math.max(
-                            pixelCountInClip,
-                            (int) (TEXTURE_ARRAY_MIN_GROWTH_FACTOR * internalArr.length));
+                        pixelCountInClip,
+                        (int) (TEXTURE_ARRAY_MIN_GROWTH_FACTOR * internalArr.length));
                     internalArr = new int[newTmpArrLength];
                     this.tmpTexturePixelArr = internalArr;
                     mustUseInternalArr = true;
@@ -479,7 +491,7 @@ public class JoglPaintHelper {
                 }
             }
         }
-
+        
         if (mustUseInternalArr) {
             final int[] internalArr = this.tmpTexturePixelArr;
             /*
@@ -487,14 +499,14 @@ public class JoglPaintHelper {
              */
             final int texXSpan = clip.xSpan();
             for (int y = clip.y(); y <= clip.yMax(); y++) {
-                final int srcOffset = clip.x() + y * pixelArrScanlineStride;
+                final int srcOffset = clip.x() + y * bufferArrScanlineStride;
                 final int dstOffset = (y - clip.y()) * texXSpan;
                 System.arraycopy(
-                        pixelArr,
-                        srcOffset,
-                        internalArr,
-                        dstOffset,
-                        texXSpan);
+                    bufferArr,
+                    srcOffset,
+                    internalArr,
+                    dstOffset,
+                    texXSpan);
             }
             /*
              * 
@@ -504,27 +516,27 @@ public class JoglPaintHelper {
             texturePixelsScanlineStride = clip.xSpan();
             textureRect = clip;
         } else {
-            final int offset = clip.y() * pixelArrScanlineStride;
-            final int length = pixelArrScanlineStride * clip.ySpan();
-            texturePixelsBuffer = IntBuffer.wrap(pixelArr, offset, length);
-            texturePixelsScanlineStride = pixelArrScanlineStride;
+            final int offset = clip.y() * bufferArrScanlineStride;
+            final int length = bufferArrScanlineStride * clip.ySpan();
+            texturePixelsBuffer = IntBuffer.wrap(bufferArr, offset, length);
+            texturePixelsScanlineStride = bufferArrScanlineStride;
             textureRect = GRect.valueOf(
-                    0,
-                    clip.y(),
-                    width,
-                    clip.ySpan());
+                0,
+                clip.y(),
+                bufferWidth,
+                clip.ySpan());
         }
-
+        
         return new MyTextureData(
-                texturePixelsBuffer,
-                texturePixelsScanlineStride,
-                textureRect);
+            texturePixelsBuffer,
+            texturePixelsScanlineStride,
+            textureRect);
     }
     
     private static int createTexture(
-            GL3ES3 gl,
-            MyTextureData textureData) {
-
+        GL3ES3 gl,
+        MyTextureData textureData) {
+        
         final IntBuffer texturePixelsBuffer = textureData.texturePixelsBuffer;
         final int texturePixelsScanlineStride = textureData.texturePixelsScanlineStride;
         final int textureWidth = textureData.textureRect.xSpan();
@@ -534,24 +546,24 @@ public class JoglPaintHelper {
         try {
             final int texture = glGenTexture(gl);
             gl.glBindTexture(GL.GL_TEXTURE_2D, texture);
-
+            
             gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE);
             gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE);
             gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_NEAREST);
             gl.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_NEAREST);
-
+            
             gl.glTexImage2D(
-                    GL.GL_TEXTURE_2D,
-                    0,
-                    GL.GL_RGBA8,
-                    textureWidth,
-                    textureHeight,
-                    0,
-                    GL.GL_RGBA,
-                    GL.GL_UNSIGNED_BYTE,
-                    //
-                    texturePixelsBuffer);
-
+                GL.GL_TEXTURE_2D,
+                0,
+                GL.GL_RGBA8,
+                textureWidth,
+                textureHeight,
+                0,
+                GL.GL_RGBA,
+                GL.GL_UNSIGNED_BYTE,
+                //
+                texturePixelsBuffer);
+            
             return texture;
         } finally {
             gl.glPixelStorei(GL3ES3.GL_UNPACK_ROW_LENGTH, 0);
@@ -559,17 +571,37 @@ public class JoglPaintHelper {
     }
     
     private void setTextureVerticesPositions(
-            int clientWidth,
-            int clientHeight,
-            GRect textureRect) {
+        ScaleHelper scaleHelper,
+        int clientXInBufferInOs,
+        int clientYInBufferInOs,
+        int clientXSpanInOs,
+        int clientYSpanInOs,
+        GRect textureRect) {
+        
+        /*
+         * To convert texture coordinates, from buffer (frame 1)
+         * into client (frame 2), when both use binding pixels.
+         * x2 = x1 + bx
+         * y2 = y1 + by
+         */
+        
+        final float scaleInv = (float) scaleHelper.getScaleInv();
+        final float clientXSpanInBd = clientXSpanInOs * scaleInv;
+        final float clientYSpanInBd = clientYSpanInOs * scaleInv;
+        final float bx = clientXInBufferInOs * scaleInv;
+        final float by = clientYInBufferInOs * scaleInv;
+        
+        /*
+         * 
+         */
         
         // +1 for max coordinate to compute ratio properly,
         // as if integer coordinates were on pixels boundaries,
         // not pixels centers.
-        final float texXMinRatio = textureRect.x() / (float) clientWidth;
-        final float texXMaxRatio = (textureRect.xMax() + 1.0f) / (float) clientWidth;
-        final float texYMinRatio = textureRect.y() / (float) clientHeight;
-        final float texYMaxRatio = (textureRect.yMax() + 1.0f) / (float) clientHeight;
+        final float texXMinRatio = (bx + textureRect.x()) / (float) clientXSpanInBd;
+        final float texXMaxRatio = (bx + textureRect.xMax() + 1.0f) / (float) clientXSpanInBd;
+        final float texYMinRatio = (by + textureRect.y()) / (float) clientYSpanInBd;
+        final float texYMaxRatio = (by + textureRect.yMax() + 1.0f) / (float) clientYSpanInBd;
         //
         float vp_xrMin = ((2.0f * texXMinRatio) - 1.0f);
         float vp_yrMin = ((2.0f * texYMinRatio) - 1.0f);
@@ -599,7 +631,7 @@ public class JoglPaintHelper {
     /*
      * GL arrays and buffers.
      */
-
+    
     /**
      * @return The vao.
      */
@@ -613,8 +645,8 @@ public class JoglPaintHelper {
      * @return The vbo.
      */
     private static int createAndBindVbo(
-            GL3ES3 gl,
-            FloatBuffer vertices_position_buffer) {
+        GL3ES3 gl,
+        FloatBuffer vertices_position_buffer) {
         /*
          * Actually just generates a "free integer".
          */
@@ -627,13 +659,13 @@ public class JoglPaintHelper {
          * or until the bound buffer object is deleted with glDeleteBuffers."
          */
         gl.glBindBuffer(GL.GL_ARRAY_BUFFER, vbo);
-
+        
         gl.glBufferData(
-                GL.GL_ARRAY_BUFFER,
-                VERTICES_POSITION_BUFFER_LENGTH * (long) Float_BYTES
-                + TEXTURE_COORD_ARR.length * (long) Float_BYTES,
-                (Buffer) null,
-                GL.GL_STATIC_DRAW);
+            GL.GL_ARRAY_BUFFER,
+            VERTICES_POSITION_BUFFER_LENGTH * (long) Float_BYTES
+            + TEXTURE_COORD_ARR.length * (long) Float_BYTES,
+            (Buffer) null,
+            GL.GL_STATIC_DRAW);
         {
             final long offset = 0L;
             final long length = VERTICES_POSITION_BUFFER_LENGTH * (long) Float_BYTES;
@@ -654,16 +686,16 @@ public class JoglPaintHelper {
     private static int createAndBindEab(GL3ES3 gl) {
         final int eab = glGenBuffer(gl);
         gl.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, eab);
-
+        
         gl.glBufferData(
-                GL.GL_ELEMENT_ARRAY_BUFFER,
-                INDICES_ARR.length * (long) Integer_BYTES,
-                INDICES_BUFFER,
-                GL.GL_STATIC_DRAW);
+            GL.GL_ELEMENT_ARRAY_BUFFER,
+            INDICES_ARR.length * (long) Integer_BYTES,
+            INDICES_BUFFER,
+            GL.GL_STATIC_DRAW);
         
         return eab;
     }
-
+    
     /*
      * Shader program.
      */
@@ -686,7 +718,7 @@ public class JoglPaintHelper {
         final int[] flengths = new int[]{flines[0].length()};
         gl.glShaderSource(vertexShader, 1, flines, flengths, 0);
         gl.glCompileShader(vertexShader);
-
+        
         final int[] statusArr = new int[1];
         gl.glGetShaderiv(vertexShader, GL3ES3.GL_COMPILE_STATUS, statusArr, 0);
         final int status = statusArr[0];
@@ -706,7 +738,7 @@ public class JoglPaintHelper {
         final int[] flengths = new int[]{flines[0].length()};
         gl.glShaderSource(fragmentShader, 1, flines, flengths, 0);
         gl.glCompileShader(fragmentShader);
-
+        
         final int[] statusArr = new int[1];
         gl.glGetShaderiv(fragmentShader, GL3ES3.GL_COMPILE_STATUS, statusArr, 0);
         final int status = statusArr[0];
@@ -717,19 +749,19 @@ public class JoglPaintHelper {
             gl.glGetShaderInfoLog(fragmentShader, logLength[0], (int[]) null, 0, log, 0);
             throw new BindingError(new String(log));
         }
-
+        
         return fragmentShader;
     }
-
+    
     /**
      * Deletes the specified shaders once the program has been created.
      * Calls glUseProgram(...).
      */
     private static int createShaderProgram(
-            GL3ES3 gl,
-            int vertexShader,
-            int fragmentShader,
-            String fragmentShaderOutAttr) {
+        GL3ES3 gl,
+        int vertexShader,
+        int fragmentShader,
+        String fragmentShaderOutAttr) {
         final int shaderProgram = gl.glCreateProgram();
         
         gl.glAttachShader(shaderProgram, vertexShader);
@@ -750,7 +782,7 @@ public class JoglPaintHelper {
         }
         
         gl.glLinkProgram(shaderProgram);
-
+        
         final int[] statusArr = new int[1];
         gl.glGetProgramiv(shaderProgram, GL3ES3.GL_LINK_STATUS, statusArr, 0);
         final int status = statusArr[0];
@@ -762,12 +794,12 @@ public class JoglPaintHelper {
             gl.glGetProgramInfoLog(shaderProgram, logLength[0], (int[]) null, 0, log, 0);
             throw new BindingError(new String(log));
         }
-
+        
         gl.glUseProgram(shaderProgram);
         
         return shaderProgram;
     }
-
+    
     private static void shaderProgramBindingBeforeCreation(GL3ES3 gl) {
         if (MUST_BIND_BEFORE_PROG_CREATION) {
             {
@@ -795,13 +827,13 @@ public class JoglPaintHelper {
     }
     
     private static void shaderProgramBindingAfterCreation(
-            GL3ES3 gl,
-            int shaderProgram) {
+        GL3ES3 gl,
+        int shaderProgram) {
         if (MUST_BIND_BEFORE_PROG_CREATION) {
             gl.glBindAttribLocation(shaderProgram, POSITION_ATTRIBUTE_BEFORE, ATTR_VSHADER_IN_POSITION);
         } else {
             final int position_attribute = gl.glGetAttribLocation(shaderProgram, ATTR_VSHADER_IN_POSITION);
-
+            
             // Enable the attribute
             gl.glEnableVertexAttribArray(position_attribute);
             
@@ -821,10 +853,10 @@ public class JoglPaintHelper {
         } else {
             // Get the location of the attributes that enters in the vertex shader
             final int texture_coord_attribute = gl.glGetAttribLocation(shaderProgram, ATTR_VSHADER_IN_TEXTURE_COORD);
-
+            
             // Enable the attribute
             gl.glEnableVertexAttribArray(texture_coord_attribute);
-
+            
             // Specify how the data for position can be accessed
             {
                 final int count = 2;
@@ -837,12 +869,12 @@ public class JoglPaintHelper {
             }
         }
     }
-
+    
     private static int createShadersAndShaderProgram(GL3ES3 gl) {
         // True because our int[] contains rows from top to bottom,
         // and OpenGL expects them from bottom to top.
         final boolean mustFlipTexture = true;
-
+        
         final String vsInPosAttr = ATTR_VSHADER_IN_POSITION;
         final String vsInTexCoordAttr = ATTR_VSHADER_IN_TEXTURE_COORD;
         
@@ -855,43 +887,43 @@ public class JoglPaintHelper {
          */
         
         final int vertexShader = createVertexShader(
-                gl,
-                "#version 150",
-                "",
-                "in " + (mustFlipTexture ? "vec2" : "vec4") + " " + vsInPosAttr + ";",
-                "in vec2 " + vsInTexCoordAttr + ";",
-                "",
-                "out vec2 " + vsOutTextureCoordAttr + ";",
-                "",
-                "void main() {",
-                "    gl_Position = " + (mustFlipTexture ? "vec4(" + vsInPosAttr + ".s, -" + vsInPosAttr + ".t, 0.0f, 1.0f)" : vsInPosAttr) + ";",
-                "    " + vsOutTextureCoordAttr + " = " + vsInTexCoordAttr + ";",
-                "}");
-
+            gl,
+            "#version 150",
+            "",
+            "in " + (mustFlipTexture ? "vec2" : "vec4") + " " + vsInPosAttr + ";",
+            "in vec2 " + vsInTexCoordAttr + ";",
+            "",
+            "out vec2 " + vsOutTextureCoordAttr + ";",
+            "",
+            "void main() {",
+            "    gl_Position = " + (mustFlipTexture ? "vec4(" + vsInPosAttr + ".s, -" + vsInPosAttr + ".t, 0.0f, 1.0f)" : vsInPosAttr) + ";",
+            "    " + vsOutTextureCoordAttr + " = " + vsInTexCoordAttr + ";",
+            "}");
+        
         final int fragmentShader = createFragmentShader(
-                gl,
-                "#version 150",
-                "",
-                "uniform sampler2D texture_sampler;",
-                "",
-                "in vec2 " + vsOutTextureCoordAttr + ";",
-                "",
-                // Output is gl_FragColor if not specified.
-                "out vec4 " + fsOutAttr + ";",
-                "",
-                "void main() {",
-                "    vec4 premulRgba = texture(texture_sampler, " + vsOutTextureCoordAttr + ");",
-                // De-alpha-premultiplying color components.
-                "    " + fsOutAttr + " = vec4(premulRgba.rgb/premulRgba.a, premulRgba.a);",
-                "}");
+            gl,
+            "#version 150",
+            "",
+            "uniform sampler2D texture_sampler;",
+            "",
+            "in vec2 " + vsOutTextureCoordAttr + ";",
+            "",
+            // Output is gl_FragColor if not specified.
+            "out vec4 " + fsOutAttr + ";",
+            "",
+            "void main() {",
+            "    vec4 premulRgba = texture(texture_sampler, " + vsOutTextureCoordAttr + ");",
+            // De-alpha-premultiplying color components.
+            "    " + fsOutAttr + " = vec4(premulRgba.rgb/premulRgba.a, premulRgba.a);",
+            "}");
         
         return createShaderProgram(
-                gl,
-                vertexShader,
-                fragmentShader,
-                fsOutAttr);
+            gl,
+            vertexShader,
+            fragmentShader,
+            fsOutAttr);
     }
-
+    
     /*
      * 
      */

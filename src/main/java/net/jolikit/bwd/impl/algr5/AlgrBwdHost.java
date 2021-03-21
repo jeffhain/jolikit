@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_DISPLAY_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_KEYBOARD_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_KEYBOARD_STATE;
@@ -38,6 +39,7 @@ import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.Dbg;
 import net.jolikit.time.sched.AbstractProcess;
@@ -114,7 +116,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
      */
     private class MyHostMoveDetectionProcess extends AbstractProcess {
         private final long delayNs;
-        private GRect lastClientBounds;
+        private GRect lastClientBoundsInOs;
         public MyHostMoveDetectionProcess(
                 InterfaceScheduler scheduler,
                 double delayS) {
@@ -123,25 +125,27 @@ public class AlgrBwdHost extends AbstractBwdHost {
         }
         @Override
         protected void onBegin() {
-            this.lastClientBounds = GRect.DEFAULT_EMPTY;
+            this.lastClientBoundsInOs = GRect.DEFAULT_EMPTY;
         }
         @Override
         protected long process(long theoreticalTimeNs, long actualTimeNs) {
-            final GRect oldBounds = this.lastClientBounds;
-            final GRect newBounds = getClientBounds();
+            final GRect oldBoundsInOs = this.lastClientBoundsInOs;
+            final GRect newBoundsInOs = getClientBoundsInOs();
             
             final long nextNs = plusBounded(actualTimeNs, this.delayNs);
             
-            if (!newBounds.isEmpty()) {
-                this.lastClientBounds = newBounds;
+            if (!newBoundsInOs.isEmpty()) {
+                this.lastClientBoundsInOs = newBoundsInOs;
                 
                 final boolean didTopLeftMove =
-                        (newBounds.x() != oldBounds.x())
-                        || (newBounds.y() != oldBounds.y());
+                        (newBoundsInOs.x() != oldBoundsInOs.x())
+                        || (newBoundsInOs.y() != oldBoundsInOs.y());
 
                 if (DEBUG) {
-                    if (!newBounds.equals(oldBounds)) {
-                        hostLog(this, "process(...) : oldBounds = " + oldBounds + ", newBounds = " + newBounds);
+                    if (!newBoundsInOs.equals(oldBoundsInOs)) {
+                        hostLog(this,
+                            "process(...) : oldBoundsInOs = " + oldBoundsInOs
+                            + ", newBoundsInOs = " + newBoundsInOs);
                     }
                 }
                 
@@ -191,7 +195,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
             this.stop();
             return 0;
         }
-    };
+    }
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -262,7 +266,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
      * deiconified, we use super class target showing/deico/demax bounds
      * to enforce for demaximized windows, and this field for maximized windows.
      */
-    private GRect windowBoundsToRestoreOnShowingDeicoMax = null;
+    private GRect windowBoundsInOsToRestoreOnShowingDeicoMax = null;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -301,6 +305,8 @@ public class AlgrBwdHost extends AbstractBwdHost {
                 modal,
                 client);
 
+        final AlgrBwdBindingConfig bindingConfig = binding.getBindingConfig();
+        
         this.offscreenBuffer = new IntArrayGraphicBuffer(
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING);
@@ -309,52 +315,57 @@ public class AlgrBwdHost extends AbstractBwdHost {
         // for re-showings might not pass through our code.
         this.hostMoveDetectionProcess = new MyHostMoveDetectionProcess(
                 getUiThreadScheduler(),
-                binding.getBindingConfig().getHostBoundsCheckDelayS());
+                bindingConfig.getHostBoundsCheckDelayS());
 
-        final PixelCoordsConverter pixelCoordsConverter = binding.getPixelCoordsConverter();
+        final PixelCoordsConverter pixelCoordsConverter =
+            binding.getPixelCoordsConverter();
         
         final AbstractBwdHost host = this;
         final AlgrHostBoundsHelper hostBoundsHelper = new AlgrHostBoundsHelper(
                 host,
                 pixelCoordsConverter,
-                binding.getBindingConfig().getDecorationInsets(),
-                binding.getBindingConfig().getMustResizeDisplayExplicitlyOnBoundsSetting(),
-                binding.getBindingConfig().getMustRestoreWindowPositionAfterDisplayResize());
+                bindingConfig.getDecorationInsets(),
+                bindingConfig.getMustResizeDisplayExplicitlyOnBoundsSetting(),
+                bindingConfig.getMustRestoreWindowPositionAfterDisplayResize());
         this.hostBoundsHelper = hostBoundsHelper;
 
         this.eventConverter = new AlgrEventConverter(
                 binding.getEventsConverterCommonState(),
-                pixelCoordsConverter,
-                host);
+                host,
+                pixelCoordsConverter);
         
         /*
          * Creating window.
          */
         
-        final GRect defaultClientBounds = binding.getBindingConfig().getDefaultClientOrWindowBounds();
+        final GRect defaultClientBoundsInOs =
+            bindingConfig.getDefaultClientOrWindowBoundsInOs();
         
-        final int initialWidth = defaultClientBounds.xSpan();
-        final int initialHeight = defaultClientBounds.ySpan();
+        final int initialWidthInOs = defaultClientBoundsInOs.xSpan();
+        final int initialHeightInOs = defaultClientBoundsInOs.ySpan();
         final Pointer display;
         {
             setStaticAlgrStuffsForDisplayCreation(
                     title,
                     decorated,
-                    initialWidth,
-                    initialHeight,
+                    initialWidthInOs,
+                    initialHeightInOs,
                     //
-                    binding.getBindingConfig().getHiddenHackClientX(),
-                    binding.getBindingConfig().getHiddenHackClientY());
+                    bindingConfig.getHiddenHackClientXInOs(),
+                    bindingConfig.getHiddenHackClientYInOs());
             
-            display = LIB.al_create_display(initialWidth, initialHeight);
+            display = LIB.al_create_display(initialWidthInOs, initialHeightInOs);
             if (display == null) {
-                throw new IllegalStateException("could not create display: " + LIB.al_get_errno());
+                throw new IllegalStateException(
+                    "could not create display: " + LIB.al_get_errno());
             }
             this.display = display;
             
-            final Pointer display_event_source = LIB.al_get_display_event_source(display);
+            final Pointer display_event_source =
+                LIB.al_get_display_event_source(display);
             if (display_event_source == null) {
-                throw new IllegalStateException("could not get display event source: " + LIB.al_get_errno());
+                throw new IllegalStateException(
+                    "could not get display event source: " + LIB.al_get_errno());
             }
             LIB.al_register_event_source(
                     binding.get_event_queue(),
@@ -383,6 +394,11 @@ public class AlgrBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public AlgrBwdBindingConfig getBindingConfig() {
+        return (AlgrBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractAlgrBwdBinding getBinding() {
@@ -655,25 +671,31 @@ public class AlgrBwdHost extends AbstractBwdHost {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_AXES(...) : (" + backingEvent.x +", " + backingEvent.y + ", " + backingEvent.dx + ", " + backingEvent.dy + ")");
         }
         if (getBinding().getBindingConfig().getMustSetFreshPosInMouseAxesEvent()) {
-            final GRect clientBounds = getClientBounds();
-            if (!clientBounds.isEmpty()) {
+            final GRect clientBoundsInOs = getClientBoundsInOs();
+            if (!clientBoundsInOs.isEmpty()) {
                 // Not modifying the input event, in case some other listener
                 // would need the crazy values.
                 backingEvent = backingEvent.duplicate();
 
-                final GPoint mousePosInScreen = getBinding().getMousePosInScreen();
+                final GPoint mousePosInScreenInOs =
+                    getBinding().getMousePosInScreenInOs();
                 final int oldX = backingEvent.x;
                 final int oldY = backingEvent.y;
-                final PixelCoordsConverter pixelCoordsConverter = getBinding().getPixelCoordsConverter();
-                final int newX = pixelCoordsConverter.computeXInDevicePixel(mousePosInScreen.x() - clientBounds.x());
-                final int newY = pixelCoordsConverter.computeYInDevicePixel(mousePosInScreen.y() - clientBounds.y());;
+                final PixelCoordsConverter pixelCoordsConverter =
+                    getBinding().getPixelCoordsConverter();
+                final int newX =
+                    pixelCoordsConverter.computeXInDevicePixel(
+                        mousePosInScreenInOs.x() - clientBoundsInOs.x());
+                final int newY =
+                    pixelCoordsConverter.computeYInDevicePixel(
+                        mousePosInScreenInOs.y() - clientBoundsInOs.y());;
                 backingEvent.x = newX;
                 backingEvent.y = newY;
                 backingEvent.dx += (newX - oldX);
                 backingEvent.dy += (newY - oldY);
                 if (DEBUG_SPAM) {
-                    hostLog(this, "clientBounds = " + clientBounds);
-                    hostLog(this, "mousePosInScreen = " + mousePosInScreen);
+                    hostLog(this, "clientBoundsInOs = " + clientBoundsInOs);
+                    hostLog(this, "mousePosInScreenInOs = " + mousePosInScreenInOs);
                 }
                 if (DEBUG) {
                     hostLog(this, "reworked backingEvent : (" + backingEvent.x + ", " + backingEvent.y + ", " + backingEvent.dx + ", " + backingEvent.dy + ")");
@@ -794,56 +816,57 @@ public class AlgrBwdHost extends AbstractBwdHost {
 
     @Override
     protected void paintClientNowOrLater() {
+        this.paintBwdClientNowAndBackingClient(
+            getBindingConfig(),
+            this.hostBoundsHelper);
+    }
 
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-
-        client.processEventualBufferedEvents();
-        
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-
-        final GRect clientBounds = this.getClientBounds();
-        final int width = clientBounds.xSpan();
-        final int height = clientBounds.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
         
         final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
         
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-
-        this.offscreenBuffer.setSize(width, height);
-        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
-
-        final AlgrBwdGraphics g = new AlgrBwdGraphics(
-                this.getBinding(),
-                isImageGraphics,
-                box,
-                //
-                pixelArr,
-                pixelArrScanlineStride);
-
-        final List<GRect> paintedRectList =
-                this.getPaintClientHelper().initPaintFinish(
-                        g,
-                        dirtyRect);
-
-        if (paintedRectList.size() != 0) {
-            if (this.canPaintClientNow()) {
-                this.paintUtils.paintPixelsOnClient(
-                        this.getBinding().getPixelCoordsConverter(),
-                        this.offscreenBuffer,
-                        paintedRectList,
-                        this.display,
-                        this.getBindingConfig().getIssueStream());
-
-                this.flushPainting();
-            }
+        this.offscreenBuffer.setSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+        
+        return new AlgrBwdGraphics(
+            this.getBinding(),
+            boxWithBorder,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
         }
+        
+        this.paintUtils.paintPixelsOnClient(
+            scaleHelper,
+            clientSpansInOs,
+            bufferPosInCliInOs,
+            paintedRectList,
+            //
+            this.offscreenBuffer,
+            this.display,
+            getBinding().getPixelCoordsConverter(),
+            getBindingConfig().getIssueStream());
+        
+        this.flushPainting();
     }
 
     @Override
@@ -888,16 +911,16 @@ public class AlgrBwdHost extends AbstractBwdHost {
             return;
         }
         
-        final GRect windowBounds = this.getWindowBounds();
-        if (windowBounds.isEmpty()) {
+        final GRect windowBoundsInOs = this.getWindowBoundsInOs();
+        if (windowBoundsInOs.isEmpty()) {
             // Can happen if iconified.
         } else {
-            this.hidIcoHack_setWindowBoundsToRestoreWith(windowBounds);
+            this.hidIcoHack_setWindowBoundsInOsToRestoreWith(windowBoundsInOs);
         }
         
         this.backingWindowShowing = false;
 
-        if (!windowBounds.isEmpty()) {
+        if (!windowBoundsInOs.isEmpty()) {
             this.hidIcoHack_moveBackingWindowToHackPosition();
         }
     }
@@ -966,7 +989,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
                 if (windowBounds.isEmpty()) {
                     // Should not happen, but making sure we don't set crazy bounds.
                 } else {
-                    this.hidIcoHack_setWindowBoundsToRestoreWith(windowBounds);
+                    this.hidIcoHack_setWindowBoundsInOsToRestoreWith(windowBounds);
                     
                     this.hidIcoHack_moveBackingWindowToHackPosition();
                 }
@@ -1012,28 +1035,28 @@ public class AlgrBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
 
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
     
     /*
@@ -1066,7 +1089,8 @@ public class AlgrBwdHost extends AbstractBwdHost {
      * 
      */
 
-    private void hidIcoHack_setWindowBoundsToRestoreWith(GRect windowBoundsToRestore) {
+    private void hidIcoHack_setWindowBoundsInOsToRestoreWith(
+        GRect windowBoundsInOsToRestore) {
         /*
          * Not using isMaximized(), to get the actual state
          * even if we did already iconify.
@@ -1074,45 +1098,55 @@ public class AlgrBwdHost extends AbstractBwdHost {
         final boolean maximized = this.isBackingWindowMaximized();
         if (maximized) {
             if (DEBUG) {
-                hostLog(this, "windowBoundsToRestoreOnShowingDeicoMax set to " + windowBoundsToRestore);
+                hostLog(this,
+                    "windowBoundsInOsToRestoreOnShowingDeicoMax set to "
+                        + windowBoundsInOsToRestore);
             }
-            this.windowBoundsToRestoreOnShowingDeicoMax = windowBoundsToRestore;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax = windowBoundsInOsToRestore;
         } else {
-            this.setWindowBoundsToEnforceOnShowDeicoDemaxAndFlag_protected(windowBoundsToRestore);
+            this.setWindowBoundsInOsToEnforceOnShowDeicoDemaxAndFlag_protected(
+                windowBoundsInOsToRestore);
         }
     }
     
     private void hidIcoHack_moveBackingWindowToHackPosition() {
         /*
-         * Not using getClientBounds(), to get the actual bounds
+         * Not using getClientBoundsInOs(), to get the actual bounds
          * even if we did already hide.
          * Might be maximized bounds.
          */
-        final GRect windowBounds = this.getBackingOrOnDragBeginWindowBounds();
+        final GRect windowBounds =
+            this.getBackingOrOnDragBeginWindowBoundsInOs();
         
-        final GRect hidOrIcoWindowBounds = windowBounds.withPos(
-                getBinding().getBindingConfig().getHiddenHackClientX(),
-                getBinding().getBindingConfig().getHiddenHackClientY());
+        final GRect hidOrIcoWindowBoundsInOs = windowBounds.withPos(
+                getBinding().getBindingConfig().getHiddenHackClientXInOs(),
+                getBinding().getBindingConfig().getHiddenHackClientYInOs());
         if (DEBUG) {
-            hostLog(this, "backing client bounds set to hidOrIcoWindowBounds = " + hidOrIcoWindowBounds);
+            hostLog(
+                this,
+                "backing window bounds set to hidOrIcoWindowBounds = "
+                    + hidOrIcoWindowBoundsInOs);
         }
-        this.setBackingWindowBounds(hidOrIcoWindowBounds);
+        this.setBackingWindowBoundsInOs(hidOrIcoWindowBoundsInOs);
     }
     
     private void hidIcoHack_restoreBackingBoundsOnShowingDeico(boolean maximized) {
         if (maximized) {
-            final GRect windowBoundsToEnforce = this.windowBoundsToRestoreOnShowingDeicoMax;
-            this.windowBoundsToRestoreOnShowingDeicoMax = null;
-            if (windowBoundsToEnforce != null) {
+            final GRect windowBoundsInOsToEnforce = this.windowBoundsInOsToRestoreOnShowingDeicoMax;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax = null;
+            if (windowBoundsInOsToEnforce != null) {
                 if (DEBUG) {
-                    hostLog(this, "backing window bounds set to windowBoundsToRestoreOnShowingDeicoMax = " + windowBoundsToEnforce);
+                    hostLog(this,
+                        "backing window bounds set to windowBoundsInOsToRestoreOnShowingDeicoMax = "
+                            + windowBoundsInOsToEnforce);
                 }
-                this.applyWindowBoundsToEnforceOnShowDeicoMax_protected(windowBoundsToEnforce);
+                this.applyWindowBoundsInOsToEnforceOnShowDeicoMax_protected(
+                    windowBoundsInOsToEnforce);
             }
         } else {
-            // Cleanup, in case maximized state changed while hidden or iconitied
+            // Cleanup, in case maximized state changed while hidden or iconified
             // (which is not supposed to happen).
-            this.windowBoundsToRestoreOnShowingDeicoMax = null;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax = null;
             
             this.applyBoundsToEnforceOnShowDeicoDemaxIfAny_protected();
         }

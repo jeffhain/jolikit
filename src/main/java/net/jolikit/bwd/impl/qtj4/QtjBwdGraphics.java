@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -168,6 +169,56 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         private final QTransform tmpBackingTransform = new QTransform();
     }
     
+    /**
+     * Resources shared between a root graphics and all its descendants.
+     */
+    private static class MyShared {
+        /**
+         * For a same device, at most one QPainter can be bound to it
+         * (between QPainter.begin(device) and QPainter.end()) at a time,
+         * else we get the error:
+         * "QPainter::begin: A paint device can only be painted by one painter at a time."
+         * That means that we must share a same QPainter between root graphics
+         * and its descendants.
+         */
+        final QPainter painter;
+        final QImage backingImage;
+        private int graphicsCount = 0;
+        private boolean beginDone = false;
+        private int finishCount = 0;
+        public MyShared(
+            QPainter painter,
+            QImage backingImage) {
+            this.painter = painter;
+            this.backingImage = backingImage;
+        }
+        public void onGraphicsCreation() {
+            this.graphicsCount++;
+        }
+        public void onGraphicsInit() {
+            if (!this.beginDone) {
+                this.painter.begin(this.backingImage);
+                this.beginDone = true;
+            }
+        }
+        public void onGraphicsFinish() {
+            this.finishCount++;
+            final boolean isLastFinish =
+                (this.finishCount == this.graphicsCount);
+            if (isLastFinish) {
+                if (this.painter.nativeId() == 0) {
+                    /*
+                     * Can happen if user did shut down during painting,
+                     * in which case calling painter methods could cause
+                     * "com.trolltech.qt.QNoNativeResourcesException: Function call on incomplete object of type: com.trolltech.qt.gui.QPainter".
+                     */
+                } else {
+                    this.painter.end();
+                }
+            }
+        }
+    }
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -193,19 +244,10 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     private final boolean isImageGraphics;
     
-    private final boolean isRootGraphics;
-    
     /**
      * Shared with parent graphics.
-     * 
-     * For a same device, at most one QPainter can be bound to it
-     * (between QPainter.begin(device) and QPainter.end()) at a time,
-     * else we get the error:
-     * "QPainter::begin: A paint device can only be painted by one painter at a time."
-     * That means that we must share a same QPainter between root graphics
-     * and its descendants.
      */
-    private final QPainter painter;
+    private final MyShared shared;
     
     /**
      * Since multiple graphics are allowed to be in use at once
@@ -217,8 +259,6 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      * among root graphics and its descendants.
      */
     private final ObjectWrapper<QtjBwdGraphics> painterGraphicsRef;
-    
-    private final QImage backingImage;
     
     /*
      * 
@@ -247,22 +287,20 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
     public QtjBwdGraphics(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
             GRect box,
             //
+            boolean isImageGraphics,
             QImage backingImage,
             //
             ObjectWrapper<Object> qtStuffsPoolRef) {
         this(
                 binding,
-                new QPainter(),
-                isImageGraphics,
+                topLeftOf(box),
                 box,
                 box, // initialClip
                 //
-                backingImage,
-                //
-                true, // isRootGraphics
+                isImageGraphics,
+                new MyShared(new QPainter(), backingImage),
                 new ObjectWrapper<QtjBwdGraphics>(),
                 getOrCreateQtStuffsPool(qtStuffsPoolRef));
     }
@@ -288,17 +326,14 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 this.getInitialClipInBase().intersected(
                         childMaxInitialClip.intersected(childBox));
         
-        final boolean childIsRootGraphics = false;
         return new QtjBwdGraphics(
                 this.getBinding(),
-                this.painter,
-                this.isImageGraphics,
+                this.getRootBoxTopLeft(),
                 childBox,
                 childInitialClip,
                 //
-                this.backingImage,
-                //
-                childIsRootGraphics,
+                this.isImageGraphics,
+                this.shared,
                 this.painterGraphicsRef,
                 this.qtStuffsPool);
     }
@@ -671,7 +706,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int xInBase = transform.xIn1(x, y);
         final int yInBase = transform.yIn1(x, y);
         
-        final int premulArgb32 = this.backingImage.pixel(xInBase, yInBase);
+        final int premulArgb32 = this.shared.backingImage.pixel(xInBase, yInBase);
         final int argb32 = BindingColorUtils.toNonPremulAxyz32(premulArgb32);
         return argb32;
     }
@@ -682,11 +717,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     @Override
     protected void initImpl() {
-        if (this.isRootGraphics) {
-            // Need to call it before super,
-            // so that super can configure it.
-            this.painter.begin(this.backingImage);
-        }
+        this.shared.onGraphicsInit();
         
         super.initImpl();
     }
@@ -695,17 +726,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     protected void finishImpl() {
         this.releaseQtStuffs(this.qtStuffs);
         
-        if (this.isRootGraphics) {
-            if (this.painter.nativeId() == 0) {
-                /*
-                 * Can happen if user did shut down during painting,
-                 * in which case calling painter methods could cause
-                 * "com.trolltech.qt.QNoNativeResourcesException: Function call on incomplete object of type: com.trolltech.qt.gui.QPainter".
-                 */
-            } else {
-                this.painter.end();
-            }
-        }
+        this.shared.onGraphicsFinish();
     }
     
     /*
@@ -727,12 +748,13 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
 
     @Override
     protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
-        // TODO qtj Says rgba, but needs argb.
-        this.qtStuffs.backingColor.setRgba(argb32);
+        QtjUtils.setBackingColor(
+            this.qtStuffs.backingColor,
+            argb32);
         
         this.qtStuffs.backingPen.setColor(this.qtStuffs.backingColor);
         
-        this.painter.setPen(this.qtStuffs.backingPen);
+        this.shared.painter.setPen(this.qtStuffs.backingPen);
         
         final int opaqueArgb32 = Argb32.toOpaque(argb32);
         this.qtStuffs.backingColorOpaque.setRgb(opaqueArgb32);
@@ -741,7 +763,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         final QtjBwdFont fontImpl = (QtjBwdFont) font;
-        this.painter.setFont(fontImpl.getBackingFont().backingFont());
+        this.shared.painter.setFont(fontImpl.getBackingFont().backingFont());
     }
     
     @Override
@@ -880,20 +902,24 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
     private QtjBwdGraphics(
             InterfaceBwdBinding binding,
-            QPainter painter,
-            boolean isImageGraphics,
+            GPoint topLeftCoord,
             GRect box,
             GRect initialClip,
             //
-            QImage backingImage,
-            //
-            boolean isRootGraphics,
+            boolean isImageGraphics,
+            MyShared shared,
             ObjectWrapper<QtjBwdGraphics> painterGraphicsRef,
             ArrayList<MyQtStuffs> qtStuffsPool) {
         super(
                 binding,
+                topLeftCoord,
                 box,
                 initialClip);
+        
+        // Inplicit null check.
+        shared.onGraphicsCreation();
+        
+        final QImage backingImage = shared.backingImage;
         
         /*
          * Format assumed by our pixel reading treatment,
@@ -905,13 +931,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             throw new IllegalStateException("" + backingImage.format());
         }
         
-        this.painter = LangUtils.requireNonNull(painter);
-        
-        this.backingImage = LangUtils.requireNonNull(backingImage);
-
         this.isImageGraphics = isImageGraphics;
         
-        this.isRootGraphics = isRootGraphics;
+        this.shared = shared;
         
         this.painterGraphicsRef = LangUtils.requireNonNull(painterGraphicsRef);
         
@@ -927,18 +949,24 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     /**
      * Method to use to retrieve painter for writing or reading pixels.
      * 
+     * We use the pattern of retrieving the painter from this method each time,
+     * even though it's always the same and accessible as a field,
+     * because otherwise we might forget to call
+     * ensurePainterConfiguredForThisGraphics()
+     * before using this.painter.
+     * 
      * @return The shared painter aligned on this graphics configuration,
      *         ready to be used for writing or reading pixels.
      */
     private QPainter getConfiguredPainter() {
         this.ensurePainterConfiguredForThisGraphics();
-        return this.painter;
+        return this.shared.painter;
     }
     
     private void ensurePainterConfiguredForThisGraphics() {
         final QtjBwdGraphics painterGraphics = this.painterGraphicsRef.value;
         if (painterGraphics != this) {
-            this.configuredPainterForThisGraphics();
+            this.configurePainterForThisGraphics();
             
             /*
              * Set after configuration, to have stack overflow
@@ -949,7 +977,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         }
     }
     
-    private void configuredPainterForThisGraphics() {
+    private void configurePainterForThisGraphics() {
         final boolean mustSetClip = true;
         final boolean mustSetTransform = true;
         final boolean mustSetColor = true;
@@ -1024,7 +1052,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int _x = clip.x() + this.xShiftInUser;
         final int _y = clip.y() + this.yShiftInUser;
 
-        this.painter.setClipRect(_x, _y, clip.xSpan(), clip.ySpan());
+        this.shared.painter.setClipRect(_x, _y, clip.xSpan(), clip.ySpan());
     }
     
     /**
@@ -1034,8 +1062,13 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final GTransform transform = this.getTransform();
         final GRotation rotation = transform.rotation();
         
-        // scaleInv = 2 means twice smaller.
+        // scaleInv = 2 would mean twice smaller.
+        // Not using our binding's scale here, it's faster
+        // to just draw with graphics on a small offscreen image
+        // and then draw it scaled at the end.
         final double scaleInv = 1.0;
+        
+        final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         
         this.qtStuffs.backingTransform.setMatrix(
                 rotation.cos(),
@@ -1046,11 +1079,11 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 rotation.cos(),
                 0.0,
                 //
-                transform.frame2XIn1(),
-                transform.frame2YIn1(),
+                transform.frame2XIn1() - rootBoxTopLeft.x(),
+                transform.frame2YIn1() - rootBoxTopLeft.y(),
                 scaleInv);
-
-        this.painter.setTransform(this.qtStuffs.backingTransform);
+        
+        this.shared.painter.setTransform(this.qtStuffs.backingTransform);
 
         this.xShiftInUser = ((rotation.angDeg() == 180) || (rotation.angDeg() == 270) ? -1 : 0);
         this.yShiftInUser = ((rotation.angDeg() == 90) || (rotation.angDeg() == 180) ? -1 : 0);

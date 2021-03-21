@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,6 @@
 package net.jolikit.bwd.impl.qtj4;
 
 import java.util.List;
-
-import net.jolikit.bwd.api.InterfaceBwdHost;
-import net.jolikit.bwd.api.events.BwdKeyLocations;
-import net.jolikit.bwd.api.events.BwdKeys;
-import net.jolikit.bwd.api.events.BwdMouseButtons;
-import net.jolikit.bwd.api.events.BwdWheelEvent;
-import net.jolikit.bwd.api.graphics.GPoint;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
-import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
-import net.jolikit.lang.Dbg;
 
 import com.trolltech.qt.core.QEvent;
 import com.trolltech.qt.core.QEvent.Type;
@@ -46,6 +34,16 @@ import com.trolltech.qt.gui.QMouseEvent;
 import com.trolltech.qt.gui.QTouchEvent;
 import com.trolltech.qt.gui.QTouchEvent_TouchPoint;
 import com.trolltech.qt.gui.QWheelEvent;
+
+import net.jolikit.bwd.api.events.BwdKeyLocations;
+import net.jolikit.bwd.api.events.BwdKeys;
+import net.jolikit.bwd.api.events.BwdMouseButtons;
+import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
+import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
+import net.jolikit.lang.Dbg;
 
 /**
  * For key events: QKeyEvent
@@ -69,6 +67,7 @@ public class QtjEventConverter extends AbstractEventConverter {
      * Lately we couldn't reproduce the issue, but for safety we still
      * distrust QMouseEvent's x() and y(), and use the workaround.
      */
+    @SuppressWarnings("unused")
     private static final boolean CAN_RELY_ON_EVENTS_MOUSE_POS_IN_CLIENT = false;
     
     //--------------------------------------------------------------------------
@@ -89,7 +88,10 @@ public class QtjEventConverter extends AbstractEventConverter {
             AbstractBwdHost host,
             boolean mustSynthesizeAltGraph,
             int altGraphNativeScanCode) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
         this.mustSynthesizeAltGraph = mustSynthesizeAltGraph;
         this.altGraphNativeScanCode = altGraphNativeScanCode;
     }
@@ -140,13 +142,9 @@ public class QtjEventConverter extends AbstractEventConverter {
             event.accept();
         }
         
-        /*
-         * Updating common state.
-         */
-        
         final CmnInputConvState commonState = this.getCommonState();
         
-        GPoint mousePosInScreen = null;
+        GPoint mousePosInScreenInOs = null;
         
         if (backingEvent instanceof QKeyEvent) {
             final QKeyEvent keyEvent = (QKeyEvent) backingEvent;
@@ -163,13 +161,12 @@ public class QtjEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof QMouseEvent) {
             final QMouseEvent mouseEvent = (QMouseEvent) backingEvent;
             
-            mousePosInScreen = GPoint.valueOf(
-                    mouseEvent.globalX(),
-                    mouseEvent.globalY());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            mousePosInScreenInOs = GPoint.valueOf(
+                mouseEvent.globalX(),
+                mouseEvent.globalY());
             if (DEBUG) {
                 Dbg.log("reading event mouse pos in screen:");
-                Dbg.log("mousePosInScreen = " + mousePosInScreen);
+                Dbg.log("mousePosInScreenInOs = " + mousePosInScreenInOs);
             }
 
             final MouseButtons buttons = mouseEvent.buttons();
@@ -184,64 +181,25 @@ public class QtjEventConverter extends AbstractEventConverter {
                 commonState.setAltDown(modifiers.isSet(KeyboardModifier.AltModifier));
             }
             commonState.setMetaDown(modifiers.isSet(KeyboardModifier.MetaModifier));
-            
         }
         
         /*
          * 
          */
         
-        if (mousePosInScreen == null) {
+        if (mousePosInScreenInOs == null) {
             // TODO qtj Best effort (we need this pos
             // for the corresponding BWD event).
-            final QPoint qMousePosInScreen = QCursor.pos();
-            mousePosInScreen = GPoint.valueOf(
-                    qMousePosInScreen.x(),
-                    qMousePosInScreen.y());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            final QPoint qMousePosInScreenInOs = QCursor.pos();
+            mousePosInScreenInOs = GPoint.valueOf(
+                qMousePosInScreenInOs.x(),
+                qMousePosInScreenInOs.y());
             if (DEBUG) {
                 Dbg.log("reading global mouse pos in screen:");
-                Dbg.log("mousePosInScreen = " + mousePosInScreen);
+                Dbg.log("mousePosInScreenInOs = " + mousePosInScreenInOs);
             }
         }
-        
-        /*
-         * Updating host-specific state.
-         */
-        
-        GPoint mousePosInClient = null;
-        if (CAN_RELY_ON_EVENTS_MOUSE_POS_IN_CLIENT) {
-            if (backingEvent instanceof QMouseEvent) {
-                final QMouseEvent mouseEvent = (QMouseEvent) backingEvent;
-                mousePosInClient = GPoint.valueOf(
-                        mouseEvent.x(),
-                        mouseEvent.y());
-            } else {
-                final QEvent event = (QEvent) backingEvent;
-                // No pos available in this event.
-            }
-        }
-        
-        if (mousePosInClient == null) {
-            final InterfaceBwdHost host = this.getHost();
-            final GRect clientBounds = host.getClientBounds();
-            if (!clientBounds.isEmpty()) {
-                mousePosInClient = GPoint.valueOf(
-                        mousePosInScreen.x() - clientBounds.x(),
-                        mousePosInScreen.y() - clientBounds.y());
-
-                if (DEBUG) {
-                    Dbg.log("computed mouse pos in client:");
-                    Dbg.log("mousePosInScreen = " + mousePosInScreen);
-                    Dbg.log("clientBounds = " + clientBounds);
-                    Dbg.log("mousePosInClient = " + mousePosInClient);
-                }
-            }
-        }
-        
-        if (mousePosInClient != null) {
-            this.setMousePosInClient(mousePosInClient);
-        }
+        commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
         
         /*
          * 

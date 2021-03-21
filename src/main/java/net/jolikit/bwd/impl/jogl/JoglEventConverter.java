@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,7 +15,10 @@
  */
 package net.jolikit.bwd.impl.jogl;
 
-import net.jolikit.bwd.api.InterfaceBwdHost;
+import com.jogamp.newt.event.InputEvent;
+import com.jogamp.newt.event.KeyEvent;
+import com.jogamp.newt.event.MouseEvent;
+
 import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
@@ -27,10 +30,6 @@ import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-
-import com.jogamp.newt.event.InputEvent;
-import com.jogamp.newt.event.KeyEvent;
-import com.jogamp.newt.event.MouseEvent;
 
 /**
  * For key events: KeyEvent
@@ -64,9 +63,12 @@ public class JoglEventConverter extends AbstractEventConverter {
 
     public JoglEventConverter(
             CmnInputConvState commonState,
-            PixelCoordsConverter pixelCoordsConverter,
-            AbstractBwdHost host) {
-        super(commonState, host);
+            AbstractBwdHost host,
+            PixelCoordsConverter pixelCoordsConverter) {
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
         this.pixelCoordsConverter = LangUtils.requireNonNull(pixelCoordsConverter);
     }
 
@@ -117,26 +119,23 @@ public class JoglEventConverter extends AbstractEventConverter {
                 }
             }
             
-            final int xInClientInDevicePixel = mouseEvent.getX();
-            final int yInClientInDevicePixel = mouseEvent.getY();
+            final int mouseXInClientInDevice = mouseEvent.getX();
+            final int mouseYInClientInDevice = mouseEvent.getY();
 
-            final int xInClient = this.pixelCoordsConverter.computeXInOsPixel(xInClientInDevicePixel);
-            final int yInClient = this.pixelCoordsConverter.computeYInOsPixel(yInClientInDevicePixel);
-            final GPoint mousePosInClient = GPoint.valueOf(
-                    xInClient,
-                    yInClient);
-            this.setMousePosInClient(mousePosInClient);
+            final int mouseXInClientInOs =
+                this.pixelCoordsConverter.computeXInOsPixel(
+                    mouseXInClientInDevice);
+            final int mouseYInClientInOs =
+                this.pixelCoordsConverter.computeYInOsPixel(
+                    mouseYInClientInDevice);
             
-            final InterfaceBwdHost host = this.getHost();
-            final GRect clientBounds = host.getClientBounds();
-            if (!clientBounds.isEmpty()) {
-                final int mouseXInScreen = clientBounds.x() + mousePosInClient.x();
-                final int mouseYInScreen = clientBounds.y() + mousePosInClient.y();
-                final GPoint mousePosInScreen = GPoint.valueOf(
-                        mouseXInScreen,
-                        mouseYInScreen);
-                
-                commonState.setMousePosInScreen(mousePosInScreen);
+            final AbstractBwdHost host = (AbstractBwdHost) this.getHost();
+            final GRect clientBoundsInOs = host.getClientBoundsInOs();
+            if (!clientBoundsInOs.isEmpty()) {
+                final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                    clientBoundsInOs.x() + mouseXInClientInOs,
+                    clientBoundsInOs.y() + mouseYInClientInOs);
+                commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             }
         }
     }

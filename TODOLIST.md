@@ -19,16 +19,14 @@
     soft scheduling (fast and deterministic).
   - Bindings to native APIs.
   - Binding to HTML5 (best effort).
+  - Upgrade our pixel-perfect painting scaling (used for images, etc.)
+    by using some kind of anti-aliasing, in particular so that it doesn't
+    just make some details disappear without having any influence on the result.
+  - JavaFX binding : use pixel-perfect painting scaling instead of JavaFX
+    blurry scaling.
   - LWJGL3 and JOGL bindings: use FreeType instead of AWT for fonts
     (couldn't manage to make it work through JNA (???)).
   - JOGL binding: use FreeImage instead of AWT for images.
-  - In our bindings, make pixel size configurable, not to burn CPU on HiDPIs,
-    or to easily scale UIs depending on screen DPI without having to change
-    a line of code, or for user preferring to see pixels, for example to know
-    if a scrollbar actually did hit its limit.
-    For that we could add pixelRatioUserOverOsX/Y (int >= 1) in base binding
-    config (as we have pixelRatioOsOverDeviceX/Y (double > 0) in configs of
-    some bindings), i.e. size of a user pixel in OS pixels.
   - In our bindings to 3D libraries, make it possible to use backing 3D
     capabilities after casting the graphics into its concrete class,
     so that 3D drawing can take place than then 2D drawing with BWD

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,8 @@ public class AwtHostBoundsHelper extends AbstractHostBoundsHelper {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public AwtHostBoundsHelper(InterfaceBackingWindowHolder holder) {
+    public AwtHostBoundsHelper(
+        InterfaceBackingWindowHolder holder) {
         super(holder);
     }
     
@@ -39,7 +40,7 @@ public class AwtHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Window window = (Window) holder.getBackingWindow();
         final Insets backingInsets = window.getInsets();
@@ -55,12 +56,12 @@ public class AwtHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected GRect getClientBounds_raw() {
-        return super.getClientBounds_raw();
+    protected GRect getClientBounds_rawInOs() {
+        return super.getClientBounds_rawInOs();
     }
     
     @Override
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Window window = (Window) holder.getBackingWindow();
         
@@ -96,12 +97,12 @@ public class AwtHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
-        super.setClientBounds_raw(targetClientBounds);
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
+        super.setClientBounds_rawInOs(targetClientBounds);
     }
     
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Window window = (Window) holder.getBackingWindow();
         

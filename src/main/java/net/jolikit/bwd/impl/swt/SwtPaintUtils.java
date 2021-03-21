@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ import org.eclipse.swt.graphics.PaletteData;
 import org.eclipse.swt.graphics.RGB;
 
 import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
@@ -88,19 +90,18 @@ public class SwtPaintUtils {
     }
 
     public void drawRectOnG(
-            int[] pixelArr,
-            int pixelArrScanlineStride,
+            int[] bufferArr,
+            int bufferArrScanlineStride,
             GRect paintedRect,
             Device device,
-            GC backingG) {
+            GC backingG,
+            GPoint bufferPosInCliInOs,
+            ScaleHelper scaleHelper) {
 
         /*
          * 
          */
-
-        final int rectWidth = paintedRect.xSpan();
-        final int rectHeight = paintedRect.ySpan();
-
+        
         final int bytesPerPixel = 3;
         final int rectSize = paintedRect.area();
         final int rectByteSize = NbrsUtils.timesExact(bytesPerPixel, rectSize);
@@ -113,7 +114,7 @@ public class SwtPaintUtils {
                  * NB: Could also just do that, i.e. piggybacking
                  * on client pixel array size smart growing logic.
                  */
-                newByteArrLength = NbrsUtils.timesExact(bytesPerPixel, pixelArr.length);
+                newByteArrLength = NbrsUtils.timesExact(bytesPerPixel, bufferArr.length);
             } else {
                 newByteArrLength = LangUtils.increasedArrayLength(byteArr.length, rectByteSize);
             }
@@ -137,13 +138,12 @@ public class SwtPaintUtils {
 
         int byteIndex = 0;
         for (int y = paintedRect.y(); y <= paintedRect.yMax(); y++) {
-            final int lineOffset = y * pixelArrScanlineStride;
+            final int lineOffset = y * bufferArrScanlineStride;
             for (int x = paintedRect.x(); x <= paintedRect.xMax(); x++) {
                 final int pixelIndex = lineOffset + x;
-                final int premulArgb32 = pixelArr[pixelIndex];
+                final int premulArgb32 = bufferArr[pixelIndex];
                 /*
                  * Only computing non-premul {r,g,b} if premul {a,r,g,b} changed.
-                 * NB: Could optimize further, by inlining.
                  */
                 if (premulArgb32 != previousPremulArgb32) {
                     final int argb32 = BindingColorUtils.toNonPremulAxyz32(premulArgb32);
@@ -170,28 +170,33 @@ public class SwtPaintUtils {
 
         // Creates an opaque image, i.e. with 0xFF alpha.
         final ImageData imageData = new ImageData(
-                rectWidth,
-                rectHeight,
-                bitsPerPixel,
-                this.paletteData,
-                imgDataScanlinePad,
-                byteArr);
-
+            paintedRect.xSpan(),
+            paintedRect.ySpan(),
+            bitsPerPixel,
+            this.paletteData,
+            imgDataScanlinePad,
+            byteArr);
+        
         final Image image = new Image(device, imageData);
         try {
-            final GRect rect = paintedRect;
-            final int x = rect.x();
-            final int y = rect.y();
+            final int dxInOs =
+                bufferPosInCliInOs.x()
+                + scaleHelper.spanBdToOs(paintedRect.x());
+            final int dyInOs =
+                bufferPosInCliInOs.y()
+                + scaleHelper.spanBdToOs(paintedRect.y());
+            final int dwInOs = scaleHelper.spanBdToOs(paintedRect.xSpan());
+            final int dhInOs = scaleHelper.spanBdToOs(paintedRect.ySpan());
             backingG.drawImage(
                     image,
-                    0, // srcX
-                    0, // srcY
-                    rectWidth, // srcWidth
-                    rectHeight, // srcHeight
-                    x, // destX
-                    y, // destY
-                    rectWidth, // destWidth
-                    rectHeight); // destHeight
+                    0,
+                    0,
+                    paintedRect.xSpan(),
+                    paintedRect.ySpan(),
+                    dxInOs,
+                    dyInOs,
+                    dwInOs,
+                    dhInOs);
         } finally {
             image.dispose();
         }

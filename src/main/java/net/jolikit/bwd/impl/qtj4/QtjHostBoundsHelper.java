@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
  */
 package net.jolikit.bwd.impl.qtj4;
 
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
-import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
-
 import com.trolltech.qt.core.QRect;
 import com.trolltech.qt.gui.QContentsMargins;
 import com.trolltech.qt.gui.QWidget;
+
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
+import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
 
 /**
  * Works for either QFrame or QDialog windows.
@@ -65,7 +65,8 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public QtjHostBoundsHelper(InterfaceBackingWindowHolder holder) {
+    public QtjHostBoundsHelper(
+        InterfaceBackingWindowHolder holder) {
         super(holder);
     }
 
@@ -74,7 +75,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         if (false) {
             /*
              * TODO qtj Doesn't work, returns (0,0,0,0).
@@ -88,7 +89,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
                     backingInsets.right,
                     backingInsets.bottom);
         } else {
-            return super.getInsetsDecorated_raw();
+            return super.getInsetsDecorated_rawInOs();
         }
     }
 
@@ -97,7 +98,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final QWidget window = (QWidget) holder.getBackingWindow();
         /*
@@ -109,7 +110,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
     }
 
     @Override
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final QWidget window = (QWidget) holder.getBackingWindow();
         final QRect rect = window.frameGeometry();
@@ -121,7 +122,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final QWidget window = (QWidget) holder.getBackingWindow();
         
@@ -133,7 +134,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
     }
 
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
         if (false) {
             /*
              * TODO qtj Doesn't work, because setFixedSize(...)
@@ -153,7 +154,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
              * NB: Could also just delegate to super implementation.
              */
             
-            final GRect oldWindowBounds = this.getWindowBounds_raw();
+            final GRect oldWindowBounds = this.getWindowBounds_rawInOs();
             final boolean mustSetXPosFirst = (targetWindowBounds.xSpan() > oldWindowBounds.xSpan());
             final boolean mustSetYPosFirst = (targetWindowBounds.ySpan() > oldWindowBounds.ySpan());
             if (mustSetXPosFirst || mustSetYPosFirst) {
@@ -182,7 +183,7 @@ public class QtjHostBoundsHelper extends AbstractHostBoundsHelper {
                         targetWindowBounds.y());
             }
         } else {
-            super.setWindowBounds_raw(targetWindowBounds);
+            super.setWindowBounds_rawInOs(targetWindowBounds);
         }
     }
     

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,12 +32,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontHome;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
@@ -54,7 +56,7 @@ import net.jolikit.time.sched.hard.HardScheduler;
 /**
  * Optional abstract class for bindings implementations.
  */
-public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
+public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -352,6 +354,10 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         return this.bindingConfig;
     }
     
+    public ScaleHelper getScaleHelper() {
+        return this.bindingConfig.getScaleHelper();
+    }
+    
     /*
      * 
      */
@@ -390,6 +396,36 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         return this.hostOfFocusedClientHolder;
     }
     
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    public GRect getScreenBounds() {
+        return this.getScaleHelper().rectOsToBdContained(
+            this.getScreenBoundsInOs());
+    }
+
+    @Override
+    public GRect getScreenBoundsInOs() {
+        return this.getScreenBounds_rawInOs();
+    }
+
+    /*
+     * Mouse info.
+     */
+    
+    @Override
+    public GPoint getMousePosInScreen() {
+        return this.getScaleHelper().pointOsToBd(
+            this.getMousePosInScreenInOs());
+    }
+
+    @Override
+    public GPoint getMousePosInScreenInOs() {
+        return this.getMousePosInScreen_rawInOs();
+    }
+
     /*
      * Images.
      */
@@ -504,14 +540,17 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
         // Start, or restart for ASAP execution.
         this.eventLogicProcess.start();
         
-        final GRect defaultBounds = this.bindingConfig.getDefaultClientOrWindowBounds();
+        final GRect defaultBoundsInOs =
+            this.bindingConfig.getDefaultClientOrWindowBoundsInOs();
+        final ScaleHelper scaleHelper = this.bindingConfig.getScaleHelper();
+        final GRect defaultBoundsInBd = scaleHelper.rectOsToBdContained(defaultBoundsInOs);
         // Doing it last, for it might throw,
         // either from backing library code
         // or user callbacks called synchronously.
         if (this.bindingConfig.getMustUseDefaultBoundsForClientElseWindow()) {
-            host.setClientBounds(defaultBounds);
+            host.setClientBounds(defaultBoundsInBd);
         } else {
-            host.setWindowBounds(defaultBounds);
+            host.setWindowBounds(defaultBoundsInBd);
         }
     }
 
@@ -550,6 +589,18 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBinding {
             this.eventLogicProcess.stop();
         }
     }
+    
+    /*
+     * Screen info.
+     */
+    
+    protected abstract GRect getScreenBounds_rawInOs();
+    
+    /*
+     * Mouse info.
+     */
+    
+    protected abstract GPoint getMousePosInScreen_rawInOs();
     
     /*
      * Images.

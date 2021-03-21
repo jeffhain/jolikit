@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.lwjgl3.LwjglEvents.LwjglCharModsEvent;
 import net.jolikit.bwd.impl.lwjgl3.LwjglEvents.LwjglCursorEnterEvent;
 import net.jolikit.bwd.impl.lwjgl3.LwjglEvents.LwjglCursorPosEvent;
@@ -45,6 +46,7 @@ import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
@@ -102,15 +104,16 @@ public class LwjglBwdHost extends AbstractBwdHost {
                  */
                 try {
                     if (getBinding().getBindingConfig().getMustShakeClientBoundsOnFocusGained()) {
-                        final GRect clientBounds = getClientBounds();
+                        final GRect clientBoundsInOs = getClientBoundsInOs();
                         // We should be visible, but testing for safety.
-                        if (!clientBounds.isEmpty()) {
+                        if (!clientBoundsInOs.isEmpty()) {
                             // Not using setClientBounds(...),
                             // to make sure we don't set "target bounds".
                             try {
-                                setBackingClientBounds(clientBounds.withSpansDeltas(1, 0));
+                                setBackingClientBoundsInOs(
+                                    clientBoundsInOs.withSpansDeltas(1, 0));
                             } finally {
-                                setBackingClientBounds(clientBounds);
+                                setBackingClientBoundsInOs(clientBoundsInOs);
                             }
                         }
                     }
@@ -437,8 +440,10 @@ public class LwjglBwdHost extends AbstractBwdHost {
     private final long window;
     
     /**
-     * Need to keep a reference to it, for callbacks not to be GCed.
+     * Might need to keep a reference to it,
+     * for callbacks not to be GCed.
      */
+    @SuppressWarnings("unused")
     private final MyHostEl hostEventListener;
     
     private final LwjglHostBoundsHelper hostBoundsHelper;
@@ -528,9 +533,10 @@ public class LwjglBwdHost extends AbstractBwdHost {
                 bindingConfig.getGlDoubleBuffered(),
                 decorated);
         
-        final GRect defaultClientBounds = bindingConfig.getDefaultClientOrWindowBounds();
-        final int initialWidth = defaultClientBounds.xSpan();
-        final int initialHeight = defaultClientBounds.ySpan();
+        final GRect defaultClientBoundsInOs =
+            bindingConfig.getDefaultClientOrWindowBoundsInOs();
+        final int initialWidth = defaultClientBoundsInOs.xSpan();
+        final int initialHeight = defaultClientBoundsInOs.ySpan();
         // GLFWmonitor *monitor
         final long monitorHandle = MemoryUtil.NULL;
         // GLFWwindow *share
@@ -599,6 +605,11 @@ public class LwjglBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public LwjglBwdBindingConfig getBindingConfig() {
+        return (LwjglBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractLwjglBwdBinding getBinding() {
@@ -690,84 +701,9 @@ public class LwjglBwdHost extends AbstractBwdHost {
 
     @Override
     protected void paintClientNowOrLater() {
-        if (DEBUG) {
-            hostLog(this, "paintClientNowOrLater()");
-        }
-        
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        client.processEventualBufferedEvents();
-        
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-        
-        final GRect clientBounds = this.getClientBounds();
-        final int width = clientBounds.xSpan();
-        final int height = clientBounds.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
-
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-        
-        /*
-         * Painting into offscreen buffer.
-         */
-        
-        this.offscreenBuffer.setSize(width, height);
-        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
-
-        final LwjglBwdGraphics g = new LwjglBwdGraphics(
-                this.binding,
-                isImageGraphics,
-                box,
-                //
-                pixelArr,
-                pixelArrScanlineStride);
-
-        final List<GRect> paintedRectList =
-                this.getPaintClientHelper().initPaintFinish(
-                        g,
-                        dirtyRect);
-        
-        /*
-         * Copying offscreen buffer into OpenGL.
-         */
-        
-        if (paintedRectList.size() != 0) {
-            if (this.canPaintClientNow()) {
-                final boolean glDoubleBuffered =
-                        binding.getBindingConfig().getGlDoubleBuffered();
-                if (glDoubleBuffered) {
-                    /*
-                     * Can't do partial painting if double buffered,
-                     * else does flip-flop painting.
-                     */
-                    paintedRectList.clear();
-                    final GRect pseudoPaintedRect = GRect.valueOf(
-                            0,
-                            0,
-                            offscreenBuffer.getWidth(),
-                            offscreenBuffer.getHeight());
-                    paintedRectList.add(pseudoPaintedRect);
-                }
-
-                final PixelCoordsConverter pixelCoordsConverter = getBinding().getPixelCoordsConverter();
-                this.paintHelper.paintPixelsIntoOpenGl(
-                        pixelCoordsConverter,
-                        this.offscreenBuffer,
-                        paintedRectList,
-                        this.window,
-                        this.capabilities);
-
-                this.flushPainting();
-            }
-        }
+        this.paintBwdClientNowAndBackingClient(
+            getBindingConfig(),
+            this.hostBoundsHelper);
     }
 
     @Override
@@ -971,28 +907,28 @@ public class LwjglBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
     
     /*
@@ -1014,7 +950,79 @@ public class LwjglBwdHost extends AbstractBwdHost {
         Callbacks.glfwFreeCallbacks(this.window);
         GLFW.glfwDestroyWindow(this.window);
     }
+    
+    /*
+     * Painting.
+     */
 
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        this.offscreenBuffer.setSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+        
+        return new LwjglBwdGraphics(
+            this.binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final boolean glDoubleBuffered =
+            this.binding.getBindingConfig().getGlDoubleBuffered();
+        if (glDoubleBuffered) {
+            /*
+             * Can't do partial painting if double buffered,
+             * else does flip-flop painting.
+             */
+            paintedRectList.clear();
+            final GRect bufferFullBox =
+                GRect.valueOf(
+                    0,
+                    0,
+                    bufferSpansInBd.x(),
+                    bufferSpansInBd.y());
+            paintedRectList.add(bufferFullBox);
+        }
+        
+        final PixelCoordsConverter pixelCoordsConverter =
+            this.binding.getPixelCoordsConverter();
+        
+        this.paintHelper.paintPixelsIntoOpenGl(
+            scaleHelper,
+            clientSpansInOs,
+            bufferPosInCliInOs,
+            paintedRectList,
+            //
+            this.offscreenBuffer,
+            this.window,
+            pixelCoordsConverter,
+            this.capabilities);
+        
+        this.flushPainting();
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------

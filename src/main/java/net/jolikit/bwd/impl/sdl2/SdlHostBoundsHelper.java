@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public class SdlHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         final GRect insets;
         if (false) {
             final IntByReference top = new IntByReference();
@@ -88,7 +88,7 @@ public class SdlHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Pointer window = (Pointer) holder.getBackingWindow();
         
@@ -108,8 +108,8 @@ public class SdlHostBoundsHelper extends AbstractHostBoundsHelper {
     }
 
     @Override
-    protected GRect getWindowBounds_raw() {
-        return super.getWindowBounds_raw();
+    protected GRect getWindowBounds_rawInOs() {
+        return super.getWindowBounds_rawInOs();
     }
 
     /*
@@ -117,7 +117,7 @@ public class SdlHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Pointer window = (Pointer) holder.getBackingWindow();
         
@@ -158,7 +158,7 @@ public class SdlHostBoundsHelper extends AbstractHostBoundsHelper {
     }
     
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
-        super.setWindowBounds_raw(targetWindowBounds);
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
+        super.setWindowBounds_rawInOs(targetWindowBounds);
     }
 }

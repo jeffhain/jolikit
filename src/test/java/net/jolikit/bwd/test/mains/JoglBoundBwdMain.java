@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ public class JoglBoundBwdMain implements InterfaceBindingMainLaunchInfo {
                     pixelRatioOsOverDeviceXyArr[1]);
             final GRect screenBounds = BwdTestUtils.getScreenBoundsFromDefaultBinding(
                     ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE);
-            bindingConfig.setScreenBounds(screenBounds);
+            bindingConfig.setScreenBoundsInOs(screenBounds);
             bindingConfig.setScreenBoundsType(ScreenBoundsType.CONFIGURED);
             
             BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);

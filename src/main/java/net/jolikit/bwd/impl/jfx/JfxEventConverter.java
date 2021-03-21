@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,7 +56,10 @@ public class JfxEventConverter extends AbstractEventConverter {
     public JfxEventConverter(
             CmnInputConvState commonState,
             AbstractBwdHost host) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
     }
     
     //--------------------------------------------------------------------------
@@ -67,14 +70,14 @@ public class JfxEventConverter extends AbstractEventConverter {
     protected void updateFromBackingEvent(Object backingEvent) {
         
         /*
-         * Updating common state.
-         */
-        
-        /*
          * Not doing some else/if, not to depend on events hierarchy.
          */
         
         final CmnInputConvState commonState = this.getCommonState();
+        
+        int mouseXInScreenInOs = 0;
+        int mouseYInScreenInOs = 0;
+        boolean mousePosInScreenValid = false;
         
         if (backingEvent instanceof KeyEvent) {
             final KeyEvent keyEvent = (KeyEvent) backingEvent;
@@ -88,10 +91,9 @@ public class JfxEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof MouseEvent) {
             final MouseEvent mouseEvent = (MouseEvent) backingEvent;
             
-            final GPoint mousePosInScreen = GPoint.valueOf(
-                    (int) mouseEvent.getScreenX(),
-                    (int) mouseEvent.getScreenY());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            mouseXInScreenInOs = (int) mouseEvent.getScreenX();
+            mouseYInScreenInOs = (int) mouseEvent.getScreenY();
+            mousePosInScreenValid = true;
             
             commonState.setPrimaryButtonDown(mouseEvent.isPrimaryButtonDown());
             commonState.setMiddleButtonDown(mouseEvent.isMiddleButtonDown());
@@ -106,10 +108,9 @@ public class JfxEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof GestureEvent) {
             final GestureEvent gestureEvent = (GestureEvent) backingEvent;
             
-            final GPoint mousePosInScreen = GPoint.valueOf(
-                    (int) gestureEvent.getScreenX(),
-                    (int) gestureEvent.getScreenY());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            mouseXInScreenInOs = (int) gestureEvent.getScreenX();
+            mouseYInScreenInOs = (int) gestureEvent.getScreenY();
+            mousePosInScreenValid = true;
             
             commonState.setShiftDown(gestureEvent.isShiftDown());
             commonState.setControlDown(gestureEvent.isControlDown());
@@ -117,23 +118,11 @@ public class JfxEventConverter extends AbstractEventConverter {
             commonState.setMetaDown(gestureEvent.isMetaDown());
         }
         
-        /*
-         * Updating host-specific state.
-         */
-        
-        if (backingEvent instanceof MouseEvent) {
-            final MouseEvent mouseEvent = (MouseEvent) backingEvent;
-            final int x = (int) mouseEvent.getX();
-            final int y = (int) mouseEvent.getY();
-            final GPoint mousePosInClient = GPoint.valueOf(x, y);
-            this.setMousePosInClient(mousePosInClient);
-            
-        } else if (backingEvent instanceof GestureEvent) {
-            final GestureEvent gestureEvent = (GestureEvent) backingEvent;
-            final int x = (int) gestureEvent.getX();
-            final int y = (int) gestureEvent.getY();
-            final GPoint mousePosInClient = GPoint.valueOf(x, y);
-            this.setMousePosInClient(mousePosInClient);
+        if (mousePosInScreenValid) {
+            final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                mouseXInScreenInOs,
+                mouseYInScreenInOs);
+            commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
         }
     }
     

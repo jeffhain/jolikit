@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -119,7 +119,12 @@ public class SwtGraphicBuffer extends AbstractGraphicBuffer<Image> {
 
     @Override
     protected Image getStorage() {
-        return this.image;
+        final Image ret = this.image;
+        // Null check because can be nullified by dispose().
+        if (ret == null) {
+            throw new IllegalStateException("image has been disposed");
+        }
+        return ret;
     }
 
     @Override

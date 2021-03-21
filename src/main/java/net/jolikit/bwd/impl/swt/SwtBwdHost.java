@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,20 +17,6 @@ package net.jolikit.bwd.impl.swt;
 
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdClient;
-import net.jolikit.bwd.api.InterfaceBwdHost;
-import net.jolikit.bwd.api.events.BwdKeyEventPr;
-import net.jolikit.bwd.api.events.BwdKeyEventT;
-import net.jolikit.bwd.api.events.BwdMouseEvent;
-import net.jolikit.bwd.api.events.BwdWheelEvent;
-import net.jolikit.bwd.api.graphics.Argb32;
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
-import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.OsUtils;
-
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Device;
 import org.eclipse.swt.graphics.GC;
@@ -39,6 +25,23 @@ import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Widget;
+
+import net.jolikit.bwd.api.InterfaceBwdClient;
+import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.events.BwdKeyEventPr;
+import net.jolikit.bwd.api.events.BwdKeyEventT;
+import net.jolikit.bwd.api.events.BwdMouseEvent;
+import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
+import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 
 public class SwtBwdHost extends AbstractBwdHost {
 
@@ -200,6 +203,12 @@ public class SwtBwdHost extends AbstractBwdHost {
      */
     private boolean lastBackingWindowMaximized = false;
 
+    /*
+     * 
+     */
+    
+    private GC currentPainting_backingG;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -231,6 +240,8 @@ public class SwtBwdHost extends AbstractBwdHost {
                 decorated,
                 modal,
                 client);
+        
+        final SwtBwdBindingConfig bindingConfig = binding.getBindingConfig();
         
         this.binding = LangUtils.requireNonNull(binding);
         
@@ -276,13 +287,13 @@ public class SwtBwdHost extends AbstractBwdHost {
         final AbstractBwdHost host = this;
         this.hostBoundsHelper = new SwtHostBoundsHelper(
                 host,
-                binding.getBindingConfig().getUndecoratedInsets());
+                bindingConfig.getUndecoratedInsets());
 
         /*
          * Initializing with tiny cornered bounds,
          * else could take a huge space until first bounds setting.
          */
-        this.setBackingClientBounds(GRect.DEFAULT_EMPTY);
+        this.setBackingClientBoundsInOs(GRect.DEFAULT_EMPTY);
         
         /*
          * 
@@ -310,6 +321,11 @@ public class SwtBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public SwtBwdBindingConfig getBindingConfig() {
+        return (SwtBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractSwtBwdBinding getBinding() {
@@ -575,43 +591,43 @@ public class SwtBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
+    protected GRect getBackingInsetsInOs() {
         if (this.window.isDisposed()) {
             return GRect.DEFAULT_EMPTY;
         }
-        return this.hostBoundsHelper.getInsets();
+        return this.hostBoundsHelper.getInsetsInOs();
     }
     
     @Override
-    protected GRect getBackingClientBounds() {
+    protected GRect getBackingClientBoundsInOs() {
         if (this.window.isDisposed()) {
             return GRect.DEFAULT_EMPTY;
         }
-        return this.hostBoundsHelper.getClientBounds();
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
 
     @Override
-    protected GRect getBackingWindowBounds() {
+    protected GRect getBackingWindowBoundsInOs() {
         if (this.window.isDisposed()) {
             return GRect.DEFAULT_EMPTY;
         }
-        return this.hostBoundsHelper.getWindowBounds();
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
         if (this.window.isDisposed()) {
             return;
         }
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
         if (this.window.isDisposed()) {
             return;
         }
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
     
     /*
@@ -623,6 +639,74 @@ public class SwtBwdHost extends AbstractBwdHost {
         this.window.dispose();
     }
 
+    /*
+     * Painting.
+     */
+    
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        this.offscreenBuffer.setSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+        
+        return new SwtBwdGraphics(
+            this.binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride,
+            //
+            this.binding.getDisplay());
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final GC backingG = this.currentPainting_backingG;
+        
+        final Device device = this.binding.getDisplay();
+        
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+        
+        // Doesn't hurt.
+        backingG.setClipping(
+            0,
+            0,
+            clientSpansInOs.x(),
+            clientSpansInOs.y());
+        
+        for (GRect paintedRect : paintedRectList) {
+            this.paintUtils.drawRectOnG(
+                pixelArr,
+                pixelArrScanlineStride,
+                paintedRect,
+                device,
+                backingG,
+                bufferPosInCliInOs,
+                scaleHelper);
+        }
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -662,63 +746,14 @@ public class SwtBwdHost extends AbstractBwdHost {
             hostLog(this, "handleEvent_Paint(" + backingG + ")");
         }
         
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        client.processEventualBufferedEvents();
-
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-
-        final GRect contentRect = this.getClientBounds();
-        final int width = contentRect.xSpan();
-        final int height = contentRect.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
-        
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-
-        this.offscreenBuffer.setSize(width, height);
-
-        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
-
-        final SwtBwdGraphics g = new SwtBwdGraphics(
-                this.binding,
-                this.binding.getDisplay(),
-                isImageGraphics,
-                box,
-                //
-                pixelArr,
-                pixelArrScanlineStride);
-
-        final List<GRect> paintedRectList =
-                this.getPaintClientHelper().initPaintFinish(
-                        g,
-                        dirtyRect);
-
-        if (paintedRectList.size() != 0) {
-            if (this.canPaintClientNow()) {
-                /*
-                 * NB: if closed (which can't be due to showing check),
-                 * the offscreen buffer has been disposed.
-                 */
-                final Device device = this.binding.getDisplay();
-
-                for (GRect paintedRect : paintedRectList) {
-                    this.paintUtils.drawRectOnG(
-                            pixelArr,
-                            pixelArrScanlineStride,
-                            paintedRect,
-                            device,
-                            backingG);
-                }
-            }
-        }
+        this.paintClientNowOnBackingG(backingG);
+    }
+    
+    private void paintClientNowOnBackingG(GC backingG) {
+        this.currentPainting_backingG = backingG;
+        this.paintBwdClientNowAndBackingClient(
+            getBinding().getBindingConfig(),
+            this.hostBoundsHelper);
     }
     
     /*

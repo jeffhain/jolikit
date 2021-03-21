@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import java.util.List;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.InterfaceDefaultFontInfoComputer;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.sched.HardClockTimeType;
 import net.jolikit.lang.DefaultExceptionHandler;
@@ -125,7 +126,7 @@ public class BaseBwdBindingConfig {
      * Supposed to be valid, and used,
      * only if screenBoundsType is CONFIGURED.
      */
-    private GRect screenBounds = null;
+    private GRect screenBoundsInOs = null;
 
     /*
      * 
@@ -288,6 +289,29 @@ public class BaseBwdBindingConfig {
      * down the stack.
      */
     private double fontSizeFactor = 1.0;
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Scale = size of a binding pixel ("BD pixel") in OS pixels.
+     * 
+     * Must be used at the lowest level, for even text pixels
+     * to be grown rather than font size just scaled.
+     * 
+     * Mathematical integer, and same for X and Y,
+     * for fast implementations and simplicity.
+     * 
+     * Having related helper directly here in binding config,
+     * not to have to bother with a scale modification listener
+     * to update helper internals.
+     * 
+     * Not having scale modification methods in public API,
+     * for simplicity, and because it would be a kind of
+     * earth-shaking event for the whole GUI.
+     */
+    private ScaleHelper scaleHelper = new ScaleHelper();
     
     /*
      * 
@@ -470,7 +494,7 @@ public class BaseBwdBindingConfig {
      * but for some (such as JavaFX or SDL) it's a bit higher.
      * Using 120 for should keep us away from any issue.
      */
-    private GRect defaultClientOrWindowBounds = GRect.valueOf(50, 50, 120, 100);
+    private GRect defaultClientOrWindowBoundsInOs = GRect.valueOf(50, 50, 120, 100);
     
     /**
      * On host created, whether default bounds, after having eventually be used
@@ -601,12 +625,12 @@ public class BaseBwdBindingConfig {
         this.setScreenBoundsType_final(screenBoundsType);
     }
 
-    public GRect getScreenBounds() {
-        return this.screenBounds;
+    public GRect getScreenBoundsInOs() {
+        return this.screenBoundsInOs;
     }
 
-    public void setScreenBounds(GRect screenBounds) {
-        this.setScreenBounds_final(screenBounds);
+    public void setScreenBoundsInOs(GRect screenBoundsInOs) {
+        this.setScreenBoundsInOs_final(screenBoundsInOs);
     }
     
     /*
@@ -732,6 +756,33 @@ public class BaseBwdBindingConfig {
     /*
      * 
      */
+    
+    /**
+     * @return Always the same instance (so can be retrieved early),
+     *         but its scale can be modified at runtime (in UI thread).
+     */
+    public ScaleHelper getScaleHelper() {
+        return this.scaleHelper;
+    }
+    
+    /**
+     * @return Size of a binding pixel in OS pixels.
+     */
+    public int getScale() {
+        return this.scaleHelper.getScale();
+    }
+    
+    /**
+     * @param scale Size of a binding pixel in OS pixels.
+     *        Must be >= 1.
+     */
+    public void setScale(int scale) {
+        this.setScale_final(scale);
+    }
+    
+    /*
+     * 
+     */
 
     public double getKeyRepetitionTriggerDelayS() {
         return this.keyRepetitionTriggerDelayS;
@@ -838,12 +889,12 @@ public class BaseBwdBindingConfig {
      * 
      */
     
-    public GRect getDefaultClientOrWindowBounds() {
-        return this.defaultClientOrWindowBounds;
+    public GRect getDefaultClientOrWindowBoundsInOs() {
+        return this.defaultClientOrWindowBoundsInOs;
     }
 
-    public void setDefaultClientOrWindowBounds(GRect defaultClientOrWindowBounds) {
-        this.setDefaultClientOrWindowBounds_final(defaultClientOrWindowBounds);
+    public void setDefaultClientOrWindowBoundsInOs(GRect defaultClientOrWindowBoundsInOs) {
+        this.setDefaultClientOrWindowBoundsInOs_final(defaultClientOrWindowBoundsInOs);
     }
     
     public boolean getMustUseDefaultBoundsForClientElseWindow() {
@@ -952,8 +1003,8 @@ public class BaseBwdBindingConfig {
     /**
      * Default value is null.
      */
-    protected final void setScreenBounds_final(GRect screenBounds) {
-        this.screenBounds = screenBounds;
+    protected final void setScreenBoundsInOs_final(GRect screenBoundsInOs) {
+        this.screenBoundsInOs = screenBoundsInOs;
     }
     
     /*
@@ -1061,7 +1112,18 @@ public class BaseBwdBindingConfig {
     protected final void setFontSizeFactor_final(double fontSizeFactor) {
         this.fontSizeFactor = fontSizeFactor;
     }
-
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Default value is 1.
+     */
+    protected final void setScale_final(int scale) {
+        this.scaleHelper.setScale(scale);
+    }
+    
     /*
      * 
      */
@@ -1162,8 +1224,8 @@ public class BaseBwdBindingConfig {
     /**
      * Default value is [50,50,120,100].
      */
-    protected final void setDefaultClientOrWindowBounds_final(GRect defaultClientOrWindowBounds) {
-        this.defaultClientOrWindowBounds = defaultClientOrWindowBounds;
+    protected final void setDefaultClientOrWindowBoundsInOs_final(GRect defaultClientOrWindowBoundsInOs) {
+        this.defaultClientOrWindowBoundsInOs = defaultClientOrWindowBoundsInOs;
     }
 
     /**

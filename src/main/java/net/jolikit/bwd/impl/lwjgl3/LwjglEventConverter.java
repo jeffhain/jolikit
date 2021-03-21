@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 package net.jolikit.bwd.impl.lwjgl3;
+
+import org.lwjgl.glfw.GLFW;
 
 import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
@@ -31,8 +33,6 @@ import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
-
-import org.lwjgl.glfw.GLFW;
 
 /**
  * For key events: LwjKeyEvent, LwjCharEvent, LwjCharModsEvent 
@@ -60,7 +60,10 @@ public class LwjglEventConverter extends AbstractEventConverter {
     public LwjglEventConverter(
             CmnInputConvState commonState,
             AbstractBwdHost host) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
     }
     
     //--------------------------------------------------------------------------
@@ -78,10 +81,6 @@ public class LwjglEventConverter extends AbstractEventConverter {
             }
             return;
         }
-        
-        /*
-         * Updating common state.
-         */
         
         final CmnInputConvState commonState = this.getCommonState();
         
@@ -147,25 +146,17 @@ public class LwjglEventConverter extends AbstractEventConverter {
             final LwjglCursorEnterEvent event = (LwjglCursorEnterEvent) backingEvent;
         }
         
-        /*
-         * Updating mouse positions.
-         */
-        
         if (backingEvent instanceof LwjglCursorPosEvent) {
             final LwjglCursorPosEvent event = (LwjglCursorPosEvent) backingEvent;
-            final int mouseXInClient = BindingCoordsUtils.roundToInt(event.xpos);
-            final int mouseYInClient = BindingCoordsUtils.roundToInt(event.ypos);
-            final GPoint mousePosInClient = GPoint.valueOf(
-                    mouseXInClient,
-                    mouseYInClient);
-            this.setMousePosInClient(mousePosInClient);
+            final int mouseXInClientInOs = BindingCoordsUtils.roundToInt(event.xpos);
+            final int mouseYInClientInOs = BindingCoordsUtils.roundToInt(event.ypos);
             
-            final GRect clientBounds = host.getClientBounds();
-            if (!clientBounds.isEmpty()) {
-                final GPoint mousePosInScreen = GPoint.valueOf(
-                        clientBounds.x() + mouseXInClient,
-                        clientBounds.y() + mouseYInClient);
-                commonState.setMousePosInScreen(mousePosInScreen);
+            final GRect clientBoundsInOs = host.getClientBoundsInOs();
+            if (!clientBoundsInOs.isEmpty()) {
+                final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                    clientBoundsInOs.x() + mouseXInClientInOs,
+                    clientBoundsInOs.y() + mouseYInClientInOs);
+                commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             }
         }
     }

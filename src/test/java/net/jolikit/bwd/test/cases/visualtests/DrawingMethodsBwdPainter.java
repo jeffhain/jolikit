@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,6 +121,17 @@ public class DrawingMethodsBwdPainter {
     }
     
     public void paint(InterfaceBwdGraphics g) {
+        
+        /*
+         * Initial clearing, to avoid undefined border issues.
+         */
+        
+        g.setColor(COLOR_BG);
+        g.clearRect(g.getBox());
+        
+        /*
+         * 
+         */
         
         paintCells(g);
         
@@ -276,7 +287,7 @@ public class DrawingMethodsBwdPainter {
      * 
      */
     
-    private void resetColor(InterfaceBwdGraphics g) {
+    private void setFgColor(InterfaceBwdGraphics g) {
         g.setColor(COLOR_FG);
     }
     
@@ -312,16 +323,6 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void paintCells(InterfaceBwdGraphics g) {
-        final GRect box = g.getBox();
-        final int x = box.x();
-        final int y = box.y();
-        final int xSpan = AREA_X_SPAN;
-        final int ySpan = AREA_Y_SPAN;
-        
-        // Background.
-        g.setColor(COLOR_BG);
-        g.fillRect(x, y, xSpan, ySpan);
-        
         // Cells.
         for (int i = 0; i < NBR_OF_CELLS; i++) {
             final int xMid = cellCenterX(g, i);
@@ -381,7 +382,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void clearRects(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -403,7 +404,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawPoints(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -434,7 +435,7 @@ public class DrawingMethodsBwdPainter {
      */
 
     private void drawLines(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -458,7 +459,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawVariousLineTypes(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -543,7 +544,7 @@ public class DrawingMethodsBwdPainter {
      */
 
     private void drawLineStipples(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -585,7 +586,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawRects(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -607,7 +608,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawVariousRectTypes(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -674,7 +675,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void fillRects(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -696,7 +697,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void fillVariousRectTypes(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -767,7 +768,7 @@ public class DrawingMethodsBwdPainter {
             int cellIndex,
             boolean oddXSpan,
             boolean oddYSpan) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -795,7 +796,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void fillCircles(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -835,7 +836,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawOvals(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -857,7 +858,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void fillOvals(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -899,7 +900,7 @@ public class DrawingMethodsBwdPainter {
             double startDeg,
             double spanDeg,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -943,7 +944,7 @@ public class DrawingMethodsBwdPainter {
             double startDeg,
             double spanDeg,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1022,7 +1023,7 @@ public class DrawingMethodsBwdPainter {
             double roundCount,
             boolean isFillElseDraw,
             boolean isPolyline) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1099,7 +1100,7 @@ public class DrawingMethodsBwdPainter {
     }
     
     private void drawTexts(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1131,7 +1132,7 @@ public class DrawingMethodsBwdPainter {
      * a rotated drawing, in a specified and non-rotated box.
      */
     private void drawStringInBoxRotated(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1185,7 +1186,7 @@ public class DrawingMethodsBwdPainter {
      * such as only the inner one must be visible.
      */
     private void drawClipped(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1216,7 +1217,7 @@ public class DrawingMethodsBwdPainter {
     private void flipColorsColoredLines(
             InterfaceBwdGraphics g,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1284,7 +1285,7 @@ public class DrawingMethodsBwdPainter {
     private void flipColorsFilledRectHalf(
             InterfaceBwdGraphics g,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1322,7 +1323,7 @@ public class DrawingMethodsBwdPainter {
      */
 
     private void drawImages(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
 
         final InterfaceBwdImage image = this.image_struct_grey;
         
@@ -1353,7 +1354,7 @@ public class DrawingMethodsBwdPainter {
             int ySpan,
             InterfaceBwdImage image,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1380,7 +1381,7 @@ public class DrawingMethodsBwdPainter {
             int ySpan,
             InterfaceBwdImage image,
             int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1422,7 +1423,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawImagesColoredLinesReworked(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
@@ -1449,7 +1450,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawImagesColoredXor(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final InterfaceBwdImage image = this.image_struct_color;
         
@@ -1466,7 +1467,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawImagesColoredXor_adjusted_1(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final InterfaceBwdImage image = this.image_struct_color;
 
@@ -1485,7 +1486,7 @@ public class DrawingMethodsBwdPainter {
      */
     
     private void drawImagesColoredXor_adjusted_2(InterfaceBwdGraphics g, int cellIndex) {
-        resetColor(g);
+        setFgColor(g);
         
         final InterfaceBwdImage image = this.image_struct_color;
 

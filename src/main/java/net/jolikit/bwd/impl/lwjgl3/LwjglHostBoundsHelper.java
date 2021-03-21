@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
  */
 package net.jolikit.bwd.impl.lwjgl3;
 
+import org.lwjgl.glfw.GLFW;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
 import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
-
-import org.lwjgl.glfw.GLFW;
 
 public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
     
@@ -47,7 +47,7 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         return this.decorationInsets;
     }
 
@@ -56,7 +56,7 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final long window = (Long) holder.getBackingWindow();
         
@@ -81,8 +81,8 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
     }
     
     @Override
-    protected GRect getWindowBounds_raw() {
-        return super.getWindowBounds_raw();
+    protected GRect getWindowBounds_rawInOs() {
+        return super.getWindowBounds_rawInOs();
     }
 
     /*
@@ -90,7 +90,7 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final long window = (Long) holder.getBackingWindow();
         
@@ -103,7 +103,7 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
          * Same for Y.
          */
         
-        final GRect oldClientBounds = this.getClientBounds_raw();
+        final GRect oldClientBounds = this.getClientBounds_rawInOs();
         final boolean mustSetXPosFirst = (targetClientBounds.xSpan() > oldClientBounds.xSpan());
         final boolean mustSetYPosFirst = (targetClientBounds.ySpan() > oldClientBounds.ySpan());
         if (mustSetXPosFirst || mustSetYPosFirst) {
@@ -145,7 +145,7 @@ public class LwjglHostBoundsHelper extends AbstractHostBoundsHelper {
     }
     
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
-        super.setWindowBounds_raw(targetWindowBounds);
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
+        super.setWindowBounds_rawInOs(targetWindowBounds);
     }
 }

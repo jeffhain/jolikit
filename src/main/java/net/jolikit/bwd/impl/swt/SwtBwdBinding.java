@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -226,21 +226,38 @@ Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thr
     }
 
     /*
-     * Graphics.
+     * Fonts.
      */
     
     @Override
-    public GRect getScreenBounds() {
+    public InterfaceBwdFontHome getFontHome() {
+        return this.fontHome;
+    }
+    
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
         /*
          * As the spec say, for safety we prefer
          * to just stick to first monitor.
          */
         final boolean mustUseWholeDisplayElseFirstMonitor = false;
         
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
         if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
             
         } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
             final Rectangle rectangle;
@@ -250,7 +267,7 @@ Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thr
                 final Monitor monitor = this.display.getMonitors()[0];
                 rectangle = monitor.getBounds();
             }
-            return SwtUtils.toGRect(rectangle);
+            ret = SwtUtils.toGRect(rectangle);
             
         } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
             final Rectangle rectangle;
@@ -260,26 +277,22 @@ Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thr
                 final Monitor monitor = this.display.getMonitors()[0];
                 rectangle = monitor.getClientArea();
             }
-            return SwtUtils.toGRect(rectangle);
+            ret = SwtUtils.toGRect(rectangle);
         } else {
             throw new IllegalArgumentException("" + screenBoundsType);
         }
+        return ret;
     }
 
+    /*
+     * Mouse info.
+     */
+    
     @Override
-    public GPoint getMousePosInScreen() {
+    protected GPoint getMousePosInScreen_rawInOs() {
         final Point point = this.display.getCursorLocation();
         return SwtUtils.toGPoint(point);
     }
-
-    @Override
-    public InterfaceBwdFontHome getFontHome() {
-        return this.fontHome;
-    }
-    
-    //--------------------------------------------------------------------------
-    // PROTECTED METHODS
-    //--------------------------------------------------------------------------
     
     /*
      * Images.

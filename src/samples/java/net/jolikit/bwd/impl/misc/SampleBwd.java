@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ public class SampleBwd {
     private static final int MOUSE_POS_FONT_HEIGHT = 50;
     private static final double MOUSE_POS_POLL_PERIOD_S = 0.01;
 
-    private static final int CLIENT_WIDTH = MOUSE_POS_FONT_HEIGHT * 12;
+    private static final int CLIENT_WIDTH = MOUSE_POS_FONT_HEIGHT * 15;
     private static final int CLIENT_HEIGHT = MOUSE_POS_FONT_HEIGHT + 20;
 
     //--------------------------------------------------------------------------

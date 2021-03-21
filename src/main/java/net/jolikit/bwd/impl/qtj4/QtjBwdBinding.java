@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,48 +207,6 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     }
 
     /*
-     * Graphics.
-     */
-    
-    @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
-        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
-            /*
-             * TODO qtj From Qt5, can use QScreen.geometry() to get that.
-             */
-            final int primaryScreen = this.desktopWidget.primaryScreen();
-            final QRect geom = this.desktopWidget.screenGeometry(primaryScreen);
-            return QtjUtils.toGRect(geom);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
-            /*
-             * TODO qtj From Qt5, can use QScreen.availableGeometry() to get that.
-             */
-            final int primaryScreen = this.desktopWidget.primaryScreen();
-            final QRect geom = this.desktopWidget.availableGeometry(primaryScreen);
-            return QtjUtils.toGRect(geom);
-            
-        } else {
-            throw new IllegalArgumentException("" + screenBoundsType);
-        }
-    }
-    
-    /*
-     * Mouse info.
-     */
-    
-    @Override
-    public GPoint getMousePosInScreen() {
-        final QPoint pos = QCursor.pos();
-        return GPoint.valueOf(pos.x(), pos.y());
-    }
-
-    /*
      * Fonts.
      */
     
@@ -260,6 +218,53 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
+        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
+            /*
+             * TODO qtj From Qt5, can use QScreen.geometry() to get that.
+             */
+            final int primaryScreen = this.desktopWidget.primaryScreen();
+            final QRect geom = this.desktopWidget.screenGeometry(primaryScreen);
+            ret = QtjUtils.toGRect(geom);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
+            /*
+             * TODO qtj From Qt5, can use QScreen.availableGeometry() to get that.
+             */
+            final int primaryScreen = this.desktopWidget.primaryScreen();
+            final QRect geom = this.desktopWidget.availableGeometry(primaryScreen);
+            ret = QtjUtils.toGRect(geom);
+            
+        } else {
+            throw new IllegalArgumentException("" + screenBoundsType);
+        }
+        return ret;
+    }
+    
+    /*
+     * Mouse info.
+     */
+    
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        final QPoint pos = QCursor.pos();
+        return GPoint.valueOf(pos.x(), pos.y());
+    }
     
     /*
      * Images.

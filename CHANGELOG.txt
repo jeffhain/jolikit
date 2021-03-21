@@ -85,6 +85,7 @@ Jolikit X.X, XXXX/XX/XX
     - GRect.xMidFp() and yMidFp().
     - GRect.minSpan() and maxSpan().
     - GRect.area() and areaLong().
+    - GRect.withBordersDeltasElseEmpty(int,int,int,int).
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().
     - InterfaceBwdGraphics.newChildGraphics(GRect,GRect).
@@ -97,6 +98,7 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdWritableImage class.
     - InterfaceBwdFontHome.newFontXxx() methods that always use
       default font kind (no font kind argument).
+    - InterfaceBwdBinding.getMousePosInScreen().
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
     - BwdKeyEventPr.isRepeat().
@@ -154,9 +156,20 @@ Jolikit X.X, XXXX/XX/XX
       to available parallelism, for multi-threading not to hurt
       incognizant users.
     - Reduced default delay and period for key repetition.
+    - Added "scale" parameter, which allows for scaling BWD pixels
+      span (and related coordinates) as a multiple of OS pixels span
+      (scale = 2 means a BWD pixel is 2x2 Os pixels).
+      Useful to not consume too much CPU when painting large clients
+      on 4k+ screens, or to easily scale up a UI without having
+      to touch its code, or to check pixel-perfectness of your drawings
+      without a magnifying glass, or if you just like pixelated graphics.
   - Corrections:
     - Corrected an issue in DefaultLineDrawer, where pixels out of clip
       could be drawn when coordinates were huge (>= 500_000_000 or so).
+    - JavaFX, SWT and Qt bindings graphics could not be used in an
+      interleaved manner (due to shared data not being properly updated).
+    - Some graphics could not properly handle boxes with negative
+      top-left corner coordinates.
   - Optimizations/upgrades:
     - Factored/upgraded/optimized/simplified various internal utilities,
       in particular:
@@ -183,9 +196,6 @@ Jolikit X.X, XXXX/XX/XX
     - Optimized text drawing, by only considering the clipped bounding box
       (Allegro5, SDL2, SWT), or by drawing directly on the backing int array
       through a BufferedImage graphics (JOGL, LWJGL3).
-    - QtjBwdGraphics: the painter (which is shared across graphics) state
-      is now ensured to be aligned on graphics state before use,
-      which allows for interleaved graphics usage.
     - AwtEventConverter:
       - guards against spurious wheel events on Mac.
       - Now using getPreciseWheelRotation() only if available,

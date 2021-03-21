@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.AbstractBwdBinding;
+import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
@@ -184,13 +186,18 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
             
             if (this.boundsTypeOnShow != MyBoundsTypeOnShow.DEFAULT_BOUNDS) {
                 final AbstractBwdBinding binding = (AbstractBwdBinding) getBinding();
-                final GRect defaultBounds = binding.getBindingConfig().getDefaultClientOrWindowBounds();
+                final BaseBwdBindingConfig bindingConfig =
+                    binding.getBindingConfig();
+                final GRect defaultBoundsInOs =
+                    bindingConfig.getDefaultClientOrWindowBoundsInOs();
                 final int dxy = 200;
-                final GRect userBounds = defaultBounds.withPosDeltas(dxy, dxy);
+                final GRect userBoundsInOs = defaultBoundsInOs.withPosDeltas(dxy, dxy);
+                final ScaleHelper scaleHelper = bindingConfig.getScaleHelper();
+                final GRect userBoundsInBd = scaleHelper.rectOsToBdContained(userBoundsInOs);
                 if (this.boundsTypeOnShow == MyBoundsTypeOnShow.USER_CLIENT_BOUNDS) {
-                    newHost.setClientBounds(userBounds);
+                    newHost.setClientBounds(userBoundsInBd);
                 } else {
-                    newHost.setWindowBounds(userBounds);
+                    newHost.setWindowBounds(userBoundsInBd);
                 }
             }
 

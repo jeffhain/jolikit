@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,7 +40,6 @@ import net.jolikit.lang.DefaultExceptionHandler;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
-import net.jolikit.lang.OsUtils;
 import net.jolikit.test.JlkTestConfig;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.NanoTimeClock;
@@ -59,33 +58,16 @@ public class BwdTestUtils {
             JlkTestConfig.getDeviceResolutionWidth(),
             JlkTestConfig.getDeviceResolutionHeight());
     
+    private static final GRect MY_DECORATION_INSETS =
+        JlkTestConfig.getDecorationInsets();
+    
+    private static final GRect MY_DECORATION_INSETS_ALGR5 =
+        JlkTestConfig.getDecorationInsetsAlgr5();
+    
     /*
      * 
      */
     
-    /**
-     * Usual border rect (left,top,right,bottom) on Microsoft Windows.
-     */
-    private static final GRect MY_WINDOWS_BORDER_RECT = GRect.valueOf(4, 4+19, 4, 4);
-    
-    /**
-     * TODO algr Allegro5 is special.
-     * The "display" surface that we call client area or just client for simplicity,
-     * is not at (0,0) in actual (visible) client area, but at (1,1), but that
-     * might just be a visual illusion due to borders not being paint properly.
-     */
-    private static final GRect MY_WINDOWS_BORDER_RECT_ALGR5 = GRect.valueOf(4+2, 4+19+2, 4+2, 4+2);
-    
-    /**
-     * TODO On mac, visible border is infinitely thin,
-     * but draggable border is not, and overlaps the client area
-     * on the sides, which is terrible since it doesn't allow
-     * to handle mouse events properly on these sides.
-     * Same kind of bad design as to have controls annoyingly
-     * overlapping videos and subtitle on most video players.
-     */
-    private static final GRect MY_MAC_BORDER_RECT = GRect.valueOf(0, 4+19, 0, 0);
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -241,28 +223,12 @@ public class BwdTestUtils {
         return new double[]{xRatio, yRatio};
     }
     
-    public static GRect getBorderRect() {
-        final GRect borderRect;
-        if (OsUtils.isWindows()) {
-            borderRect = MY_WINDOWS_BORDER_RECT;
-        } else if (OsUtils.isMac()) {
-            borderRect = MY_MAC_BORDER_RECT;
-        } else {
-            throw new UnsupportedOperationException("OS not supported: " + OsUtils.getOsName());
-        }
-        return borderRect;
+    public static GRect getDecorationInsets() {
+        return MY_DECORATION_INSETS;
     }
 
-    public static GRect getBorderRectAlgr5() {
-        final GRect borderRect;
-        if (OsUtils.isWindows()) {
-            borderRect = MY_WINDOWS_BORDER_RECT_ALGR5;
-        } else if (OsUtils.isMac()) {
-            borderRect = MY_MAC_BORDER_RECT;
-        } else {
-            throw new UnsupportedOperationException("OS not supported: " + OsUtils.getOsName());
-        }
-        return borderRect;
+    public static GRect getDecorationInsetsAlgr5() {
+        return MY_DECORATION_INSETS_ALGR5;
     }
     
     /*

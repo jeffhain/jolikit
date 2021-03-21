@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,14 @@ public abstract class AbstractBwdTestCaseHome extends BwdClientMock implements I
      * 
      */
 
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Integer getScaleElseNull() {
+        return null;
+    }
+    
     /**
      * This default implementation returns null.
      */

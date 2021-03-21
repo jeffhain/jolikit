@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ public class CmnInputConvState {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private GPoint mousePosInScreen = GPoint.ZERO;
+    private GPoint mousePosInScreenInOs = GPoint.ZERO;
 
     private final SortedSet<Integer> buttonDownSet = new TreeSet<Integer>();
     
@@ -44,12 +44,12 @@ public class CmnInputConvState {
     public CmnInputConvState() {
     }
     
-    public GPoint getMousePosInScreen() {
-        return this.mousePosInScreen;
+    public GPoint getMousePosInScreenInOs() {
+        return this.mousePosInScreenInOs;
     }
     
-    public void setMousePosInScreen(GPoint mousePosInScreen) {
-        this.mousePosInScreen = mousePosInScreen;
+    public void setMousePosInScreenInOs(GPoint mousePosInScreenInOs) {
+        this.mousePosInScreenInOs = mousePosInScreenInOs;
     }
     
     /*

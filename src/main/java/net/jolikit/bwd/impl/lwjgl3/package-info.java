@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,5 +28,8 @@
  * - On Mac, not allowing maximization for undecorated windows,
  *   to avoid issues.
  * - On Mac, can't have another cursor than default one.
+ * - On Windows, after programmatic iconification, deiconification with task bar
+ *   keeps display empty: need to deiconify programmatically to restore
+ *   display updates (easy to see with scaling test case).
  */
 package net.jolikit.bwd.impl.lwjgl3;

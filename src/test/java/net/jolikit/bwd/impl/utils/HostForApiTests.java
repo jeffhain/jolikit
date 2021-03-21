@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,17 @@
  */
 package net.jolikit.bwd.impl.utils;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import java.util.List;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdCursorManager;
 import net.jolikit.bwd.api.InterfaceBwdHost;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 
 /**
  * For non-graphical unit tests.
@@ -53,7 +58,7 @@ class HostForApiTests extends AbstractBwdHost {
      */
     public HostForApiTests(
             BaseBwdBindingConfig bindingConfig,
-            InterfaceBwdBinding binding,
+            InterfaceBwdBindingInOs binding,
             InterfaceHostLifecycleListener<AbstractBwdHost> hostLifecycleListener,
             HostOfFocusedClientHolder hostOfFocusedClientHolder,
             InterfaceBwdHost owner,
@@ -79,7 +84,8 @@ class HostForApiTests extends AbstractBwdHost {
         
         this.maximizedClientBounds = maximizedClientBounds;
         
-        this.backingClientBounds = bindingConfig.getDefaultClientOrWindowBounds();
+        // Ignoring OS/BD scaling.
+        this.backingClientBounds = bindingConfig.getDefaultClientOrWindowBoundsInOs();
         
         // Implicit null check.
         client.setHost(this);
@@ -244,7 +250,7 @@ class HostForApiTests extends AbstractBwdHost {
             }
             if (desiredMaximized) {
                 if (this.maximizedClientBounds != null) {
-                    this.setBackingClientBounds(this.maximizedClientBounds);
+                    this.setBackingClientBoundsInOs(this.maximizedClientBounds);
                 }
             } else {
                 // Counting on non-maximized bounds restoring.
@@ -253,22 +259,22 @@ class HostForApiTests extends AbstractBwdHost {
     }
     
     @Override
-    protected GRect getBackingInsets() {
+    protected GRect getBackingInsetsInOs() {
         return this.insets;
     }
     
     @Override
-    protected GRect getBackingClientBounds() {
+    protected GRect getBackingClientBoundsInOs() {
         return this.backingClientBounds;
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
+    protected GRect getBackingWindowBoundsInOs() {
         return BindingCoordsUtils.computeWindowBounds(this.insets, this.backingClientBounds);
     }
     
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
+    protected void setBackingClientBoundsInOs(GRect targetClientBounds) {
         final GRect old = this.backingClientBounds;
         if (targetClientBounds.equals(old)) {
             return;
@@ -288,12 +294,12 @@ class HostForApiTests extends AbstractBwdHost {
     }
     
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBounds) {
         final GRect targetClientBounds =
                 BindingCoordsUtils.computeClientBounds(
                         this.insets,
                         targetWindowBounds);
-        this.setBackingClientBounds(targetClientBounds);
+        this.setBackingClientBoundsInOs(targetClientBounds);
     }
     
     @Override
@@ -321,5 +327,24 @@ class HostForApiTests extends AbstractBwdHost {
          * NB: no "closed" flag to set to true,
          * since there is no isBackingWindowClosed() method.
          */
+    }
+    
+    /*
+     * Painting.
+     */
+
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        throw new UnsupportedOperationException();
     }
 }

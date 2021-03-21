@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,13 +27,13 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.LangUtils;
 
 public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -90,39 +90,58 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         }
     }
     
+    /**
+     * Resources shared between a root graphics and all its descendants.
+     */
+    private static class MyShared {
+        final Color backingColor_BLACK;
+        final Color backingColor_WHITE;
+        /**
+         * Offscreen graphic buffer for drawing text.
+         * 
+         * Shared so that we don't have too many of them at once,
+         * since it's better not to (cf. the javadoc).
+         * 
+         * NB: Drawing must therefore be single-threaded.
+         */
+        final SwtGraphicBuffer textGraphicBuffer;
+        private int graphicsCount = 0;
+        private int finishCount = 0;
+        public MyShared(Display display) {
+            final Device device = display;
+            final int alpha8 = 0xFF;
+            this.backingColor_BLACK =
+                SwtUtils.newColor(device, 0x00, 0x00, 0x00, alpha8);
+            this.backingColor_WHITE =
+                SwtUtils.newColor(device, 0xFF, 0xFF, 0xFF, alpha8);
+            final boolean mustCopyOnImageResize = false;
+            this.textGraphicBuffer = new SwtGraphicBuffer(
+                    display,
+                    mustCopyOnImageResize,
+                    ALLOW_TEXT_STORAGE_SHRINKING);
+        }
+        public void onGraphicsCreation() {
+            this.graphicsCount++;
+        }
+        public void onGraphicsFinish() {
+            this.finishCount++;
+            final boolean isLastFinish =
+                (this.finishCount == this.graphicsCount);
+            if (isLastFinish) {
+                backingColor_BLACK.dispose();
+                backingColor_WHITE.dispose();
+                
+                textGraphicBuffer.dispose();
+            }
+        }
+    }
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * Is also the device.
-     */
-    private final Display display;
+    private final MyShared shared;
     
-    /**
-     * Shared resources only disposed by root (non-child) graphics.
-     */
-    private final boolean isRootGraphics;
-
-    /**
-     * Created and disposed by root graphics,
-     * and shared will all children graphics.
-     */
-    private final Color backingColor_BLACK;
-    private final Color backingColor_WHITE;
-    
-    /**
-     * Offscreen graphic buffer for drawing text.
-     * 
-     * Created and disposed by root graphics,
-     * and shared with all children graphics,
-     * so that we don't have too many of them at once,
-     * since it's better not to (cf. the javadoc).
-     * 
-     * NB: Drawing must therefore be single-threaded.
-     */
-    private final SwtGraphicBuffer textGraphicBuffer;
-
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -131,28 +150,27 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Constructor for root graphics.
      * 
      * @param display Is also the device.
-     * @param g Not disposed on close (is reused for child graphics,
-     *        for we can't create multiple GC for a same Image).
      */
     public SwtBwdGraphics(
             InterfaceBwdBinding binding,
-            Display display,
-            boolean isImageGraphics,
             GRect box,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
-            int pixelArrScanlineStride) {
+            int pixelArrScanlineStride,
+            //
+            Display display) {
         this(
                 binding,
-                display,
-                isImageGraphics,
+                topLeftOf(box),
                 box,
                 box, // initialClip
                 //
+                isImageGraphics,
                 pixelArr,
                 pixelArrScanlineStride,
                 //
-                null); // parentGraphics
+                new MyShared(display));
     }
     
     /*
@@ -179,15 +197,15 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         final SwtBwdGraphics parentGraphics = this;
         return new SwtBwdGraphics(
                 this.getBinding(),
-                this.display,
-                this.isImageGraphics(),
+                this.getRootBoxTopLeft(),
                 childBox,
                 childInitialClip,
                 //
+                this.isImageGraphics(),
                 this.getPixelArr(),
                 this.getPixelArrScanlineStride(),
                 //
-                parentGraphics);
+                this.shared);
     }
 
     /*
@@ -205,12 +223,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     @Override
     protected void finishImpl() {
-        if (this.isRootGraphics) {
-            this.backingColor_BLACK.dispose();
-            this.backingColor_WHITE.dispose();
-            
-            this.textGraphicBuffer.dispose();
-        }
+        this.shared.onGraphicsFinish();
     }
     
     /*
@@ -302,12 +315,13 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
         final int mcTextWidth = maxClippedTextRectInText.xSpan();
         final int mcTextHeight = maxClippedTextRectInText.ySpan();
         
-        this.textGraphicBuffer.setSize(mcTextWidth, mcTextHeight);
+        final SwtGraphicBuffer textGraphicBuffer = this.shared.textGraphicBuffer;
+        textGraphicBuffer.setSize(mcTextWidth, mcTextHeight);
         
         final MyCtda accessor;
 
         // Drawing the text in the image.
-        final GC textGc = this.textGraphicBuffer.createClippedGraphics();
+        final GC textGc = textGraphicBuffer.createClippedGraphics();
         try {
             if (false) {
                 // TODO swt Doesnt seem to work.
@@ -331,8 +345,8 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             final SwtBwdFont fontImpl = this.getFont();
             textGc.setFont(fontImpl.getBackingFont());
             
-            textGc.setBackground(this.backingColor_BLACK);
-            textGc.setForeground(this.backingColor_WHITE);
+            textGc.setBackground(this.shared.backingColor_BLACK);
+            textGc.setForeground(this.shared.backingColor_WHITE);
             
             // Uses background color.
             textGc.fillRectangle(0, 0, mcTextWidth, mcTextHeight);
@@ -360,7 +374,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
             final boolean isTransparent = true;
             textGc.drawString(text, textX, textY, isTransparent);
             
-            final Image textImage = this.textGraphicBuffer.getImage();
+            final Image textImage = textGraphicBuffer.getImage();
             // This is slow: must only do it once.
             final ImageData textImageData = textImage.getImageData();
             
@@ -483,46 +497,28 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     private SwtBwdGraphics(
             InterfaceBwdBinding binding,
-            Display display,
-            boolean isImageGraphics,
+            GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
             int pixelArrScanlineStride,
             //
-            SwtBwdGraphics parentGraphics) {
+            MyShared shared) {
         super(
                 binding,
-                isImageGraphics,
+                rootBoxTopLeft,
                 box,
                 initialClip,
                 //
+                isImageGraphics,
                 pixelArr,
                 pixelArrScanlineStride);
         
-        this.display = LangUtils.requireNonNull(display);
+        // Inplicit null check.
+        shared.onGraphicsCreation();
         
-        if (parentGraphics == null) {
-            this.isRootGraphics = true;
-            
-            final Device device = display;
-            final int alpha8 = 0xFF;
-            this.backingColor_BLACK = SwtUtils.newColor(device, 0x00, 0x00, 0x00, alpha8);
-            this.backingColor_WHITE = SwtUtils.newColor(device, 0xFF, 0xFF, 0xFF, alpha8);
-            
-            final boolean mustCopyOnImageResize = false;
-            this.textGraphicBuffer = new SwtGraphicBuffer(
-                    display,
-                    mustCopyOnImageResize,
-                    ALLOW_TEXT_STORAGE_SHRINKING);
-        } else {
-            this.isRootGraphics = false;
-            
-            this.backingColor_BLACK = parentGraphics.backingColor_BLACK;
-            this.backingColor_WHITE = parentGraphics.backingColor_WHITE;
-            
-            this.textGraphicBuffer = parentGraphics.textGraphicBuffer;
-        }
+        this.shared = shared;
     }
 }

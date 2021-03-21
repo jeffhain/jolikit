@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,7 @@
  */
 package net.jolikit.bwd.impl.awt;
 
-import java.awt.AWTEvent;
-import java.awt.Insets;
 import java.awt.Panel;
-import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -85,7 +82,10 @@ public class AwtEventConverter extends AbstractEventConverter {
     public AwtEventConverter(
             CmnInputConvState commonState,
             AbstractBwdHost host) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
     }
     
     //--------------------------------------------------------------------------
@@ -94,10 +94,6 @@ public class AwtEventConverter extends AbstractEventConverter {
     
     @Override
     protected void updateFromBackingEvent(Object backingEvent) {
-        
-        /*
-         * Updating common state.
-         */
         
         final CmnInputConvState commonState = this.getCommonState();
         
@@ -121,48 +117,20 @@ public class AwtEventConverter extends AbstractEventConverter {
             commonState.setAltDown(inputEvent.isAltDown());
             commonState.setAltGraphDown(inputEvent.isAltGraphDown());
             commonState.setMetaDown(inputEvent.isMetaDown());
-       }
+        }
         
         if (backingEvent instanceof MouseEvent) {
             final MouseEvent mouseEvent = (MouseEvent) backingEvent;
             
-            final GPoint mousePosInScreen = GPoint.valueOf(
-                    mouseEvent.getXOnScreen(),
-                    mouseEvent.getYOnScreen());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                mouseEvent.getXOnScreen(),
+                mouseEvent.getYOnScreen());
+            commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             
             final int modEx = mouseEvent.getModifiersEx();
             commonState.setPrimaryButtonDown((modEx & MouseEvent.BUTTON1_DOWN_MASK) != 0);
             commonState.setMiddleButtonDown((modEx & MouseEvent.BUTTON2_DOWN_MASK) != 0);
             commonState.setSecondaryButtonDown((modEx & MouseEvent.BUTTON3_DOWN_MASK) != 0);
-        }
-        
-        /*
-         * Updating host-specific state.
-         */
-        
-        if (backingEvent instanceof MouseEvent) {
-            final MouseEvent mouseEvent = (MouseEvent) backingEvent;
-            
-            int x = mouseEvent.getX();
-            int y = mouseEvent.getY();
-            
-            final AWTEvent awtEvent = (AWTEvent) backingEvent;
-            final Object source = awtEvent.getSource();
-            if (source instanceof Window) {
-                /*
-                 * Not coming from a content pane.
-                 * Useful for AWT, for which we can't get events to come
-                 * from a content pane as with Swing.
-                 */
-                final Window window = (Window) source;
-                final Insets insets = window.getInsets();
-                x -= insets.left;
-                y -= insets.top;
-            }
-            
-            final GPoint mousePosInClient = GPoint.valueOf(x, y);
-            this.setMousePosInClient(mousePosInClient);
         }
     }
     

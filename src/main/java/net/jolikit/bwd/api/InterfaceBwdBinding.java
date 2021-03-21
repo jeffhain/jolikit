@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -152,7 +152,7 @@ public interface InterfaceBwdBinding {
     public InterfaceParallelizer getParallelizer();
     
     /*
-     * Graphics.
+     * Screen info.
      */
     
     /**
@@ -192,6 +192,22 @@ public interface InterfaceBwdBinding {
      *         in screen coordinates.
      */
     public GRect getScreenBounds();
+    
+    /*
+     * Mouse info.
+     */
+    
+    /**
+     * Note that as it's a best effort computation, it might not only be
+     * more or less obsolete, but it might also be out of screen, due to
+     * the eventual asynchronous nature of the best effort computation,
+     * for example if it's just the last position computed upon processing
+     * an event.
+     * 
+     * @return Coordinates of the mouse pointer in screen coordinates,
+     *         or a best effort computation of it.
+     */
+    public GPoint getMousePosInScreen();
 
     /*
      * Images.
@@ -226,22 +242,6 @@ public interface InterfaceBwdBinding {
      * @return A new writable image with the specified width and height.
      */
     public InterfaceBwdWritableImage newWritableImage(int width, int height);
-    
-    /*
-     * Mouse info.
-     */
-    
-    /**
-     * Note that as it's a best effort computation, it might not only be
-     * more or less obsolete, but it might also be out of screen, due to
-     * the eventual asynchronous nature of the best effort computation,
-     * for example if it's just the last position computed upon processing
-     * an event.
-     * 
-     * @return Coordinates of the mouse pointer in screen coordinates,
-     *         or a best effort computation of it.
-     */
-    public GPoint getMousePosInScreen();
     
     /*
      * Fonts.

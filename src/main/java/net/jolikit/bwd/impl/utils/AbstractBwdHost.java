@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package net.jolikit.bwd.impl.utils;
 import java.util.ArrayList;
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdEventListenerUtils;
@@ -31,11 +30,17 @@ import net.jolikit.bwd.api.events.BwdWindowEvent;
 import net.jolikit.bwd.api.events.ThrowingBwdEventListener;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
 import net.jolikit.bwd.impl.utils.basics.InterfaceDoubleSupplier;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.events.KeyRepetitionHelper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.Unchecked;
+import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
@@ -60,7 +65,7 @@ import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
  * NB: This remark also applies, to a lesser extend, to other parts (than hosts)
  * of bindings implementations (such as graphics or font homes).
  */
-public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBackingWindowHolder {
+public abstract class AbstractBwdHost implements InterfaceBwdHostInOs, InterfaceBackingWindowHolder {
     
     /*
      * TODO What the messiness of this class shows,
@@ -175,6 +180,17 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      */
     private static final boolean MUST_IGNORE_BACKING_DEMAX_WHILE_UNSTABLE = true;
 
+    /**
+     * For eventual black-padding around scaled client,
+     * when scale > 1.
+     * Span in binding (not OS) coordinates.
+     * 
+     * Could just use 1, but we prefer to use 2,
+     * for pixels coordinates evenness to be preserved,
+     * as it could impact rounding.
+     */
+    public static final int PADDING_BORDER_SPAN = 2;
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -614,7 +630,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
 
     private final BaseBwdBindingConfig bindingConfig;
 
-    private final InterfaceBwdBinding binding;
+    private final InterfaceBwdBindingInOs binding;
 
     /**
      * To listen to life cycle of this host or dialogs created from it.
@@ -788,11 +804,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * a button of their choice is down.
      */
     
-    private GRect clientBoundsOnDragPress = null;
-    private GRect windowBoundsOnDragPress = null;
+    private GRect clientBoundsInOsOnDragPress = null;
+    private GRect windowBoundsInOsOnDragPress = null;
     private boolean dragMoveDetected = false;
-    private GRect targetClientBoundsOnDragEnd = null;
-    private GRect targetWindowBoundsOnDragEnd = null;
+    private GRect targetClientBoundsInOsOnDragEnd = null;
+    private GRect targetWindowBoundsInOsOnDragEnd = null;
 
     /*
      * 
@@ -826,8 +842,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * Invariant : only one can be non-null at once.
      */
     
-    private GRect clientBoundsToEnforceOnShowDeicoDemax = null;
-    private GRect windowBoundsToEnforceOnShowDeicoDemax = null;
+    private GRect clientBoundsInOsToEnforceOnShowDeicoDemax = null;
+    private GRect windowBoundsInOsToEnforceOnShowDeicoDemax = null;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -845,7 +861,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      */
     public AbstractBwdHost(
             final BaseBwdBindingConfig bindingConfig,
-            InterfaceBwdBinding binding,
+            InterfaceBwdBindingInOs binding,
             InterfaceHostLifecycleListener<AbstractBwdHost> hostLifecycleListener,
             HostOfFocusedClientHolder hostOfFocusedClientHolder,
             InterfaceBwdHost owner,
@@ -949,8 +965,12 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     public BaseBwdBindingConfig getBindingConfig() {
         return this.bindingConfig;
     }
+    
+    public ScaleHelper getScaleHelper() {
+        return this.bindingConfig.getScaleHelper();
+    }
 
-    public InterfaceBwdBinding getBinding() {
+    public InterfaceBwdBindingInOs getBinding() {
         return this.binding;
     }
     
@@ -961,6 +981,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     @Override
     public GPoint getMousePosInScreen() {
         return this.binding.getMousePosInScreen();
+    }
+    
+    @Override
+    public GPoint getMousePosInScreenInOs() {
+        return this.binding.getMousePosInScreenInOs();
     }
 
     /*
@@ -1418,6 +1443,12 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
 
     @Override
     public GRect getInsets() {
+        return this.getScaleHelper().insetsOsToBdContaining(
+            this.getInsetsInOs());
+    }
+
+    @Override
+    public GRect getInsetsInOs() {
         if (!this.isHostShowingDeico()) {
             return GRect.DEFAULT_EMPTY;
         }
@@ -1425,30 +1456,63 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
          * Not caching it, because computation might not be reliable,
          * if computed as a difference between window bounds and client bounds.
          */
-        return this.getBackingInsets();
+        return this.getBackingInsetsInOs();
     }
 
     @Override
     public GRect getClientBounds() {
+        return this.getScaleHelper().rectOsToBdContained(
+            this.getClientBoundsInOs());
+    }
+
+    @Override
+    public GRect getClientBoundsInOs() {
         if (!this.isHostShowingDeico()) {
             return GRect.DEFAULT_EMPTY;
         }
-        return this.getBackingOrOnDragBeginClientBounds();
+        return this.getBackingOrOnDragBeginClientBoundsInOs();
     }
 
     @Override
     public GRect getWindowBounds() {
+        /*
+         * To ensure (insets,clientBounds,windowBounds) consistency
+         * in case of scaling, we always recompute window bounds
+         * from client bounds and insets in BD.
+         */
         if (!this.isHostShowingDeico()) {
             return GRect.DEFAULT_EMPTY;
         }
-        return this.getBackingOrOnDragBeginWindowBounds();
+        final GRect insetsInBd =
+            this.getScaleHelper().insetsOsToBdContaining(
+                this.getInsetsInOs());
+        final GRect clientBoundsInBd =
+            this.getScaleHelper().rectOsToBdContained(
+                this.getBackingOrOnDragBeginClientBoundsInOs());
+        return BindingCoordsUtils.computeWindowBounds(
+            insetsInBd,
+            clientBoundsInBd);
+    }
+
+    @Override
+    public GRect getWindowBoundsInOs() {
+        if (!this.isHostShowingDeico()) {
+            return GRect.DEFAULT_EMPTY;
+        }
+        return this.getBackingOrOnDragBeginWindowBoundsInOs();
     }
 
     @Override
     public void setClientBounds(GRect targetClientBounds) {
+        this.setClientBoundsInOs(
+            this.getScaleHelper().rectBdToOs(
+                targetClientBounds));
+    }
+    
+    public void setClientBoundsInOs(GRect targetClientBoundsInOs) {
         
         // Implicit null check.
-        targetClientBounds = sanitizedTargetBounds(targetClientBounds);
+        targetClientBoundsInOs = sanitizedTargetBounds(targetClientBoundsInOs);
 
         final boolean hostShowingDeico = this.isHostShowingDeico();
         if (hostShowingDeico && (!this.isMaximized())) {
@@ -1458,15 +1522,15 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             
             if (this.bindingConfig.getMustFixBoundsDuringDrag()
                     && this.isDragMoveDetected()) {
-                this.setTargetClientBoundsOnDragEnd(targetClientBounds);
+                this.setTargetClientBoundsInOsOnDragEnd(targetClientBoundsInOs);
             } else {
                 if (DEBUG) {
-                    hostLog(this, "calling setBackingClientBounds(" + targetClientBounds + ")");
+                    hostLog(this, "calling setBackingClientBoundsInOs(" + targetClientBoundsInOs + ")");
                 }
-                this.setBackingClientBounds(targetClientBounds);
+                this.setBackingClientBoundsInOs(targetClientBoundsInOs);
             }
         } else {
-            this.setClientBoundsToEnforceOnShowDeicoDemax(targetClientBounds);
+            this.setClientBoundsInOsToEnforceOnShowDeicoDemax(targetClientBoundsInOs);
             this.ensureBoundsEnforcingFlagOnShowDeicoDemax();
             
             if (this.bindingConfig.getMustSetBackingDemaxBoundsWhileHiddenOrIconified()
@@ -1476,18 +1540,39 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                     // so using client state.
                     && (!this.clientWrapper.isMaximized())) {
                 if (DEBUG) {
-                    hostLog(this, "(anti-glitch) calling setBackingClientBounds(" + targetClientBounds + ")");
+                    hostLog(this, "(anti-glitch) calling setBackingClientBoundsInOs(" + targetClientBoundsInOs + ")");
                 }
-                this.setBackingClientBounds(targetClientBounds);
+                this.setBackingClientBoundsInOs(targetClientBoundsInOs);
             }
         }
     }
 
     @Override
     public void setWindowBounds(GRect targetWindowBounds) {
+        /*
+         * In case of scaling:
+         * We can't compute target client bounds in BD
+         * from target window bounds (in BD) and insets (in BD),
+         * since if window is not showing or is iconified
+         * we can't properly reads these values.
+         * As a result, unlike for getWindowBounds(),
+         * we can't delegate to client bounds treatment.
+         * But we don't need to anyway, since conversions from
+         * coordinates in BD to coordinates in OS are always exact
+         * and aligned on BD pixels: the window bounds in BD retrieved
+         * after this setting should be exactly the one specified,
+         * both when computed from insets and client bounds in BD,
+         * or directly from window bounds in BD.
+         */
+        this.setWindowBoundsInOs(
+            this.getScaleHelper().rectBdToOs(
+                targetWindowBounds));
+    }
+    
+    public void setWindowBoundsInOs(GRect targetWindowBoundsInOs) {
         
         // Implicit null check.
-        targetWindowBounds = sanitizedTargetBounds(targetWindowBounds);
+        targetWindowBoundsInOs = sanitizedTargetBounds(targetWindowBoundsInOs);
         
         final boolean hostShowingDeico = this.isHostShowingDeico();
         if (hostShowingDeico && (!this.isMaximized())) {
@@ -1497,15 +1582,15 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             
             if (this.bindingConfig.getMustFixBoundsDuringDrag()
                     && this.isDragMoveDetected()) {
-                this.setTargetWindowBoundsOnDragEnd(targetWindowBounds);
+                this.setTargetWindowBoundsInOsOnDragEnd(targetWindowBoundsInOs);
             } else {
                 if (DEBUG) {
-                    hostLog(this, "calling setBackingWindowBounds(" + targetWindowBounds + ")");
+                    hostLog(this, "calling setBackingWindowBoundsInOs(" + targetWindowBoundsInOs + ")");
                 }
-                this.setBackingWindowBounds(targetWindowBounds);
+                this.setBackingWindowBoundsInOs(targetWindowBoundsInOs);
             }
         } else {
-            this.setWindowBoundsToEnforceOnShowDeicoDemax(targetWindowBounds);
+            this.setWindowBoundsInOsToEnforceOnShowDeicoDemax(targetWindowBoundsInOs);
             this.ensureBoundsEnforcingFlagOnShowDeicoDemax();
 
             if (this.bindingConfig.getMustSetBackingDemaxBoundsWhileHiddenOrIconified()
@@ -1515,9 +1600,9 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                     // so using client state.
                     && (!this.clientWrapper.isMaximized())) {
                 if (DEBUG) {
-                    hostLog(this, "(anti-glitch) calling setBackingWindowBounds(" + targetWindowBounds + ")");
+                    hostLog(this, "(anti-glitch) calling setBackingWindowBoundsInOs(" + targetWindowBoundsInOs + ")");
                 }
-                this.setBackingWindowBounds(targetWindowBounds);
+                this.setBackingWindowBoundsInOs(targetWindowBoundsInOs);
             }
         }
     }
@@ -1540,16 +1625,31 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             boolean mustFixRight,
             boolean mustFixBottom,
             boolean mustRestoreBoundsIfNotExact) {
-        final boolean clientElseWindow = true;
-        return this.setXxxBoundsSmart(
-                clientElseWindow,
-                //
-                targetClientBounds,
-                mustFixRight,
-                mustFixBottom,
-                mustRestoreBoundsIfNotExact);
+        final GRect targetClientBoundsInOs =
+            this.getScaleHelper().rectBdToOs(
+                targetClientBounds);
+        return this.setClientBoundsSmartInOs(
+            targetClientBoundsInOs,
+            mustFixRight,
+            mustFixBottom,
+            mustRestoreBoundsIfNotExact);
     }
 
+    public boolean setClientBoundsSmartInOs(
+        GRect targetClientBoundsInOs,
+        boolean mustFixRight,
+        boolean mustFixBottom,
+        boolean mustRestoreBoundsIfNotExact) {
+        final boolean clientElseWindow = true;
+        return this.setXxxBoundsInOsSmart(
+            clientElseWindow,
+            //
+            targetClientBoundsInOs,
+            mustFixRight,
+            mustFixBottom,
+            mustRestoreBoundsIfNotExact);
+    }
+    
     @Override
     public boolean setWindowBoundsSmart(GRect targetWindowBounds) {
         final boolean mustFixRight = false;
@@ -1568,16 +1668,31 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             boolean mustFixRight,
             boolean mustFixBottom,
             boolean mustRestoreBoundsIfNotExact) {
-        final boolean clientElseWindow = false;
-        return this.setXxxBoundsSmart(
-                clientElseWindow,
-                //
-                targetWindowBounds,
-                mustFixRight,
-                mustFixBottom,
-                mustRestoreBoundsIfNotExact);
+        final GRect targetWindowBoundsInOs =
+            this.getScaleHelper().rectBdToOs(
+                targetWindowBounds);
+        return this.setWindowBoundsSmartInOs(
+            targetWindowBoundsInOs,
+            mustFixRight,
+            mustFixBottom,
+            mustRestoreBoundsIfNotExact);
     }
 
+    public boolean setWindowBoundsSmartInOs(
+        GRect targetWindowBoundsInOs,
+        boolean mustFixRight,
+        boolean mustFixBottom,
+        boolean mustRestoreBoundsIfNotExact) {
+        final boolean clientElseWindow = false;
+        return this.setXxxBoundsInOsSmart(
+            clientElseWindow,
+            //
+            targetWindowBoundsInOs,
+            mustFixRight,
+            mustFixBottom,
+            mustRestoreBoundsIfNotExact);
+    }
+    
     /*
      * Closing.
      */
@@ -1766,8 +1881,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         hostLog(this, "mustTryToRestoreClientMaxStateIntoHost = " + this.mustTryToRestoreClientMaxStateIntoHost);
         hostLog(this, "isBoundsEnforcingOnShowDeicoMaxPending = " + this.isBoundsEnforcingOnShowDeicoMaxPending);
         hostLog(this, "isBoundsEnforcingOnShowDeicoDemaxPending = " + this.isBoundsEnforcingOnShowDeicoDemaxPending);
-        hostLog(this, "clientBoundsToEnforceOnShowDeicoDemax = " + this.clientBoundsToEnforceOnShowDeicoDemax);
-        hostLog(this, "windowBoundsToEnforceOnShowDeicoDemax = " + this.windowBoundsToEnforceOnShowDeicoDemax);
+        hostLog(this, "clientBoundsToEnforceOnShowDeicoDemax = " + this.clientBoundsInOsToEnforceOnShowDeicoDemax);
+        hostLog(this, "windowBoundsToEnforceOnShowDeicoDemax = " + this.windowBoundsInOsToEnforceOnShowDeicoDemax);
     }
     
     //--------------------------------------------------------------------------
@@ -1833,30 +1948,32 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * 
      */
 
-    protected GRect getBackingOrOnDragBeginClientBounds() {
+    protected GRect getBackingOrOnDragBeginClientBoundsInOs() {
         if (this.bindingConfig.getMustFixBoundsDuringDrag()) {
             if (this.isDragMoveDetected()) {
-                final GRect boundsAtDragStart = this.clientBoundsOnDragPress;
+                final GRect boundsInOsAtDragStart = this.clientBoundsInOsOnDragPress;
                 if (DEBUG) {
-                    hostLog(this, "returning client bounds at drag start : " + boundsAtDragStart);
+                    hostLog(this,
+                        "returning client bounds in OS at drag start : "
+                            + boundsInOsAtDragStart);
                 }
-                return boundsAtDragStart;
+                return boundsInOsAtDragStart;
             }
         }
-        return this.getBackingClientBounds();
+        return this.getBackingClientBoundsInOs();
     }
 
-    protected GRect getBackingOrOnDragBeginWindowBounds() {
+    protected GRect getBackingOrOnDragBeginWindowBoundsInOs() {
         if (this.bindingConfig.getMustFixBoundsDuringDrag()) {
             if (this.isDragMoveDetected()) {
-                final GRect boundsAtDragStart = this.windowBoundsOnDragPress;
+                final GRect boundsAtDragStart = this.windowBoundsInOsOnDragPress;
                 if (DEBUG) {
                     hostLog(this, "returning window bounds at drag start : " + boundsAtDragStart);
                 }
                 return boundsAtDragStart;
             }
         }
-        return this.getBackingWindowBounds();
+        return this.getBackingWindowBoundsInOs();
     }
 
     /*
@@ -2208,8 +2325,29 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     }
 
     /*
-     * 
+     * Painting.
      */
+    
+    /**
+     * @param windowAlphaFp Always in range.
+     */
+    protected abstract void setWindowAlphaFp_backing(double windowAlphaFp);
+
+    /**
+     * Start it on (x,y) change, if you want to cause a corresponding
+     * asynchronous repaint.
+     */
+    protected AbstractProcess getPaintAfterMoveProcess() {
+        return this.paintAfterMoveProcess;
+    }
+
+    /**
+     * Start it on (width,height) change, if you want to cause a corresponding
+     * asynchronous repaint.
+     */
+    protected AbstractProcess getPaintAfterResizeProcess() {
+        return this.paintAfterResizeProcess;
+    }
     
     /**
      * @return The dirty rectangles bounding box to use for next painting,
@@ -2228,10 +2366,25 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
         return dirtyRectBb;
     }
-
-    /*
+    
+    /**
+     * Called in UI thread.
      * 
+     * Not called if isShowing() is false, which could cause issues
+     * with some libraries, especially if window has been disposed,
+     * but you must still do the canPaintClientNow() check synchronously
+     * just before actual painting.
+     * 
+     * Should only be called from internal paint process,
+     * to respect the eventually configured painting delay,
+     * but can be called directly from some places of hosts
+     * implementations if it allows to avoid some glitches.
+     * 
+     * The dirty rectangle to use for client.paintClient(...) call
+     * must be retrieved with getAndResetDirtyRectBb() only once
+     * the painting has been decided, to make sure not to waste it.
      */
+    protected abstract void paintClientNowOrLater();
 
     /**
      * Must be called just before eventually painting client,
@@ -2271,53 +2424,223 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         return true;
     }
     
-    /*
-     * 
-     */
-
     /**
-     * Start it on (x,y) change, if you want to cause a corresponding
-     * asynchronous repaint.
+     * @param boxWithBorder Client box, in binding coordinates,
+     *        eventually enlarged to make room for the padding border
+     *        used to fill unused backing client area in case of scaling.
+     * @return A new root graphics with the specified box.
      */
-    protected AbstractProcess getPaintAfterMoveProcess() {
-        return this.paintAfterMoveProcess;
+    protected abstract InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder);
+    
+    /**
+     * "Buffer" means the array of pixels corresponding to the box
+     * of (actual) root graphics, and "buffer" frame of reference
+     * is the one with (0,0) for buffer's top-left pixel
+     * (even if root box's top-left x() and y() are negative,
+     * which can be the case to make sure that top-left pixel
+     * of non-enlarged box (the one used by client's graphics
+     * and therefore user code) is always (0,0) regardless
+     * of scale-padding).
+     * 
+     * @param paintedRectList In buffer frame of reference,
+     *        and in binding coordinates. Can be empty.
+     */
+    protected abstract void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList);
+    
+    protected void paintBwdClientNowAndBackingClient(
+        BaseBwdBindingConfig bindingConfig,
+        AbstractHostBoundsHelper hostBoundsHelper) {
+        
+        if (DEBUG) {
+            hostLog(this, "paintClientNow(...)");
+        }
+        
+        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
+
+        client.processEventualBufferedEvents();
+
+        if (!this.canPaintClientNow()) {
+            if (DEBUG) {
+                hostLog(this, "can't paint now");
+            }
+            return;
+        }
+        
+        final GRect clientBoundsInOs = hostBoundsHelper.getClientBoundsInOs();
+        if (clientBoundsInOs.isEmpty()) {
+            if (DEBUG) {
+                hostLog(this, "clientBoundsInOs is empty");
+            }
+            return;
+        }
+
+        final ScaleHelper scaleHelper = bindingConfig.getScaleHelper();
+        final int scale = scaleHelper.getScale();
+        
+        final GRect scaledClientBoundsInBd =
+            scaleHelper.rectOsToBdContained(
+                clientBoundsInOs);
+        
+        final GRect scaledClientBoundsInOs =
+            scaleHelper.rectBdToOs(
+                scaledClientBoundsInBd);
+        
+        final GRect scaledClientInsetsInOs =
+            ScaleHelper.computeScaledClientInsetsInOs(
+                clientBoundsInOs,
+                scaledClientBoundsInOs);
+        
+        final boolean gotScalingBorder =
+            !scaledClientInsetsInOs.equals(GRect.DEFAULT_EMPTY);
+        
+        final GRect boxForClient =
+            scaledClientBoundsInBd.withPos(0, 0);
+        /*
+         * Box with border so that box without border
+         * (used by client) starts at (0,0)
+         * (we want our border hack not to have
+         * any visible effect from client code).
+         */
+        final GRect boxWithBorder;
+        if (gotScalingBorder) {
+            boxWithBorder =
+                boxForClient.withBordersDeltas(
+                    -PADDING_BORDER_SPAN,
+                    -PADDING_BORDER_SPAN,
+                    PADDING_BORDER_SPAN,
+                    PADDING_BORDER_SPAN);
+        } else {
+            boxWithBorder = boxForClient;
+        }
+        
+        final GPoint clientSpansInOs =
+            GPoint.valueOf(
+                clientBoundsInOs.xSpan(),
+                clientBoundsInOs.ySpan());
+        final GPoint bufferPosInCliInOs;
+        if (gotScalingBorder) {
+            bufferPosInCliInOs =
+                GPoint.valueOf(
+                    scaledClientInsetsInOs.x() - PADDING_BORDER_SPAN * scale,
+                    scaledClientInsetsInOs.y() - PADDING_BORDER_SPAN * scale);
+        } else {
+            bufferPosInCliInOs = GPoint.ZERO;
+        }
+        
+        final GRect dirtyRect = this.getAndResetDirtyRectBb();
+        
+        /*
+         * Painting into offscreen buffer.
+         */
+        
+        final InterfaceBwdGraphics gForBorder =
+            this.newRootGraphics(boxWithBorder);
+
+        final InterfaceBwdGraphics gForClient;
+        if (gotScalingBorder) {
+            gForClient = gForBorder.newChildGraphics(boxForClient);
+        } else {
+            gForClient = gForBorder;
+        }
+        
+        /*
+         * The graphics we give to client might not actually be
+         * a root graphics (as client's paintClient() method indicates),
+         * but nothing in the API makes it visible so it's fine.
+         */
+        final List<GRect> paintedRectList =
+            this.getPaintClientHelper().initPaintFinish(
+                gForClient,
+                dirtyRect);
+        
+        if (gotScalingBorder) {
+            gForBorder.init();
+            try {
+                /*
+                 * Only need to draw border's inner rectangle,
+                 * which is the only part that can be visible.
+                 */
+                final int ib = (PADDING_BORDER_SPAN - 1);
+                final GRect borderInnerRect =
+                    boxWithBorder.withBordersDeltasElseEmpty(
+                        ib, ib, -ib, -ib);
+                gForBorder.drawRect(borderInnerRect);
+            } finally {
+                gForBorder.finish();
+            }
+            
+            final boolean isClientToFullyDraw =
+                (paintedRectList.size() == 1)
+                && (paintedRectList.get(0).contains(boxForClient));
+            if (isClientToFullyDraw) {
+                // Replacing with enlarged box.
+                paintedRectList.clear();
+                paintedRectList.add(boxWithBorder);
+            } else {
+                // Just adding the borders.
+                for (GRect borderRect :
+                    ScaleHelper.computeBorderRectsInBd(
+                        boxWithBorder,
+                        PADDING_BORDER_SPAN)) {
+                    paintedRectList.add(borderRect);
+                }
+            }
+        }
+        
+        /*
+         * Copying offscreen buffer into backing graphics.
+         * 
+         * Only doing it if canPaintClientNow() returns true,
+         * to avoid issues in case closing or shutdown occurred
+         * during offscreen buffer painting.
+         * (ex. : getGL() that returns null in GL bindings, etc.)
+         */
+        
+        if (this.canPaintClientNow()) {
+            
+            /*
+             * Ensuring painted rectangles coordinates
+             * to be in buffer frame of reference.
+             * Else would have to deal with rootBoxTopLeft.
+             */
+            if (gotScalingBorder) {
+                final int size = paintedRectList.size();
+                for (int i = 0; i < size; i++) {
+                    final GRect rect1 = paintedRectList.get(i);
+                    final GRect rect2 = rect1.withPosDeltas(
+                        PADDING_BORDER_SPAN,
+                        PADDING_BORDER_SPAN);
+                    paintedRectList.set(i, rect2);
+                }
+            }
+            
+            final GPoint bufferSpansInBd =
+                GPoint.valueOf(
+                    boxWithBorder.xSpan(),
+                    boxWithBorder.ySpan());
+            
+            final long a = (DEBUG ? System.nanoTime() : 0L);
+            
+            this.paintBackingClient(
+                scaleHelper,
+                clientSpansInOs,
+                bufferPosInCliInOs,
+                bufferSpansInBd,
+                paintedRectList);
+            
+            final long b = (DEBUG ? System.nanoTime() : 0L);
+            if (DEBUG) {
+                hostLog(this, "painting into backing of "
+                    + paintedRectList.size()
+                    + " rects took " + TimeUtils.nsToS(b-a) + " s");
+            }
+        }
     }
-
-    /**
-     * Start it on (width,height) change, if you want to cause a corresponding
-     * asynchronous repaint.
-     */
-    protected AbstractProcess getPaintAfterResizeProcess() {
-        return this.paintAfterResizeProcess;
-    }
-
-    /*
-     * 
-     */
-
-    /**
-     * Called in UI thread.
-     * 
-     * Not called if isShowing() is false, which could cause issues
-     * with some libraries, especially if window has been disposed,
-     * but you must still do the canPaintClientNow() check synchronously
-     * just before actual painting.
-     * 
-     * Should only be called from internal paint process,
-     * to respect the eventually configured painting delay,
-     * but can be called directly from some places of hosts
-     * implementations if it allows to avoid some glitches.
-     * 
-     * The dirty rectangle to use for client.paintClient(...) call
-     * must be retrieved with getAndResetDirtyRectBb() only once
-     * the painting has been decided, to make sure not to waste it.
-     */
-    protected abstract void paintClientNowOrLater();
-
-    /**
-     * @param windowAlphaFp Always in range.
-     */
-    protected abstract void setWindowAlphaFp_backing(double windowAlphaFp);
 
     /*
      * 
@@ -2405,17 +2728,29 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
 
     /**
      * @return {x=left, y=top, xSpan=right, ySpan=bottom} border span
-     *         around client area.
+     *         around client area, in OS pixels.
      */
-    protected abstract GRect getBackingInsets();
+    protected abstract GRect getBackingInsetsInOs();
 
-    protected abstract GRect getBackingClientBounds();
+    /**
+     * @return Backing client bounds, in OS pixels.
+     */
+    protected abstract GRect getBackingClientBoundsInOs();
 
-    protected abstract GRect getBackingWindowBounds();
+    /**
+     * @return Backing window bounds, in OS pixels.
+     */
+    protected abstract GRect getBackingWindowBoundsInOs();
 
-    protected abstract void setBackingClientBounds(GRect targetClientBounds);
+    /**
+     * @param targetClientBoundsInOs Target backing client bounds, in OS pixels.
+     */
+    protected abstract void setBackingClientBoundsInOs(GRect targetClientBoundsInOs);
 
-    protected abstract void setBackingWindowBounds(GRect targetWindowBounds);
+    /**
+     * @param targetWindowBoundsInOs Target backing window bounds, in OS pixels.
+     */
+    protected abstract void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs);
 
     /*
      * Closing.
@@ -2433,22 +2768,22 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      */
     
     /**
-     * @param windowBoundsToEnforce Bounds to enforce to go from hidden or iconified,
-     *        back to showing/deico/max.
+     * @param windowBoundsInOsToEnforce Bounds, in OS pixels, to enforce
+     *        to go from hidden or iconified, back to showing/deico/max.
      */
-    protected void applyWindowBoundsToEnforceOnShowDeicoMax_protected(GRect windowBoundsToEnforce) {
-        this.applyWindowBoundsToEnforceOnShowDeicoMax(windowBoundsToEnforce);
+    protected void applyWindowBoundsInOsToEnforceOnShowDeicoMax_protected(GRect windowBoundsInOsToEnforce) {
+        this.applyWindowBoundsInOsToEnforceOnShowDeicoMax(windowBoundsInOsToEnforce);
     }
     
     /**
      * Sets the bounds, and the flag indicating that they must be applied
      * once back to showing/deico/demax.
      * 
-     * @param windowBoundsToEnforce Bounds to enforce to go from hidden or iconified,
-     *        back to showing/deico/demax.
+     * @param windowBoundsInOsToEnforce Bounds, in OS pixels, to enforce
+     *        to go from hidden or iconified, back to showing/deico/demax.
      */
-    protected void setWindowBoundsToEnforceOnShowDeicoDemaxAndFlag_protected(GRect windowBoundsToEnforce) {
-        this.setWindowBoundsToEnforceOnShowDeicoDemax(windowBoundsToEnforce);
+    protected void setWindowBoundsInOsToEnforceOnShowDeicoDemaxAndFlag_protected(GRect windowBoundsInOsToEnforce) {
+        this.setWindowBoundsInOsToEnforceOnShowDeicoDemax(windowBoundsInOsToEnforce);
         this.ensureBoundsEnforcingFlagOnShowDeicoDemax();
     }
 
@@ -2505,7 +2840,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     }
 
     /*
-     * 
+     * Event logic.
      */
 
     /**
@@ -2536,9 +2871,15 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     }
     
     /*
-     * 
+     * State.
      */
 
+    private void logInternalStateIfDebug() {
+        if (DEBUG) {
+            this.logInternalState();
+        }
+    }
+    
     /**
      * Useful delay to wait, but not too much, before restoring or enforcing
      * some state or bounds, due to some libraries erasing recently set state
@@ -2548,10 +2889,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     private double getHalfStabilityDelayS() {
         return this.bindingConfig.getBackingWindowStateStabilityDelayS() * 0.5;
     }
-    
-    /*
-     * 
-     */
     
     private boolean isHostShowingDeico() {
         return this.isShowing()
@@ -2570,34 +2907,43 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      */
     private boolean areHostAndClientShowingDeico() {
         // Quick client checks first.
-        return (this.clientWrapper.isShowing() && (!this.clientWrapper.isIconified()))
-                && this.isHostShowingDeico();
+        return this.clientWrapper.isShowing()
+            && (!this.clientWrapper.isIconified())
+            && this.isHostShowingDeico();
     }
 
     private boolean areHostAndClientShowingDeicoDemax() {
         // Quick client checks first.
-        return (this.clientWrapper.isShowing() && (!this.clientWrapper.isIconified())) && (!this.clientWrapper.isMaximized())
-                && this.isHostShowingDeicoDemax();
+        return this.clientWrapper.isShowing()
+            && (!this.clientWrapper.isIconified())
+            && (!this.clientWrapper.isMaximized())
+            && this.isHostShowingDeicoDemax();
     }
 
     private boolean areHostAndClientShowingDeicoMax() {
         // Quick client checks first.
-        return (this.clientWrapper.isShowing() && (!this.clientWrapper.isIconified())) && this.clientWrapper.isMaximized()
-                && (this.isHostShowingDeico() && this.isMaximized());
+        return this.clientWrapper.isShowing()
+            && (!this.clientWrapper.isIconified())
+            && this.clientWrapper.isMaximized()
+            && this.isHostShowingDeico()
+            && this.isMaximized();
     }
     
     private boolean areHostAndClientShowingDeicoFocused() {
         // Quick client checks first.
-        return (this.clientWrapper.isShowing() && (!this.clientWrapper.isIconified())) && this.clientWrapper.isFocused()
-                && (this.isHostShowingDeico() && this.isFocused());
+        return this.clientWrapper.isShowing()
+            && (!this.clientWrapper.isIconified())
+            && this.clientWrapper.isFocused()
+            && this.isHostShowingDeico()
+            && this.isFocused();
     }
 
     /*
-     * 
+     * Drag.
      */
     
     private boolean isDragPressDetected() {
-        return (this.clientBoundsOnDragPress != null);
+        return (this.clientBoundsInOsOnDragPress != null);
     }
 
     private boolean isDragMoveDetected() {
@@ -2623,8 +2969,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
          * NB: If window recently hidden for example,
          * bounds should be empty here (could cause glitches?).
          */
-        this.clientBoundsOnDragPress = this.getClientBounds();
-        this.windowBoundsOnDragPress = this.getWindowBounds();
+        this.clientBoundsInOsOnDragPress = this.getClientBoundsInOs();
+        this.windowBoundsInOsOnDragPress = this.getWindowBoundsInOs();
     }
 
     private void onDragMove() {
@@ -2652,13 +2998,13 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             hostLog(this, "onDragCancel()");
         }
         
-        this.clientBoundsOnDragPress = null;
-        this.windowBoundsOnDragPress = null;
+        this.clientBoundsInOsOnDragPress = null;
+        this.windowBoundsInOsOnDragPress = null;
 
         this.dragMoveDetected = false;
         
-        this.targetClientBoundsOnDragEnd = null;
-        this.targetWindowBoundsOnDragEnd = null;
+        this.targetClientBoundsInOsOnDragEnd = null;
+        this.targetWindowBoundsInOsOnDragEnd = null;
     }
 
     private void cancelDragIfDragPressDetected() {
@@ -2682,46 +3028,48 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         
         // Need to be nullified before we set target bounds,
         // for setXxxBounds(...) methods to actually set bounds.
-        this.clientBoundsOnDragPress = null;
-        this.windowBoundsOnDragPress = null;
+        this.clientBoundsInOsOnDragPress = null;
+        this.windowBoundsInOsOnDragPress = null;
         
-        final GRect targetClientBounds = this.targetClientBoundsOnDragEnd;
-        this.targetClientBoundsOnDragEnd = null;
+        final GRect targetClientBoundsInOs = this.targetClientBoundsInOsOnDragEnd;
+        this.targetClientBoundsInOsOnDragEnd = null;
 
-        final GRect targetWindowBounds = this.targetWindowBoundsOnDragEnd;
-        this.targetWindowBoundsOnDragEnd = null;
+        final GRect targetWindowBoundsInOs = this.targetWindowBoundsInOsOnDragEnd;
+        this.targetWindowBoundsInOsOnDragEnd = null;
 
         // Taking care not to mess up bounds
         // if no drag move was detected.
         if (this.dragMoveDetected) {
             this.dragMoveDetected = false;
             
-            if (targetClientBounds != null) {
-                this.setClientBounds(targetClientBounds);
-            } else if (targetWindowBounds != null) {
-                this.setWindowBounds(targetWindowBounds);
+            if (targetClientBoundsInOs != null) {
+                this.setClientBoundsInOs(targetClientBoundsInOs);
+            } else if (targetWindowBoundsInOs != null) {
+                this.setWindowBoundsInOs(targetWindowBoundsInOs);
             }
         }
     }
 
     /**
-     * Nullifies targetWindowBoundsOnDragEnd.
-     * @param targetClientBounds Must not be null.
+     * Nullifies targetWindowBoundsInOsOnDragEnd.
+     * @param targetClientBoundsInOs Must not be null.
      */
-    private void setTargetClientBoundsOnDragEnd(GRect targetClientBounds) {
-        LangUtils.requireNonNull(targetClientBounds);
-        this.targetClientBoundsOnDragEnd = targetClientBounds;
-        this.targetWindowBoundsOnDragEnd = null;
+    private void setTargetClientBoundsInOsOnDragEnd(
+        GRect targetClientBoundsInOs) {
+        LangUtils.requireNonNull(targetClientBoundsInOs);
+        this.targetClientBoundsInOsOnDragEnd = targetClientBoundsInOs;
+        this.targetWindowBoundsInOsOnDragEnd = null;
     }
 
     /**
-     * Nullifies targetClientBounds.
-     * @param targetWindowBoundsOnDragEnd Must not be null.
+     * Nullifies targetClientBoundsInOsOnDragEnd.
+     * @param targetWindowBoundsInOs Must not be null.
      */
-    private void setTargetWindowBoundsOnDragEnd(GRect targetClientBounds) {
-        LangUtils.requireNonNull(targetClientBounds);
-        this.targetClientBoundsOnDragEnd = null;
-        this.targetWindowBoundsOnDragEnd = targetClientBounds;
+    private void setTargetWindowBoundsInOsOnDragEnd(
+        GRect targetWindowBoundsInOs) {
+        LangUtils.requireNonNull(targetWindowBoundsInOs);
+        this.targetClientBoundsInOsOnDragEnd = null;
+        this.targetWindowBoundsInOsOnDragEnd = targetWindowBoundsInOs;
     }
     
     /*
@@ -2752,13 +3100,16 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
     }
 
-    private void applyWindowBoundsToEnforceOnShowDeicoMax(GRect windowBoundsToEnforce) {
+    private void applyWindowBoundsInOsToEnforceOnShowDeicoMax(
+        GRect windowBoundsInOsToEnforce) {
         this.clearBoundsEnforcingFlagOnShowDeicoMax();
 
         if (DEBUG) {
-            hostLog(this, "show/deico/max : setting target window bounds : " + windowBoundsToEnforce);
+            hostLog(this,
+                "show/deico/max : setting windowBoundsInOsToEnforce : "
+                    + windowBoundsInOsToEnforce);
         }
-        this.setBackingWindowBounds(windowBoundsToEnforce);
+        this.setBackingWindowBoundsInOs(windowBoundsInOsToEnforce);
     }
 
     /*
@@ -2791,8 +3142,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     }
     
     private boolean haveBoundsToEnforceOnShowDeicoDemax() {
-        return (this.clientBoundsToEnforceOnShowDeicoDemax != null)
-                || (this.windowBoundsToEnforceOnShowDeicoDemax != null);
+        return (this.clientBoundsInOsToEnforceOnShowDeicoDemax != null)
+                || (this.windowBoundsInOsToEnforceOnShowDeicoDemax != null);
     }
     
     /**
@@ -2801,39 +3152,46 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     private void clearBoundsEnforcingOnShowDeicoDemax() {
         this.clearBoundsEnforcingFlagOnShowDeicoDemax();
         
-        this.clientBoundsToEnforceOnShowDeicoDemax = null;
-        this.windowBoundsToEnforceOnShowDeicoDemax = null;
+        this.clientBoundsInOsToEnforceOnShowDeicoDemax = null;
+        this.windowBoundsInOsToEnforceOnShowDeicoDemax = null;
     }
     
-    private void setClientBoundsToEnforceOnShowDeicoDemax(GRect clientBoundsToEnforce) {
-        LangUtils.requireNonNull(clientBoundsToEnforce);
+    private void setClientBoundsInOsToEnforceOnShowDeicoDemax(
+        GRect clientBoundsInOsToEnforce) {
+        LangUtils.requireNonNull(clientBoundsInOsToEnforce);
         
         if (DEBUG) {
-            hostLog(this, "clientBoundsToEnforceOnShowDeicoDemax set to " + clientBoundsToEnforce);
+            hostLog(this,
+                "clientBoundsInOsToEnforceOnShowDeicoDemax set to "
+            + clientBoundsInOsToEnforce);
         }
-        this.clientBoundsToEnforceOnShowDeicoDemax = clientBoundsToEnforce;
-        this.windowBoundsToEnforceOnShowDeicoDemax = null;
+        this.clientBoundsInOsToEnforceOnShowDeicoDemax = clientBoundsInOsToEnforce;
+        this.windowBoundsInOsToEnforceOnShowDeicoDemax = null;
     }
     
-    private void setWindowBoundsToEnforceOnShowDeicoDemax(GRect windowBoundsToEnforce) {
-        LangUtils.requireNonNull(windowBoundsToEnforce);
+    private void setWindowBoundsInOsToEnforceOnShowDeicoDemax(
+        GRect windowBoundsInOsToEnforce) {
+        LangUtils.requireNonNull(windowBoundsInOsToEnforce);
         
         if (DEBUG) {
-            hostLog(this, "windowBoundsToEnforceOnShowDeicoDemax set to " + windowBoundsToEnforce);
+            hostLog(this,
+                "windowBoundsInOsToEnforceOnShowDeicoDemax set to "
+            + windowBoundsInOsToEnforce);
         }
-        this.clientBoundsToEnforceOnShowDeicoDemax = null;
-        this.windowBoundsToEnforceOnShowDeicoDemax = windowBoundsToEnforce;
+        this.clientBoundsInOsToEnforceOnShowDeicoDemax = null;
+        this.windowBoundsInOsToEnforceOnShowDeicoDemax = windowBoundsInOsToEnforce;
     }
     
     private void setClientBoundsToEnforceOnShowDeicoDemaxWithCurrent() {
         // NB: Could also just use backing bounds directly.
-        final GRect clientBounds = this.getBackingOrOnDragBeginClientBounds();
-        if ((!clientBounds.isEmpty())
-                && (!clientBounds.equals(this.clientBoundsToEnforceOnShowDeicoDemax))) {
+        final GRect clientBoundsInOs =
+            this.getBackingOrOnDragBeginClientBoundsInOs();
+        if ((!clientBoundsInOs.isEmpty())
+                && (!clientBoundsInOs.equals(this.clientBoundsInOsToEnforceOnShowDeicoDemax))) {
             if (DEBUG) {
-                hostLog(this, "setting clientBoundsToEnforceOnShowDeicoDemax set to current client bounds");
+                hostLog(this, "setting clientBoundsInOsToEnforceOnShowDeicoDemax set to current client bounds");
             }
-            this.setClientBoundsToEnforceOnShowDeicoDemax(clientBounds);
+            this.setClientBoundsInOsToEnforceOnShowDeicoDemax(clientBoundsInOs);
         }
     }
     
@@ -2843,24 +3201,24 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
      * @throws IllegalStateException if there are no bounds to apply.
      */
     private void applyBoundsToEnforceOnShowDeicoDemax() {
-        final GRect targetClientBounds = this.clientBoundsToEnforceOnShowDeicoDemax;
-        final GRect targetWindowBounds = this.windowBoundsToEnforceOnShowDeicoDemax;
+        final GRect targetClientBoundsInOs = this.clientBoundsInOsToEnforceOnShowDeicoDemax;
+        final GRect targetWindowBoundsInOs = this.windowBoundsInOsToEnforceOnShowDeicoDemax;
         
         this.clearBoundsEnforcingOnShowDeicoDemax();
         
         // Only supposed to have one non-null.
         // If for some reason both are non-null,
         // priority to client bounds.
-        if (targetClientBounds != null) {
+        if (targetClientBoundsInOs != null) {
             if (DEBUG) {
-                hostLog(this, "show/deico/demax : setting client bounds : " + targetClientBounds);
+                hostLog(this, "show/deico/demax : setting targetClientBoundsInOs : " + targetClientBoundsInOs);
             }
-            this.setBackingClientBounds(targetClientBounds);
-        } else if (targetWindowBounds != null) {
+            this.setBackingClientBoundsInOs(targetClientBoundsInOs);
+        } else if (targetWindowBoundsInOs != null) {
             if (DEBUG) {
-                hostLog(this, "show/deico/demax : setting window bounds : " + targetWindowBounds);
+                hostLog(this, "show/deico/demax : setting targetWindowBoundsInOs : " + targetWindowBoundsInOs);
             }
-            this.setBackingWindowBounds(targetWindowBounds);
+            this.setBackingWindowBoundsInOs(targetWindowBoundsInOs);
         } else {
             throw new IllegalStateException("no bounds to apply");
         }
@@ -2876,10 +3234,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
         return gotSome;
     }
-    
-    /*
-     * 
-     */
     
     private static GRect sanitizedTargetBounds(GRect rect) {
         
@@ -2902,35 +3256,35 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         return rect;
     }
 
-    private GRect getXxxBounds(boolean clientElseWindow) {
+    private GRect getXxxBoundsInOs(boolean clientElseWindow) {
         if (clientElseWindow) {
-            return this.getClientBounds();
+            return this.getClientBoundsInOs();
         } else {
-            return this.getWindowBounds();
+            return this.getWindowBoundsInOs();
         }
     }
 
-    private void setTargetXxxBounds(
+    private void setTargetXxxBoundsInOs(
             boolean clientElseWindow,
             //
-            GRect targetBounds) {
+            GRect targetBoundsInOs) {
         if (clientElseWindow) {
-            this.setClientBounds(targetBounds);
+            this.setClientBoundsInOs(targetBoundsInOs);
         } else {
-            this.setWindowBounds(targetBounds);
+            this.setWindowBoundsInOs(targetBoundsInOs);
         }
     }
 
-    private boolean setXxxBoundsSmart(
+    private boolean setXxxBoundsInOsSmart(
             boolean clientElseWindow,
             //
-            GRect targetBounds,
+            GRect targetBoundsInOs,
             boolean fixRight,
             boolean fixBottom,
             boolean restoreBoundsIfNotExact) {
 
         // Implicit null check.
-        targetBounds = sanitizedTargetBounds(targetBounds);
+        targetBoundsInOs = sanitizedTargetBounds(targetBoundsInOs);
 
         if (!this.isHostShowingDeicoDemax()) {
             return false;
@@ -2940,9 +3294,9 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
          * 
          */
 
-        final GRect oldBounds = this.getXxxBounds(clientElseWindow);
+        final GRect oldBoundsInOs = this.getXxxBoundsInOs(clientElseWindow);
 
-        if (oldBounds.equals(targetBounds)) {
+        if (oldBoundsInOs.equals(targetBoundsInOs)) {
             // Nothing to do.
             return false;
         }
@@ -2952,12 +3306,12 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
          * it could cause weird "quiet" behaviors, such as with AWT or Swing.
          */
         
-        this.setTargetXxxBounds(
+        this.setTargetXxxBoundsInOs(
                 clientElseWindow,
                 //
-                targetBounds);
+                targetBoundsInOs);
 
-        GRect newBounds = this.getXxxBounds(clientElseWindow);
+        GRect newBoundsInOs = this.getXxxBoundsInOs(clientElseWindow);
 
         /*
          * 
@@ -2966,22 +3320,26 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         boolean didReworkNewBounds = false;
 
         // Could as well just use >.
-        if (fixRight && (newBounds.xMax() != oldBounds.xMax())) {
+        if (fixRight && (newBoundsInOs.xMax() != oldBoundsInOs.xMax())) {
             // Assuming it would succeed.
-            newBounds = newBounds.withPosDeltas(-(newBounds.xMax() - oldBounds.xMax()), 0);
+            newBoundsInOs = newBoundsInOs.withPosDeltas(
+                -(newBoundsInOs.xMax() - oldBoundsInOs.xMax()),
+                0);
             didReworkNewBounds = true;
         }
 
         // Could as well just use >.
-        if (fixBottom && (newBounds.yMax() != oldBounds.yMax())) {
+        if (fixBottom && (newBoundsInOs.yMax() != oldBoundsInOs.yMax())) {
             // Assuming it would succeed.
-            newBounds = newBounds.withPosDeltas(0, -(newBounds.yMax() - oldBounds.yMax()));
+            newBoundsInOs = newBoundsInOs.withPosDeltas(
+                0,
+                -(newBoundsInOs.yMax() - oldBoundsInOs.yMax()));
             didReworkNewBounds = true;
         }
 
-        if (restoreBoundsIfNotExact && (!newBounds.equals(targetBounds))) {
+        if (restoreBoundsIfNotExact && (!newBoundsInOs.equals(targetBoundsInOs))) {
             // Assuming it would succeed.
-            newBounds = oldBounds;
+            newBoundsInOs = oldBoundsInOs;
             didReworkNewBounds = true;
         }
 
@@ -2989,13 +3347,13 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             if (DEBUG) {
                 Dbg.log("***************** DID REWORK NEW BOUNDS ************");
             }
-            this.setTargetXxxBounds(
+            this.setTargetXxxBoundsInOs(
                     clientElseWindow,
                     //
-                    newBounds);
+                    newBoundsInOs);
         }
 
-        return !newBounds.equals(oldBounds);
+        return !newBoundsInOs.equals(oldBoundsInOs);
     }
 
     /*
@@ -3050,16 +3408,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         return false;
     }
 
-    private void logInternalStateIfDebug() {
-        if (DEBUG) {
-            this.logInternalState();
-        }
-    }
-    
-    /*
-     * 
-     */
-
     /**
      * @return True if (nowS - timeS) < minDelayS, false otherwise.
      */
@@ -3078,10 +3426,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
         return tooEarly;
     }
-    
-    /*
-     * 
-     */
     
     /**
      * Must be called when we programmatically modify backing state.
@@ -3143,10 +3487,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
     }
     
-    /*
-     * 
-     */
-    
     private double getStateStabilityDelayToUseS(BwdEventType eventType) {
         final double ret;
         if (eventType == BwdEventType.WINDOW_HIDDEN) {
@@ -3166,7 +3506,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
     /**
      * @return Corresponding backing event name.
      */
-    private static String tben(BwdEventType eventType) {
+    private static String toBen(BwdEventType eventType) {
         String tmp = eventType.name();
         // A bit hacky, but only used for debug.
         tmp = tmp.substring("WINDOW_".length());
@@ -3200,7 +3540,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             if (this.backingStateDetectedAndNotFiredByOrdinal[oppOrd]) {
                 if (DEBUG) {
                     hostLog(this,
-                            "EVENT LOGIC : ignoring backing " + tben(eventType)
+                            "EVENT LOGIC : ignoring backing " + toBen(eventType)
                             + " : opposite state detected and not yet fired");
                 }
                 return true;
@@ -3210,7 +3550,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             if (dtS < antiFlickeringDelayS) {
                 if (DEBUG) {
                     hostLog(this,
-                            "EVENT LOGIC : ignoring backing " + tben(eventType)
+                            "EVENT LOGIC : ignoring backing " + toBen(eventType)
                             + " : opposite state detected too recently");
                 }
                 return true;
@@ -3253,7 +3593,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         if (havePendingProgMod) {
             if (DEBUG) {
                 hostLog(this,
-                        "EVENT LOGIC : using backing " + tben(eventType)
+                        "EVENT LOGIC : using backing " + toBen(eventType)
                         + " without delay : programmatic modification pending");
             }
             return false;
@@ -3262,7 +3602,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         if (justDetected) {
             if (DEBUG) {
                 hostLog(this,
-                        "EVENT LOGIC : ignoring backing " + tben(eventType)
+                        "EVENT LOGIC : ignoring backing " + toBen(eventType)
                         + " : just detected");
             }
             return true;
@@ -3275,7 +3615,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         if (dtFromDetS < stateStabilityDelayS) {
             if (DEBUG) {
                 hostLog(this,
-                        "EVENT LOGIC : ignoring backing " + tben(eventType)
+                        "EVENT LOGIC : ignoring backing " + toBen(eventType)
                         + " : detected too recently");
             }
             return true;
@@ -3288,7 +3628,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                     stateStabilityDelayS)) {
                 if (DEBUG) {
                     hostLog(this,
-                            "EVENT LOGIC : ignoring backing " + tben(eventType)
+                            "EVENT LOGIC : ignoring backing " + toBen(eventType)
                             + " : window state still unstable");
                 }
                 return true;
@@ -3317,7 +3657,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                     || this.pendingBackingStateProgModByOrdinal[BwdEventType.WINDOW_DEICONIFIED.ordinal()]) {
                 if (DEBUG) {
                     hostLog(this,
-                            "EVENT LOGIC : ignoring backing " + tben(eventType)
+                            "EVENT LOGIC : ignoring backing " + toBen(eventType)
                             + " : programmatic (de)iconification is pending.");
                 }
                 return true;
@@ -3330,7 +3670,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                 && this.pendingBackingStateProgModByOrdinal[BwdEventType.WINDOW_DEICONIFIED.ordinal()]) {
             if (DEBUG) {
                 hostLog(this,
-                        "EVENT LOGIC : ignoring backing " + tben(eventType)
+                        "EVENT LOGIC : ignoring backing " + toBen(eventType)
                         + " : programmatic deiconification is pending.");
             }
             return true;
@@ -3339,7 +3679,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                 && this.pendingBackingStateProgModByOrdinal[BwdEventType.WINDOW_ICONIFIED.ordinal()]) {
             if (DEBUG) {
                 hostLog(this,
-                        "EVENT LOGIC : ignoring backing " + tben(eventType)
+                        "EVENT LOGIC : ignoring backing " + toBen(eventType)
                         + " : programmatic iconification is pending.");
             }
             return true;
@@ -3347,11 +3687,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
 
         return false;
     }
-
-    /*
-     * 
-     */
-
+    
     private void eventuallyRestoreClientMaxStateIntoHost(double nowS) {
         if (!this.mustTryToRestoreClientMaxStateIntoHost) {
             return;
@@ -3414,10 +3750,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             this.demaximize();
         }
     }
-
-    /*
-     * 
-     */
     
     private void eventuallyEndDrag() {
         if (this.isDragPressDetected()) {
@@ -3429,10 +3761,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
             }
         }
     }
-
-    /*
-     * 
-     */
     
     private void eventuallySetOrUseTargetDemaxBoundsIfAny(double nowS) {
         final boolean boundsEnforcingOnShowDeicoDemaxPending =
@@ -3491,10 +3819,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
     }
     
-    /*
-     * 
-     */
-    
     private void eventuallyUseTargetMaxBoundsIfPending(double nowS) {
         if (!this.isBoundsEnforcingOnShowDeicoMaxPending) {
             return;
@@ -3512,14 +3836,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
         
         // Using fresh screen bounds.
-        final GRect windowBoundsToEnforce = getBinding().getScreenBounds();
+        final GRect windowBoundsInOsToEnforce =
+            getBinding().getScreenBoundsInOs();
         
-        this.applyWindowBoundsToEnforceOnShowDeicoMax(windowBoundsToEnforce);
+        this.applyWindowBoundsInOsToEnforceOnShowDeicoMax(windowBoundsInOsToEnforce);
     }
-    
-    /*
-     * 
-     */
     
     private void setNewestPossibleUnstabilityTime() {
         final double nowS = this.getUiThreadSchedulerClock().getTimeS();
@@ -3536,10 +3857,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         }
     }
     
-    /*
-     * 
-     */
-
     /**
      * Also sets newest possible unstability time,
      * to factor clock call.
@@ -3601,7 +3918,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
          * methods in our UI thread schedulers, we often are about 10ms late,
          * which is our default theoretical period.
          */
-        final double oneTenthOfStabDelayS = (1.0/10) * this.getBindingConfig().getBackingWindowStateStabilityDelayS();
+        final double oneTenthOfStabDelayS =
+            (1.0/10) * this.getBindingConfig().getBackingWindowStateStabilityDelayS();
         final double latenessThresholdS = theoreticalDtS + oneTenthOfStabDelayS;
         if (latenessS > latenessThresholdS) {
             /*
@@ -3663,10 +3981,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
         this.eventuallyUseTargetMaxBoundsIfPending(nowS);
     }
     
-    /*
-     * 
-     */
-
     /**
      * Must set mustRunWindowEventLogicAgain to true if fires an event,
      * to false otherwise, which allows to be robust to client listener
@@ -3940,7 +4254,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHost, InterfaceBack
                 if (backingFocused != this.clientWrapper.isFocused()) {
                     if (backingFocused) {
                         {
-                            final InterfaceBwdHost hostOfFocusedClient = this.hostOfFocusedClientHolder.getHostOfFocusedClient();
+                            final InterfaceBwdHost hostOfFocusedClient =
+                                this.hostOfFocusedClientHolder.getHostOfFocusedClient();
                             if ((hostOfFocusedClient != null)
                                     && (hostOfFocusedClient != this)) {
                                 if (DEBUG) {

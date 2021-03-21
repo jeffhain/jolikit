@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,8 @@ import net.jolikit.lang.LangUtils;
  * Methods default implementations delegate to each other,
  * for easier implementations when it's the only way to compute
  * the requested values.
+ * 
+ * Only deals with coordinates in OS pixels (no scaling).
  */
 public abstract class AbstractHostBoundsHelper {
     
@@ -51,7 +53,8 @@ public abstract class AbstractHostBoundsHelper {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public AbstractHostBoundsHelper(InterfaceBackingWindowHolder holder) {
+    public AbstractHostBoundsHelper(
+        InterfaceBackingWindowHolder holder) {
         this.holder = LangUtils.requireNonNull(holder);
     }
     
@@ -61,90 +64,29 @@ public abstract class AbstractHostBoundsHelper {
     
     /**
      * @return A rectangle with (left,top,right,bottom) spans of
-     *         window border, or GRect.DEFAULT_EMPTY
+     *         window border, in OS pixels, or GRect.DEFAULT_EMPTY
      *         if holder says backing window is closed.
      */
-    public final GRect getInsets() {
-        final GRect insets;
-        
+    public final GRect getInsetsInOs() {
         if (DEBUG_GET) {
-            logWithHostPrefix("getInsets()");
+            logWithHostPrefix("getInsetsInOs()");
         }
         
+        final GRect ret;
         if (this.holder.isClosed_nonVolatile()) {
             if (DEBUG) {
-                logWithHostPrefix("getInsets() : closed : ignoring");
+                logWithHostPrefix("getInsetsInOs() : closed : ignoring");
             }
-            insets = GRect.DEFAULT_EMPTY;
-        } else if (!this.holder.isDecorated()) {
-            insets = this.getInsetsUndecorated_raw();
+            ret = GRect.DEFAULT_EMPTY;
         } else {
-            insets = this.getInsetsDecorated_raw();
+            ret = this.getInsets_rawInOs();
         }
         
         if (DEBUG_GET) {
-            logWithHostPrefix("getInsets() : insets = " + insets);
+            logWithHostPrefix("getInsetsInOs() : insetsInOs = " + ret);
         }
         
-        return insets;
-    }
-
-    /*
-     * 
-     */
-
-    /**
-     * @return Client bounds in screen, or GRect.DEFAULT_EMPTY
-     *         if holder says backing window is closed.
-     */
-    public final GRect getClientBounds() {
-        
-        if (DEBUG_GET) {
-            logWithHostPrefix("getClientBounds()");
-        }
-        
-        final GRect clientBounds;
-        if (this.holder.isClosed_nonVolatile()) {
-            if (DEBUG) {
-                logWithHostPrefix("getClientBounds() : closed : ignoring");
-            }
-            clientBounds = GRect.DEFAULT_EMPTY;
-        } else {
-            clientBounds = this.getClientBounds_raw();
-        }
-        
-        if (DEBUG_GET) {
-            logWithHostPrefix("getClientBounds() : clientBounds = " + clientBounds);
-        }
-        
-        return clientBounds;
-    }
-    
-    /**
-     * @return Window bounds in screen, or GRect.DEFAULT_EMPTY
-     *         if holder says backing window is closed.
-     */
-    public final GRect getWindowBounds() {
-        
-        if (DEBUG_GET) {
-            logWithHostPrefix("getWindowBounds()");
-        }
-        
-        final GRect windowBounds;
-        if (this.holder.isClosed_nonVolatile()) {
-            if (DEBUG) {
-                logWithHostPrefix("getWindowBounds() : closed : ignoring");
-            }
-            windowBounds = GRect.DEFAULT_EMPTY;
-        } else {
-            windowBounds = this.getWindowBounds_raw();
-        }
-        
-        if (DEBUG_GET) {
-            logWithHostPrefix("getWindowBounds() : windowBounds = " + windowBounds);
-        }
-        
-        return windowBounds;
+        return ret;
     }
 
     /*
@@ -152,42 +94,98 @@ public abstract class AbstractHostBoundsHelper {
      */
     
     /**
-     * Does nothing if holder says backing window is closed.
-     * 
-     * @param Target client bounds in screen.
+     * @return Client bounds in screen, in OS pixels,
+     *         or GRect.DEFAULT_EMPTY if holder says that
+     *         backing window is closed.
      */
-    public final void setClientBounds(GRect targetClientBounds) {
+    public final GRect getClientBoundsInOs() {
+        if (DEBUG_GET) {
+            logWithHostPrefix("getClientBoundsOs()");
+        }
         
+        final GRect ret;
+        if (this.holder.isClosed_nonVolatile()) {
+            if (DEBUG) {
+                logWithHostPrefix("getClientBoundsOs() : closed : ignoring");
+            }
+            ret = GRect.DEFAULT_EMPTY;
+        } else {
+            ret = this.getClientBounds_rawInOs();
+        }
+        
+        if (DEBUG_GET) {
+            logWithHostPrefix("getClientBoundsOs() : clientBoundsInOs = " + ret);
+        }
+        
+        return ret;
+    }
+    
+    /**
+     * @return Window bounds in screen, in OS pixels,
+     *         or GRect.DEFAULT_EMPTY if holder says that
+     *         backing window is closed.
+     */
+    public final GRect getWindowBoundsInOs() {
+        if (DEBUG_GET) {
+            logWithHostPrefix("getWindowBoundsInOs()");
+        }
+        
+        final GRect ret;
+        if (this.holder.isClosed_nonVolatile()) {
+            if (DEBUG) {
+                logWithHostPrefix("getWindowBoundsInOs() : closed : ignoring");
+            }
+            ret = GRect.DEFAULT_EMPTY;
+        } else {
+            ret = this.getWindowBounds_rawInOs();
+        }
+        
+        if (DEBUG_GET) {
+            logWithHostPrefix("getWindowBoundsInOs() : windowBoundsInOs = " + ret);
+        }
+        
+        return ret;
+    }
+
+    /*
+     * 
+     */
+    
+    /**
+     * Does nothing if holder says that backing window is closed.
+     * 
+     * @param Target client bounds in screen, in OS pixels.
+     */
+    public final void setClientBoundsInOs(GRect targetClientBoundsInOs) {
         if (DEBUG) {
-            logWithHostPrefix("setClientBounds(" + targetClientBounds + ")", new RuntimeException("for stack"));
+            logWithHostPrefix("setClientBoundsInOs(" + targetClientBoundsInOs + ")", new RuntimeException("for stack"));
         }
         
         if (this.holder.isClosed_nonVolatile()) {
             if (DEBUG) {
-                logWithHostPrefix("setClientBounds() : closed : ignoring");
+                logWithHostPrefix("setClientBoundsInOs() : closed : ignoring");
             }
         } else {
-            this.setClientBounds_raw(targetClientBounds);
+            this.setClientBounds_rawInOs(targetClientBoundsInOs);
         }
     }
     
     /**
-     * Does nothing if holder says backing window is closed.
+     * Does nothing if holder says that backing window is closed.
      * 
-     * @param Target window bounds in screen.
+     * @param Target window bounds in screen, in OS pixels.
      */
-    public final void setWindowBounds(GRect targetWindowBounds) {
-        
+    public final void setWindowBoundsInOs(GRect targetWindowBoundsInOs) {
         if (DEBUG) {
-            logWithHostPrefix("setWindowBounds(" + targetWindowBounds + ")", new RuntimeException("for stack"));
+            logWithHostPrefix("setWindowBoundsInOs(" + targetWindowBoundsInOs + ")", new RuntimeException("for stack"));
         }
         
         if (this.holder.isClosed_nonVolatile()) {
             if (DEBUG) {
-                logWithHostPrefix("setWindowBounds() : closed : ignoring");
+                logWithHostPrefix("setWindowBoundsInOs() : closed : ignoring");
             }
         } else {
-            this.setWindowBounds_raw(targetWindowBounds);
+            this.setWindowBounds_rawInOs(targetWindowBoundsInOs);
         }
     }
 
@@ -198,7 +196,7 @@ public abstract class AbstractHostBoundsHelper {
     protected InterfaceBackingWindowHolder getHolder() {
         return this.holder;
     }
-
+    
     /**
      * Requires this class DEBUG to be true to work
      * (to make sure this class doesn't depend on Dbg when it's false).
@@ -227,37 +225,37 @@ public abstract class AbstractHostBoundsHelper {
      * This default implementation returns GRect.DEFAULT_EMPTY.
      * 
      * @return A rectangle with (left,top,right,bottom) spans of
-     *         undecorated border if any, else (0,0,0,0).
+     *         undecorated border if any, in OS pixels, else (0,0,0,0).
      */
-    protected GRect getInsetsUndecorated_raw() {
+    protected GRect getInsetsUndecorated_rawInOs() {
         return GRect.DEFAULT_EMPTY;
     }
     
     /**
-     * Only called if not closed and decorated.
+     * Only called if decorated and not closed.
      * 
      * Default implementation uses window and client bounds.
      * 
      * @return A rectangle with (left,top,right,bottom) spans of
-     *         decoration border.
+     *         decoration border, in OS pixels.
      */
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         return BindingCoordsUtils.computeInsets(
-                this.getClientBounds_raw(),
-                this.getWindowBounds_raw());
+                this.getClientBounds_rawInOs(),
+                this.getWindowBounds_rawInOs());
     }
-
+    
     /**
      * Only called if not closed.
      */
-    protected final GRect getInsets_raw() {
-        final GRect insets;
+    protected final GRect getInsets_rawInOs() {
+        final GRect ret;
         if (!this.holder.isDecorated()) {
-            insets = this.getInsetsUndecorated_raw();
+            ret = this.getInsetsUndecorated_rawInOs();
         } else {
-            insets = this.getInsetsDecorated_raw();
+            ret = this.getInsetsDecorated_rawInOs();
         }
-        return insets;
+        return ret;
     }
     
     /*
@@ -267,29 +265,29 @@ public abstract class AbstractHostBoundsHelper {
     /**
      * Only called if not closed.
      * 
-     * Default implementation uses border rect and window bounds.
+     * Default implementation uses insets and window bounds.
      * 
-     * @return Client bounds in screen.
+     * @return Client bounds in screen, in OS pixels.
      */
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
         return BindingCoordsUtils.computeClientBounds(
-                this.getInsets_raw(),
-                this.getWindowBounds_raw());
+            this.getInsets_rawInOs(),
+            this.getWindowBounds_rawInOs());
     }
     
     /**
      * Only called if not closed.
      * 
-     * Default implementation uses border rect and client bounds.
+     * Default implementation uses insets and client bounds.
      * 
-     * @return Window bounds in screen.
+     * @return Window bounds in screen, in OS pixels.
      */
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         return BindingCoordsUtils.computeWindowBounds(
-                this.getInsets_raw(),
-                this.getClientBounds_raw());
+            this.getInsets_rawInOs(),
+            this.getClientBounds_rawInOs());
     }
-
+    
     /*
      * 
      */
@@ -297,30 +295,30 @@ public abstract class AbstractHostBoundsHelper {
     /**
      * Only called if not closed.
      * 
-     * Default implementation uses border rect and window bounds.
+     * Default implementation uses insets and window bounds.
      * 
-     * @param Target client bounds in screen.
+     * @param Target client bounds in screen, in OS pixels.
      */
-    protected void setClientBounds_raw(GRect targetClientBounds) {
-        final GRect targetWindowBounds =
+    protected void setClientBounds_rawInOs(GRect targetClientBoundsInOs) {
+        final GRect targetWindowBoundsInOs =
                 BindingCoordsUtils.computeWindowBounds(
-                        this.getInsets_raw(),
-                        targetClientBounds);
-        this.setWindowBounds_raw(targetWindowBounds);
+                        this.getInsets_rawInOs(),
+                        targetClientBoundsInOs);
+        this.setWindowBounds_rawInOs(targetWindowBoundsInOs);
     }
     
     /**
      * Only called if not closed.
      * 
-     * Default implementation uses border rect and client bounds.
+     * Default implementation uses insets and client bounds.
      * 
-     * @param Target window bounds in screen.
+     * @param Target window bounds in screen, in OS pixels.
      */
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
-        final GRect targetClientBounds =
+    protected void setWindowBounds_rawInOs(GRect targetWindowBoundsInOs) {
+        final GRect targetClientBoundsInOs =
                 BindingCoordsUtils.computeClientBounds(
-                        this.getInsets_raw(),
-                        targetWindowBounds);
-        this.setClientBounds_raw(targetClientBounds);
+                        this.getInsets_rawInOs(),
+                        targetWindowBoundsInOs);
+        this.setClientBounds_rawInOs(targetClientBoundsInOs);
     }
 }

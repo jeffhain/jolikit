@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,10 +41,12 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 
 public class JfxBwdHost extends AbstractBwdHost {
@@ -109,6 +111,22 @@ public class JfxBwdHost extends AbstractBwdHost {
 
     private static final boolean ALLOW_OB_SHRINKING = true;
     
+    /*
+     * In case of scaling, we want to use a canvas in binding coordinates,
+     * and not regular client canvas with a scale for transform, because:
+     * - For direct drawing on client graphics, it would sometimes be
+     *   OS-pixel precise, but for that user can just keep a scale of 1.
+     * - It wouldn't help much with performances
+     *   (graphics canvas is dimensions still correspond to scale of 1).
+     * - It would cause inconsistencies between redefined
+     *   drawing treatments, which pixels appear enlarged,
+     *   and drawing treatments delegated to the backing library
+     *   (font rendering, image drawing, etc.)
+     * - It would be inconsistent with what happens with writable images,
+     *   which are fully defined in binding graphics.
+     */
+    private static final boolean MUST_DRAW_ON_A_CANVAS_IN_BD = true;
+
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -417,7 +435,14 @@ public class JfxBwdHost extends AbstractBwdHost {
             new JfxGraphicBuffer(
                     MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                     ALLOW_OB_SHRINKING);
-
+    
+    /*
+     * 
+     */
+    
+    private boolean currentPainting_mustUseIntArrG;
+    private Canvas currentPainting_graphicsCanvas;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -631,6 +656,11 @@ public class JfxBwdHost extends AbstractBwdHost {
      */
     
     @Override
+    public JfxBwdBindingConfig getBindingConfig() {
+        return (JfxBwdBindingConfig) super.getBindingConfig();
+    }
+
+    @Override
     public AbstractJfxBwdBinding getBinding() {
         return (AbstractJfxBwdBinding) super.getBinding();
     }
@@ -704,84 +734,9 @@ public class JfxBwdHost extends AbstractBwdHost {
 
     @Override
     protected void paintClientNowOrLater() {
-        final GraphicsContext gc = this.canvas.getGraphicsContext2D();
-        
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        // Must be done before bounds retrieval, since might modify them.
-        client.processEventualBufferedEvents();
-        
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-        
-        final GRect clientBounds = this.hostBoundsHelper.getClientBounds();
-        final int width = clientBounds.xSpan();
-        final int height = clientBounds.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
-        
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-        
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-
-        final JfxBwdBindingConfig bindingConfig = this.getBinding().getBindingConfig();
-        final boolean mustUseIntArrayGraphics =
-                bindingConfig.getMustUseIntArrayGraphicsForClients();
-        
-        final InterfaceBwdGraphics g;
-        if (mustUseIntArrayGraphics) {
-            this.offscreenIntArrayBuffer.setSize(width, height);
-            final int[] pixelArr = this.offscreenIntArrayBuffer.getPixelArr();
-            final int pixelArrScanlineStride = this.offscreenIntArrayBuffer.getScanlineStride();
-            g = new JfxBwdGraphicsWithIntArr(
-                    this.getBinding(),
-                    isImageGraphics,
-                    box,
-                    pixelArr,
-                    pixelArrScanlineStride);
-        } else {
-            g = new JfxBwdGraphicsWithGc(
-                    this.getBinding(),
-                    gc,
-                    isImageGraphics,
-                    box,
-                    //
-                    this.dirtySnapshotHelper);
-        }
-
-        // No use for this list.
-        @SuppressWarnings("unused")
-        final List<GRect> paintedRectList =
-                this.getPaintClientHelper().initPaintFinish(
-                        g,
-                        dirtyRect);
-        
-        if (mustUseIntArrayGraphics) {
-            this.offscreenBackingWiBuffer.setSize(width, height);
-            final WritableImage offscreenImage = this.offscreenBackingWiBuffer.getImage();
-            /*
-             * Copying pixels from int array into JavaFX writable image.
-             */
-            offscreenImage.getPixelWriter().setPixels(
-                    0, 0, width, height,
-                    PixelFormat.getIntArgbPreInstance(),
-                    this.offscreenIntArrayBuffer.getPixelArr(),
-                    0,
-                    this.offscreenIntArrayBuffer.getScanlineStride());
-            /*
-             * Drawing JavaFX writable image.
-             * No need to offset : x/yShiftInUser are 0.5 when rotation is 0,
-             * but then for images destination box we remove 0.5,
-             * which makes for zero offsets.
-             */
-            gc.drawImage(
-                    offscreenImage,
-                    0.0, 0.0, width, height,
-                    0.0, 0.0, width, height);
-        }
+        this.paintBwdClientNowAndBackingClient(
+            getBindingConfig(),
+            this.hostBoundsHelper);
     }
 
     @Override
@@ -926,28 +881,28 @@ public class JfxBwdHost extends AbstractBwdHost {
      */
     
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
     
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
 
     /*
@@ -958,5 +913,152 @@ public class JfxBwdHost extends AbstractBwdHost {
     protected void closeBackingWindow() {
         // Same as Stage.hide(), but more consistent to use close() here.
         this.window.close();
+    }
+    
+    /*
+     * Painting.
+     */
+    
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        final boolean mustUseIntArrayGraphics =
+            getBindingConfig().getMustUseIntArrayGraphicsForClients();
+        this.currentPainting_mustUseIntArrG = mustUseIntArrayGraphics;
+        
+        final int scale = getScaleHelper().getScale();
+        
+        final InterfaceBwdGraphics gForBorder;
+        if (mustUseIntArrayGraphics) {
+            this.currentPainting_graphicsCanvas = null;
+            this.offscreenIntArrayBuffer.setSize(
+                boxWithBorder.xSpan(),
+                boxWithBorder.ySpan());
+            final int[] pixelArr =
+                this.offscreenIntArrayBuffer.getPixelArr();
+            final int pixelArrScanlineStride =
+                this.offscreenIntArrayBuffer.getScanlineStride();
+            gForBorder = new JfxBwdGraphicsWithIntArr(
+                this.getBinding(),
+                boxWithBorder,
+                isImageGraphics,
+                pixelArr,
+                pixelArrScanlineStride);
+        } else {
+            final int graphicsGcScale;
+            if (MUST_DRAW_ON_A_CANVAS_IN_BD
+                && (scale != 1)) {
+                /*
+                 * Painting at scale 1 on a smaller and offscreen canvas,
+                 * and then will do a scaled copy of it into displayed canvas.
+                 */
+                this.currentPainting_graphicsCanvas = new Canvas(
+                    boxWithBorder.xSpan(),
+                    boxWithBorder.ySpan());
+                graphicsGcScale = 1;
+            } else {
+                /*
+                 * Directly painting at target scale.
+                 */
+                this.currentPainting_graphicsCanvas = this.canvas;
+                graphicsGcScale = scale;
+            }
+            gForBorder = new JfxBwdGraphicsWithGc(
+                this.getBinding(),
+                boxWithBorder,
+                //
+                isImageGraphics,
+                this.currentPainting_graphicsCanvas.getGraphicsContext2D(),
+                graphicsGcScale,
+                this.dirtySnapshotHelper);
+        }
+        return gForBorder;
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final GraphicsContext gc = this.canvas.getGraphicsContext2D();
+        
+        final int bufferXSpanInOs =
+            scaleHelper.spanBdToOs(
+                bufferSpansInBd.x());
+        final int bufferYSpanInOs =
+            scaleHelper.spanBdToOs(
+                bufferSpansInBd.y());
+        
+        if (this.currentPainting_mustUseIntArrG) {
+            this.offscreenBackingWiBuffer.setSize(
+                bufferSpansInBd.x(),
+                bufferSpansInBd.y());
+            final WritableImage offscreenImage =
+                this.offscreenBackingWiBuffer.getImage();
+            /*
+             * Copying pixels from int array into JavaFX writable image.
+             */
+            offscreenImage.getPixelWriter().setPixels(
+                0,
+                0,
+                bufferSpansInBd.x(),
+                bufferSpansInBd.y(),
+                PixelFormat.getIntArgbPreInstance(),
+                this.offscreenIntArrayBuffer.getPixelArr(),
+                0,
+                this.offscreenIntArrayBuffer.getScanlineStride());
+            
+            /*
+             * Drawing JavaFX writable image.
+             */
+            gc.drawImage(
+                offscreenImage,
+                //
+                0.0,
+                0.0,
+                bufferSpansInBd.x(),
+                bufferSpansInBd.y(),
+                //
+                bufferPosInCliInOs.x(),
+                bufferPosInCliInOs.y(),
+                bufferXSpanInOs,
+                bufferYSpanInOs);
+        } else {
+            /*
+             * TODO jfx: Might want to reimplement JavaFX images scaled drawing,
+             * because JavaFX doesn't preserve pixels sharpness,
+             * and makes things blurry.
+             * Before we had binding-wise scaling it only occurred for
+             * scaled images drawing, but here the blurriness applies
+             * the whole client area whenever we have scaling.
+             */
+            if (this.currentPainting_graphicsCanvas != this.canvas) {
+                final WritableImage graphicsImage =
+                    JfxSnapshotHelper.takeSnapshot(
+                        this.currentPainting_graphicsCanvas);
+                
+                gc.drawImage(
+                    graphicsImage,
+                    //
+                    0,
+                    0,
+                    bufferSpansInBd.x(),
+                    bufferSpansInBd.y(),
+                    //
+                    bufferPosInCliInOs.x(),
+                    bufferPosInCliInOs.y(),
+                    bufferXSpanInOs,
+                    bufferYSpanInOs);
+            }
+        }
     }
 }

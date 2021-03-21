@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,6 +32,12 @@ import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
 
+/**
+ * TODO jfx On Windows, use "-Dglass.win.uiScale=1.00" JVM option,
+ * to avoid eventual Windows "scaling" to have an (unnatural)
+ * squared-scaling effect
+ * (cf. http://mail.openjdk.java.net/pipermail/openjfx-dev/2015-June/017337.html).
+ */
 public class JfxBwdBinding extends AbstractJfxBwdBinding {
 
     /*
@@ -183,40 +189,6 @@ java.lang.NullPointerException
     }
 
     /*
-     * Graphics.
-     */
-    
-    @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
-        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
-            return JfxUtils.toGRect(Screen.getPrimary().getBounds());
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
-            return JfxUtils.toGRect(Screen.getPrimary().getVisualBounds());
-            
-        } else {
-            throw new IllegalArgumentException("" + screenBoundsType);
-        }
-    }
-    
-    /*
-     * Mouse info.
-     */
-    
-    @Override
-    public GPoint getMousePosInScreen() {
-        /*
-         * TODO jfx No public API for it, so we do best effort.
-         */
-        return this.getEventsConverterCommonState().getMousePosInScreen();
-    }
-
-    /*
      * Fonts.
      */
     
@@ -228,6 +200,45 @@ java.lang.NullPointerException
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
+        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
+            ret = JfxUtils.toGRect(Screen.getPrimary().getBounds());
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
+            ret = JfxUtils.toGRect(Screen.getPrimary().getVisualBounds());
+            
+        } else {
+            throw new IllegalArgumentException("" + screenBoundsType);
+        }
+        return ret;
+    }
+    
+    /*
+     * Mouse info.
+     */
+    
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        /*
+         * TODO jfx No public API for it, so we do best effort.
+         */
+        return this.getEventsConverterCommonState().getMousePosInScreenInOs();
+    }
     
     /*
      * Images.

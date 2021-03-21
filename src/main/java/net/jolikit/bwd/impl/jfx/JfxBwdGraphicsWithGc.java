@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -42,6 +43,8 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
+import net.jolikit.lang.ObjectWrapper;
 import net.jolikit.lang.RethrowException;
 
 /**
@@ -171,6 +174,49 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         }
     }
     
+    /**
+     * Resources shared between a root graphics and all its descendants.
+     */
+    private static class MyShared {
+        final GraphicsContext gc;
+        private int graphicsCount = 0;
+        private boolean initialStateStored = false;
+        private int finishCount = 0;
+        public MyShared(GraphicsContext gc) {
+            this.gc = gc;
+        }
+        public void onGraphicsCreation() {
+            this.graphicsCount++;
+        }
+        public void onGraphicsInit() {
+            if (!this.initialStateStored) {
+                /*
+                 * Saving state prior to clip and transform setting.
+                 * We revert back to this state in case of clip change
+                 * (and in case of transform change also since we use
+                 * transformed clip), and then re-apply transform and
+                 * apply new transform clip, because there seem to be
+                 * no other way to replace clipping (like a clearClip()
+                 * method).
+                 */
+                this.gc.save();
+                this.initialStateStored = true;
+            }
+        }
+        public void onGraphicsFinish() {
+            this.finishCount++;
+            final boolean isLastFinish =
+                (this.finishCount == this.graphicsCount);
+            if (isLastFinish) {
+                /*
+                 * Popping state, else memory leak in the backing graphics
+                 * (and also restoring before-init state as a side effect).
+                 */
+                this.gc.restore();
+            }
+        }
+    }
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -199,8 +245,24 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     private final boolean isImageGraphics;
     
-    private final GraphicsContext gc;
+    private final MyShared shared;
     
+    /**
+     * For a same graphics instance, not allowing it to change.
+     */
+    private final int gcScale;
+    
+    /**
+     * Since multiple graphics are allowed to be in use at once
+     * (as long as used from UI thread), that means that we must keep track
+     * of which graphic is "active" (being used), and configure the gc
+     * appropriately on the fly.
+     * 
+     * This reference holds the currently "active" (last used) graphics,
+     * among root graphics and its descendants.
+     */
+    private final ObjectWrapper<JfxBwdGraphicsWithGc> gcGraphicsRef;
+
     /*
      * 
      */
@@ -230,22 +292,28 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     /**
      * Constructor for root graphics.
      * 
+     * @param gcScale Scale used for transforms and clips
+     *        set into the backing graphics.
      * @param dirtySnapshotHelper Must not be null.
      */
     public JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
-            GraphicsContext gc,
-            boolean isImageGraphics,
             GRect box,
             //
+            boolean isImageGraphics,
+            GraphicsContext gc,
+            int gcScale,
             JfxDirtySnapshotHelper dirtySnapshotHelper) {
         this(
                 binding,
-                gc,
-                isImageGraphics,
+                topLeftOf(box),
                 box,
                 box, // initialClip
                 //
+                isImageGraphics,
+                new MyShared(gc),
+                gcScale,
+                new ObjectWrapper<JfxBwdGraphicsWithGc>(),
                 dirtySnapshotHelper);
     }
 
@@ -256,7 +324,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      * @return The backing GraphicsContext.
      */
     public GraphicsContext getBackingGraphics() {
-        return this.gc;
+        return this.shared.gc;
     }
 
     /*
@@ -282,11 +350,14 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         
         return new JfxBwdGraphicsWithGc(
                 this.getBinding(),
-                this.gc,
-                this.isImageGraphics,
+                this.getRootBoxTopLeft(),
                 childBox,
                 childInitialClip,
                 //
+                this.isImageGraphics,
+                this.shared,
+                this.gcScale,
+                this.gcGraphicsRef,
                 this.dirtySnapshotHelper);
     }
     
@@ -307,6 +378,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         /*
          * Implicit dirtySnapshotHelper calls.
          * 
@@ -315,7 +388,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
          * opaque clearing method.
          */
 
-        final Color backingColor = (Color) this.gc.getStroke();
+        final Color backingColor = (Color) gc.getStroke();
 
         Color backingColorOpaque = this.backingColorOpaque;
         if (backingColorOpaque == null) {
@@ -328,11 +401,11 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             this.backingColorOpaque = backingColorOpaque;
         }
 
-        this.gc.setFill(backingColorOpaque);
+        gc.setFill(backingColorOpaque);
         try {
             this.fillRect(x, y, xSpan, ySpan);
         } finally {
-            this.gc.setFill(backingColor);
+            gc.setFill(backingColor);
         }
     }
     
@@ -395,13 +468,16 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     @Override
     public void drawOval(int x, int y, int xSpan, int ySpan) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             
             if ((xSpan > 0) && (ySpan > 0)) {
                 final double _x = x + this.xShiftInUser;
                 final double _y = y + this.yShiftInUser;
-                this.gc.strokeOval(_x, _y, xSpan - 1, ySpan - 1);
+                gc.strokeOval(_x, _y, xSpan - 1, ySpan - 1);
             }
         } else {
             super.drawOval(x, y, xSpan, ySpan);
@@ -412,6 +488,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     @Override
     public void fillOval(int x, int y, int xSpan, int ySpan) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             
@@ -419,7 +498,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 // Need -H rework, because we want to end up at pixels limits.
                 final double _x = x + this.xShiftInUser - H;
                 final double _y = y + this.yShiftInUser - H;
-                this.gc.fillOval(_x, _y, xSpan, ySpan);
+                gc.fillOval(_x, _y, xSpan, ySpan);
             }
         } else {
             super.fillOval(x, y, xSpan, ySpan);
@@ -436,6 +515,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void drawArc(
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             GprimUtils.checkArcAngles(startDeg, spanDeg);
@@ -443,7 +525,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             if ((xSpan > 0) && (ySpan > 0)) {
                 final double _x = x + this.xShiftInUser;
                 final double _y = y + this.yShiftInUser;
-                this.gc.strokeArc(
+                gc.strokeArc(
                         _x, _y, xSpan - 1, ySpan - 1,
                         startDeg, spanDeg,
                         ArcType.OPEN);
@@ -461,6 +543,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void fillArc(
             int x, int y, int xSpan, int ySpan,
             double startDeg, double spanDeg) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             GprimUtils.checkArcAngles(startDeg, spanDeg);
@@ -469,7 +554,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 // Need -H rework, because we want to end up at pixels limits.
                 final double _x = x + this.xShiftInUser - H;
                 final double _y = y + this.yShiftInUser - H;
-                this.gc.fillArc(
+                gc.fillArc(
                         _x, _y, xSpan, ySpan,
                         startDeg, spanDeg,
                         ArcType.ROUND);
@@ -492,6 +577,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             int[] xArr,
             int[] yArr,
             int pointCount) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
@@ -503,7 +591,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                     xdArr[i] = xArr[i] + this.xShiftInUser;
                     ydArr[i] = yArr[i] + this.yShiftInUser;
                 }
-                this.gc.strokePolyline(xdArr, ydArr, pointCount);
+                gc.strokePolyline(xdArr, ydArr, pointCount);
             }
         } else {
             super.drawPolyline(xArr, yArr, pointCount);
@@ -520,6 +608,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             int[] xArr,
             int[] yArr,
             int pointCount) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
@@ -531,7 +622,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                     xdArr[i] = xArr[i] + this.xShiftInUser;
                     ydArr[i] = yArr[i] + this.yShiftInUser;
                 }
-                this.gc.strokePolygon(xdArr, ydArr, pointCount);
+                gc.strokePolygon(xdArr, ydArr, pointCount);
             }
         } else {
             super.drawPolygon(xArr, yArr, pointCount);
@@ -548,6 +639,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             int[] xArr,
             int[] yArr,
             int pointCount) {
+        
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         if (MUST_USE_BACKING_GRAPHICS_METHODS) {
             this.checkUsable();
             GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
@@ -559,7 +653,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                     xdArr[i] = xArr[i] + this.xShiftInUser;
                     ydArr[i] = yArr[i] + this.yShiftInUser;
                 }
-                this.gc.fillPolygon(xdArr, ydArr, pointCount);
+                gc.fillPolygon(xdArr, ydArr, pointCount);
             }
         } else {
             super.fillPolygon(xArr, yArr, pointCount);
@@ -587,11 +681,13 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             throw new IllegalStateException("font is disposed: " + font);
         }
         
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         final double _x = x + this.xShiftInUser;
         final double _y = y + this.yShiftInUser;
         final GRotation rotation = this.getTransform().rotation();
         final InterfaceBwdFontMetrics fontMetrics = font.metrics();
-        drawText_raw_shifted(this.gc, _x, _y, text, rotation, fontMetrics);
+        drawText_raw_shifted(gc, _x, _y, text, rotation, fontMetrics);
         
         this.dirtySnapshotHelper.onTextDrawing(this.getTransform(), x, y, text, font);
     }
@@ -614,16 +710,18 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
          * but using blend mode is simpler and works fine.
          */
         
-        final Color c = (Color) this.gc.getStroke();
+        final GraphicsContext gc = this.getConfiguredGc();
+        
+        final Color c = (Color) gc.getStroke();
         
         final Color xorColor = Color.WHITE;
-        this.gc.setFill(xorColor);
-        this.gc.setGlobalBlendMode(BlendMode.DIFFERENCE);
+        gc.setFill(xorColor);
+        gc.setGlobalBlendMode(BlendMode.DIFFERENCE);
         try {
             this.fillRect(x, y, xSpan, ySpan);
         } finally {
-            this.gc.setFill(c);
-            this.gc.setGlobalBlendMode(BlendMode.SRC_OVER);
+            gc.setFill(c);
+            gc.setGlobalBlendMode(BlendMode.SRC_OVER);
         }
         
         this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
@@ -664,35 +762,20 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     @Override
     protected void initImpl() {
         if (DEBUG) {
-            printClipStack(this.gc, "before initImpl()");
+            printClipStack(this.shared.gc, "before initImpl()");
         }
 
-        /*
-         * Saving state prior to clip and transform setting.
-         * We revert back to this state in case of clip change
-         * (and in case of transform change also since we use
-         * transformed clip), and then re-apply transform and
-         * apply new transform clip, because there seem to be
-         * no other way to replace clipping (like a clearClip()
-         * method).
-         * Must be done before super.initImpl(), for it calls
-         * setBackingClip(...) and setBackingTransform(...),
-         * which require first save to be done already.
-         */
-        
-        this.gc.save();
+        this.shared.onGraphicsInit();
         
         super.initImpl();
     }
     
     @Override
     protected void finishImpl() {
-        // Popping state, else memory leak in the backing graphics
-        // (and also restoring before-init state as a side effect).
-        this.gc.restore();
+        this.shared.onGraphicsFinish();
         
         if (DEBUG) {
-            printClipStack(this.gc, "after finishImpl()");
+            printClipStack(this.shared.gc, "after finishImpl()");
         }
     }
     
@@ -713,6 +796,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     @Override
     protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
         
+        final GraphicsContext gc = this.shared.gc;
+        
         final Color color;
         if (colorElseNull != null) {
             color = JfxUtils.newColor(colorElseNull.toArgb64());
@@ -720,13 +805,11 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             color = JfxUtils.newColor(argb32);
         }
 
-        this.gc.setFill(color);
-        this.gc.setStroke(color);
+        gc.setFill(color);
+        gc.setStroke(color);
         
         /*
-         * Not computing opaque color, at least not here:
-         * for the rare cases where it would be needed,
-         * if would be best to compute it lazily as needed.
+         * Computed lazily (rarely used).
          */
         this.backingColorOpaque = null;
     }
@@ -752,9 +835,11 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         boolean mustSetFont,
         InterfaceBwdFont font) {
         
-        final Color oldBackingColor = (Color) this.gc.getStroke();
+        final GraphicsContext gc = this.shared.gc;
         
-        final Font oldBackingFont = this.gc.getFont();
+        final Color oldBackingColor = (Color) gc.getStroke();
+        
+        final Font oldBackingFont = gc.getFont();
         
         boolean didResetBackingState = false;
         if (mustSetClip || mustSetTransform) {
@@ -766,9 +851,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             this.setBackingArgb(argb32, colorElseNull);
         } else {
             if (didResetBackingState) {
-                // Restoring backing color.
-                this.gc.setFill(oldBackingColor);
-                this.gc.setStroke(oldBackingColor);
+                // Restoring backing color after reset.
+                gc.setFill(oldBackingColor);
+                gc.setStroke(oldBackingColor);
             }
         }
         
@@ -776,7 +861,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             this.setBackingFont(font);
         } else {
             if (didResetBackingState) {
-                // Restoring backing font.
+                // Restoring backing font after reset.
                 this.setFontAndFontSmoothingType(oldBackingFont);
             }
         }
@@ -801,6 +886,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
 
+        final GraphicsContext gc = this.getConfiguredGc();
+        
         final int imageWidth = image.getWidth();
         final int imageHeight = image.getHeight();
         
@@ -820,16 +907,16 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 (sx != 0) || (sy != 0)
                 || (sxSpan != imageWidth) || (sySpan != imageHeight);
         if (drawingPart) {
-            this.gc.drawImage(
+            gc.drawImage(
                     img,
                     sx, sy, sxSpan, sySpan,
                     _x, _y, xSpan, ySpan);
         } else {
-            final boolean scaling = (xSpan != sxSpan) || (ySpan != sySpan);
-            if (scaling) {
-                this.gc.drawImage(img, _x, _y, xSpan, ySpan);
+            final boolean imgScaling = (xSpan != sxSpan) || (ySpan != sySpan);
+            if (imgScaling) {
+                gc.drawImage(img, _x, _y, xSpan, ySpan);
             } else {
-                this.gc.drawImage(img, _x, _y);
+                gc.drawImage(img, _x, _y);
             }
         }
         
@@ -847,44 +934,123 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
     private JfxBwdGraphicsWithGc(
             InterfaceBwdBinding binding,
-            GraphicsContext gc,
-            boolean isImageGraphics,
+            GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
             //
+            boolean isImageGraphics,
+            MyShared shared,
+            int gcScale,
+            ObjectWrapper<JfxBwdGraphicsWithGc> gcGraphicsRef,
             JfxDirtySnapshotHelper dirtySnapshotHelper) {
         super(
                 binding,
+                rootBoxTopLeft,
                 box,
                 initialClip);
         
-        this.gc = LangUtils.requireNonNull(gc);
+        // Implicit null check.
+        shared.onGraphicsCreation();
+        
+        this.shared = shared;
+        
+        this.gcScale = NbrsUtils.requireSupOrEq(1, gcScale, "gcScale");
         
         this.isImageGraphics = isImageGraphics;
+        
+        this.gcGraphicsRef = LangUtils.requireNonNull(gcGraphicsRef);
         
         this.dirtySnapshotHelper = LangUtils.requireNonNull(dirtySnapshotHelper);
     }
     
+    /*
+     * 
+     */
+    
+    /**
+     * Method to use to retrieve gc for writing or reading pixels.
+     * 
+     * We use the pattern of retrieving the gc from this method each time,
+     * even though it's always the same and accessible as a field,
+     * because otherwise we might forget to call
+     * ensureGcConfiguredForThisGraphics()
+     * before using this.gc.
+     * 
+     * @return The shared gc aligned on this graphics configuration,
+     *         ready to be used for writing or reading pixels.
+     */
+    private GraphicsContext getConfiguredGc() {
+        this.ensureGcConfiguredForThisGraphics();
+        return this.shared.gc;
+    }
+    
+    private void ensureGcConfiguredForThisGraphics() {
+        final JfxBwdGraphicsWithGc gcGraphics = this.gcGraphicsRef.value;
+        if (gcGraphics != this) {
+            this.configureGcForThisGraphics();
+            
+            /*
+             * Set after configuration, to have stack overflow
+             * if trying to configure it while already being
+             * configuring it.
+             */
+            this.gcGraphicsRef.value = this;
+        }
+    }
+    
+    private void configureGcForThisGraphics() {
+        final boolean mustSetClip = true;
+        final boolean mustSetTransform = true;
+        final boolean mustSetColor = true;
+        final boolean mustSetFont = true;
+        // No need because we only use 32 bits accuracy.
+        final BwdColor colorElseNull = null;
+        this.setBackingState(
+                mustSetClip,
+                this.getClipInBase(),
+                //
+                mustSetTransform,
+                this.getTransform(),
+                //
+                mustSetColor,
+                this.getArgb32(),
+                colorElseNull,
+                //
+                mustSetFont,
+                this.getFont());
+    }
+
+    /*
+     * 
+     */
+    
     private void setFontAndFontSmoothingType(Font font) {
-        this.gc.setFont(font);
-        this.gc.setFontSmoothingType(FONT_SMOOTHING_TYPE);
+        final GraphicsContext gc = this.shared.gc;
+        
+        gc.setFont(font);
+        gc.setFontSmoothingType(FONT_SMOOTHING_TYPE);
     }
 
     private void setBackingClipAndTransformToCurrent() {
+        
+        final GraphicsContext gc = this.shared.gc;
+        
         // Works whether we are in XOR mode or not,
         // unlike getStroke().
-        final Color currentBackingColor = (Color) this.gc.getStroke();
+        final Color currentBackingColor = (Color) gc.getStroke();
         
-        final Font currentBackingFont = this.gc.getFont();
+        final Font currentBackingFont = gc.getFont();
         
         this.resetBackingStateAndSetClipAndTransformToCurrent();
 
-        this.gc.setFill(currentBackingColor);
-        this.gc.setStroke(currentBackingColor);
+        // Restoring backing color after reset.
+        gc.setFill(currentBackingColor);
+        gc.setStroke(currentBackingColor);
 
+        // Restoring backing font after reset.
         this.setFontAndFontSmoothingType(currentBackingFont);
     }
 
@@ -895,11 +1061,13 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      * After this call, backing color and font are undefined.
      */
     private void resetBackingStateAndSetClipAndTransformToCurrent() {
+        final GraphicsContext gc = this.shared.gc;
+        
         // Restores initial (last saved) state (and pops it!!!).
-        this.gc.restore();
+        gc.restore();
         // Re-save restored initial state, so that we can restore it later
         // (with a restoreButDontPopState() method we would not have to do that).
-        this.gc.save();
+        gc.save();
         
         this.addCurrentClipToBacking();
         
@@ -924,14 +1092,30 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
          * (http://hg.openjdk.java.net/openjfx/8u-dev/rt/rev/ddf059995fc0)
          * Otherwise, clipping is AWFULLY slow,
          * and we would have to do it all in the binding.
+         * 
+         * Clip appears to be in non-transformed coordinates,
+         * so we have to hard-code the base scaling/shifting here.
+         * NB: Not to have to do that, we could instead apply
+         * the clip defined in user, and after the backing transform
+         * has been set.
          */
 
-        final GraphicsContext gc = this.gc;
+        final GraphicsContext gc = this.shared.gc;
+        
+        final int gcs = this.gcScale;
+        
+        final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
+        
+        final int scaledX = (x * gcs - rootBoxTopLeft.x());
+        final int scaledY = (y * gcs - rootBoxTopLeft.y());
+        final int scaledXSpan = xSpan * gcs;
+        final int scaledYSpan = ySpan * gcs;
+        
         gc.beginPath();
-        gc.moveTo(x, y);
-        gc.lineTo(x + xSpan, y);
-        gc.lineTo(x + xSpan, y + ySpan);
-        gc.lineTo(x, y + ySpan);
+        gc.moveTo(scaledX, scaledY);
+        gc.lineTo(scaledX + scaledXSpan, scaledY);
+        gc.lineTo(scaledX + scaledXSpan, scaledY + scaledYSpan);
+        gc.lineTo(scaledX, scaledY + scaledYSpan);
         gc.closePath();
         gc.clip();
     }
@@ -945,25 +1129,28 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         
         final GRotation rotation = transform.rotation();
         
+        final int gcs = this.gcScale;
+        
+        final double myH = (JfxUtils.H_IN_T ? H : 0.0);
+        
+        final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
+        
         // Concatenating our transform.
-        if (JfxUtils.H_IN_T) {
-            this.gc.transform(
-                    rotation.cos(), // mxx (0,0)
-                    rotation.sin(), // myx (1,0)
-                    -rotation.sin(), // mxy (0,1)
-                    rotation.cos(), // myy (1,1)
-                    transform.frame2XIn1() + H, // mxt
-                    transform.frame2YIn1() + H); // myt
-        } else {
-            this.gc.transform(
-                    rotation.cos(), // mxx (0,0)
-                    rotation.sin(), // myx (1,0)
-                    -rotation.sin(), // mxy (0,1)
-                    rotation.cos(), // myy (1,1)
-                    transform.frame2XIn1(), // mxt
-                    transform.frame2YIn1()); // myt
-        }
-
+        final double mxt =
+            transform.frame2XIn1() * gcs + myH
+            - rootBoxTopLeft.x();
+        final double myt =
+            transform.frame2YIn1() * gcs + myH
+            - rootBoxTopLeft.y();
+        
+        this.shared.gc.transform(
+            rotation.cos() * gcs, // mxx (0,0)
+            rotation.sin() * gcs, // myx (1,0)
+            -rotation.sin() * gcs, // mxy (0,1)
+            rotation.cos() * gcs, // myy (1,1)
+            mxt,
+            myt);
+        
         this.xShiftInUser = JfxUtils.computeXShiftInUser(rotation);
         this.yShiftInUser = JfxUtils.computeYShiftInUser(rotation);
     }
@@ -973,15 +1160,17 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      */
 
     private void drawPoint_raw(int x, int y) {
+        final GraphicsContext gc = this.getConfiguredGc();
         final double _x = x + this.xShiftInUser;
         final double _y = y + this.yShiftInUser;
-        this.gc.strokeLine(_x, _y, _x, _y);
+        gc.strokeLine(_x, _y, _x, _y);
     }
 
     private void drawLine_raw(int x1, int y1, int x2, int y2) {
+        final GraphicsContext gc = this.getConfiguredGc();
         final double dx = this.xShiftInUser;
         final double dy = this.yShiftInUser;
-        this.gc.strokeLine(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
+        gc.strokeLine(x1 + dx, y1 + dy, x2 + dx, y2 + dy);
     }
 
     private void drawRect_raw(int x, int y, int xSpan, int ySpan) {
@@ -992,31 +1181,20 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
              */
             this.drawPoint_raw(x, y);
         } else {
+            final GraphicsContext gc = this.getConfiguredGc();
             final double _x = x + this.xShiftInUser;
             final double _y = y + this.yShiftInUser;
-            this.gc.strokeRect(_x, _y, xSpan - 1, ySpan - 1);
+            gc.strokeRect(_x, _y, xSpan - 1, ySpan - 1);
         }
     }
 
     private void fillRect_raw(int x, int y, int xSpan, int ySpan) {
+        final GraphicsContext gc = this.getConfiguredGc();
         final double _x = x + this.xShiftInUser;
         final double _y = y + this.yShiftInUser;
-        fillRect_raw_shifted(this.gc, _x, _y, xSpan, ySpan);
+        JfxUtils.fillRect_raw_shifted(gc, _x, _y, xSpan, ySpan);
     }
-
-    /**
-     * Rotation-dependent shifts must have bee done already.
-     */
-    private static void fillRect_raw_shifted(
-            GraphicsContext gc,
-            double xShifted, double yShifted,
-            int xSpan, int ySpan) {
-        // Need -H rework, because we want to end up at pixels limits.
-        final double _x = xShifted - H;
-        final double _y = yShifted - H;
-        gc.fillRect(_x, _y, xSpan, ySpan);
-    }
-
+    
     /**
      * Rotation-dependent shifts must have bee done already.
      */

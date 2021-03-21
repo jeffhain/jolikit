@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -144,16 +144,6 @@ public class BindingForApiTests extends AbstractBwdBinding {
     }
 
     @Override
-    public GRect getScreenBounds() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public GPoint getMousePosInScreen() {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public InterfaceBwdFontHome getFontHome() {
         return this.fontHome;
     }
@@ -161,6 +151,16 @@ public class BindingForApiTests extends AbstractBwdBinding {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        throw new UnsupportedOperationException();
+    }
     
     @Override
     protected InterfaceBwdImage newImageImpl(

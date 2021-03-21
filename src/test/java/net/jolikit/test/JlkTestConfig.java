@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.test;
 
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.OsUtils;
 import net.jolikit.lang.PropertiesFileUtils;
 
@@ -60,11 +61,36 @@ public class JlkTestConfig {
         final String str = PROPERTIES_FILE_UTILS.getRequiredProperty("DEVICE_RESOLUTION_HEIGHT");
         return Integer.parseInt(str);
     }
+    
+    /**
+     * @return Decoration insets, for all bindings except Allegro5 binding.
+     */
+    public static GRect getDecorationInsets() {
+        final String str = PROPERTIES_FILE_UTILS.getRequiredProperty("DECORATION_INSETS");
+        return parseInsets(str);
+    }
+    
+    /**
+     * @return Decoration insets, specific for Allegro5 binding.
+     */
+    public static GRect getDecorationInsetsAlgr5() {
+        final String str = PROPERTIES_FILE_UTILS.getRequiredProperty("DECORATION_INSETS_ALGR5");
+        return parseInsets(str);
+    }
 
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
     private JlkTestConfig() {
+    }
+    
+    private static GRect parseInsets(String str) {
+        final String[] arr = str.split(";");
+        final int left = Integer.parseInt(arr[0].trim());
+        final int top = Integer.parseInt(arr[1].trim());
+        final int right = Integer.parseInt(arr[2].trim());
+        final int bottom = Integer.parseInt(arr[3].trim());
+        return GRect.valueOf(left, top, right, bottom);
     }
 }

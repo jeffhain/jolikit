@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -207,45 +207,6 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
     }
 
     /*
-     * Graphics.
-     */
-
-    @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
-        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
-
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
-            final RectangleImmutable viewPort = this.screen.getViewport();
-            return GRect.valueOf(
-                    viewPort.getX(),
-                    viewPort.getY(),
-                    viewPort.getWidth(),
-                    viewPort.getHeight());
-
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
-            throw new IllegalArgumentException("" + screenBoundsType);
-
-        } else {
-            throw new IllegalArgumentException("" + screenBoundsType);
-        }
-    }
-
-    /*
-     * Mouse info.
-     */
-
-    @Override
-    public GPoint getMousePosInScreen() {
-        /*
-         * TODO jogl No API for it, so we do best effort.
-         */
-        return this.getEventsConverterCommonState().getMousePosInScreen();
-    }
-
-    /*
      * Fonts.
      */
 
@@ -257,6 +218,50 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
+        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret =LangUtils.requireNonNull(screenBoundsInOs);
+
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
+            final RectangleImmutable viewPort = this.screen.getViewport();
+            ret = GRect.valueOf(
+                    viewPort.getX(),
+                    viewPort.getY(),
+                    viewPort.getWidth(),
+                    viewPort.getHeight());
+
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
+            throw new IllegalArgumentException("" + screenBoundsType);
+
+        } else {
+            throw new IllegalArgumentException("" + screenBoundsType);
+        }
+        return ret;
+    }
+
+    /*
+     * Mouse info.
+     */
+
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        /*
+         * TODO jogl No API for it, so we do best effort.
+         */
+        return this.getEventsConverterCommonState().getMousePosInScreenInOs();
+    }
 
     /*
      * Images.

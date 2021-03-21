@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -56,6 +57,10 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     /*
      * For drawing text on backing int array directly.
+     * 
+     * The buffered image uses pixel array coordinates:
+     * must take rootBoxTopLeft into account when
+     * computing corresponding backing graphics transform.
      */
     
     private final BufferedImage bufferedImage;
@@ -79,17 +84,18 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
      */
     public LwjglBwdGraphics(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
             GRect box,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
             int pixelArrScanlineStride) {
         this(
                 binding,
-                isImageGraphics,
+                topLeftOf(box),
                 box,
                 box, // initialClip
                 //
+                isImageGraphics,
                 BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
                         pixelArrScanlineStride,
@@ -121,10 +127,11 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
         
         return new LwjglBwdGraphics(
                 this.getBinding(),
-                this.isImageGraphics(),
+                this.getRootBoxTopLeft(),
                 childBox,
                 childInitialClip,
                 //
+                this.isImageGraphics(),
                 this.bufferedImage);
     }
     
@@ -343,17 +350,19 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     private LwjglBwdGraphics(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
+            GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
             //
+            boolean isImageGraphics,
             BufferedImage bufferedImage) {
         super(
                 binding,
-                isImageGraphics,
+                rootBoxTopLeft,
                 box,
                 initialClip,
                 //
+                isImageGraphics,
                 BufferedImageHelper.getIntPixelArr(bufferedImage),
                 bufferedImage.getWidth());
         
@@ -382,12 +391,14 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Sets backing transform to be current transform.
      */
     private void setBackingTransformToCurrent() {
-        final GTransform transform = this.getTransform();
+        final GTransform transformArrToUser = this.getTransformArrToUser();
         
         this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
         
-        final GRotation rotation = transform.rotation();
-        this.g.translate(transform.frame2XIn1(), transform.frame2YIn1());
+        final GRotation rotation = transformArrToUser.rotation();
+        this.g.translate(
+            transformArrToUser.frame2XIn1() ,
+            transformArrToUser.frame2YIn1());
         this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
         
         this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);

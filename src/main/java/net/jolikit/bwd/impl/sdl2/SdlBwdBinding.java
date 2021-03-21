@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -428,55 +428,6 @@ Exception in thread "main" java.lang.Error: Invalid memory access
          */
         return false;
     }
-
-    /*
-     * Graphics.
-     */
-    
-    @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
-        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
-            final int displayIndex = 0;
-            final SDL_Rect rect = new SDL_Rect();
-            if (LIB.SDL_GetDisplayBounds(displayIndex, rect) != 0) {
-                throw new BindingError("SDL_GetDisplayBounds : " + LIB.SDL_GetError());
-            }
-            return SdlUtils.toGRect(rect);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
-            final int displayIndex = 0;
-            final SDL_Rect rect = new SDL_Rect();
-            if (LIB.SDL_GetDisplayUsableBounds(displayIndex, rect) != 0) {
-                throw new BindingError("SDL_GetDisplayUsableBounds : " + LIB.SDL_GetError());
-            }
-            return SdlUtils.toGRect(rect);
-            
-        } else {
-            throw new IllegalArgumentException("" + screenBoundsType);
-        }
-    }
-    
-    /*
-     * Mouse info.
-     */
-    
-    @Override
-    public GPoint getMousePosInScreen() {
-        
-        final IntByReference xRef = new IntByReference();
-        final IntByReference yRef = new IntByReference();
-        
-        @SuppressWarnings("unused")
-        final int buttonStateBits_unused =
-                LIB.SDL_GetGlobalMouseState(xRef, yRef);
-        
-        return GPoint.valueOf(xRef.getValue(), yRef.getValue());
-    }
     
     /*
      * Fonts.
@@ -490,6 +441,60 @@ Exception in thread "main" java.lang.Error: Invalid memory access
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
+        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
+            final int displayIndex = 0;
+            final SDL_Rect rect = new SDL_Rect();
+            if (LIB.SDL_GetDisplayBounds(displayIndex, rect) != 0) {
+                throw new BindingError("SDL_GetDisplayBounds : " + LIB.SDL_GetError());
+            }
+            ret = SdlUtils.toGRect(rect);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
+            final int displayIndex = 0;
+            final SDL_Rect rect = new SDL_Rect();
+            if (LIB.SDL_GetDisplayUsableBounds(displayIndex, rect) != 0) {
+                throw new BindingError("SDL_GetDisplayUsableBounds : " + LIB.SDL_GetError());
+            }
+            ret = SdlUtils.toGRect(rect);
+            
+        } else {
+            throw new IllegalArgumentException("" + screenBoundsType);
+        }
+        return ret;
+    }
+    
+    /*
+     * Mouse info.
+     */
+    
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        
+        final IntByReference xRef = new IntByReference();
+        final IntByReference yRef = new IntByReference();
+        
+        @SuppressWarnings("unused")
+        final int buttonStateBits_unused =
+                LIB.SDL_GetGlobalMouseState(xRef, yRef);
+        
+        return GPoint.valueOf(xRef.getValue(), yRef.getValue());
+    }
     
     /*
      * Hosts.

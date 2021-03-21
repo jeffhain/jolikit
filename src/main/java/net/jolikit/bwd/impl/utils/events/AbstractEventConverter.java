@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,17 @@
  */
 package net.jolikit.bwd.impl.utils.events;
 
-import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdEventType;
 import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 
 /**
  * Abstract class to make it easier to create BWD events from corresponding
@@ -39,19 +42,21 @@ public abstract class AbstractEventConverter {
     
     private final CmnInputConvState commonState;
     
-    private final InterfaceBwdHost host;
+    private final InterfaceBwdHostInOs host;
     
-    private GPoint mousePosInClient = GPoint.ZERO;
-
+    private final ScaleHelper scaleHelper;
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public AbstractEventConverter(
-            CmnInputConvState commonState,
-            InterfaceBwdHost host) {
+        CmnInputConvState commonState,
+        InterfaceBwdHostInOs host,
+        ScaleHelper scaleHelper) {
         this.commonState = LangUtils.requireNonNull(commonState);
         this.host = LangUtils.requireNonNull(host);
+        this.scaleHelper = LangUtils.requireNonNull(scaleHelper);
     }
     
     /*
@@ -164,8 +169,9 @@ public abstract class AbstractEventConverter {
         
         this.updateFromBackingEvent(backingEvent);
         
-        final GPoint posInScreen = this.commonState.getMousePosInScreen();
-        final GPoint posInClient = this.getMousePosInClient();
+        final GPoint posInScreenInOs = this.commonState.getMousePosInScreenInOs();
+        final GPoint posInScreenInBd = this.scaleHelper.pointOsToBd(posInScreenInOs);
+        final GPoint posInClientInBd = this.computePosInClientInBd(posInScreenInBd);
         
         final int xRoll = this.getWheelXRoll(backingEvent);
         final int yRoll = this.getWheelYRoll(backingEvent);
@@ -182,10 +188,10 @@ public abstract class AbstractEventConverter {
         return new BwdWheelEvent(
                 this.host,
                 //
-                posInScreen.x(),
-                posInScreen.y(),
-                posInClient.x(),
-                posInClient.y(),
+                posInScreenInBd.x(),
+                posInScreenInBd.y(),
+                posInClientInBd.x(),
+                posInClientInBd.y(),
                 //
                 xRoll,
                 yRoll,
@@ -259,16 +265,36 @@ public abstract class AbstractEventConverter {
         return this.commonState;
     }
     
-    protected InterfaceBwdHost getHost() {
+    protected InterfaceBwdHostInOs getHost() {
         return this.host;
     }
-
-    protected GPoint getMousePosInClient() {
-        return this.mousePosInClient;
-    }
-
-    protected void setMousePosInClient(GPoint mousePosInClient) {
-        this.mousePosInClient = mousePosInClient;
+    
+    protected GPoint computePosInClientInBd(GPoint posInScreenInBd) {
+        final InterfaceBwdHostInOs host = this.getHost();
+        final GRect clientBoundsInOs = host.getClientBoundsInOs();
+        final GPoint posInClientInBd;
+        if (!clientBoundsInOs.isEmpty()) {
+            final GRect scaledClientBoundsInBd =
+                this.scaleHelper.rectOsToBdContained(
+                    clientBoundsInOs);
+            /*
+             * Ensuring that position in client frame stays in client bounds.
+             * Could leak out due to backing libraries glitches (such as SDL2 on Mac),
+             * or due to position being over the padding insets around scaled client.
+             */
+            final int xInClientInBd = NbrsUtils.toRange(
+                0, scaledClientBoundsInBd.xSpan() - 1,
+                posInScreenInBd.x() - scaledClientBoundsInBd.x());
+            final int yInClientInBd = NbrsUtils.toRange(
+                0, scaledClientBoundsInBd.ySpan() - 1,
+                posInScreenInBd.y() - scaledClientBoundsInBd.y());
+            posInClientInBd = GPoint.valueOf(
+                xInClientInBd,
+                yInClientInBd);
+        } else {
+            posInClientInBd = GPoint.ZERO;
+        }
+        return posInClientInBd;
     }
     
     //--------------------------------------------------------------------------
@@ -286,17 +312,18 @@ public abstract class AbstractEventConverter {
         
         this.updateFromBackingEvent(backingEvent);
         
-        final GPoint posInScreen = this.commonState.getMousePosInScreen();
-        final GPoint posInClient = this.getMousePosInClient();
+        final GPoint posInScreenInOs = this.commonState.getMousePosInScreenInOs();
+        final GPoint posInScreenInBd = this.scaleHelper.pointOsToBd(posInScreenInOs);
+        final GPoint posInClientInBd = this.computePosInClientInBd(posInScreenInBd);
         
         return new BwdMouseEvent(
                 this.host,
                 eventType,
                 //
-                posInScreen.x(),
-                posInScreen.y(),
-                posInClient.x(),
-                posInClient.y(),
+                posInScreenInBd.x(),
+                posInScreenInBd.y(),
+                posInClientInBd.x(),
+                posInClientInBd.y(),
                 //
                 this.getButton(backingEvent),
                 //

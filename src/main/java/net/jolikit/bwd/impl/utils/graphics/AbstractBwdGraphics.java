@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -64,6 +65,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     /*
      * 
      */
+    
+    /**
+     * Coordinates, in base frame of reference,
+     * of root box's top-left pixel.
+     */
+    private final GPoint rootBoxTopLeft;
     
     /**
      * Box in base coordinates.
@@ -164,9 +171,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     //--------------------------------------------------------------------------
     
     public AbstractBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            GRect initialClip) {
+        InterfaceBwdBinding binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip) {
+        
         checkGraphicsBoxAndInitialClip(box, initialClip);
         
         // Implicit null check.
@@ -174,6 +183,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         
         this.binding = binding;
         
+        this.rootBoxTopLeft = LangUtils.requireNonNull(rootBoxTopLeft);
         this.box = box;
         this.initialClipInBase = initialClip;
         
@@ -186,19 +196,21 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public String toString() {
-        return "[box = "
-                + this.box
-                + ", initialClipInBase = "
-                + this.initialClipInBase
-                + ", transform = "
-                + this.transform
-                + ", clipInUser = "
-                + this.clipInUser
-                + ", color = "
-                + Argb64.toString(this.getArgb64())
-                + ", font = "
-                + this.font
-                + "]";
+        return "[rootBoxTopLeft = "
+            + this.rootBoxTopLeft
+            + ", box = "
+            + this.box
+            + ", initialClipInBase = "
+            + this.initialClipInBase
+            + ", transform = "
+            + this.transform
+            + ", clipInUser = "
+            + this.clipInUser
+            + ", color = "
+            + Argb64.toString(this.getArgb64())
+            + ", font = "
+            + this.font
+            + "]";
     }
 
     /*
@@ -296,7 +308,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform newTransform = GTransform.IDENTITY;
         final boolean mustResetTransform = !newTransform.equals(oldTransform);
         if (mustResetTransform) {
-            this.transform = newTransform;
+            this.setInternalTransform(newTransform);
         }
         
         // Always resetting transform stack.
@@ -481,7 +493,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform newTransform = LangUtils.requireNonNull(transform);
         
         if (!newTransform.equals(oldTransform)) {
-            this.transform = newTransform;
+            this.setInternalTransform(newTransform);
             this.updateTransformedClips();
             this.setBackingTransform(newTransform);
         }
@@ -503,7 +515,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         preList.add(oldTransform);
         
         if (!newTransform.equals(oldTransform)) {
-            this.transform = newTransform;
+            this.setInternalTransform(newTransform);
             this.updateTransformedClips();
             this.setBackingTransform(newTransform);
         }
@@ -524,7 +536,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         final GTransform newTransform = preList.remove(size-1);
         
         if (!newTransform.equals(oldTransform)) {
-            this.transform = newTransform;
+            this.setInternalTransform(newTransform);
             this.updateTransformedClips();
             this.setBackingTransform(newTransform);
         }
@@ -546,7 +558,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         preList.clear();
         
         if (!newTransform.equals(oldTransform)) {
-            this.transform = newTransform;
+            this.setInternalTransform(newTransform);
             this.updateTransformedClips();
             this.setBackingTransform(newTransform);
         }
@@ -1025,6 +1037,26 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     //--------------------------------------------------------------------------
     
     /**
+     * For use for or in constructors for root graphics,
+     * to properly handle root boxes with negative
+     * top left (x,y) coordinates.
+     */
+    protected static GPoint topLeftOf(GRect box) {
+        return GPoint.valueOf(box.x(), box.y());
+    }
+
+    /**
+     * @return Base coordinates of root box top-left pixel.
+     */
+    protected final GPoint getRootBoxTopLeft() {
+        return this.rootBoxTopLeft;
+    }
+    
+    protected final GTransform getTransform_final() {
+        return this.transform;
+    }
+
+    /**
      * Useful to choose to fill rectangles with vertical lines rather than
      * horizontal lines when being in user coordinates.
      * 
@@ -1044,6 +1076,18 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     protected int getPremulArgb32() {
         return this.premulArgb32;
+    }
+    
+    /**
+     * This base implementation just sets the internal instance.
+     * 
+     * To be overridden if wanting to update related data.
+     * Overriding must call super.
+     * 
+     * @param transform Transform to use for this graphics.
+     */
+    protected void setInternalTransform(GTransform newTransform) {
+        this.transform = newTransform;
     }
     
     /*

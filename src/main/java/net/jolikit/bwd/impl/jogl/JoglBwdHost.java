@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,13 +43,15 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.TimeUtils;
 
@@ -88,9 +90,10 @@ public class JoglBwdHost extends AbstractBwdHost {
              * 
              */
             
-            final GRect defaultClientBounds = binding.getBindingConfig().getDefaultClientOrWindowBounds();
-            final int initialWidth = defaultClientBounds.xSpan();
-            final int initialHeight = defaultClientBounds.ySpan();
+            final GRect defaultClientBoundsInOs =
+                binding.getBindingConfig().getDefaultClientOrWindowBoundsInOs();
+            final int initialWidth = defaultClientBoundsInOs.xSpan();
+            final int initialHeight = defaultClientBoundsInOs.ySpan();
             final PixelCoordsConverter pixelCoordsConverter = getBinding().getPixelCoordsConverter();
             final int initialDeviceWidth = pixelCoordsConverter.computeXSpanInDevicePixel(initialWidth);
             final int initialDeviceHeight = pixelCoordsConverter.computeYSpanInDevicePixel(initialHeight);
@@ -108,23 +111,31 @@ public class JoglBwdHost extends AbstractBwdHost {
         @Override
         public void reshape(GLAutoDrawable drawable, int x, int y, int widthInDevice, int heightInDevice) {
 
-            final PixelCoordsConverter pixelCoordsConverter = getBinding().getPixelCoordsConverter();
-            final int lastReshapedWidth = pixelCoordsConverter.computeXSpanInOsPixel(widthInDevice);
-            final int lastReshapedHeight = pixelCoordsConverter.computeYSpanInOsPixel(heightInDevice);
+            final PixelCoordsConverter pixelCoordsConverter =
+                getBinding().getPixelCoordsConverter();
+            final int lastReshapedWidthInOs =
+                pixelCoordsConverter.computeXSpanInOsPixel(
+                    widthInDevice);
+            final int lastReshapedHeightInOs =
+                pixelCoordsConverter.computeYSpanInOsPixel(
+                    heightInDevice);
             
             if (DEBUG) {
                 hostLog(this,
                         "GLEventListener.reshape(" + drawable.hashCode()
-                        + ", " + x + ", " + y + ", " + widthInDevice + ", " + heightInDevice + ")");
-                hostLog(this, "lastReshapedWidth = " + lastReshapedWidth);
-                hostLog(this, "lastReshapedHeight = " + lastReshapedHeight);
+                        + ", " + x + ", " + y
+                        + ", " + widthInDevice + ", " + heightInDevice + ")");
+                hostLog(this, "lastReshapedWidthInOs = " + lastReshapedWidthInOs);
+                hostLog(this, "lastReshapedHeightInOs = " + lastReshapedHeightInOs);
             }
             
             /*
              * 
              */
             
-            hostBoundsHelper.setLastReshapedClientSpans(lastReshapedWidth, lastReshapedHeight);
+            hostBoundsHelper.setLastReshapedClientSpansInOs(
+                lastReshapedWidthInOs,
+                lastReshapedHeightInOs);
 
             if (binding.getBindingConfig().getMustTryToPaintDuringResize()) {
                 // Making all dirty on reshape, so that everything gets repainted.
@@ -151,61 +162,15 @@ public class JoglBwdHost extends AbstractBwdHost {
                 hostLog(this, "GLEventListener.display(" + drawable.hashCode() + ")");
             }
             
-            final GRect[] boxWrapper = new GRect[1];
-            final List<GRect> paintedRectList = paintClientOnOb(boxWrapper);
-            
             /*
-             * OpenGL rendering.
+             * We might not be in UI thread here, but it looks like jogl takes care
+             * of not calling current method concurrently, and also at this time
+             * our UI thread should be blocked in a call to display() or something
+             * so we should not have concurrent call to helper dispose method
+             * during host closing.
              */
-
-            if (paintedRectList.size() != 0) {
-                final boolean glDoubleBuffered =
-                        binding.getBindingConfig().isGlDoubleBuffered();
-                
-                /*
-                 * If shut down occurred during painting,
-                 * window.getGL() would return null.
-                 */
-                if (canPaintClientNow()) {
-                    /*
-                     * We might not be in UI thread here, but it looks like jogl takes care
-                     * of not calling current method concurrently, and also at this time
-                     * our UI thread should be blocked in a call to display() or something
-                     * so we should not have concurrent call to helper dispose method
-                     * during host closing.
-                     */
-                    
-                    if (glDoubleBuffered) {
-                        /*
-                         * Can't do partial painting if double buffered,
-                         * else does flip-flop painting.
-                         */
-                        paintedRectList.clear();
-                        final GRect pseudoPaintedRect = GRect.valueOf(
-                                0,
-                                0,
-                                offscreenBuffer.getWidth(),
-                                offscreenBuffer.getHeight());
-                        paintedRectList.add(pseudoPaintedRect);
-                    }
-                    
-                    final long a = (DEBUG ? System.nanoTime() : 0L);
-                    
-                    paintHelper.paintPixelsIntoOpenGl(
-                            offscreenBuffer,
-                            paintedRectList,
-                            window);
-
-                    flushPainting();
-                    
-                    final long b = (DEBUG ? System.nanoTime() : 0L);
-                    if (DEBUG) {
-                        hostLog(this, "display : paintPixelsIntoOpenGL on "
-                                + paintedRectList.size()
-                                + " rects took " + TimeUtils.nsToS(b-a) + " s");
-                    }
-                }
-            }
+            
+            paintClientNowOnGlWindow();
         }
         @Override
         public void dispose(GLAutoDrawable drawable) {
@@ -274,15 +239,16 @@ public class JoglBwdHost extends AbstractBwdHost {
                     final boolean beenQuiescentForSomeTime =
                             (dtS > getBindingConfig().getBackingWindowStateStabilityDelayS());
                     if (beenQuiescentForSomeTime) {
-                        final GRect clientBounds = getClientBounds();
+                        final GRect clientBoundsInOs = getClientBoundsInOs();
                         // We should be visible, but testing for safety.
-                        if (!clientBounds.isEmpty()) {
+                        if (!clientBoundsInOs.isEmpty()) {
                             // Not using setClientBounds(...),
                             // to make sure we don't set "target bounds".
                             try {
-                                setBackingClientBounds(clientBounds.withSpansDeltas(1, 0));
+                                setBackingClientBoundsInOs(
+                                    clientBoundsInOs.withSpansDeltas(1, 0));
                             } finally {
-                                setBackingClientBounds(clientBounds);
+                                setBackingClientBoundsInOs(clientBoundsInOs);
                             }
                         }
                     }
@@ -501,7 +467,7 @@ public class JoglBwdHost extends AbstractBwdHost {
      * and deiconified, we use super class target showing/deico/demax bounds
      * to enforce for demaximized windows, and this field for maximized windows.
      */
-    private GRect windowBoundsToRestoreOnShowingDeicoMax = null;
+    private GRect windowBoundsInOsToRestoreOnShowingDeicoMax = null;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -534,6 +500,8 @@ public class JoglBwdHost extends AbstractBwdHost {
                 modal,
                 client);
 
+        final JoglBwdBindingConfig bindingConfig = binding.getBindingConfig();
+        
         this.binding = LangUtils.requireNonNull(binding);
         
         final AbstractBwdHost host = this;
@@ -541,8 +509,8 @@ public class JoglBwdHost extends AbstractBwdHost {
         
         this.eventConverter = new JoglEventConverter(
                 binding.getEventsConverterCommonState(),
-                binding.getPixelCoordsConverter(),
-                host);
+                host,
+                binding.getPixelCoordsConverter());
         
         this.windowListener = new JoglWindowListenerUiThreader(
                 new MyWindowListener(),
@@ -556,7 +524,7 @@ public class JoglBwdHost extends AbstractBwdHost {
             final GLCapabilities glCapabilities = new GLCapabilities(glProfile);
 
             glCapabilities.setDoubleBuffered(
-                    binding.getBindingConfig().isGlDoubleBuffered());
+                bindingConfig.getGlDoubleBuffered());
 
             if (false) {
                 // TODO jogl Would help? In what?
@@ -582,9 +550,10 @@ public class JoglBwdHost extends AbstractBwdHost {
                 window.setContextCreationFlags(GLContext.CTX_OPTION_DEBUG);
             }
 
-            final GRect defaultClientBounds = binding.getBindingConfig().getDefaultClientOrWindowBounds();
-            final int initialWidth = defaultClientBounds.xSpan();
-            final int initialHeight = defaultClientBounds.ySpan();
+            final GRect defaultClientBoundsInOs =
+                bindingConfig.getDefaultClientOrWindowBoundsInOs();
+            final int initialWidth = defaultClientBoundsInOs.xSpan();
+            final int initialHeight = defaultClientBoundsInOs.ySpan();
 
             window.setUndecorated(!decorated);
 
@@ -606,7 +575,6 @@ public class JoglBwdHost extends AbstractBwdHost {
             // TODO jogl Seems optional, but docs tell to do it.
             window.setRealized(true);
 
-            final JoglBwdBindingConfig bindingConfig = binding.getBindingConfig();
             final UncaughtExceptionHandler exceptionHandler = new ConfiguredExceptionHandler(bindingConfig);
             final MyGlEl glEventListener = new MyGlEl();
             final JoglGLEventListenerHandler glEventListenerWrapper = new JoglGLEventListenerHandler(
@@ -629,6 +597,11 @@ public class JoglBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public JoglBwdBindingConfig getBindingConfig() {
+        return (JoglBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractJoglBwdBinding getBinding() {
@@ -763,16 +736,17 @@ public class JoglBwdHost extends AbstractBwdHost {
                 return;
             }
             
-            final GRect windowBounds = this.getWindowBounds();
-            if (windowBounds.isEmpty()) {
+            final GRect windowBoundsInOs = this.getWindowBoundsInOs();
+            if (windowBoundsInOs.isEmpty()) {
                 // Can happen if iconified.
             } else {
-                this.icoHack_setWindowBoundsToRestoreWith(windowBounds);
+                this.icoHack_setWindowBoundsInOsToRestoreWith(
+                    windowBoundsInOs);
             }
 
             this.window.setVisible(false);
             
-            if (!windowBounds.isEmpty()) {
+            if (!windowBoundsInOs.isEmpty()) {
                 this.icoHack_moveBackingWindowToHackPosition();
             }
         } else {
@@ -836,16 +810,17 @@ public class JoglBwdHost extends AbstractBwdHost {
             }
             
             if (iconified) {
-                final GRect windowBounds = this.getWindowBounds();
+                final GRect windowBoundsInOs = this.getWindowBoundsInOs();
                 
                 // Set before, to block eventual window moved events
                 // on backing bounds setting.
                 this.backingWindowIconified_hack = true;
                 
-                if (windowBounds.isEmpty()) {
+                if (windowBoundsInOs.isEmpty()) {
                     // Should not happen, but making sure we don't set crazy bounds.
                 } else {
-                    this.icoHack_setWindowBoundsToRestoreWith(windowBounds);
+                    this.icoHack_setWindowBoundsInOsToRestoreWith(
+                        windowBoundsInOs);
                     
                     this.icoHack_moveBackingWindowToHackPosition();
                 }
@@ -898,37 +873,37 @@ public class JoglBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
 
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
         this.backingBoundsBeingSet = true;
         try {
             this.lastBackingBoundsSettingTimeS = this.getUiThreadSchedulerClock().getTimeS();
-            this.hostBoundsHelper.setClientBounds(targetClientBounds);
+            this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
         } finally {
             this.backingBoundsBeingSet = false;
         }
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
         this.backingBoundsBeingSet = true;
         try {
             this.lastBackingBoundsSettingTimeS = this.getUiThreadSchedulerClock().getTimeS();
-            this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+            this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
         } finally {
             this.backingBoundsBeingSet = false;
         }
@@ -979,11 +954,79 @@ public class JoglBwdHost extends AbstractBwdHost {
         return mustBlock;
     }
 
+    /*
+     * Painting.
+     */
+    
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        this.offscreenBuffer.setSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+        
+        return new JoglBwdGraphics(
+            this.binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final boolean glDoubleBuffered =
+            this.binding.getBindingConfig().getGlDoubleBuffered();
+        if (glDoubleBuffered) {
+            /*
+             * Can't do partial painting if double buffered,
+             * else does flip-flop painting.
+             */
+            paintedRectList.clear();
+            final GRect bufferFullBox =
+                GRect.valueOf(
+                    0,
+                    0,
+                    bufferSpansInBd.x(),
+                    bufferSpansInBd.y());
+            paintedRectList.add(bufferFullBox);
+        }
+
+        this.paintHelper.paintPixelsIntoOpenGl(
+            scaleHelper,
+            clientSpansInOs,
+            bufferPosInCliInOs,
+            paintedRectList,
+            //
+            this.offscreenBuffer,
+            this.window);
+        
+        this.flushPainting();
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private void icoHack_setWindowBoundsToRestoreWith(GRect windowBoundsToRestore) {
+    private void icoHack_setWindowBoundsInOsToRestoreWith(
+        GRect windowBoundsInOsToRestore) {
         /*
          * Not using isMaximized(), to get the actual state
          * even if we did already iconify.
@@ -991,45 +1034,56 @@ public class JoglBwdHost extends AbstractBwdHost {
         final boolean maximized = this.isBackingWindowMaximized();
         if (maximized) {
             if (DEBUG) {
-                hostLog(this, "windowBoundsToRestoreOnShowingDeicoMax set to " + windowBoundsToRestore);
+                hostLog(this,
+                    "windowBoundsInOsToRestoreOnShowingDeicoMax set to "
+                        + windowBoundsInOsToRestore);
             }
-            this.windowBoundsToRestoreOnShowingDeicoMax = windowBoundsToRestore;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax =
+                windowBoundsInOsToRestore;
         } else {
-            this.setWindowBoundsToEnforceOnShowDeicoDemaxAndFlag_protected(windowBoundsToRestore);
+            this.setWindowBoundsInOsToEnforceOnShowDeicoDemaxAndFlag_protected(
+                windowBoundsInOsToRestore);
         }
     }
     
     private void icoHack_moveBackingWindowToHackPosition() {
         /*
-         * Not using getClientBounds(), to get the actual bounds
+         * Not using getClientBoundsInOs(), to get the actual bounds
          * even if we did already hide.
          * Might be maximized bounds.
          */
-        final GRect windowBounds = this.getBackingOrOnDragBeginWindowBounds();
+        final GRect windowBoundsInOs =
+            this.getBackingOrOnDragBeginWindowBoundsInOs();
         
-        final GRect hidOrIcoWindowBounds = windowBounds.withPos(
-                getBinding().getBindingConfig().getHiddenHackClientX(),
-                getBinding().getBindingConfig().getHiddenHackClientY());
+        final GRect hidOrIcoWindowBoundsInOs = windowBoundsInOs.withPos(
+                getBinding().getBindingConfig().getHiddenHackClientXInOs(),
+                getBinding().getBindingConfig().getHiddenHackClientYInOs());
         if (DEBUG) {
-            hostLog(this, "backing client bounds set to hidOrIcoWindowBounds = " + hidOrIcoWindowBounds);
+            hostLog(this,
+                "backing window bounds set to hidOrIcoWindowBoundsInOs = "
+                    + hidOrIcoWindowBoundsInOs);
         }
-        this.setBackingWindowBounds(hidOrIcoWindowBounds);
+        this.setBackingWindowBoundsInOs(hidOrIcoWindowBoundsInOs);
     }
     
     private void icoHack_restoreBackingBoundsOnShowingDeico(boolean maximized) {
         if (maximized) {
-            final GRect windowBoundsToEnforce = this.windowBoundsToRestoreOnShowingDeicoMax;
-            this.windowBoundsToRestoreOnShowingDeicoMax = null;
-            if (windowBoundsToEnforce != null) {
+            final GRect windowBoundsInOsToEnforce =
+                this.windowBoundsInOsToRestoreOnShowingDeicoMax;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax = null;
+            if (windowBoundsInOsToEnforce != null) {
                 if (DEBUG) {
-                    hostLog(this, "backing window bounds set to windowBoundsToRestoreOnShowingDeicoMax = " + windowBoundsToEnforce);
+                    hostLog(this,
+                        "backing window bounds set to windowBoundsInOsToRestoreOnShowingDeicoMax = "
+                            + windowBoundsInOsToEnforce);
                 }
-                this.applyWindowBoundsToEnforceOnShowDeicoMax_protected(windowBoundsToEnforce);
+                this.applyWindowBoundsInOsToEnforceOnShowDeicoMax_protected(
+                    windowBoundsInOsToEnforce);
             }
         } else {
-            // Cleanup, in case maximized state changed while hidden or iconitied
+            // Cleanup, in case maximized state changed while hidden or iconified
             // (which is not supposed to happen).
-            this.windowBoundsToRestoreOnShowingDeicoMax = null;
+            this.windowBoundsInOsToRestoreOnShowingDeicoMax = null;
             
             this.applyBoundsToEnforceOnShowDeicoDemaxIfAny_protected();
         }
@@ -1090,58 +1144,10 @@ public class JoglBwdHost extends AbstractBwdHost {
      * 
      */
     
-    /**
-     * @param boxWrapper (out) The used box, if did paint, else undefined.
-     * @return The painted rect list, or an empty list if did not paint.
-     */
-    private List<GRect> paintClientOnOb(GRect[] boxWrapper) {
-        
-        boxWrapper[0] = null;
-
-        if (DEBUG) {
-            Dbg.log(this.getClass().getSimpleName() + ".paintClientIntoOffscreenBuffer(...)");
-        }
-
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-
-        client.processEventualBufferedEvents();
-
-        if (!this.canPaintClientNow()) {
-            return GRect.DEFAULT_EMPTY_LIST;
-        }
-
-        final GRect clientBounds = this.getClientBounds();
-        final int width = clientBounds.xSpan();
-        final int height = clientBounds.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return GRect.DEFAULT_EMPTY_LIST;
-        }
-        
-        if (DEBUG) {
-            hostLog(this, "paintClientOnOb(...) : clientBounds = " + clientBounds);
-        }
-        
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-        boxWrapper[0] = box;
-
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-
-        this.offscreenBuffer.setSize(width, height);
-        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
-
-        final JoglBwdGraphics g = new JoglBwdGraphics(
-                this.binding,
-                isImageGraphics,
-                box,
-                //
-                pixelArr,
-                pixelArrScanlineStride);
-
-        return this.getPaintClientHelper().initPaintFinish(
-                g,
-                dirtyRect);
+    private void paintClientNowOnGlWindow() {
+        this.paintBwdClientNowAndBackingClient(
+            getBinding().getBindingConfig(),
+            this.hostBoundsHelper);
     }
 
     private void flushPainting() {

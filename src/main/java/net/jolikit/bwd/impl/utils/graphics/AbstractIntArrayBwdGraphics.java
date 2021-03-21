@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -123,6 +124,21 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
     private final int pixelArrScanlineStride;
     
+    /*
+     * Optimization, to reduce per-pixel conversion overhead.
+     */
+    
+    /**
+     * Transform between array coordinates (frame 1)
+     * (in which (0,0) corresponds to pixelArr[0])
+     * and user coordinates (frame 2).
+     */
+    private GTransform transformArrToUser;
+    
+    /*
+     * 
+     */
+    
     /**
      * The color to use for drawing in the array of pixels.
      * 
@@ -151,14 +167,16 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
     public AbstractIntArrayBwdGraphics(
             InterfaceBwdBinding binding,
-            boolean isImageGraphics,
+            GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
             //
+            boolean isImageGraphics,
             int[] pixelArr,
             int pixelArrScanlineStride) {
         super(
                 binding,
+                rootBoxTopLeft,
                 box,
                 initialClip);
 
@@ -166,6 +184,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         
         this.pixelArr = LangUtils.requireNonNull(pixelArr);
         this.pixelArrScanlineStride = pixelArrScanlineStride;
+        
+        this.updateTransformArrToUser();
     }
 
     /**
@@ -177,6 +197,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
     public int getPixelArrScanlineStride() {
         return this.pixelArrScanlineStride;
+    }
+    
+    public GTransform getTransformArrToUser() {
+        return this.transformArrToUser;
     }
     
     /*
@@ -215,8 +239,6 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             String text) {
         this.checkUsable();
         LangUtils.requireNonNull(text);
-        
-        final GTransform transform = this.getTransform();
         
         final InterfaceBwdFont font = this.getFont();
         if (font.isDisposed()) {
@@ -290,6 +312,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             final int clippedWidth = renderedClippedTextRectInUser.xSpan();
             final int clippedHeight = renderedClippedTextRectInUser.ySpan();
             
+            final GTransform transformArrToUser = this.transformArrToUser;
+            
             for (int j = 0; j < clippedHeight; j++) {
                 final int dstYInUser = renderedClippedTextRectInUser.y() + j;
                 final int srcYInClippedText = j;
@@ -313,9 +337,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                          * and messing with array.
                          */
                     } else {
-                        final int xInBase = transform.xIn1(dstXInUser, dstYInUser);
-                        final int yInBase = transform.yIn1(dstXInUser, dstYInUser);
-                        final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
+                        final int xInArr = transformArrToUser.xIn1(dstXInUser, dstYInUser);
+                        final int yInArr = transformArrToUser.yIn1(dstXInUser, dstYInUser);
+                        final int dstIndex = this.toPixelArrIndexFromArr(xInArr, yInArr);
 
                         this.blendColor32(dstIndex, color32);
                     }
@@ -360,7 +384,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final int[] pixelArr = this.pixelArr;
         
         for (int j = 0; j < ySpanInBaseClipped; j++) {
-            int index = (yInBaseClipped + j) * this.pixelArrScanlineStride + xInBaseClipped;
+            int index = this.toPixelArrIndexFromBase(
+                xInBaseClipped,
+                yInBaseClipped + j);
             for (int i = 0; i < xSpanInBaseClipped; i++) {
                 final int color32_from = pixelArr[index];
                 final int color32_to = toInvertedArrayColor32(color32_from);
@@ -379,11 +405,11 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         // For usability and coordinates check.
         super.getArgb32At(x, y);
         
-        final GTransform transform = this.getTransform();
-        final int xInBase = transform.xIn1(x, y);
-        final int yInBase = transform.yIn1(x, y);
+        final GTransform transformArrToUser = this.transformArrToUser;
+        final int xInArr = transformArrToUser.xIn1(x, y);
+        final int yInArr = transformArrToUser.yIn1(x, y);
         
-        final int index = yInBase * this.pixelArrScanlineStride + xInBase;
+        final int index = this.toPixelArrIndexFromArr(xInArr, yInArr);
         final int color32 = this.pixelArr[index];
         final int argb32 = this.getArgb32FromArrayColor32(color32);
         return argb32;
@@ -392,11 +418,17 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-
+    
     protected final boolean isImageGraphics() {
         return this.isImageGraphics;
     }
-    
+
+    @Override
+    protected void setInternalTransform(GTransform newTransform) {
+        super.setInternalTransform(newTransform);
+        this.updateTransformArrToUser();
+    }
+
     /*
      * 
      */
@@ -486,8 +518,6 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
         
-        final GTransform transform = this.getTransform();
-        
         final GRect dstRectInUser_initial = GRect.valueOf(x, y, xSpan, ySpan);
         final GRect srcRectInImg_initial = GRect.valueOf(sx, sy, sxSpan, sySpan);
         
@@ -569,6 +599,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             }
         }
         
+        final GTransform transformArrToUser = this.transformArrToUser;
+        
         final Object imageDataAccessor = this.getImageDataAccessor(image);
         try {
             // dyic = destYIndexClipped (0 at clip start,
@@ -600,9 +632,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
 
                     final int color32 = this.getImageColor32(image, imageDataAccessor, srcX, srcY);
 
-                    final int xInBase = transform.xIn1(dstX, dstY);
-                    final int yInBase = transform.yIn1(dstX, dstY);
-                    final int dstIndex = yInBase * this.pixelArrScanlineStride + xInBase;
+                    final int xInArr = transformArrToUser.xIn1(dstX, dstY);
+                    final int yInArr = transformArrToUser.yIn1(dstX, dstY);
+                    final int dstIndex = this.toPixelArrIndexFromArr(xInArr, yInArr);
 
                     this.blendColor32(dstIndex, color32);
                 }
@@ -735,6 +767,30 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
+    private void updateTransformArrToUser() {
+        final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
+        final GTransform transform = this.getTransform_final();
+        if (rootBoxTopLeft.equalsPoint(0, 0)) {
+            this.transformArrToUser = transform;
+        } else {
+            this.transformArrToUser = GTransform.valueOf(
+                transform.rotation(),
+                transform.frame2XIn1() - rootBoxTopLeft.x(),
+                transform.frame2YIn1() - rootBoxTopLeft.y());
+        }
+    }
+
+    private int toPixelArrIndexFromBase(int xInBase, int yInBase) {
+        final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
+        final int xInArr = xInBase - rootBoxTopLeft.x();
+        final int yInArr = yInBase - rootBoxTopLeft.y();
+        return yInArr * this.pixelArrScanlineStride + xInArr;
+    }
+
+    private int toPixelArrIndexFromArr(int xInArr, int yInArr) {
+        return yInArr * this.pixelArrScanlineStride + xInArr;
+    }
+
     private void blendColor32(int index, int srcColor32) {
         final int dstColor32 = this.pixelArr[index];
         final int newColor32 = this.blendArrayColor32(srcColor32, dstColor32);
@@ -746,11 +802,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
     
     private void drawPointInClip_raw(int x, int y) {
-        final GTransform transform = this.getTransform();
-        final int xInBase = transform.xIn1(x, y);
-        final int yInBase = transform.yIn1(x, y);
-        
-        final int index = yInBase * this.pixelArrScanlineStride + xInBase;
+        final GTransform transformArrToUser = this.transformArrToUser;
+        final int xInArr = transformArrToUser.xIn1(x, y);
+        final int yInArr = transformArrToUser.yIn1(x, y);
+        final int index = this.toPixelArrIndexFromArr(xInArr, yInArr);
         
         this.blendColor32(index, this.arrColor);
     }
@@ -812,7 +867,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         }
 
         // Hack: "-1" so that we can do "++index" instead of "index++".
-        int index = yInBase * scanlineStride + xInBase - 1;
+        int index = this.toPixelArrIndexFromBase(xInBase, yInBase) - 1;
 
         // To optimize for the case where xSpanInBase is small.
         final int indexJump = scanlineStride - xSpanInBase;

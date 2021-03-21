@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -103,8 +103,8 @@ public class AlgrBwdBindingConfig extends BaseBwdBindingConfig {
      * of eventual decoration to still be usable in one click
      * if the OS ensures some overlapping with screen.
      */
-    private int hiddenHackClientX = 32000;
-    private int hiddenHackClientY = 32000;
+    private int hiddenHackClientXInOs = 32000;
+    private int hiddenHackClientYInOs = 32000;
 
     /**
      * TODO algr On Mac, system cursors sometimes fallback to arrow cursor.
@@ -164,7 +164,7 @@ public class AlgrBwdBindingConfig extends BaseBwdBindingConfig {
         this.decorationInsets = decorationInsets;
         
         this.setScreenBoundsType_final(ScreenBoundsType.CONFIGURED);
-        this.setScreenBounds_final(screenBounds);
+        this.setScreenBoundsInOs_final(screenBounds);
         
         /*
          * TODO algr On Mac, maximization/demaximization work according to
@@ -284,20 +284,20 @@ public class AlgrBwdBindingConfig extends BaseBwdBindingConfig {
         this.mustRelyOnBackingIconification = mustRelyOnBackingIconification;
     }
 
-    public int getHiddenHackClientX() {
-        return this.hiddenHackClientX;
+    public int getHiddenHackClientXInOs() {
+        return this.hiddenHackClientXInOs;
     }
 
-    public void setHiddenHackClientX(int hiddenHackClientX) {
-        this.hiddenHackClientX = hiddenHackClientX;
+    public void setHiddenHackClientXInOs(int hiddenHackClientXInOs) {
+        this.hiddenHackClientXInOs = hiddenHackClientXInOs;
     }
 
-    public int getHiddenHackClientY() {
-        return this.hiddenHackClientY;
+    public int getHiddenHackClientYInOs() {
+        return this.hiddenHackClientYInOs;
     }
 
-    public void setHiddenHackClientY(int hiddenHackClientY) {
-        this.hiddenHackClientY = hiddenHackClientY;
+    public void setHiddenHackClientYInOs(int hiddenHackClientYInOs) {
+        this.hiddenHackClientYInOs = hiddenHackClientYInOs;
     }
 
     public boolean getMustUseSystemCursorsWhenAvailable() {

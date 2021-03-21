@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,9 @@
  */
 package net.jolikit.bwd.impl.algr5;
 
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
@@ -23,9 +26,6 @@ import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.IntByReference;
 
 public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
     
@@ -90,7 +90,7 @@ public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
         }
         final Pointer window = (Pointer) holder.getBackingWindow();
         
-        final GRect w1 = this.getWindowBounds_raw();
+        final GRect w1 = this.getWindowBounds_rawInOs();
         
         final int targetWidthInDevice = this.pixelCoordsConverter.computeXSpanInDevicePixel(targetWidth);
         final int targetHeightInDevice = this.pixelCoordsConverter.computeYSpanInDevicePixel(targetHeight);
@@ -120,7 +120,7 @@ public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         return this.decorationInsets;
     }
 
@@ -129,16 +129,16 @@ public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected GRect getClientBounds_raw() {
-        return super.getClientBounds_raw();
+    protected GRect getClientBounds_rawInOs() {
+        return super.getClientBounds_rawInOs();
     }
 
     @Override
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Pointer window = (Pointer) holder.getBackingWindow();
         
-        final GRect insets = this.getInsets_raw();
+        final GRect insets = this.getInsets_rawInOs();
         final int left = insets.x();
         final int top = insets.y();
         final int right = insets.xSpan();
@@ -166,16 +166,16 @@ public class AlgrHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
-        super.setClientBounds_raw(targetClientBounds);
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
+        super.setClientBounds_rawInOs(targetClientBounds);
     }
 
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Pointer window = (Pointer) holder.getBackingWindow();
         
-        final GRect insets = this.getInsets_raw();
+        final GRect insets = this.getInsets_rawInOs();
         final int left = insets.x();
         final int top = insets.y();
         final int right = insets.xSpan();

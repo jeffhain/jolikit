@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -82,28 +82,32 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
+        final GRect ret;
         if (MUST_USE_CONFIGURED_INSETS) {
-            return this.decorationInsets;
+            ret = this.decorationInsets;
         } else {
             final InterfaceBackingWindowHolder holder = this.getHolder();
             final Stage window = (Stage) holder.getBackingWindow();
             final Scene scene = window.getScene();
             final Pane pane = (Pane) scene.getRoot();
 
-            final int left = (int) scene.getX();
-            final int top = (int) scene.getY();
+            final int leftInOs = (int) scene.getX();
+            final int topInOs = (int) scene.getY();
 
-            final int windowXSpan = (int) window.getWidth();
-            final int windowYSpan = (int) window.getHeight();
-            final int clientXSpan = (int) pane.getWidth();
-            final int clientYSpan = (int) pane.getHeight();
+            final int windowXSpanInOs = (int) window.getWidth();
+            final int windowYSpanInOs = (int) window.getHeight();
+            final int clientXSpanInOs = (int) pane.getWidth();
+            final int clientYSpanInOs = (int) pane.getHeight();
 
-            final int right = Math.max(0, (windowXSpan - clientXSpan) - left);
-            final int bottom = Math.max(0, (windowYSpan - clientYSpan) - top);
-
-            return GRect.valueOf(left, top, right, bottom);
+            final int rightInOs = Math.max(0,
+                (windowXSpanInOs - clientXSpanInOs) - leftInOs);
+            final int bottomInOs = Math.max(0,
+                (windowYSpanInOs - clientYSpanInOs) - topInOs);
+            
+            ret = GRect.valueOf(leftInOs, topInOs, rightInOs, bottomInOs);
         }
+        return ret;
     }
 
     /*
@@ -111,35 +115,37 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
+        final GRect ret;
         if (MUST_USE_CONFIGURED_INSETS) {
-            return super.getClientBounds_raw();
+            ret = super.getClientBounds_rawInOs();
         } else {
             final InterfaceBackingWindowHolder holder = this.getHolder();
             final Stage window = (Stage) holder.getBackingWindow();
             final Scene scene = window.getScene();
             final Pane pane = (Pane) scene.getRoot();
 
-            final int x = (int) (window.getX() + scene.getX());
-            final int y = (int) (window.getY() + scene.getY());
-            final int width = (int) pane.getWidth();
-            final int height = (int) pane.getHeight();
-
-            return GRect.valueOf(x, y, width, height);
+            final int xInOs = (int) (window.getX() + scene.getX());
+            final int yInOs = (int) (window.getY() + scene.getY());
+            final int widthInOs = (int) pane.getWidth();
+            final int heightInOs = (int) pane.getHeight();
+            
+            ret = GRect.valueOf(xInOs, yInOs, widthInOs, heightInOs);
         }
+        return ret;
     }
     
     @Override
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Stage window = (Stage) holder.getBackingWindow();
         
-        final int x = (int) window.getX();
-        final int y = (int) window.getY();
-        final int width = (int) window.getWidth();
-        final int height = (int) window.getHeight();
+        final int xInOs = (int) window.getX();
+        final int yInOs = (int) window.getY();
+        final int widthInOs = (int) window.getWidth();
+        final int heightInOs = (int) window.getHeight();
         
-        return GRect.valueOf(x, y, width, height);
+        return GRect.valueOf(xInOs, yInOs, widthInOs, heightInOs);
     }
 
     /*
@@ -147,9 +153,9 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
+    protected void setClientBounds_rawInOs(GRect targetClientBoundsInOs) {
         if (MUST_USE_CONFIGURED_INSETS) {
-            super.setClientBounds_raw(targetClientBounds);
+            super.setClientBounds_rawInOs(targetClientBoundsInOs);
         } else {
             /*
              * Still delegates to window bounds setting,
@@ -162,33 +168,40 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
             final Scene scene = window.getScene();
             final Pane pane = (Pane) scene.getRoot();
 
-            final int oldWindowX = (int) window.getX();
-            final int oldWindowY = (int) window.getY();
-            final int oldWindowWidth = (int) window.getWidth();
-            final int oldWindowHeight = (int) window.getHeight();
+            final int oldWindowXInOs = (int) window.getX();
+            final int oldWindowYInOs = (int) window.getY();
+            final int oldWindowWidthInOs = (int) window.getWidth();
+            final int oldWindowHeightInOs = (int) window.getHeight();
 
-            final int oldClientX = (int) (window.getX() + scene.getX());
-            final int oldClientY = (int) (window.getY() + scene.getY());
-            final int oldClientWidth = (int) pane.getWidth();
-            final int oldClientHeight = (int) pane.getHeight();
+            final int oldClientXInOs = (int) (window.getX() + scene.getX());
+            final int oldClientYInOs = (int) (window.getY() + scene.getY());
+            final int oldClientWidthInOs = (int) pane.getWidth();
+            final int oldClientHeightInOs = (int) pane.getHeight();
             
-            final int newWindowX = targetClientBounds.x() - (oldClientX - oldWindowX);
-            final int newWindowY = targetClientBounds.y() - (oldClientY - oldWindowY);
-            final int newWindowWidth = Math.max(0, targetClientBounds.xSpan() + (oldWindowWidth - oldClientWidth));
-            final int newWindowHeight = Math.max(0, targetClientBounds.ySpan() + (oldWindowHeight - oldClientHeight));
+            final int dxInOs = oldClientXInOs - oldWindowXInOs;
+            final int dyInOs = oldClientYInOs - oldWindowYInOs;
+            final int dxSpanInOs = oldWindowWidthInOs - oldClientWidthInOs;
+            final int dySpanInOs = oldWindowHeightInOs - oldClientHeightInOs;
             
-            final GRect targetWindowBounds = GRect.valueOf(
-                    newWindowX,
-                    newWindowY,
-                    newWindowWidth,
-                    newWindowHeight);
+            final int newWindowXInOs = targetClientBoundsInOs.x() - dxInOs;
+            final int newWindowYInOs = targetClientBoundsInOs.y() - dyInOs;
+            final int newWindowWidthInOs = Math.max(0,
+                targetClientBoundsInOs.xSpan() + dxSpanInOs);
+            final int newWindowHeightInOs = Math.max(0,
+                targetClientBoundsInOs.ySpan() + dySpanInOs);
             
-            this.setWindowBounds_raw(targetWindowBounds);
+            final GRect targetWindowBoundsInOs = GRect.valueOf(
+                    newWindowXInOs,
+                    newWindowYInOs,
+                    newWindowWidthInOs,
+                    newWindowHeightInOs);
+            
+            this.setWindowBounds_rawInOs(targetWindowBoundsInOs);
         }
     }
 
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
+    protected void setWindowBounds_rawInOs(GRect targetWindowBoundsInOs) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Stage window = (Stage) holder.getBackingWindow();
         final Scene scene = window.getScene();
@@ -203,47 +216,61 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
          * Same for Y.
          */
         
-        final GRect oldWindowBounds = this.getWindowBounds_raw();
-        final boolean mustSetXPosFirst = (targetWindowBounds.xSpan() > oldWindowBounds.xSpan());
-        final boolean mustSetYPosFirst = (targetWindowBounds.ySpan() > oldWindowBounds.ySpan());
-        if (mustSetXPosFirst) {
-            window.setX(targetWindowBounds.x());
-        }
-        if (mustSetYPosFirst) {
-            window.setY(targetWindowBounds.y());
+        final int targetWindowXInOs = targetWindowBoundsInOs.x();
+        final int targetWindowYInOs = targetWindowBoundsInOs.y();
+        
+        final int newWidthInOs;
+        final int newHeightInOs;
+        if (holder.isDecorated()) {
+            newWidthInOs = Math.max(targetWindowBoundsInOs.xSpan(), this.minWindowWidthIfDecorated);
+            newHeightInOs = Math.max(targetWindowBoundsInOs.ySpan(), this.minWindowHeightIfDecorated);
+        } else {
+            newWidthInOs = Math.max(targetWindowBoundsInOs.xSpan(), MIN_WINDOW_WIDTH_IF_UNDECORATED);
+            newHeightInOs = Math.max(targetWindowBoundsInOs.ySpan(), MIN_WINDOW_HEIGHT_IF_UNDECORATED);
         }
         
         /*
          * 
          */
         
-        final int newWidth;
-        final int newHeight;
-        if (holder.isDecorated()) {
-            newWidth = Math.max(targetWindowBounds.xSpan(), this.minWindowWidthIfDecorated);
-            newHeight = Math.max(targetWindowBounds.ySpan(), this.minWindowHeightIfDecorated);
-        } else {
-            newWidth = Math.max(targetWindowBounds.xSpan(), MIN_WINDOW_WIDTH_IF_UNDECORATED);
-            newHeight = Math.max(targetWindowBounds.ySpan(), MIN_WINDOW_HEIGHT_IF_UNDECORATED);
+        final GRect oldWindowBoundsInOs = this.getWindowBounds_rawInOs();
+        
+        /*
+         * 
+         */
+        
+        final boolean mustSetXPosFirst =
+            (targetWindowBoundsInOs.xSpan() > oldWindowBoundsInOs.xSpan());
+        final boolean mustSetYPosFirst =
+            (targetWindowBoundsInOs.ySpan() > oldWindowBoundsInOs.ySpan());
+        if (mustSetXPosFirst) {
+            window.setX(targetWindowXInOs);
+        }
+        if (mustSetYPosFirst) {
+            window.setY(targetWindowYInOs);
         }
         
-        final int oldWidth = (int) window.getWidth();
-        final int oldHeight = (int) window.getHeight();
-        final int deltaWidth = newWidth - oldWidth;
-        final int deltaHeight = newHeight - oldHeight;
-
-        window.setWidth(newWidth);
-        window.setHeight(newHeight);
+        /*
+         * 
+         */
+        
+        final int oldWidthInOs = (int) window.getWidth();
+        final int oldHeightInOs = (int) window.getHeight();
+        final int deltaWidthInOs = newWidthInOs - oldWidthInOs;
+        final int deltaHeightInOs = newHeightInOs - oldHeightInOs;
+        
+        window.setWidth(newWidthInOs);
+        window.setHeight(newHeightInOs);
         
         /*
          * 
          */
 
         if (!mustSetXPosFirst) {
-            window.setX(targetWindowBounds.x());
+            window.setX(targetWindowXInOs);
         }
         if (!mustSetYPosFirst) {
-            window.setY(targetWindowBounds.y());
+            window.setY(targetWindowYInOs);
         }
 
         /*
@@ -255,12 +282,16 @@ public class JfxHostBoundsHelper extends AbstractHostBoundsHelper {
          * This helps at least when window is showing and deiconified.
          */
 
-        final int oldClientWidth = (int) pane.getWidth();
-        final int oldClientHeight = (int) pane.getHeight();
+        final int oldClientWidthInOs = (int) pane.getWidth();
+        final int oldClientHeightInOs = (int) pane.getHeight();
 
-        final int newClientWidth = oldClientWidth + deltaWidth;
-        final int newClientHeight = oldClientHeight + deltaHeight;
-
-        pane.resize(newClientWidth, newClientHeight);
+        final int newClientWidthInOs =
+            oldClientWidthInOs + deltaWidthInOs;
+        final int newClientHeightInOs =
+            oldClientHeightInOs + deltaHeightInOs;
+        
+        pane.resize(
+            newClientWidthInOs,
+            newClientHeightInOs);
     }
 }

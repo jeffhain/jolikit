@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Event;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_KeyboardEvent;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseButtonEvent;
@@ -43,6 +44,7 @@ import net.jolikit.bwd.impl.sdl2.jlib.SdlWindowFlag;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
@@ -117,6 +119,12 @@ public class SdlBwdHost extends AbstractBwdHost {
      * there are no clear SDL maximized/demaximized events.
      */
     private boolean lastBackingWindowMaximized = false;
+    
+    /*
+     * 
+     */
+    
+    private SDL_Surface currentPainting_backingSurf;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -149,6 +157,8 @@ public class SdlBwdHost extends AbstractBwdHost {
                 decorated,
                 modal,
                 client);
+        
+        final SdlBwdBindingConfig bindingConfig = binding.getBindingConfig();
         
         this.binding = LangUtils.requireNonNull(binding);
         
@@ -195,14 +205,15 @@ public class SdlBwdHost extends AbstractBwdHost {
             windowFlags |= SdlWindowFlag.SDL_WINDOW_ALLOW_HIGHDPI.intValue();
         }
         
-        final GRect defaultClientBounds = binding.getBindingConfig().getDefaultClientOrWindowBounds();
+        final GRect defaultClientBoundsInOs =
+            binding.getBindingConfig().getDefaultClientOrWindowBoundsInOs();
         
         final Pointer window = LIB.SDL_CreateWindow(
                 title,
-                defaultClientBounds.x(),
-                defaultClientBounds.y(),
-                defaultClientBounds.xSpan(),
-                defaultClientBounds.ySpan(),
+                defaultClientBoundsInOs.x(),
+                defaultClientBoundsInOs.y(),
+                defaultClientBoundsInOs.xSpan(),
+                defaultClientBoundsInOs.ySpan(),
                 windowFlags);
         this.window = window;
         
@@ -227,7 +238,7 @@ public class SdlBwdHost extends AbstractBwdHost {
         final AbstractBwdHost host = this;
         this.hostBoundsHelper = new SdlHostBoundsHelper(
                 host,
-                binding.getBindingConfig().getDecorationInsets());
+                bindingConfig.getDecorationInsets());
         
         if (decorated) {
             /*
@@ -238,7 +249,7 @@ public class SdlBwdHost extends AbstractBwdHost {
             final int minHeight = 1;
             LIB.SDL_SetWindowMinimumSize(
                     window,
-                    binding.getBindingConfig().getMinClientWidthIfDecorated(),
+                    bindingConfig.getMinClientWidthIfDecorated(),
                     minHeight);
         }
 
@@ -258,6 +269,11 @@ public class SdlBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public SdlBwdBindingConfig getBindingConfig() {
+        return (SdlBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractSdlBwdBinding getBinding() {
@@ -730,9 +746,9 @@ public class SdlBwdHost extends AbstractBwdHost {
         /*
          * Can directly flush our int[] into window surface,
          * and we also don't need to use an offset as it actually
-         * corresponds to client area.
+         * corresponds to client area (at least when scale is 1).
          */
-        this.paintClientOnObThenSurface(windowSurf);
+        this.paintClientNowOnSurface(windowSurf);
     }
 
     @Override
@@ -902,28 +918,28 @@ public class SdlBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
 
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
 
     /*
@@ -934,7 +950,85 @@ public class SdlBwdHost extends AbstractBwdHost {
     protected void closeBackingWindow() {
         LIB.SDL_DestroyWindow(this.window);
     }
+    
+    /*
+     * Painting.
+     */
 
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        this.offscreenBuffer.setSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+
+        return new SdlBwdGraphics(
+            this.binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        if (paintedRectList.isEmpty()) {
+            return;
+        }
+        
+        final SDL_Surface surface = this.currentPainting_backingSurf;
+        
+        final int[] pixelArr =
+            this.offscreenBuffer.getPixelArr();
+        final int pixelArrScanlineStride =
+            this.offscreenBuffer.getScanlineStride();
+
+        /*
+         * TODO sdl Seems to always be false, but since SDL docs
+         * don't tell in which cases a surface requires locking,
+         * we don't know, so we handle it just in case.
+         */
+        final boolean mustLock = SdlStatics.SDL_MUSTLOCK(surface);
+        if (mustLock) {
+            final int ret = LIB.SDL_LockSurface(surface);
+            if (ret < 0) {
+                throw new BindingError("could not lock the surface: " + LIB.SDL_GetError());
+            }
+        }
+        try {
+            for (GRect paintedRect : paintedRectList) {
+                SdlUtils.copyPixels(
+                    scaleHelper,
+                    bufferPosInCliInOs,
+                    //
+                    pixelArr,
+                    pixelArrScanlineStride,
+                    paintedRect,
+                    //
+                    surface);
+            }
+        } finally {
+            if (mustLock) {
+                LIB.SDL_UnlockSurface(surface);
+            }
+        }
+        
+        this.flushPainting();
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -1004,76 +1098,11 @@ public class SdlBwdHost extends AbstractBwdHost {
      * 
      */
     
-    private void paintClientOnObThenSurface(SDL_Surface surface) {
-
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        client.processEventualBufferedEvents();
-        
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-        
-        final GRect clientBounds = this.getClientBounds();
-        final int width = clientBounds.xSpan();
-        final int height = clientBounds.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
-        
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-        
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-
-        this.offscreenBuffer.setSize(width, height);
-        final int[] pixelArr = this.offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = this.offscreenBuffer.getScanlineStride();
-
-        final SdlBwdGraphics g = new SdlBwdGraphics(
-                this.binding,
-                isImageGraphics,
-                box,
-                //
-                pixelArr,
-                pixelArrScanlineStride);
-
-        final List<GRect> paintedRectList =
-                this.getPaintClientHelper().initPaintFinish(
-                        g,
-                        dirtyRect);
-
-        if (paintedRectList.size() != 0) {
-            if (this.canPaintClientNow()) {
-                /*
-                 * TODO sdl Seems to always be false, but since SDL docs
-                 * don't tell in which cases a surface requires locking,
-                 * we don't know, so we handle it just in case.
-                 */
-                final boolean mustLock = SdlStatics.SDL_MUSTLOCK(surface);
-                if (mustLock) {
-                    final int ret = LIB.SDL_LockSurface(surface);
-                    if (ret < 0) {
-                        throw new BindingError("could not lock the surface: " + LIB.SDL_GetError());
-                    }
-                }
-                try {
-                    for (GRect paintedRect : paintedRectList) {
-                        SdlUtils.copyPixels(
-                                pixelArr,
-                                pixelArrScanlineStride,
-                                paintedRect,
-                                surface);
-                    }
-                } finally {
-                    if (mustLock) {
-                        LIB.SDL_UnlockSurface(surface);
-                    }
-                }
-
-                this.flushPainting();
-            }
-        }
+    private void paintClientNowOnSurface(SDL_Surface surface) {
+        this.currentPainting_backingSurf = surface;
+        this.paintBwdClientNowAndBackingClient(
+            getBinding().getBindingConfig(),
+            this.hostBoundsHelper);
     }
     
     private void flushPainting() {

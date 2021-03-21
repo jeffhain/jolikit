@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.qtj4;
 import net.jolikit.bwd.api.graphics.GRect;
 
 import com.trolltech.qt.core.QRect;
+import com.trolltech.qt.gui.QColor;
 import com.trolltech.qt.gui.QPolygon;
 
 public class QtjUtils {
@@ -25,6 +26,13 @@ public class QtjUtils {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
+    
+    public static void setBackingColor(
+        QColor backingColor,
+        int argb32) {
+        // TODO qtj Says rgba, but needs argb.
+        backingColor.setRgba(argb32);
+    }
     
     public static GRect toGRect(QRect rect) {
         return GRect.valueOf(

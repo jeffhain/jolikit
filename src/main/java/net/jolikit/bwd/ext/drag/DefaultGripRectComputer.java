@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ public class DefaultGripRectComputer implements InterfaceGripRectComputer {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final int gripSpan;
+    private int gripSpan;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -35,8 +35,15 @@ public class DefaultGripRectComputer implements InterfaceGripRectComputer {
      *        the whole client area.
      */
     public DefaultGripRectComputer(int gripSpan) {
-        NbrsUtils.requireSupOrEq(0, gripSpan, "gripSpan");
-        this.gripSpan = gripSpan;
+        this.setGripSpan_final(gripSpan);
+    }
+    
+    /**
+     * @param gripSpan Must be >= 0. Zero means center grip occupies
+     *        the whole client area.
+     */
+    public void setGripSpan(int gripSpan) {
+        this.setGripSpan_final(gripSpan);
     }
     
     @Override
@@ -63,5 +70,14 @@ public class DefaultGripRectComputer implements InterfaceGripRectComputer {
                 ((gtx != 0) ? gripSpan : centerXSpan),
                 ((gty != 0) ? gripSpan : centerYSpan));
         return gripBox;
+    }
+    
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    private final void setGripSpan_final(int gripSpan) {
+        NbrsUtils.requireSupOrEq(0, gripSpan, "gripSpan");
+        this.gripSpan = gripSpan;
     }
 }

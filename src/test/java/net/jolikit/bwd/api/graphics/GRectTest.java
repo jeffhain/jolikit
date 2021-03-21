@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import net.jolikit.lang.NbrsUtils;
 import junit.framework.TestCase;
+import net.jolikit.lang.NbrsUtils;
 
 public class GRectTest extends TestCase {
 
@@ -435,6 +435,75 @@ public class GRectTest extends TestCase {
         assertEquals(
                 GRect.valueOf(5, 7, 11, MAX),
                 GRect.valueOf(5, 7, 11, 17).withBordersDeltas(0, 0, 0, MAX-17));
+    }
+
+    public void test_withBordersDeltasElseEmpty_4int() {
+        // Position move to negative span.
+        assertEquals(
+            GRect.valueOf(5+11+1, 7, 0, 17),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(11+1, 0, 0, 0));
+        assertEquals(
+            GRect.valueOf(5, 7+17+1, 11, 0),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 17+1, 0, 0));
+        // Span reduction to negative span.
+        assertEquals(
+            GRect.valueOf(5, 7, 0, 17),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, -(11+1), 0));
+        assertEquals(
+            GRect.valueOf(5, 7, 11, 0),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, 0, -(17+1)));
+        // Modulo arithmetic causing negative spans.
+        assertEquals(
+            GRect.valueOf(5, 7, 0, 17),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, MAX, 0));
+        assertEquals(
+            GRect.valueOf(5, 7, 11, 0),
+            GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, 0, MAX));
+
+        // Position move to span of 1.
+        assertEquals(
+                GRect.valueOf(5+11-1, 7, 1, 17),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(11-1, 0, 0, 0));
+        assertEquals(
+                GRect.valueOf(5, 7+17-1, 11, 1),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 17-1, 0, 0));
+
+        // Position move to span of 0.
+        assertEquals(
+                GRect.valueOf(5+11, 7, 0, 17),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(11, 0, 0, 0));
+        assertEquals(
+                GRect.valueOf(5, 7+17, 11, 0),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 17, 0, 0));
+        
+        // Span reduction to 1.
+        assertEquals(
+                GRect.valueOf(5, 7, 1, 17),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, -(11-1), 0));
+        assertEquals(
+                GRect.valueOf(5, 7, 11, 1),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, 0, -(17-1)));
+        
+        // Span reduction to 0.
+        assertEquals(
+                GRect.valueOf(5, 7, 0, 17),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, -11, 0));
+        assertEquals(
+                GRect.valueOf(5, 7, 11, 0),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, 0, -17));
+        
+        // Regular growth.
+        assertEquals(
+                GRect.valueOf(5-1, 7-2, 11+(1+3), 17+(2+4)),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(-1, -2, 3, 4));
+        
+        // Overflowing rectangles.
+        assertEquals(
+                GRect.valueOf(5, 7, MAX, 17),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, MAX-11, 0));
+        assertEquals(
+                GRect.valueOf(5, 7, 11, MAX),
+                GRect.valueOf(5, 7, 11, 17).withBordersDeltasElseEmpty(0, 0, 0, MAX-17));
     }
 
     /*

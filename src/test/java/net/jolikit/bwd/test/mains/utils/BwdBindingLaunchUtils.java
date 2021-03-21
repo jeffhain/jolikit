@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -133,6 +133,12 @@ public class BwdBindingLaunchUtils {
             Dbg.log("configuring binding from test case home...");
         }
         
+        {
+            final Integer iRef = testCaseHome.getScaleElseNull();
+            if (iRef != null) {
+                bindingConfig.setScale(iRef.intValue());
+            }
+        }
         {
             final Double dRef = testCaseHome.getClientPaintDelaySElseNull();
             if (dRef != null) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,10 +47,13 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.ObjectWrapper;
@@ -442,6 +445,19 @@ public class QtjBwdHost extends AbstractBwdHost {
     private final ObjectWrapper<Object> hostQtStuffsPoolRef =
             new ObjectWrapper<Object>();
     
+    /*
+     * 
+     */
+    
+    private QPainter currentPainting_painter;
+    
+    /*
+     * temps
+     */
+    
+    private final QRect tmpSrcRect = new QRect();
+    private final QRect tmpDstRect = new QRect();
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -472,9 +488,9 @@ public class QtjBwdHost extends AbstractBwdHost {
                 modal,
                 client);
         
-        this.binding = LangUtils.requireNonNull(binding);
-        
         final QtjBwdBindingConfig bindingConfig = binding.getBindingConfig();
+        
+        this.binding = LangUtils.requireNonNull(binding);
         
         final AbstractBwdHost host = this;
         
@@ -617,6 +633,11 @@ public class QtjBwdHost extends AbstractBwdHost {
     /*
      * 
      */
+
+    @Override
+    public QtjBwdBindingConfig getBindingConfig() {
+        return (QtjBwdBindingConfig) super.getBindingConfig();
+    }
 
     @Override
     public AbstractQtjBwdBinding getBinding() {
@@ -810,28 +831,28 @@ public class QtjBwdHost extends AbstractBwdHost {
      */
 
     @Override
-    protected GRect getBackingInsets() {
-        return this.hostBoundsHelper.getInsets();
+    protected GRect getBackingInsetsInOs() {
+        return this.hostBoundsHelper.getInsetsInOs();
     }
 
     @Override
-    protected GRect getBackingClientBounds() {
-        return this.hostBoundsHelper.getClientBounds();
+    protected GRect getBackingClientBoundsInOs() {
+        return this.hostBoundsHelper.getClientBoundsInOs();
     }
     
     @Override
-    protected GRect getBackingWindowBounds() {
-        return this.hostBoundsHelper.getWindowBounds();
+    protected GRect getBackingWindowBoundsInOs() {
+        return this.hostBoundsHelper.getWindowBoundsInOs();
     }
     
     @Override
-    protected void setBackingClientBounds(GRect targetClientBounds) {
-        this.hostBoundsHelper.setClientBounds(targetClientBounds);
+    protected void setBackingClientBoundsInOs(GRect targetClientBoundsInOs) {
+        this.hostBoundsHelper.setClientBoundsInOs(targetClientBoundsInOs);
     }
 
     @Override
-    protected void setBackingWindowBounds(GRect targetWindowBounds) {
-        this.hostBoundsHelper.setWindowBounds(targetWindowBounds);
+    protected void setBackingWindowBoundsInOs(GRect targetWindowBoundsInOs) {
+        this.hostBoundsHelper.setWindowBoundsInOs(targetWindowBoundsInOs);
     }
 
     /*
@@ -844,7 +865,70 @@ public class QtjBwdHost extends AbstractBwdHost {
         
         this.offscreenImage.dispose();
     }
+    
+    /*
+     * Painting.
+     */
 
+    @Override
+    protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
+        
+        final boolean isImageGraphics = false;
+        
+        this.updateOffscreenImageSize(
+            boxWithBorder.xSpan(),
+            boxWithBorder.ySpan());
+        
+        return new QtjBwdGraphics(
+            this.binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            this.offscreenImage,
+            //
+            this.hostQtStuffsPoolRef);
+    }
+    
+    @Override
+    protected void paintBackingClient(
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        GPoint bufferSpansInBd,
+        List<GRect> paintedRectList) {
+        
+        /*
+         * Painting everything even if paintedRectList
+         * is empty, because Qt clears client each time.
+         */
+        
+        final QPainter painter = this.currentPainting_painter;
+        
+        final int scale = scaleHelper.getScale();
+        if (scale != 1) {
+            final QRect dstRect = this.tmpDstRect;
+            dstRect.setRect(
+                bufferPosInCliInOs.x(),
+                bufferPosInCliInOs.y(),
+                scaleHelper.spanBdToOs(bufferSpansInBd.x()),
+                scaleHelper.spanBdToOs(bufferSpansInBd.y()));
+            
+            final QRect srcRect = this.tmpSrcRect;
+            srcRect.setRect(
+                0,
+                0,
+                bufferSpansInBd.x(),
+                bufferSpansInBd.y());
+            
+            painter.drawImage(
+                dstRect,
+                this.offscreenImage,
+                srcRect);
+        } else {
+            painter.drawImage(0, 0, this.offscreenImage);
+        }
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -926,48 +1010,10 @@ public class QtjBwdHost extends AbstractBwdHost {
     }
 
     private void paintClientNowOnPainter_inBeginEnd(QPainter painter) {
-
-        final InterfaceBwdClient client = this.getClientWithExceptionHandler();
-        
-        client.processEventualBufferedEvents();
-
-        if (!this.canPaintClientNow()) {
-            return;
-        }
-        
-        final GRect contentRect = this.getClientBounds();
-        final int width = contentRect.xSpan();
-        final int height = contentRect.ySpan();
-        if ((width <= 0) || (height <= 0)) {
-            return;
-        }
-
-        final boolean isImageGraphics = false;
-        final GRect box = GRect.valueOf(0, 0, width, height);
-
-        final GRect dirtyRect = this.getAndResetDirtyRectBb();
-        
-        this.updateOffscreenImageSize(width, height);
-
-        final QtjBwdGraphics g = new QtjBwdGraphics(
-                this.binding,
-                isImageGraphics,
-                box,
-                //
-                this.offscreenImage,
-                //
-                this.hostQtStuffsPoolRef);
-
-        // No use for this list.
-        @SuppressWarnings("unused")
-        final List<GRect> paintedRectList =
-        this.getPaintClientHelper().initPaintFinish(
-                g,
-                dirtyRect);
-
-        if (this.canPaintClientNow()) {
-            painter.drawImage(0, 0, this.offscreenImage);
-        }
+        this.currentPainting_painter = painter;
+        this.paintBwdClientNowAndBackingClient(
+            getBindingConfig(),
+            this.hostBoundsHelper);
     }
 
     private void updateOffscreenImageSize(int minWidthCap, int minHeightCap) {

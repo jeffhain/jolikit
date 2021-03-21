@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.bwd.impl.sdl2;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Palette;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_PixelFormat;
@@ -22,6 +23,7 @@ import net.jolikit.bwd.impl.sdl2.jlib.SDL_Rect;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Surface;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 
 public class SdlUtils {
@@ -88,89 +90,124 @@ public class SdlUtils {
     /*
      * int[] to SDL_Surface.
      */
-
+    
     /**
-     * Copies all of src into dst, assuming they have the same origin,
-     * and src length is at least srcScanlineStride * dst.h.
-     * 
-     * Takes care of clipping for dst.
-     */
-    public static void copyPixels(
-            int[] src,
-            int srcScanlineStride,
-            GRect srcClip,
-            //
-            SDL_Surface dst) {
-        final int xSpan = Math.min(srcClip.xSpan(), dst.w - srcClip.x());
-        final int ySpan = Math.min(srcClip.ySpan(), dst.h - srcClip.y());
-        copyPixels(
-                src, srcScanlineStride,
-                srcClip.x(), srcClip.y(),
-                dst,
-                srcClip.x(), srcClip.y(),
-                xSpan, ySpan);
-    }
-
-    /**
-     * Takes care of clipping for dst,
-     * but not for src, so if you don't take care
-     * you might get some IOOBE.
+     * Takes dst clip into account, but resulting src rectangle
+     * must fit in the specified src buffer,
+     * so if you don't take care you might get some IOOBE.
      * 
      * @param srcScanlineStride width of a line in src.
-     * @param xSpan Can be negative.
-     * @param ySpan Can be negative.
      */
     public static void copyPixels(
-            int[] src,
-            int srcScanlineStride,
-            int sx,
-            int sy,
-            //
-            SDL_Surface dst,
-            int dx,
-            int dy,
-            //
-            int xSpan,
-            int ySpan) {
+        ScaleHelper scaleHelper,
+        GPoint bufferOffsetInOs,
+        //
+        int[] src,
+        int srcScanlineStride,
+        GRect srcRect,
+        //
+        SDL_Surface dst) {
+        
+        final int scale = scaleHelper.getScale();
+        final boolean gotScaling = (scale != 1);
+        
         /*
-         * Computing clipped destination rectangle,
-         * and eventually reducing span accordingly.
+         * Clipping source rectangle according to destination clip,
+         * but since we use "containing" rectangle in BD
+         * (to be able to paint border), we might still have a slight leak
+         * (when bufferOffsetInOs x/y values are not multiples of scale),
+         * so in case of scaling each line should still be clipped
+         * before writing pixels on SDL surface).
          */
-        final int dxClipped;
-        final int dyClipped;
-        if (false) {
-            /*
-             * Garbage code.
-             * Also throws in case of negative span.
-             */
-            final GRect dRect = GRect.valueOf(dx, dy, xSpan, ySpan);
-            final GRect dClip = toGRect(dst.clip_rect);
-            final GRect dRectClipped = dRect.intersected(dClip);
-            dxClipped = dRectClipped.x();
-            dyClipped = dRectClipped.y();
-            xSpan = dRectClipped.xSpan();
-            ySpan = dRectClipped.ySpan();
-        } else {
-            /*
-             * GC-free flavor.
-             * Also allows for negative spans.
-             */
-            dxClipped = GRect.intersectedPos(dx, dst.clip_rect.x);
-            dyClipped = GRect.intersectedPos(dy, dst.clip_rect.y);
-            xSpan = GRect.intersectedSpan(dx, xSpan, dst.clip_rect.x, dst.clip_rect.w);
-            ySpan = GRect.intersectedSpan(dy, ySpan, dst.clip_rect.y, dst.clip_rect.h);
+        {
+            final GRect dClipInBufferInOs = GRect.valueOf(
+                dst.clip_rect.x - bufferOffsetInOs.x(),
+                dst.clip_rect.y - bufferOffsetInOs.y(),
+                dst.clip_rect.w,
+                dst.clip_rect.h);
+            final GRect dClipInBufferInBd =
+                scaleHelper.rectOsToBdContaining(dClipInBufferInOs);
+            srcRect = srcRect.intersected(dClipInBufferInBd);
         }
+        
+        if (srcRect.isEmpty()) {
+            return;
+        }
+        
+        final int sx = srcRect.x();
+        final int sy = srcRect.y();
+        final int sxSpan = srcRect.xSpan();
+        final int sySpan = srcRect.ySpan();
+        
+        int dx = (sx * scale) + bufferOffsetInOs.x();
+        final int dy = (sy * scale) + bufferOffsetInOs.y();
+        int dxSpan = (sxSpan * scale);
+        
+        /*
+         * Applying dst clip in X
+         * on destination coordinates.
+         */
+        
+        final int leftOver = Math.max(0,
+            dst.clip_rect.x - dx);
+        dx += leftOver;
+        dxSpan -= leftOver;
+        
+        final int rightOver = Math.max(0,
+            (dx + dxSpan)
+            - (dst.clip_rect.x + dst.clip_rect.w));
+        dxSpan -= rightOver;
+        
         /*
          * Looping on clipped destination lines.
          */
-        for (int j = 0; j < ySpan; j++) {
-            final int dstX = dxClipped;
-            final int dstY = dyClipped + j;
-            final int srcX = sx + (dstX - dx);
-            final int srcY = sy + (dstY - dy);
-            final long dstOffset = pixelOffset(dst, dstX, dstY);
+        
+        final int[] tmpSrcLineInOs;
+        if (gotScaling) {
+            // TODO pool it?
+            tmpSrcLineInOs = new int[sxSpan * scale];
+        } else {
+            tmpSrcLineInOs = null;
+        }
+        final int dstX = dx;
+        final int srcX = sx;
+        for (int j = 0; j < sySpan; j++) {
+            final int jj = j * scale;
+            final int dstY = dy + jj;
+            final int srcY = sy + j;
             final int srcIndex = srcX + srcScanlineStride * srcY;
-            dst.pixels.write(dstOffset, src, srcIndex, xSpan);
+            if (gotScaling) {
+                // Updating line in OS.
+                for (int i = 0; i < sxSpan; i++) {
+                    final int ii = i * scale;
+                    final int pixel = src[srcIndex + i];
+                    // Loop to scale in x.
+                    for (int k = 0; k < scale; k++) {
+                        tmpSrcLineInOs[ii + k] = pixel;
+                    }
+                }
+                // Loop to scale in y.
+                for (int k = 0; k < scale; k++) {
+                    final int dstYK = dstY + k;
+                    // Only need to apply dst clip in Y,
+                    // since we already did for X.
+                    if ((dstYK >= dst.clip_rect.y)
+                        && (dstYK < dst.clip_rect.y + dst.clip_rect.h)) {
+                        final long dstOffset = pixelOffset(
+                            dst,
+                            dstX,
+                            dstYK);
+                        dst.pixels.write(
+                            dstOffset,
+                            tmpSrcLineInOs,
+                            leftOver,
+                            dxSpan);
+                    }
+                }
+            } else {
+                final long dstOffset = pixelOffset(dst, dstX, dstY);
+                dst.pixels.write(dstOffset, src, srcIndex, sxSpan);
+            }
         }
     }
 

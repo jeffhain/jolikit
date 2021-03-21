@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +15,15 @@
  */
 package net.jolikit.bwd.impl.swt;
 
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Shell;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
 import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
-
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Shell;
 
 public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
     
@@ -49,12 +49,12 @@ public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsUndecorated_raw() {
+    protected GRect getInsetsUndecorated_rawInOs() {
         return this.undecoratedInsets;
     }
 
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Shell window = (Shell) holder.getBackingWindow();
         return computeInsetsDecorated(window);
@@ -65,12 +65,12 @@ public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected GRect getClientBounds_raw() {
-        return super.getClientBounds_raw();
+    protected GRect getClientBounds_rawInOs() {
+        return super.getClientBounds_rawInOs();
     }
 
     @Override
-    protected GRect getWindowBounds_raw() {
+    protected GRect getWindowBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Shell window = (Shell) holder.getBackingWindow();
         
@@ -83,12 +83,12 @@ public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
-        super.setClientBounds_raw(targetClientBounds);
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
+        super.setClientBounds_rawInOs(targetClientBounds);
     }
     
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final Shell window = (Shell) holder.getBackingWindow();
         
@@ -101,7 +101,7 @@ public class SwtHostBoundsHelper extends AbstractHostBoundsHelper {
          * Same for Y.
          */
         
-        final GRect oldWindowBounds = this.getWindowBounds_raw();
+        final GRect oldWindowBounds = this.getWindowBounds_rawInOs();
         final boolean mustSetXPosFirst = (targetWindowBounds.xSpan() > oldWindowBounds.xSpan());
         final boolean mustSetYPosFirst = (targetWindowBounds.ySpan() > oldWindowBounds.ySpan());
         if (mustSetXPosFirst || mustSetYPosFirst) {

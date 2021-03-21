@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@ import net.jolikit.bwd.ext.drag.ClientBoundsDragHelper;
 import net.jolikit.bwd.ext.drag.DefaultGripRectComputer;
 import net.jolikit.bwd.ext.drag.GripDragController;
 import net.jolikit.bwd.ext.drag.GripType;
-import net.jolikit.bwd.ext.drag.InterfaceGripRectComputer;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
@@ -48,9 +47,9 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final int GRIP_SPAN = 20;
-    private static final int MIN_CLIENT_X_SPAN = 150;
-    private static final int MIN_CLIENT_Y_SPAN = 150;
+    private static final int DEFAULT_GRIP_SPAN = 20;
+    private static final int DEFAULT_MIN_CLIENT_X_SPAN = 150;
+    private static final int DEFAULT_MIN_CLIENT_Y_SPAN = 150;
 
     private static final String IMG_FILE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_PNG;
     
@@ -62,8 +61,8 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final InterfaceGripRectComputer gripRectComputer =
-            new DefaultGripRectComputer(GRIP_SPAN);
+    private final DefaultGripRectComputer gripRectComputer =
+            new DefaultGripRectComputer(DEFAULT_GRIP_SPAN);
     
     private final Map<GripType,GripDragController> dragControllerByGripType =
             new HashMap<GripType,GripDragController>();
@@ -83,6 +82,8 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
     public void setHost(Object host) {
         super.setHost(host);
         this.initDragControllers();
+        // In case getGripSpan() overridden.
+        this.gripRectComputer.setGripSpan(this.getGripSpan());
     }
 
     public HostBoundsGripsBwdTestCase(InterfaceBwdBinding binding) {
@@ -175,6 +176,45 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
+    /*
+     * For extending classes.
+     */
+    
+    protected int getGripSpan() {
+        return DEFAULT_GRIP_SPAN;
+    }
+
+    protected int getMinClientXSpan() {
+        return DEFAULT_MIN_CLIENT_X_SPAN;
+    }
+
+    protected int getMinClientYSpan() {
+        return DEFAULT_MIN_CLIENT_Y_SPAN;
+    }
+    
+    /**
+     * To be called to take into account
+     * getGripSpan()/getMinClientXSpan()/getMinClientYSpan()
+     * results modification.
+     */
+    protected final void onSpanChange() {
+        this.gripRectComputer.setGripSpan(this.getGripSpan());
+        
+        this.dragHelper.setClientMinMaxSpans(
+            this.getMinClientXSpan(),
+            this.getMinClientYSpan(),
+            Integer.MAX_VALUE,
+            Integer.MAX_VALUE);
+    }
+    
+    protected boolean mustScaleImageToWithinGrip() {
+        return false;
+    }
+    
+    /*
+     * 
+     */
+
     @Override
     protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
@@ -190,18 +230,23 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
          * Since our grip boxes cover the whole client area,
          * no need for preliminary clearing.
          */
-
+        
         for (int i = 0; i < GripType.valueList().size(); i++) {
             final GripType gt = GripType.valueList().get(i);
 
-            final GripDragController dc = this.dragControllerByGripType.get(gt);
-            final GRect gripBox = this.gripRectComputer.computeGripRectInClientBox(clientBox, gt);
+            final GripDragController dc =
+                this.dragControllerByGripType.get(gt);
+            final GRect gripBox =
+                this.gripRectComputer.computeGripRectInClientBox(
+                    clientBox, gt);
             dc.setGripPaintedBox(gripBox);
 
             g.setColor(BwdColor.BLACK);
             g.fillRect(gripBox);
-            g.setColor(BwdColor.WHITE);
-            g.drawRect(gripBox);
+            if (gt != GripType.CENTER) {
+                g.setColor(BwdColor.WHITE);
+                g.drawRect(gripBox);
+            }
         }
         
         /*
@@ -215,17 +260,31 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
         }
         
         {
-            // +1 not to erase the white rectangle
-            // that we draw in central part border.
-            final int shift = GRIP_SPAN + 1;
+            final int border = this.getGripSpan();
             
-            // Could be negative.
-            final int partXSpan = Math.min(image.getWidth(), clientBox.xSpan() - 2*shift);
-            final int partYSpan = Math.min(image.getHeight(), clientBox.ySpan() - 2*shift);
-            g.drawImage(
-                    shift, shift, partXSpan, partYSpan,
+            if (this.mustScaleImageToWithinGrip()) {
+                final GRect imgDstRect =
+                    clientBox.withBordersDeltasElseEmpty(
+                        border,
+                        border,
+                        -border,
+                        -border);
+                g.drawImage(
+                    imgDstRect,
+                    image);
+            } else {
+                // Could be negative.
+                final int partXSpan = Math.min(
+                    image.getWidth(),
+                    clientBox.xSpan() - 2*border);
+                final int partYSpan = Math.min(
+                    image.getHeight(),
+                    clientBox.ySpan() - 2*border);
+                g.drawImage(
+                    border, border, partXSpan, partYSpan,
                     image,
                     0, 0, partXSpan, partYSpan);
+            }
         }
 
         /*
@@ -252,8 +311,8 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
         }
         
         this.dragHelper = new ClientBoundsDragHelper(
-                MIN_CLIENT_X_SPAN,
-                MIN_CLIENT_Y_SPAN,
+                DEFAULT_MIN_CLIENT_X_SPAN,
+                DEFAULT_MIN_CLIENT_Y_SPAN,
                 hostSupplier,
                 this.gripRectComputer,
                 this.dragControllerByGripType);

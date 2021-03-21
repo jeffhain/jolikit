@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,8 @@ import net.jolikit.bwd.test.cases.visualtests.Alpha1LayerWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinOpaqueBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ArcDrawFillBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.GraphicsRoundRobinBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.GraphicsRoundRobinScaledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClearBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClientDirtyPaintTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClientRepaintTestBwdTestCase;
@@ -78,6 +80,11 @@ import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsCliScaledBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsWiScaledBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetScaledBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ScalingCliBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ScalingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextCasesBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextClippingCliBwdTestCase;
@@ -103,13 +110,24 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
     {
         final List<BwdTestCaseHomesColumn> columnList = new ArrayList<BwdTestCaseHomesColumn>();
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Tests (General)");
+            final BwdTestCaseHomesColumn column =
+                new BwdTestCaseHomesColumn("Visual Tests (General)");
             columnList.add(column);
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new HelloBindingBwdTestCase(),
+                    new ScalingCliBwdTestCase(),
+                    new ScalingWiBwdTestCase(),
             });
-
+            
+            /*
+             * Child graphics.
+             */
+            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                new GraphicsRoundRobinBwdTestCase(),
+                new GraphicsRoundRobinScaledBwdTestCase(),
+            });
+            
             /*
              * Hosts and clients states and bounds.
              */
@@ -118,6 +136,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new HostDefaultBoundsBwdTestCase(),
                     new HostBoundsGripsBwdTestCase(),
                     new HostBoundsSetGetBwdTestCase(),
+                    new HostBoundsSetGetScaledBwdTestCase(),
                     new HostCoordsRegularBwdTestCase(),
                     new HostCoordsHugeBwdTestCase(),
             });
@@ -132,22 +151,17 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
 
             /*
-             * Drawing (no alpha).
+             * Ordering/clipping/reading.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                    new ClearBwdTestCase(),
-                    new DrawingMethodsCliBwdTestCase(),
-                    new DrawingMethodsWiBwdTestCase(),
                     new DrawOrderingBwdTestCase(),
-                    new ArcDrawFillBwdTestCase(),
                     new ClippingBwdTestCase(),
-                    new TheoreticalOvalOnGridBwdTestCase(),
                     new PixelReadFromGraphicsBwdTestCase(),
                     new PixelReadFromImageBwdTestCase(),
             });
 
             /*
-             * Drawing (alpha).
+             * Alpha.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new Alpha1LayerWinOpaqueBwdTestCase(),
@@ -171,9 +185,23 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
         }
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Tests (Text, Images)");
+            final BwdTestCaseHomesColumn column =
+                new BwdTestCaseHomesColumn("Visual Tests (Figures, Text, Images)");
             columnList.add(column);
 
+            /*
+             * Figures.
+             */
+            column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                    new ClearBwdTestCase(),
+                    new DrawingMethodsCliBwdTestCase(),
+                    new DrawingMethodsCliScaledBwdTestCase(),
+                    new DrawingMethodsWiBwdTestCase(),
+                    new DrawingMethodsWiScaledBwdTestCase(),
+                    new ArcDrawFillBwdTestCase(),
+                    new TheoreticalOvalOnGridBwdTestCase(),
+            });
+            
             /*
              * Text.
              */
@@ -203,7 +231,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
         }
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Visual Benches/Conc/Prl");
+            final BwdTestCaseHomesColumn column =
+                new BwdTestCaseHomesColumn("Visual Benches/Conc/Prl");
             columnList.add(column);
 
             /*
@@ -254,7 +283,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             });
         }
         {
-            final BwdTestCaseHomesColumn column = new BwdTestCaseHomesColumn("Unit Tests/Benches");
+            final BwdTestCaseHomesColumn column =
+                new BwdTestCaseHomesColumn("Unit Tests/Benches");
             columnList.add(column);
 
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{

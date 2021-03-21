@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,14 +15,14 @@
  */
 package net.jolikit.bwd.impl.jogl;
 
+import com.jogamp.nativewindow.util.InsetsImmutable;
+import com.jogamp.nativewindow.util.Rectangle;
+import com.jogamp.newt.opengl.GLWindow;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractHostBoundsHelper;
 import net.jolikit.bwd.impl.utils.InterfaceBackingWindowHolder;
 import net.jolikit.lang.Dbg;
-
-import com.jogamp.nativewindow.util.InsetsImmutable;
-import com.jogamp.nativewindow.util.Rectangle;
-import com.jogamp.newt.opengl.GLWindow;
 
 public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     
@@ -47,7 +47,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     
     private int lastReshapedClientWidth;
     private int lastReshapedClientHeight;
-    public void setLastReshapedClientSpans(
+    public void setLastReshapedClientSpansInOs(
             int lastReshapedClientWidth,
             int lastReshapedClientHeight) {
         if (DEBUG) {
@@ -62,7 +62,8 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public JoglHostBoundsHelper(InterfaceBackingWindowHolder holder) {
+    public JoglHostBoundsHelper(
+        InterfaceBackingWindowHolder holder) {
         super(holder);
     }
     
@@ -71,7 +72,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     //--------------------------------------------------------------------------
     
     @Override
-    protected GRect getInsetsDecorated_raw() {
+    protected GRect getInsetsDecorated_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final GLWindow window = (GLWindow) holder.getBackingWindow();
 
@@ -89,7 +90,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
      */
 
     @Override
-    protected GRect getClientBounds_raw() {
+    protected GRect getClientBounds_rawInOs() {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final GLWindow window = (GLWindow) holder.getBackingWindow();
         
@@ -111,8 +112,8 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     }
     
     @Override
-    protected GRect getWindowBounds_raw() {
-        return super.getWindowBounds_raw();
+    protected GRect getWindowBounds_rawInOs() {
+        return super.getWindowBounds_rawInOs();
     }
 
     /*
@@ -120,7 +121,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
      */
     
     @Override
-    protected void setClientBounds_raw(GRect targetClientBounds) {
+    protected void setClientBounds_rawInOs(GRect targetClientBounds) {
         final InterfaceBackingWindowHolder holder = this.getHolder();
         final GLWindow window = (GLWindow) holder.getBackingWindow();
         
@@ -133,7 +134,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
          * Same for Y.
          */
         
-        final GRect oldClientBounds = this.getClientBounds_raw();
+        final GRect oldClientBounds = this.getClientBounds_rawInOs();
         final boolean mustSetXPosFirst = (targetClientBounds.xSpan() > oldClientBounds.xSpan());
         final boolean mustSetYPosFirst = (targetClientBounds.ySpan() > oldClientBounds.ySpan());
         if (mustSetXPosFirst || mustSetYPosFirst) {
@@ -171,7 +172,7 @@ public class JoglHostBoundsHelper extends AbstractHostBoundsHelper {
     }
     
     @Override
-    protected void setWindowBounds_raw(GRect targetWindowBounds) {
-        super.setWindowBounds_raw(targetWindowBounds);
+    protected void setWindowBounds_rawInOs(GRect targetWindowBounds) {
+        super.setWindowBounds_rawInOs(targetWindowBounds);
     }
 }

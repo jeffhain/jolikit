@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,22 +21,19 @@ import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
-import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.utils.BwdUnicode;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_KeyboardEvent;
-import net.jolikit.bwd.impl.sdl2.jlib.SdlKeycode;
-import net.jolikit.bwd.impl.sdl2.jlib.SdlKeymod;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Keysym;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseButtonEvent;
-import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseMotionEvent;
-import net.jolikit.bwd.impl.sdl2.jlib.SdlMouseWheelDirection;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseWheelEvent;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlKeycode;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlKeymod;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlMouseWheelDirection;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
-import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.OsUtils;
 
 /**
@@ -56,6 +53,7 @@ public class SdlEventConverter extends AbstractEventConverter {
      * TODO sdl On Mac, can have backing mouse position in client
      * slightly outside client bounds, so we ensure it stays in.
      */
+    @SuppressWarnings("unused")
     private static final boolean MUST_ENSURE_MOUSE_POS_IN_CLIENT_STAYS_IN = OsUtils.isMac();
     
     //--------------------------------------------------------------------------
@@ -108,7 +106,10 @@ public class SdlEventConverter extends AbstractEventConverter {
     public SdlEventConverter(
             CmnInputConvState commonState,
             AbstractBwdHost host) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
     }
     
     //--------------------------------------------------------------------------
@@ -117,10 +118,6 @@ public class SdlEventConverter extends AbstractEventConverter {
     
     @Override
     protected void updateFromBackingEvent(Object backingEvent) {
-        
-        /*
-         * Updating common state.
-         */
         
         final CmnInputConvState commonState = this.getCommonState();
         
@@ -138,16 +135,16 @@ public class SdlEventConverter extends AbstractEventConverter {
              * to get mouse position in screen.
              */
             
-            final IntByReference mouseXInScreen = this.tmpIntRef1;
-            final IntByReference mouseYInScreen = this.tmpIntRef2;
+            final IntByReference mouseXInScreenInOs = this.tmpIntRef1;
+            final IntByReference mouseYInScreenInOs = this.tmpIntRef2;
             final int buttonsBits = LIB.SDL_GetGlobalMouseState(
-                    mouseXInScreen,
-                    mouseYInScreen);
+                    mouseXInScreenInOs,
+                    mouseYInScreenInOs);
             
-            final GPoint mousePosInScreen = GPoint.valueOf(
-                    mouseXInScreen.getValue(),
-                    mouseYInScreen.getValue());
-            commonState.setMousePosInScreen(mousePosInScreen);
+            final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                mouseXInScreenInOs.getValue(),
+                mouseYInScreenInOs.getValue());
+            commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             
             commonState.setPrimaryButtonDown(computeIsPrimaryButtonDown(buttonsBits));
             commonState.setMiddleButtonDown(computeIsMiddleButtonDown(buttonsBits));
@@ -162,44 +159,6 @@ public class SdlEventConverter extends AbstractEventConverter {
             commonState.setControlDown(computeIsControlDown(keysym));
             commonState.setAltDown(computeIsAltDown(keysym));
             commonState.setMetaDown(computeIsMetaDown(keysym));
-        }
-
-        /*
-         * Updating host-specific state.
-         */
-        
-        if (backingEvent instanceof SDL_MouseMotionEvent) {
-            final SDL_MouseMotionEvent event = (SDL_MouseMotionEvent) backingEvent;
-            
-            int xInClient = event.x;
-            int yInClient = event.y;
-            
-            if (MUST_ENSURE_MOUSE_POS_IN_CLIENT_STAYS_IN) {
-                final GRect clientBounds = this.getHost().getClientBounds();
-                if (!clientBounds.isEmpty()) {
-                    xInClient = NbrsUtils.toRange(0, clientBounds.xSpan(), xInClient);
-                    yInClient = NbrsUtils.toRange(0, clientBounds.ySpan(), yInClient);
-                }
-            }
-            
-            final GPoint mousePosInClient = GPoint.valueOf(
-                    xInClient,
-                    yInClient);
-            this.setMousePosInClient(mousePosInClient);
-            
-        } else if (false) {
-            /*
-             * Not doing that, because it can compute positions
-             * (slightly) outside client area.
-             */
-            final GRect clientBounds = this.getHost().getClientBounds();
-            if (!clientBounds.isEmpty()) {
-                final GPoint mousePosInScreen = commonState.getMousePosInScreen();
-                final GPoint mousePosInClient = GPoint.valueOf(
-                        mousePosInScreen.x() - clientBounds.x(),
-                        mousePosInScreen.y() - clientBounds.y());
-                this.setMousePosInClient(mousePosInClient);
-            }
         }
     }
     

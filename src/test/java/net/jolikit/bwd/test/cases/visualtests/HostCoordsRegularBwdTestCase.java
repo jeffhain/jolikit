@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -148,13 +148,21 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
          * Drawing lines, to help figure out client positioning
          * even if no text is drawn (as on Mac with Allegro5).
          */
+
+        // Blue rectangle: just outside the box: must not be visible.
+        g.setColor(BwdColor.BLUE);
+        g.drawRect(box.withBordersDeltas(-1, -1, 1, 1));
+
+        // Red rectangle: the box: must be visible.
+        g.setColor(BwdColor.RED);
+        g.drawRect(box);
         
         g.setColor(BwdColor.GREEN);
         g.drawLine(box.xMid(), y, box.xMax(), box.yMid());
         g.drawLine(box.xMax(), box.yMid(), box.xMid(), box.yMax());
         g.drawLine(box.xMid(), box.yMax(), x, box.yMid());
         g.drawLine(x, box.yMid(), box.xMid(), y);
-        
+
         /*
          * 
          */
@@ -175,26 +183,28 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
         g.setFont(font);
         final int lineHeight = font.metrics().height() + 1;
         
-        int tmpY = y;
+        // +2 to be 1-pixel blank line away from red box. 
+        int textX = x + 2;
+        int textY = y + 2;
         g.setColor(BwdColor.BLACK);
         
-        g.drawText(x, tmpY, "screen = " + screenBounds);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "screen = " + screenBounds);
+        textY += lineHeight;
 
-        g.drawText(x, tmpY, "window = " + windowBounds);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "window = " + windowBounds);
+        textY += lineHeight;
 
-        g.drawText(x, tmpY, "client = " + clientBounds);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "client = " + clientBounds);
+        textY += lineHeight;
 
-        g.drawText(x, tmpY, "mouse pos in screen = " + bindingMousePosInScreen);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "mouse pos in screen = " + bindingMousePosInScreen);
+        textY += lineHeight;
 
-        g.drawText(x, tmpY, "move pos in screen = " + lastMouseMovePosInScreen);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "move pos in screen = " + lastMouseMovePosInScreen);
+        textY += lineHeight;
 
-        g.drawText(x, tmpY, "move pos in client = " + lastMouseMovePosInClient);
-        tmpY += lineHeight;
+        g.drawText(textX, textY, "move pos in client = " + lastMouseMovePosInClient);
+        textY += lineHeight;
         
         return GRect.DEFAULT_HUGE_IN_LIST;
     }

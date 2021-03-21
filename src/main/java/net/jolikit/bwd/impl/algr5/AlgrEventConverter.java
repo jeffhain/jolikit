@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,18 +15,17 @@
  */
 package net.jolikit.bwd.impl.algr5;
 
-import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.algr5.jlib.AlgrKey;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_KEYBOARD_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_KEYBOARD_STATE;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_MOUSE_EVENT;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_MOUSE_STATE;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrEventType;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
+import net.jolikit.bwd.impl.algr5.jlib.AlgrKey;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrKeymod;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
@@ -72,9 +71,12 @@ public class AlgrEventConverter extends AbstractEventConverter {
     
     public AlgrEventConverter(
             CmnInputConvState commonState,
-            PixelCoordsConverter pixelCoordsConverter,
-            AbstractBwdHost host) {
-        super(commonState, host);
+            AbstractBwdHost host,
+            PixelCoordsConverter pixelCoordsConverter) {
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
         this.pixelCoordsConverter = LangUtils.requireNonNull(pixelCoordsConverter);
     }
     
@@ -84,13 +86,9 @@ public class AlgrEventConverter extends AbstractEventConverter {
     
     @Override
     protected void updateFromBackingEvent(Object backingEvent) {
-
-        /*
-         * Updating common state.
-         */
         
         final CmnInputConvState commonState = this.getCommonState();
-
+        
         {
             final ALLEGRO_MOUSE_STATE mouseState = this.tmpMouseState;
             LIB.al_get_mouse_state(mouseState);
@@ -179,29 +177,22 @@ public class AlgrEventConverter extends AbstractEventConverter {
              * of another host in case of focus switch.
              */
             
-            final int mouseXInClient = this.pixelCoordsConverter.computeXInOsPixel(event.x);
-            final int mouseYInClient = this.pixelCoordsConverter.computeYInOsPixel(event.y);
+            final int mouseXInClientInOs = this.pixelCoordsConverter.computeXInOsPixel(event.x);
+            final int mouseYInClientInOs = this.pixelCoordsConverter.computeYInOsPixel(event.y);
             if (DEBUG) {
-                Dbg.logPr(this, "ALLEGRO_MOUSE_EVENT : in client : (" + mouseXInClient + ", " + mouseYInClient +  ")");
+                Dbg.logPr(this, "ALLEGRO_MOUSE_EVENT : in client in OS : (" + mouseXInClientInOs + ", " + mouseYInClientInOs +  ")");
             }
-            final GPoint mousePosInClient = GPoint.valueOf(
-                    mouseXInClient,
-                    mouseYInClient);
-            this.setMousePosInClient(mousePosInClient);
             
-            final InterfaceBwdHost host = this.getHost();
-            final GRect clientBounds = host.getClientBounds();
-            if (!clientBounds.isEmpty()) {
+            final AbstractBwdHost host = (AbstractBwdHost) this.getHost();
+            final GRect clientBoundsInOs = host.getClientBoundsInOs();
+            if (!clientBoundsInOs.isEmpty()) {
                 if (DEBUG) {
-                    Dbg.logPr(this, "ALLEGRO_MOUSE_EVENT : clientBounds = " + clientBounds);
+                    Dbg.logPr(this, "ALLEGRO_MOUSE_EVENT : clientBoundsInOs = " + clientBoundsInOs);
                 }
-                final GPoint mousePosInScreen = GPoint.valueOf(
-                        clientBounds.x() + mouseXInClient,
-                        clientBounds.y() + mouseYInClient);
-                if (DEBUG) {
-                    Dbg.logPr(this, "ALLEGRO_MOUSE_EVENT : mousePosInScreen = " + mousePosInScreen);
-                }
-                commonState.setMousePosInScreen(mousePosInScreen);
+                final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                    clientBoundsInOs.x() + mouseXInClientInOs,
+                    clientBoundsInOs.y() + mouseYInClientInOs);
+                commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             }
         }
     }

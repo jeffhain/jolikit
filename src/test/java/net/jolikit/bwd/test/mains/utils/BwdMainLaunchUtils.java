@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import net.jolikit.build.JlkBinConfig;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBindingMainLaunchInfo;
@@ -210,7 +211,7 @@ public class BwdMainLaunchUtils {
         final int colCount = (int) Math.ceil(Math.sqrt(mainCount));
         final int rowCount = mainCount / colCount;
         
-        final GRect screenBounds = BwdTestUtils.getScreenBoundsFromDefaultBinding(
+        final GRect screenBoundsInOs = BwdTestUtils.getScreenBoundsFromDefaultBinding(
                 ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE);
         {
             final InterfaceBwdBinding bindingForScreenBounds = BwdTestUtils.getDefaultBinding();
@@ -227,6 +228,19 @@ public class BwdMainLaunchUtils {
             if (testCaseHome.getMustSequenceLaunches() != oneAtATime) {
                 // Ignoring it.
                 continue;
+            }
+            
+            final GRect screenBounds;
+            if (testCaseHome.getScaleElseNull() != null) {
+                final ScaleHelper scaleHelper = new ScaleHelper();
+                final int scale = testCaseHome.getScaleElseNull();
+                scaleHelper.setScale(scale);
+                // Default binding has scale of 1, so need scaling.
+                screenBounds =
+                    scaleHelper.rectOsToBdContained(
+                        screenBoundsInOs);
+            } else {
+                screenBounds = screenBoundsInOs;
             }
             
             final String testCaseHomeClassName = testCaseHome.getClass().getName();

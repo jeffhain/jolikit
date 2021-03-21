@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,8 +78,8 @@ public class JfxBwdWritableImage extends AbstractJfxBwdImage implements Interfac
             
             graphics = new JfxBwdGraphicsWithIntArr(
                     binding,
-                    isImageGraphics,
                     box,
+                    isImageGraphics,
                     pixelArr,
                     pixelArrScanlineStride);
             
@@ -98,12 +98,15 @@ public class JfxBwdWritableImage extends AbstractJfxBwdImage implements Interfac
                     new JfxDirtySnapshotHelper(
                             canvas,
                             ALLOW_SNAPSHOT_STORAGE_SHRINKING);
+            // Image in binding pixels, no need to scale.
+            final int gcScale = 1;
             graphics = new JfxBwdGraphicsWithGc(
                     binding,
-                    gc,
-                    isImageGraphics,
                     box,
                     //
+                    isImageGraphics,
+                    gc,
+                    gcScale,
                     dirtySnapshotHelper);
             
             this.dirtySnapshotHelper = dirtySnapshotHelper;

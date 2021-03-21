@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -308,31 +308,22 @@ public class ClientBoundsDragHelper {
                         + "," + restoreBoundsIfNotExact + ")");
             }
             /*
-             * Not setting bounds synchronously,
-             * in case it would hurt mouse event processing.
-             */
-            final Runnable runnable = new Runnable() {
-                @Override
-                public void run() {
-                    if (DEBUG) {
-                        Dbg.log("setClientBoundsSmart("
-                            + newClientBounds
-                            + "," + mustFixRight + "," + mustFixBottom
-                            + "," + restoreBoundsIfNotExact + ")");
-                    }
-                    host.setClientBoundsSmart(
-                            newClientBounds,
-                            mustFixRight,
-                            mustFixBottom,
-                            restoreBoundsIfNotExact);
-                }
-            };
-            /*
              * NB: At once was using async here (with UI thread scheduler),
+             * in case sync would hurt mouse event processing,
              * but if I recall I had trouble with Allegro5 on Mac,
              * so now we are synchronous (which also helps for debug).
              */
-            runnable.run();
+            if (DEBUG) {
+                Dbg.log("setClientBoundsSmart("
+                    + newClientBounds
+                    + "," + mustFixRight + "," + mustFixBottom
+                    + "," + restoreBoundsIfNotExact + ")");
+            }
+            host.setClientBoundsSmart(
+                newClientBounds,
+                mustFixRight,
+                mustFixBottom,
+                restoreBoundsIfNotExact);
         } else {
             if (DEBUG) {
                 Dbg.log("onMouseDragged() : client already has target bounds");

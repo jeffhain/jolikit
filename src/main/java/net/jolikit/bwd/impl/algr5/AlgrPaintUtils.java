@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,14 @@ import java.util.List;
 
 import com.sun.jna.Pointer;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_LOCKED_REGION;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils;
 import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.IntArrSrcPixels;
@@ -64,13 +66,23 @@ public class AlgrPaintUtils {
     
     private static class MyScaledRowPartDrawer implements InterfaceScaledRowPartDrawer {
         private ALLEGRO_LOCKED_REGION region;
+        private GRect regionClip;
         private Pointer dataPtr;
         public MyScaledRowPartDrawer() {
         }
+        /**
+         * Clip useful to avoid leak when drawing
+         * padding border, which is defined in BD
+         * and goes out of client.
+         * 
+         * @param regionClip In device pixels.
+         */
         public void configure(
                 ALLEGRO_LOCKED_REGION region,
+                GRect regionClip,
                 Pointer dataPtr) {
             this.region = region;
+            this.regionClip = regionClip;
             this.dataPtr = dataPtr;
         }
         @Override
@@ -82,8 +94,30 @@ public class AlgrPaintUtils {
                 int partDstY,
                 //
                 int length) {
-            final long offset = partDstX * this.region.pixel_size + this.region.pitch * partDstY;
-            this.dataPtr.write(offset, scaledSrcRowArr, scaledSrcRowOffset, length);
+            if ((partDstY < this.regionClip.y())
+                || (partDstY > this.regionClip.yMax())) {
+                return;
+            }
+            
+            final int leftOver = Math.max(0,
+                this.regionClip.x() - partDstX);
+            scaledSrcRowOffset += leftOver;
+            partDstX += leftOver;
+            length -= leftOver;
+            
+            final int rightOver = Math.max(0,
+                (partDstX + length)
+                - (this.regionClip.x() + this.regionClip.xSpan()));
+            length -= rightOver;
+            
+            final long offset =
+                partDstX * this.region.pixel_size
+                + this.region.pitch * partDstY;
+            this.dataPtr.write(
+                offset,
+                scaledSrcRowArr,
+                scaledSrcRowOffset,
+                length);
         }
     }
     
@@ -142,20 +176,24 @@ public class AlgrPaintUtils {
      * Does not flip display, so that can be called multiple times
      * with different rectangles before costly display flip.
      * 
-     * @param clipList Must be in client box.
+     * @param paintedRectList Parts of buffer to be copied.
      */
     public void paintPixelsOnClient(
-            PixelCoordsConverter pixelCoordsConverter,
-            IntArrayGraphicBuffer offscreenBuffer,
-            List<GRect> clipList,
-            Pointer display,
-            PrintStream issueStream) {
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        List<GRect> paintedRectList,
+        //
+        IntArrayGraphicBuffer bufferInBd,
+        Pointer display,
+        PixelCoordsConverter pixelCoordsConverter,
+        PrintStream issueStream) {
 
-        final int clientWidth = offscreenBuffer.getWidth();
-        final int clientHeight = offscreenBuffer.getHeight();
-        final int[] pixelArr = offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
-
+        final int[] bufferArr = bufferInBd.getPixelArr();
+        final int bufferArrScanlineStride = bufferInBd.getScanlineStride();
+        final int bufferWidth = bufferInBd.getWidth();
+        final int bufferHeight = bufferInBd.getHeight();
+        
         final Pointer windowBitmap = LIB.al_get_backbuffer(display);
         LIB.al_set_target_bitmap(windowBitmap);
         
@@ -166,15 +204,29 @@ public class AlgrPaintUtils {
         final int windowBitmapLockFormat = AlgrFormatUtils.getLockFormat(windowBitmap);
         
         /*
+         * Bitmap rectangle, to make sure we stay in.
+         */
+        
+        final int bitmapWidthInDevice = LIB.al_get_bitmap_width(windowBitmap);
+        final int bitmapHeightInDevice = LIB.al_get_bitmap_height(windowBitmap);
+        final GRect bitmapRectInDevice =
+            GRect.valueOf(
+                0,
+                0,
+                bitmapWidthInDevice,
+                bitmapHeightInDevice);
+
+        /*
          * TODO algr Only locking small parts if possible,
          * for benches are utterly slow when we have to lock
          * the whole client area and Allegro does format conversion.
          * ===> Maybe could just get away with NOT locking?
          */
-        final boolean mustJustLockInitialClipRegion = true;
+        final boolean mustJustLockPaintedRectRegion = true;
         Pointer regionPtr = null;
         ALLEGRO_LOCKED_REGION region = null;
-        if (!mustJustLockInitialClipRegion) {
+        GRect regionClip = GRect.DEFAULT_EMPTY;
+        if (!mustJustLockPaintedRectRegion) {
             regionPtr = LIB.al_lock_bitmap(
                     windowBitmap,
                     windowBitmapLockFormat,
@@ -191,34 +243,46 @@ public class AlgrPaintUtils {
         }
         try {
             final IntArrSrcPixels inputPixels = new IntArrSrcPixels(
-                    clientWidth,
-                    clientHeight,
-                    pixelArr,
-                    pixelArrScanlineStride);
+                    bufferWidth,
+                    bufferHeight,
+                    bufferArr,
+                    bufferArrScanlineStride);
 
-            final int bw = LIB.al_get_bitmap_width(windowBitmap);
-            final int bh = LIB.al_get_bitmap_height(windowBitmap);
+            if (!mustJustLockPaintedRectRegion) {
+                regionClip = GRect.valueOf(
+                    0,
+                    0,
+                    bitmapWidthInDevice,
+                    bitmapHeightInDevice);
+            }
             
-            for (GRect clip : clipList) {
-                final int x = clip.x();
-                final int y = clip.y();
-                final int width = clip.xSpan();
-                final int height = clip.ySpan();
+            for (GRect prInBuffInBd : paintedRectList) {
+                final GRect prInBuffInOs = scaleHelper.rectBdToOs(prInBuffInBd);
                 
-                final int regionX = pixelCoordsConverter.computeXInDevicePixel(x);
-                final int regionY = pixelCoordsConverter.computeYInDevicePixel(y);
-                // Taking care not to leak outside the bitmap,
-                // which would cause locking failure.
-                final int regionWidth = Math.min(bw - regionX, pixelCoordsConverter.computeXSpanInDevicePixel(width));
-                final int regionHeight = Math.min(bh - regionY, pixelCoordsConverter.computeYSpanInDevicePixel(height));
+                final int prXInCliInOs = prInBuffInOs.x() + bufferPosInCliInOs.x();
+                final int prYInCliInOs = prInBuffInOs.y() + bufferPosInCliInOs.y();
                 
-                if (mustJustLockInitialClipRegion) {
+                // Might leak out of the device.
+                final GRect rectInDevice = GRect.valueOf(
+                    pixelCoordsConverter.computeXInDevicePixel(prXInCliInOs),
+                    pixelCoordsConverter.computeYInDevicePixel(prYInCliInOs),
+                    pixelCoordsConverter.computeXSpanInDevicePixel(prInBuffInOs.xSpan()),
+                    pixelCoordsConverter.computeYSpanInDevicePixel(prInBuffInOs.ySpan()));
+                
+                /*
+                 * Locking fails if we leak out of bitmap,
+                 * so we need to clip.
+                 */
+                final GRect rectInDeviceClipped =
+                    rectInDevice.intersected(bitmapRectInDevice);
+
+                if (mustJustLockPaintedRectRegion) {
                     regionPtr = LIB.al_lock_bitmap_region(
                             windowBitmap,
-                            regionX,
-                            regionY,
-                            regionWidth,
-                            regionHeight,
+                            rectInDeviceClipped.x(),
+                            rectInDeviceClipped.y(),
+                            rectInDeviceClipped.xSpan(),
+                            rectInDeviceClipped.ySpan(),
                             windowBitmapLockFormat,
                             AlgrJnaLib.ALLEGRO_LOCK_READWRITE);
                     if (regionPtr == null) {
@@ -231,20 +295,12 @@ public class AlgrPaintUtils {
                     }
                 }
                 try {
-                    if (mustJustLockInitialClipRegion) {
+                    if (mustJustLockPaintedRectRegion) {
                         region = AlgrJnaUtils.newAndRead(ALLEGRO_LOCKED_REGION.class, regionPtr);
+                        regionClip = rectInDeviceClipped;
                     }
                     final Pointer dataPtr = region.data;
                     
-                    final int regionXInLocked;
-                    final int regionYInLocked;
-                    if (mustJustLockInitialClipRegion) {
-                        regionXInLocked = 0;
-                        regionYInLocked = 0;
-                    } else {
-                        regionXInLocked = x;
-                        regionYInLocked = y;
-                    }
                     /*
                      * Not using ALLEGRO_TRANSFORM for scaling, because it would require
                      * to use intermediary bitmaps, which would cause more ties with Allegro
@@ -253,40 +309,32 @@ public class AlgrPaintUtils {
                      * exactly as I want, which is consistently with default images scaling
                      * algorithms.
                      */
-                    if (false) {
-                        /*
-                         * Code for drawing without scaling to device pixels.
-                         */
-                        for (int j = 0; j < height; j++) {
-                            final long offset = regionXInLocked * region.pixel_size + region.pitch * (regionYInLocked + j);
-                            final int index = x + pixelArrScanlineStride * (y + j);
-                            final int length = width;
-                            dataPtr.write(offset, pixelArr, index, length);
-                        }
-                    }
-                    this.scaledRowPartDrawer.configure(region, dataPtr);
+                    this.scaledRowPartDrawer.configure(
+                        region,
+                        regionClip,
+                        dataPtr);
                     this.scaledRectDrawingUtils.drawRectScaled(
-                            inputPixels,
-                            //
-                            x,
-                            y,
-                            width,
-                            height,
-                            //
-                            regionXInLocked,
-                            regionYInLocked,
-                            regionWidth,
-                            regionHeight,
-                            //
-                            this.scaledRowPartDrawer);
+                        inputPixels,
+                        //
+                        prInBuffInBd.x(),
+                        prInBuffInBd.y(),
+                        prInBuffInBd.xSpan(),
+                        prInBuffInBd.ySpan(),
+                        //
+                        rectInDevice.x(),
+                        rectInDevice.y(),
+                        rectInDevice.xSpan(),
+                        rectInDevice.ySpan(),
+                        //
+                        this.scaledRowPartDrawer);
                 } finally {
-                    if (mustJustLockInitialClipRegion) {
+                    if (mustJustLockPaintedRectRegion) {
                         LIB.al_unlock_bitmap(windowBitmap);
                     }
                 }
             }
         } finally {
-            if (!mustJustLockInitialClipRegion) {
+            if (!mustJustLockPaintedRectRegion) {
                 LIB.al_unlock_bitmap(windowBitmap);
             }
         }

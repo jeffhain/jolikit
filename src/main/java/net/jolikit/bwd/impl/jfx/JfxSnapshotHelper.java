@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,11 +22,9 @@ import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NbrsUtils;
 import net.jolikit.time.TimeUtils;
 
 /**
@@ -51,8 +49,6 @@ public class JfxSnapshotHelper {
     
     private final Canvas canvas;
     
-    private final boolean allowStorageShrinking;
-    
     /**
      * Empty by default because we didn't take any snapshot yet.
      */
@@ -65,12 +61,6 @@ public class JfxSnapshotHelper {
      */
     private final IntArrayGraphicBuffer snapshotPixels;
     
-    /*
-     * temps
-     */
-    
-    private final SnapshotParameters tmpParams = new SnapshotParameters();
-    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -82,7 +72,6 @@ public class JfxSnapshotHelper {
             Canvas canvas,
             boolean allowStorageShrinking) {
         this.canvas = LangUtils.requireNonNull(canvas);
-        this.allowStorageShrinking = allowStorageShrinking;
         this.snapshotPixels =
                 new IntArrayGraphicBuffer(
                         MUST_COPY_ON_STORAGE_RESIZE,
@@ -123,6 +112,17 @@ public class JfxSnapshotHelper {
     
     public int getScanlineStride() {
         return this.snapshotPixels.getScanlineStride();
+    }
+    
+    /**
+     * Static utility, doesn't modify any helper instance state.
+     * 
+     * @return Snapshot of the whole canvas.
+     */
+    public static WritableImage takeSnapshot(Canvas canvas) {
+        final int cw = (int) canvas.getWidth();
+        final int ch = (int) canvas.getHeight();
+        return takeSnapshot(canvas, 0, 0, cw, ch);
     }
     
     /**
@@ -169,27 +169,8 @@ public class JfxSnapshotHelper {
          * Taking snapshot.
          */
         
-        final long a = (DEBUG ? System.nanoTime() : 0L);
-        
-        final SnapshotParameters params = this.tmpParams;
-        // Immutable, not bothering to check if unchanged.
-        final Rectangle2D viewPort = new Rectangle2D(x, y, width, height);
-        params.setViewport(viewPort);
-        
-        // Need that, else snapshot just clamps on image.
-        this.updateSnapshotImageSize(width, height);
-        
-        /*
-         * New image for each snapshot, because GraphicsContext.drawImage()
-         * is asynchronous, which doesn't allow to reuse images.
-         */
-        final WritableImage image = this.canvas.snapshot(params, null);
+        final WritableImage image = takeSnapshot(this.canvas, x, y, width, height);
         this.snapshotImage = image;
-        
-        final long b = (DEBUG ? System.nanoTime() : 0L);
-        if (DEBUG) {
-            Dbg.log("snapshot took " + TimeUtils.nsToS(b-a) + " s");
-        }
         
         /*
          * Writing graphic buffer.
@@ -211,41 +192,39 @@ public class JfxSnapshotHelper {
                 scanlineStride);
     }
     
-    private void updateSnapshotImageSize(int minWidthCap, int minHeightCap) {
-        NbrsUtils.requireSupOrEq(0, minWidthCap, "minWidthCap");
-        NbrsUtils.requireSupOrEq(0, minHeightCap, "minHeightCap");
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * The specified rectangle must in included in canvas,
+     * and not empty (else WritableImage throws).
+     * 
+     * @return Snapshot of the specified rectangle.
+     * @param tmpParams (in,out) Temporary instance to use as parameters.
+     */
+    private static WritableImage takeSnapshot(
+        Canvas canvas,
+        int x, int y, int width, int height) {
         
-        final WritableImage oldImage = this.snapshotImage;
-        if (oldImage == null) {
-            final WritableImage newImage =
-                    new WritableImage(
-                            minWidthCap,
-                            minHeightCap);
-            this.snapshotImage = newImage;
-        } else {
-            final int oldWidthCap = (int) oldImage.getWidth();
-            final int oldHeightCap = (int) oldImage.getHeight();
-
-            final int newWidthCap = BindingBasicsUtils.computeStorageSpan(
-                    oldWidthCap,
-                    minWidthCap,
-                    this.allowStorageShrinking);
-            final int newHeightCap = BindingBasicsUtils.computeStorageSpan(
-                    oldHeightCap,
-                    minHeightCap,
-                    this.allowStorageShrinking);
-
-            final boolean needNewStorage =
-                    (newWidthCap != oldWidthCap)
-                    || (newHeightCap != oldHeightCap);
-
-            if (needNewStorage) {
-                final WritableImage newImage =
-                        new WritableImage(
-                                minWidthCap,
-                                minHeightCap);
-                this.snapshotImage = newImage;
-            }
+        final SnapshotParameters params = new SnapshotParameters();
+        final Rectangle2D viewPort = new Rectangle2D(
+            x, y, width, height);
+        params.setViewport(viewPort);
+        
+        /*
+         * New image for each snapshot, because GraphicsContext.drawImage()
+         * is asynchronous, which doesn't allow to reuse images.
+         * 
+         * NB: If can ever reuse images, need to ensure dimensions
+         * before snapshot, else it just clamps on it.
+         */
+        final long a = (DEBUG ? System.nanoTime() : 0L);
+        final WritableImage ret = canvas.snapshot(params, null);
+        final long b = (DEBUG ? System.nanoTime() : 0L);
+        if (DEBUG) {
+            Dbg.log("snapshot took " + TimeUtils.nsToS(b-a) + " s");
         }
+        return ret;
     }
 }

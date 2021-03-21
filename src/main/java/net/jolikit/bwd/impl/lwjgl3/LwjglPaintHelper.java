@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,15 +27,17 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GLCapabilities;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
+import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 
 public class LwjglPaintHelper {
-
+    
     /*
      * TODO lwjgl If using glTexImage2D with an IntBuffer,
      * it needs to be direct else it just silently doesn't work,
@@ -46,11 +48,11 @@ public class LwjglPaintHelper {
      * direct buffer, and if it's not large enough, we just use
      * a texture covering the whole client area.
      */
-
+    
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
-
+    
     /**
      * Either seem to work.
      * If true, using glBindAttribLocation(...),
@@ -74,15 +76,15 @@ public class LwjglPaintHelper {
          */
         final GRect textureRect;
         public MyTextureData(
-                Object texturePixels,
-                int texturePixelsScanlineStride,
-                GRect textureRect) {
+            Object texturePixels,
+            int texturePixelsScanlineStride,
+            GRect textureRect) {
             this.texturePixels = texturePixels;
             this.texturePixelsScanlineStride = texturePixelsScanlineStride;
             this.textureRect = textureRect;
         }
     }
-
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -96,19 +98,19 @@ public class LwjglPaintHelper {
     /*
      * 
      */
-
+    
     private static final float[] TEXTURE_COORD_ARR = new float[]{
-            0.0f, 0.0f,
-            1.0f, 0.0f,
-            1.0f, 1.0f,
-            0.0f, 1.0f,
+        0.0f, 0.0f,
+        1.0f, 0.0f,
+        1.0f, 1.0f,
+        0.0f, 1.0f,
     };
-
+    
     private static final int[] INDICES_ARR = new int[]{
-            0, 1, 2,
-            2, 3, 0
+        0, 1, 2,
+        2, 3, 0
     };
-
+    
     /**
      * Four (x,y) points.
      */
@@ -124,20 +126,20 @@ public class LwjglPaintHelper {
     
     private static final String ATTR_VSHADER_IN_POSITION = "vshader_in_position";
     private static final String ATTR_VSHADER_IN_TEXTURE_COORD = "vshader_in_texture_coord";
-
+    
     /*
      * Shader program is created once and for all,
      * for it takes about 1ms to construct, which is negligible for
      * slow renderings, but not for dirty paintings.
      */
-
+    
     private boolean shaderProgramCreated = false;
     private int shaderProgram;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
+    
     public LwjglPaintHelper() {
     }
     
@@ -159,7 +161,7 @@ public class LwjglPaintHelper {
     public static int getArgb32FromNonPremulArrayColor32(int color32) {
         return BindingColorUtils.toArgb32FromNativeRgba32(color32);
     }
-
+    
     /*
      * 
      */
@@ -175,31 +177,39 @@ public class LwjglPaintHelper {
     public static int blendArrayColor32(int srcPremulColor32, int dstPremulColor32) {
         return BindingColorUtils.blendPremulNativeRgba32(srcPremulColor32, dstPremulColor32);
     }
-
+    
     /*
      * 
      */
-
+    
     public void paintPixelsIntoOpenGl(
-            PixelCoordsConverter pixelCoordsConverter,
-            IntArrayGraphicBuffer offscreenBuffer,
-            List<GRect> clipList,
-            long window,
-            GLCapabilities capabilities) {
+        ScaleHelper scaleHelper,
+        GPoint clientSpansInOs,
+        GPoint bufferPosInCliInOs,
+        List<GRect> paintedRectList,
+        //
+        IntArrayGraphicBuffer bufferInBd,
+        long window,
+        PixelCoordsConverter pixelCoordsConverter,
+        GLCapabilities capabilities) {
         
-        final int[] pixelArr = offscreenBuffer.getPixelArr();
-        final int pixelArrScanlineStride = offscreenBuffer.getScanlineStride();
-
-        final int clientWidth = offscreenBuffer.getWidth();
-        final int clientHeight = offscreenBuffer.getHeight();
-
+        final int[] bufferArr = bufferInBd.getPixelArr();
+        final int bufferArrScanlineStride = bufferInBd.getScanlineStride();
+        
+        final int bufferWidth = bufferInBd.getWidth();
+        final int bufferHeight = bufferInBd.getHeight();
+        
         // Make the OpenGL context current
         GLFW.glfwMakeContextCurrent(window);
-
+        
         GL.setCapabilities(capabilities);
-
-        final int clientWidthInDevice = pixelCoordsConverter.computeXSpanInDevicePixel(clientWidth);
-        final int clientHeightInDevice = pixelCoordsConverter.computeYSpanInDevicePixel(clientHeight);
+        
+        final int clientWidthInDevice =
+            pixelCoordsConverter.computeXSpanInDevicePixel(
+                clientSpansInOs.x());
+        final int clientHeightInDevice =
+            pixelCoordsConverter.computeYSpanInDevicePixel(
+                clientSpansInOs.y());
         
         /*
          * When a context is first attached to a window, the viewport will be set to the dimensions of the window,
@@ -208,9 +218,10 @@ public class LwjglPaintHelper {
          * 
          * Need to call that else the (-1,1) coordinate ranges of OpenGL
          * still correspond to initial width and height.
+         * Also wanting to call that in case of non-zero position in device.
          */
         GL11.glViewport(0, 0, clientWidthInDevice, clientHeightInDevice);
-
+        
         /*
          * Disabling unused stuffs, in case it would
          * make things lighter.
@@ -222,7 +233,7 @@ public class LwjglPaintHelper {
         /*
          * GL arrays and buffers (out of loop).
          */
-
+        
         final int vao = createAndBindVao();
         
         // EAB is part of VAO.
@@ -231,27 +242,30 @@ public class LwjglPaintHelper {
         /*
          * 
          */
-
-        for (GRect clip : clipList) {
-
+        
+        for (GRect paintedRect : paintedRectList) {
+            
             /*
              * Texture.
              */
             
             final MyTextureData textureData = computeTextureData(
-                    pixelArr,
-                    pixelArrScanlineStride,
-                    clientWidth,
-                    clientHeight,
-                    clip);
+                bufferArr,
+                bufferArrScanlineStride,
+                bufferWidth,
+                bufferHeight,
+                paintedRect);
             
             final int texture = createTexture(textureData);
             
             this.setTextureVerticesPositions(
-                    clientWidth,
-                    clientHeight,
-                    textureData.textureRect);
-
+                scaleHelper,
+                bufferPosInCliInOs.x(),
+                bufferPosInCliInOs.y(),
+                clientSpansInOs.x(),
+                clientSpansInOs.y(),
+                textureData.textureRect);
+            
             /*
              * GL arrays and buffers (in loop).
              */
@@ -278,14 +292,14 @@ public class LwjglPaintHelper {
             }
             
             shaderProgramBindingAfterCreation(this.shaderProgram);
-
+            
             /*
              * Rendering.
              * 
              * Must not "clear" before, first because it's useless,
              * and second because it would not allow for dirty painting.
              */
-
+            
             /*
              * GL_POINTS, GL_LINE_STRIP, GL_LINE_LOOP, GL_LINES, GL_LINE_STRIP_ADJACENCY, GL_LINES_ADJACENCY,
              * GL_TRIANGLE_STRIP, GL_TRIANGLE_FAN, GL_TRIANGLES, GL_TRIANGLE_STRIP_ADJACENCY, GL_TRIANGLES_ADJACENCY
@@ -296,7 +310,7 @@ public class LwjglPaintHelper {
             final int type = GL11.GL_UNSIGNED_INT;
             final long indices2 = 0L;
             GL11.glDrawElements(mode, count, type, indices2);
-
+            
             /*
              * 
              */
@@ -314,8 +328,8 @@ public class LwjglPaintHelper {
     }
     
     public void flushPainting(
-            long window,
-            boolean glDoubleBuffered) {
+        long window,
+        boolean glDoubleBuffered) {
         if (glDoubleBuffered) {
             GLFW.glfwSwapBuffers(window);
         } else {
@@ -335,68 +349,70 @@ public class LwjglPaintHelper {
      * Computing texture pixels (in int[] or IntBuffer),
      * and texture bounds.
      * 
-     * @param clip Clip in client coordinates.
+     * @param clip Clip in buffer coordinates.
+     * @return Texture data, in buffer coordinates.
      */
     private static MyTextureData computeTextureData(
-            int[] pixelArr,
-            int pixelArrScanlineStride,
-            int clientWidth,
-            int clientHeight,
-            GRect clip) {
+        int[] bufferArr,
+        int bufferArrScanlineStride,
+        int bufferWidth,
+        int bufferHeight,
+        GRect clip) {
         
         final Object texturePixels;
         final int texturePixelsScanlineStride;
         final GRect textureRect;
-
+        
         final IntBuffer directIbToUse;
-
-        final boolean clipIsFull =
-                (clip.xSpan() == clientWidth)
-                && (clip.ySpan() == clientHeight);
-        if (clipIsFull) {
+        
+        final boolean isClipFull =
+            (clip.xSpan() == bufferWidth)
+            && (clip.ySpan() == bufferHeight);
+        if (isClipFull) {
             directIbToUse = null;
         } else {
             final int pixelCountInClip = clip.area();
-            final IntBuffer directIB = DirectBuffers.getThreadLocalDirectIntBuffer_1024_sq_nativeOrder();
+            final IntBuffer directIB =
+                DirectBuffers.getThreadLocalDirectIntBuffer_1024_sq_nativeOrder();
             if (directIB.capacity() >= pixelCountInClip) {
                 directIbToUse = directIB;
             } else {
                 directIbToUse = null;
             }
         }
-
+        
         if (directIbToUse != null) {
             final IntBuffer directIb = directIbToUse;
             /*
              * Copying pixels into texture buffer.
              */
-             final int texXSpan = clip.xSpan();
-             directIb.clear();
-             for (int y = clip.y(); y <= clip.yMax(); y++) {
-                 final int srcOffset = clip.x() + y * pixelArrScanlineStride;
-                 directIb.put(pixelArr, srcOffset, texXSpan);
-             }
-             directIb.flip();
-             /*
-              * 
-              */
-             texturePixels = directIb;
-             texturePixelsScanlineStride = clip.xSpan();
-             textureRect = clip;
+            final int texXSpan = clip.xSpan();
+            directIb.clear();
+            for (int y = clip.y(); y <= clip.yMax(); y++) {
+                final int srcOffset = clip.x() + y * bufferArrScanlineStride;
+                directIb.put(bufferArr, srcOffset, texXSpan);
+            }
+            directIb.flip();
+            /*
+             * 
+             */
+            texturePixels = directIb;
+            texturePixelsScanlineStride = clip.xSpan();
+            textureRect = clip;
         } else {
-            texturePixels = pixelArr;
-            texturePixelsScanlineStride = pixelArrScanlineStride;
+            texturePixels = bufferArr;
+            texturePixelsScanlineStride = bufferArrScanlineStride;
             textureRect = GRect.valueOf(
-                    0,
-                    0,
-                    clientWidth,
-                    clientHeight);
+                0,
+                0,
+                bufferWidth,
+                bufferHeight);
         }
         
         return new MyTextureData(
-                texturePixels,
-                texturePixelsScanlineStride,
-                textureRect);
+            texturePixels,
+            texturePixelsScanlineStride,
+            textureRect);
     }
     
     private static int createTexture(MyTextureData textureData) {
@@ -410,7 +426,7 @@ public class LwjglPaintHelper {
         try {
             final int texture = GL11.glGenTextures();
             GL11.glBindTexture(GL11.GL_TEXTURE_2D, texture);
-
+            
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_S, GL13.GL_CLAMP_TO_BORDER);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_WRAP_T, GL13.GL_CLAMP_TO_BORDER);
             GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
@@ -418,30 +434,30 @@ public class LwjglPaintHelper {
             
             if (texturePixels instanceof int[]) {
                 GL11.glTexImage2D(
-                        GL11.GL_TEXTURE_2D,
-                        0,
-                        GL11.GL_RGBA8,
-                        textureWidth,
-                        textureHeight,
-                        0,
-                        GL11.GL_RGBA,
-                        GL11.GL_UNSIGNED_BYTE,
-                        //
-                        (int[]) texturePixels);
+                    GL11.GL_TEXTURE_2D,
+                    0,
+                    GL11.GL_RGBA8,
+                    textureWidth,
+                    textureHeight,
+                    0,
+                    GL11.GL_RGBA,
+                    GL11.GL_UNSIGNED_BYTE,
+                    //
+                    (int[]) texturePixels);
             } else {
                 GL11.glTexImage2D(
-                        GL11.GL_TEXTURE_2D,
-                        0,
-                        GL11.GL_RGBA8,
-                        textureWidth,
-                        textureHeight,
-                        0,
-                        GL11.GL_RGBA,
-                        GL11.GL_UNSIGNED_BYTE,
-                        //
-                        (IntBuffer) texturePixels);
+                    GL11.GL_TEXTURE_2D,
+                    0,
+                    GL11.GL_RGBA8,
+                    textureWidth,
+                    textureHeight,
+                    0,
+                    GL11.GL_RGBA,
+                    GL11.GL_UNSIGNED_BYTE,
+                    //
+                    (IntBuffer) texturePixels);
             }
-
+            
             return texture;
         } finally {
             GL11.glPixelStorei(GL11.GL_UNPACK_ROW_LENGTH, 0);
@@ -449,17 +465,37 @@ public class LwjglPaintHelper {
     }
     
     private void setTextureVerticesPositions(
-            int clientWidth,
-            int clientHeight,
-            GRect textureRect) {
-
+        ScaleHelper scaleHelper,
+        int clientXInBufferInOs,
+        int clientYInBufferInOs,
+        int clientXSpanInOs,
+        int clientYSpanInOs,
+        GRect textureRect) {
+        
+        /*
+         * To convert texture coordinates, from buffer (frame 1)
+         * into client (frame 2), when both use binding pixels.
+         * x2 = x1 + bx
+         * y2 = y1 + by
+         */
+        
+        final float scaleInv = (float) scaleHelper.getScaleInv();
+        final float clientXSpanInBd = clientXSpanInOs * scaleInv;
+        final float clientYSpanInBd = clientYSpanInOs * scaleInv;
+        final float bx = clientXInBufferInOs * scaleInv;
+        final float by = clientYInBufferInOs * scaleInv;
+        
+        /*
+         * 
+         */
+        
         // +1 for max coordinate to compute ratio properly,
         // as if integer coordinates were on pixels boundaries,
         // not pixels centers.
-        final float texXMinRatio = textureRect.x() / (float) clientWidth;
-        final float texXMaxRatio = (textureRect.xMax() + 1.0f) / (float) clientWidth;
-        final float texYMinRatio = textureRect.y() / (float) clientHeight;
-        final float texYMaxRatio = (textureRect.yMax() + 1.0f) / (float) clientHeight;
+        final float texXMinRatio = (bx + textureRect.x()) / (float) clientXSpanInBd;
+        final float texXMaxRatio = (bx + textureRect.xMax() + 1.0f) / (float) clientXSpanInBd;
+        final float texYMinRatio = (by + textureRect.y()) / (float) clientYSpanInBd;
+        final float texYMaxRatio = (by + textureRect.yMax() + 1.0f) / (float) clientYSpanInBd;
         //
         float vp_xrMin = ((2.0f * texXMinRatio) - 1.0f);
         float vp_yrMin = ((2.0f * texYMinRatio) - 1.0f);
@@ -483,7 +519,7 @@ public class LwjglPaintHelper {
     /*
      * GL arrays and buffers.
      */
-
+    
     /**
      * @return The vbo.
      */
@@ -500,12 +536,12 @@ public class LwjglPaintHelper {
          * or until the bound buffer object is deleted with glDeleteBuffers."
          */
         GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, vbo);
-
+        
         GL15.glBufferData(
-                GL15.GL_ARRAY_BUFFER,
-                vertices_position_arr.length * (long) Float_BYTES
-                + TEXTURE_COORD_ARR.length * (long) Float_BYTES,
-                GL15.GL_STATIC_DRAW);
+            GL15.GL_ARRAY_BUFFER,
+            vertices_position_arr.length * (long) Float_BYTES
+            + TEXTURE_COORD_ARR.length * (long) Float_BYTES,
+            GL15.GL_STATIC_DRAW);
         {
             final long offset = 0L;
             GL15.glBufferSubData(GL15.GL_ARRAY_BUFFER, offset, vertices_position_arr);
@@ -533,13 +569,13 @@ public class LwjglPaintHelper {
     private static int createAndBindEab() {
         final int eab = GL15.glGenBuffers();
         GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, eab);
-
+        
         // Transfer the data from indices to eab.
         GL15.glBufferData(GL15.GL_ELEMENT_ARRAY_BUFFER, INDICES_ARR, GL15.GL_STATIC_DRAW);
         
         return eab;
     }
-
+    
     /*
      * Shader program.
      */
@@ -555,11 +591,11 @@ public class LwjglPaintHelper {
     
     private static int createVertexShader(String... lines) {
         final String vertexSource = toStringShader(lines);
-
+        
         final int vertexShader = GL20.glCreateShader(GL20.GL_VERTEX_SHADER);
         GL20.glShaderSource(vertexShader, vertexSource);
         GL20.glCompileShader(vertexShader);
-
+        
         final int status = GL20.glGetShaderi(vertexShader, GL20.GL_COMPILE_STATUS);
         if (status != GL11.GL_TRUE) {
             throw new BindingError(GL20.glGetShaderInfoLog(vertexShader));
@@ -569,27 +605,27 @@ public class LwjglPaintHelper {
     
     private static int createFragmentShader(String... lines) {
         final String fragmentSource = toStringShader(lines);
-
+        
         final int fragmentShader = GL20.glCreateShader(GL20.GL_FRAGMENT_SHADER);
         GL20.glShaderSource(fragmentShader, fragmentSource);
         GL20.glCompileShader(fragmentShader);
-
+        
         final int status = GL20.glGetShaderi(fragmentShader, GL20.GL_COMPILE_STATUS);
         if (status != GL11.GL_TRUE) {
             throw new BindingError(GL20.glGetShaderInfoLog(fragmentShader));
         }
-
+        
         return fragmentShader;
     }
-
+    
     /**
      * Deletes the specified shaders once the program has been created.
      * Calls glUseProgram(...).
      */
     private static int createShaderProgram(
-            int vertexShader,
-            int fragmentShader,
-            String fragmentShaderOutAttr) {
+        int vertexShader,
+        int fragmentShader,
+        String fragmentShaderOutAttr) {
         final int shaderProgram = GL20.glCreateProgram();
         
         GL20.glAttachShader(shaderProgram, vertexShader);
@@ -611,17 +647,17 @@ public class LwjglPaintHelper {
         }
         
         GL20.glLinkProgram(shaderProgram);
-
+        
         int status = GL20.glGetProgrami(shaderProgram, GL20.GL_LINK_STATUS);
         if (status != GL11.GL_TRUE) {
             throw new BindingError(GL20.glGetProgramInfoLog(shaderProgram));
         }
-
+        
         GL20.glUseProgram(shaderProgram);
         
         return shaderProgram;
     }
-
+    
     private static void shaderProgramBindingBeforeCreation() {
         if (MUST_BIND_BEFORE_PROG_CREATION) {
             {
@@ -653,10 +689,10 @@ public class LwjglPaintHelper {
             GL20.glBindAttribLocation(shaderProgram, POSITION_ATTRIBUTE_BEFORE, ATTR_VSHADER_IN_POSITION);
         } else {
             final int position_attribute = GL20.glGetAttribLocation(shaderProgram, ATTR_VSHADER_IN_POSITION);
-
+            
             // Enable the attribute
             GL20.glEnableVertexAttribArray(position_attribute);
-
+            
             // Specify how the data for position can be accessed
             {
                 final int count = 2;
@@ -668,16 +704,16 @@ public class LwjglPaintHelper {
                 GL20.glVertexAttribPointer(position_attribute, count, type, normalized, stride, pointer);
             }
         }
-
+        
         if (MUST_BIND_BEFORE_PROG_CREATION) {
             GL20.glBindAttribLocation(shaderProgram, TEXTURE_COORD_ATTRIBUTE_BEFORE, ATTR_VSHADER_IN_TEXTURE_COORD);
         } else {
             // Get the location of the attributes that enters in the vertex shader
             final int texture_coord_attribute = GL20.glGetAttribLocation(shaderProgram, ATTR_VSHADER_IN_TEXTURE_COORD);
-
+            
             // Enable the attribute
             GL20.glEnableVertexAttribArray(texture_coord_attribute);
-
+            
             // Specify how the data for position can be accessed
             {
                 final int count = 2;
@@ -699,7 +735,7 @@ public class LwjglPaintHelper {
         // True because our int[] contains rows from top to bottom,
         // and OpenGL expects them from bottom to top.
         final boolean mustFlipTexture = true;
-
+        
         final String vsInPosAttr = ATTR_VSHADER_IN_POSITION;
         final String vsInTexCoordAttr = ATTR_VSHADER_IN_TEXTURE_COORD;
         
@@ -708,37 +744,37 @@ public class LwjglPaintHelper {
         final String fsOutAttr = "fshader_out_color";
         
         final int vertexShader = createVertexShader(
-                "#version 150",
-                "",
-                "in " + (mustFlipTexture ? "vec2" : "vec4") + " " + vsInPosAttr + ";",
-                "in vec2 " + vsInTexCoordAttr + ";",
-                "",
-                "out vec2 " + vsOutTextureCoordAttr + ";",
-                "",
-                "void main() {",
-                "    gl_Position = " + (mustFlipTexture ? "vec4(" + vsInPosAttr + ".s, -" + vsInPosAttr + ".t, 0.0f, 1.0f)" : vsInPosAttr) + ";",
-                "    " + vsOutTextureCoordAttr + " = " + vsInTexCoordAttr + ";",
-                "}");
-
+            "#version 150",
+            "",
+            "in " + (mustFlipTexture ? "vec2" : "vec4") + " " + vsInPosAttr + ";",
+            "in vec2 " + vsInTexCoordAttr + ";",
+            "",
+            "out vec2 " + vsOutTextureCoordAttr + ";",
+            "",
+            "void main() {",
+            "    gl_Position = " + (mustFlipTexture ? "vec4(" + vsInPosAttr + ".s, -" + vsInPosAttr + ".t, 0.0f, 1.0f)" : vsInPosAttr) + ";",
+            "    " + vsOutTextureCoordAttr + " = " + vsInTexCoordAttr + ";",
+            "}");
+        
         final int fragmentShader = createFragmentShader(
-                "#version 150",
-                "",
-                "uniform sampler2D texture_sampler;",
-                "",
-                "in vec2 " + vsOutTextureCoordAttr + ";",
-                "",
-                "out vec4 " + fsOutAttr + ";",
-                "",
-                "void main() {",
-                "    vec4 premulRgba = texture(texture_sampler, " + vsOutTextureCoordAttr + ");",
-                // De-alpha-premultiplying color components.
-                "    " + fsOutAttr + " = vec4(premulRgba.rgb/premulRgba.a, premulRgba.a);",
-                "}");
-
+            "#version 150",
+            "",
+            "uniform sampler2D texture_sampler;",
+            "",
+            "in vec2 " + vsOutTextureCoordAttr + ";",
+            "",
+            "out vec4 " + fsOutAttr + ";",
+            "",
+            "void main() {",
+            "    vec4 premulRgba = texture(texture_sampler, " + vsOutTextureCoordAttr + ");",
+            // De-alpha-premultiplying color components.
+            "    " + fsOutAttr + " = vec4(premulRgba.rgb/premulRgba.a, premulRgba.a);",
+            "}");
+        
         return createShaderProgram(
-                vertexShader,
-                fragmentShader,
-                fsOutAttr);
+            vertexShader,
+            fragmentShader,
+            fsOutAttr);
     }
     
     /*

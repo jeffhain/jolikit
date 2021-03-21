@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.jfx;
 import javafx.geometry.NodeOrientation;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.Argb64;
@@ -123,6 +124,19 @@ public class JfxUtils {
         } else {
             return (rotation.cos() - rotation.sin()) * H;
         }
+    }
+    
+    /**
+     * Rotation-dependent shifts must have bee done already.
+     */
+    public static void fillRect_raw_shifted(
+            GraphicsContext gc,
+            double xShifted, double yShifted,
+            int xSpan, int ySpan) {
+        // Need -H rework, because we want to end up at pixels limits.
+        final double _x = xShifted - H;
+        final double _y = yShifted - H;
+        gc.fillRect(_x, _y, xSpan, ySpan);
     }
     
     //--------------------------------------------------------------------------

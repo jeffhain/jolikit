@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -580,15 +580,32 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
     }
 
     /*
-     * Graphics.
+     * Fonts.
      */
 
     @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
+    public InterfaceBwdFontHome getFontHome() {
+        return this.fontHome;
+    }
+
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
         if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
 
         } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
             /*
@@ -610,6 +627,7 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
         } else {
             throw new IllegalArgumentException("" + screenBoundsType);
         }
+        return ret;
     }
 
     /*
@@ -617,7 +635,8 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
      */
 
     @Override
-    public GPoint getMousePosInScreen() {
+    protected GPoint getMousePosInScreen_rawInOs() {
+        final GPoint ret;
         if (MUST_USE_AL_GET_MOUSE_STATE) {
             final ALLEGRO_MOUSE_STATE mouseState = new ALLEGRO_MOUSE_STATE();
             AlgrJnaLib.INSTANCE.al_get_mouse_state(mouseState);
@@ -634,47 +653,39 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
             }
             if (host == null) {
                 if (DEBUG) {
-                    Dbg.logPr(this, "getMousePosInScreen() : null display and host : using last known pos in screen");
+                    Dbg.logPr(this, "getMousePosInScreen_rawInOs() : null display and host : using last known pos in screen");
                 }
-                return this.getEventsConverterCommonState().getMousePosInScreen();
+                return this.getEventsConverterCommonState().getMousePosInScreenInOs();
             }
 
-            final GRect clientPosInScreen = host.getBackingClientBounds();
+            final GRect clientPosInScreenInOs = host.getBackingClientBoundsInOs();
             if (DEBUG_SPAM) {
-                Dbg.logPr(this, "getMousePosInScreen() : clientPosInScreen = " + clientPosInScreen);
+                Dbg.logPr(this, "getMousePosInScreen_rawInOs() : clientPosInScreenInOs = " + clientPosInScreenInOs);
             }
 
-            final int mouseXInClient = this.getPixelCoordsConverter().computeXInOsPixel(mouseState.x);
-            final int mouseYInClient = this.getPixelCoordsConverter().computeYInOsPixel(mouseState.y);
+            final int mouseXInClientInOs =
+                this.getPixelCoordsConverter().computeXInOsPixel(
+                    mouseState.x);
+            final int mouseYInClientInOs =
+                this.getPixelCoordsConverter().computeYInOsPixel(
+                    mouseState.y);
 
-            final GPoint mousePosInScreen = GPoint.valueOf(
-                    clientPosInScreen.x() + mouseXInClient,
-                    clientPosInScreen.y() + mouseYInClient);
+            final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                    clientPosInScreenInOs.x() + mouseXInClientInOs,
+                    clientPosInScreenInOs.y() + mouseYInClientInOs);
             if (DEBUG_SPAM) {
-                Dbg.logPr(this, "getMousePosInScreen() : mouseXInClient = " + mouseXInClient);
-                Dbg.logPr(this, "getMousePosInScreen() : mouseYInClient = " + mouseYInClient);
-                Dbg.logPr(this, "getMousePosInScreen() : mousePosInScreen = " + mousePosInScreen);
+                Dbg.logPr(this, "getMousePosInScreen_rawInOs() : mouseXInClientInOs = " + mouseXInClientInOs);
+                Dbg.logPr(this, "getMousePosInScreen_rawInOs() : mouseYInClientInOs = " + mouseYInClientInOs);
+                Dbg.logPr(this, "getMousePosInScreen_rawInOs() : mousePosInScreenInOs = " + mousePosInScreenInOs);
             }
 
-            return mousePosInScreen;
+            ret = mousePosInScreenInOs;
         } else {
-            return this.getEventsConverterCommonState().getMousePosInScreen();
+            ret = this.getEventsConverterCommonState().getMousePosInScreenInOs();
         }
+        return ret;
     }
-
-    /*
-     * Fonts.
-     */
-
-    @Override
-    public InterfaceBwdFontHome getFontHome() {
-        return this.fontHome;
-    }
-
-    //--------------------------------------------------------------------------
-    // PROTECTED METHODS
-    //--------------------------------------------------------------------------
-
+    
     /*
      * Images.
      */

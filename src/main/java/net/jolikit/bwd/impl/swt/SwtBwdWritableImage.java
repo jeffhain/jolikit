@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,11 +65,11 @@ public class SwtBwdWritableImage extends AbstractSwtBwdImage implements Interfac
         final int pixelArrScanlineStride = width;
         final SwtBwdGraphics graphics = new SwtBwdGraphics(
                 binding,
-                display,
-                isImageGraphics,
                 box,
+                isImageGraphics,
                 pixelArr,
-                pixelArrScanlineStride);
+                pixelArrScanlineStride,
+                display);
         this.graphics = graphics;
         
         graphics.init();

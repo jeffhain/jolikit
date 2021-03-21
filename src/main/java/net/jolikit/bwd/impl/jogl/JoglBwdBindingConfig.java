@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,8 +126,8 @@ public class JoglBwdBindingConfig extends BaseBwdBindingConfig {
      * of eventual decoration to still be usable in one click
      * if the OS ensures some overlapping with screen.
      */
-    private int hiddenHackClientX = 32000;
-    private int hiddenHackClientY = 32000;
+    private int hiddenHackClientXInOs = 32000;
+    private int hiddenHackClientYInOs = 32000;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -185,7 +185,7 @@ public class JoglBwdBindingConfig extends BaseBwdBindingConfig {
         this.pixelRatioOsOverDeviceY = pixelRatioOsOverDeviceY;
     }
     
-    public boolean isGlDoubleBuffered() {
+    public boolean getGlDoubleBuffered() {
         return this.glDoubleBuffered;
     }
 
@@ -225,19 +225,19 @@ public class JoglBwdBindingConfig extends BaseBwdBindingConfig {
         this.mustDoBestEffortIconification = mustDoBestEffortIconification;
     }
 
-    public int getHiddenHackClientX() {
-        return this.hiddenHackClientX;
+    public int getHiddenHackClientXInOs() {
+        return this.hiddenHackClientXInOs;
     }
 
-    public void setHiddenHackClientX(int hiddenHackClientX) {
-        this.hiddenHackClientX = hiddenHackClientX;
+    public void setHiddenHackClientXInOs(int hiddenHackClientXInOs) {
+        this.hiddenHackClientXInOs = hiddenHackClientXInOs;
     }
 
-    public int getHiddenHackClientY() {
-        return this.hiddenHackClientY;
+    public int getHiddenHackClientYInOs() {
+        return this.hiddenHackClientYInOs;
     }
 
-    public void setHiddenHackClientY(int hiddenHackClientY) {
-        this.hiddenHackClientY = hiddenHackClientY;
+    public void setHiddenHackClientYInOs(int hiddenHackClientYInOs) {
+        this.hiddenHackClientYInOs = hiddenHackClientYInOs;
     }
 }

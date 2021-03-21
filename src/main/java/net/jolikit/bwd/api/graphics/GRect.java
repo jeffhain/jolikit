@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -274,6 +274,27 @@ public final class GRect implements Comparable<GRect> {
                 this.y + dyMin,
                 this.xSpan + (dxMax - dxMin),
                 this.ySpan + (dyMax - dyMin));
+    }
+    
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * If the theoretical resulting spans are negative,
+     * using zero instead.
+     * 
+     * @param dxMin Delta to apply to left border.
+     * @param dyMin Delta to apply to top border.
+     * @param dxMax Delta to apply to right border.
+     * @param dyMax Delta to apply to bottom border.
+     * @return The resulting rectangle.
+     */
+    public GRect withBordersDeltasElseEmpty(int dxMin, int dyMin, int dxMax, int dyMax) {
+        return valueOf(
+                this.x + dxMin,
+                this.y + dyMin,
+                Math.max(0, this.xSpan + (dxMax - dxMin)),
+                Math.max(0, this.ySpan + (dyMax - dyMin)));
     }
     
     /*

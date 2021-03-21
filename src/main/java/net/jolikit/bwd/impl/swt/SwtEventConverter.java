@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,19 +15,19 @@
  */
 package net.jolikit.bwd.impl.swt;
 
-import net.jolikit.bwd.api.InterfaceBwdHost;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.widgets.Event;
+
 import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.widgets.Event;
 
 /**
  * For key events: KeyDown, KeyUp
@@ -59,7 +59,10 @@ public class SwtEventConverter extends AbstractEventConverter {
     public SwtEventConverter(
             CmnInputConvState commonState,
             AbstractBwdHost host) {
-        super(commonState, host);
+        super(
+            commonState,
+            host,
+            host.getBindingConfig().getScaleHelper());
     }
     
     //--------------------------------------------------------------------------
@@ -69,25 +72,20 @@ public class SwtEventConverter extends AbstractEventConverter {
     @Override
     protected void updateFromBackingEvent(Object backingEvent) {
         
-        /*
-         * Updating common state.
-         */
-        
         final CmnInputConvState commonState = this.getCommonState();
-        final InterfaceBwdHost host = this.getHost();
+        final InterfaceBwdHostInOs host = this.getHost();
         
         final Event event = (Event) backingEvent;
         
         {
-            final GRect clientBounds = host.getClientBounds();
-            if (!clientBounds.isEmpty()) {
-                // Position valid even if not a mouse event.
-                final int xInClient = event.x;
-                final int yInClient = event.y;
-                final GPoint mousePosInScreen = GPoint.valueOf(
-                        clientBounds.x() + xInClient,
-                        clientBounds.y() + yInClient);
-                commonState.setMousePosInScreen(mousePosInScreen);
+            final GRect clientBoundsInOs = host.getClientBoundsInOs();
+            if (!clientBoundsInOs.isEmpty()) {
+                // Position in event is valid
+                // even if not a mouse event.
+                final GPoint mousePosInScreenInOs = GPoint.valueOf(
+                    clientBoundsInOs.x() + event.x,
+                    clientBoundsInOs.y() + event.y);
+                commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
             }
         }
         
@@ -99,15 +97,6 @@ public class SwtEventConverter extends AbstractEventConverter {
         commonState.setControlDown((event.stateMask & SWT.CONTROL) != 0);
         commonState.setAltDown((event.stateMask & SWT.ALT) != 0);
         commonState.setMetaDown((event.stateMask & SWT.COMMAND) != 0);
-        
-        /*
-         * Updating host-specific state.
-         */
-        
-        final int xInClient = event.x;
-        final int yInClient = event.y;
-        final GPoint mousePosInClient = GPoint.valueOf(xInClient, yInClient);
-        this.setMousePosInClient(mousePosInClient);
     }
     
     /*

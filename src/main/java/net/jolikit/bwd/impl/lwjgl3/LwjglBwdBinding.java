@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -278,52 +278,6 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
     }
 
     /*
-     * Graphics.
-     */
-    
-    @Override
-    public GRect getScreenBounds() {
-        final ScreenBoundsType screenBoundsType = this.getBindingConfig().getScreenBoundsType();
-        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
-            final GRect screenBounds = this.getBindingConfig().getScreenBounds();
-            return LangUtils.requireNonNull(screenBounds);
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
-            final long monitor = GLFW.glfwGetPrimaryMonitor();
-            if (monitor == MemoryUtil.NULL) {
-                throw new BindingError("glfwGetPrimaryMonitor");
-            }
-            final GLFWVidMode videoMode = GLFW.glfwGetVideoMode(monitor);
-            return GRect.valueOf(
-                    0,
-                    0,
-                    videoMode.width(),
-                    videoMode.height());
-            
-        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
-            throw new IllegalArgumentException("" + screenBoundsType);
-            
-        } else {
-            throw new IllegalArgumentException("" + screenBoundsType);
-        }
-    }
-    
-    /*
-     * Mouse info.
-     */
-    
-    @Override
-    public GPoint getMousePosInScreen() {
-        /*
-         * TODO lwjgl No window-agnostic API for this,
-         * so we just use last value from events
-         * (which among other things use the
-         * glfwSetCursorPosCallback(...) window-specific API).
-         */
-        return this.getEventsConverterCommonState().getMousePosInScreen();
-    }
-
-    /*
      * Fonts.
      */
     
@@ -335,6 +289,57 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
+
+    /*
+     * Screen info.
+     */
+    
+    @Override
+    protected GRect getScreenBounds_rawInOs() {
+        final ScreenBoundsType screenBoundsType =
+            this.getBindingConfig().getScreenBoundsType();
+        
+        final GRect ret;
+        if (screenBoundsType == ScreenBoundsType.CONFIGURED) {
+            final GRect screenBoundsInOs =
+                this.getBindingConfig().getScreenBoundsInOs();
+            ret = LangUtils.requireNonNull(screenBoundsInOs);
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_FULL) {
+            final long monitor = GLFW.glfwGetPrimaryMonitor();
+            if (monitor == MemoryUtil.NULL) {
+                throw new BindingError("glfwGetPrimaryMonitor");
+            }
+            final GLFWVidMode videoMode = GLFW.glfwGetVideoMode(monitor);
+            ret = GRect.valueOf(
+                    0,
+                    0,
+                    videoMode.width(),
+                    videoMode.height());
+            
+        } else if (screenBoundsType == ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE) {
+            throw new IllegalArgumentException("" + screenBoundsType);
+            
+        } else {
+            throw new IllegalArgumentException("" + screenBoundsType);
+        }
+        return ret;
+    }
+    
+    /*
+     * Mouse info.
+     */
+    
+    @Override
+    protected GPoint getMousePosInScreen_rawInOs() {
+        /*
+         * TODO lwjgl No window-agnostic API for this,
+         * so we just use last value from events
+         * (which among other things use the
+         * glfwSetCursorPosCallback(...) window-specific API).
+         */
+        return this.getEventsConverterCommonState().getMousePosInScreenInOs();
+    }
 
     /*
      * Images.
