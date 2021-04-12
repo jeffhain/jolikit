@@ -669,6 +669,28 @@ public final class GRect implements Comparable<GRect> {
     }
 
     /**
+     * If either this or the specified rectangle is empty, returns false.
+     * 
+     * @param x X position of rectangle.
+     * @param y Y position of rectangle.
+     * @param xSpan X span of rectangle. Can be negative.
+     * @param ySpan Y span of rectangle. Can be negative.
+     * @return True if the specified rectangle overlaps this rectangle,
+     *         false otherwise.
+     */
+    public boolean overlaps(int x, int y, int xSpan, int ySpan) {
+        if ((xSpan <= 0)
+            || (ySpan <= 0)
+            || this.isEmpty()) {
+            return false;
+        }
+        return (this.x < posMaxExclLong(x, xSpan))
+                && (x < this.xMaxExclLong())
+                && (this.y < posMaxExclLong(y, ySpan))
+                && (y < this.yMaxExclLong());
+    }
+
+    /**
      * @param x1 X position of first rectangle.
      * @param y1 Y position of first rectangle.
      * @param xSpan1 X span of first rectangle. Can be negative.

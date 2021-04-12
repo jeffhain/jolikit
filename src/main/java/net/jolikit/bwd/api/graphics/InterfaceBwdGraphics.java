@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -298,13 +298,13 @@ public interface InterfaceBwdGraphics {
     public void init();
     
     /**
-     * For client graphics, must be called after graphics usage,
-     * because depending on the implementation, not calling it properly
-     * could cause drawings not to be flushed or some resources
-     * not to be released.
+     * For client graphics, must be called at some point,
+     * even if init() is never called, because depending on
+     * the implementation, not calling it could cause drawings
+     * not to be flushed or some resources not to be released.
      * 
      * For writable image graphics, calling it after graphics usage
-     * is not needed: it is automatically called on disposal,
+     * is not needed: it is automatically called on image disposal,
      * and any eventual flushing to be conducted before drawing
      * the image must be done by the binding (if not already done
      * by the backing library).

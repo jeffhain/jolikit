@@ -86,6 +86,7 @@ Jolikit X.X, XXXX/XX/XX
     - GRect.minSpan() and maxSpan().
     - GRect.area() and areaLong().
     - GRect.withBordersDeltasElseEmpty(int,int,int,int).
+    - GRect.overlaps(int,int,int,int).
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().
     - InterfaceBwdGraphics.newChildGraphics(GRect,GRect).

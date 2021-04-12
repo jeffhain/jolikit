@@ -1047,6 +1047,42 @@ public class GRectTest extends TestCase {
         }
     }
 
+    public void test_overlaps_4int() {
+        for (GRect rect1 : RECT_LIST) {
+            for (GRect rect2 : RECT_LIST) {
+                if (DEBUG) {
+                    System.out.println("rect1 = " + rect1);
+                    System.out.println("rect2 = " + rect2);
+                }
+                
+                {
+                    final boolean actual = rect1.overlaps(
+                        rect2.x(), rect2.y(), rect2.xSpan(), rect2.ySpan());
+                    final boolean expected = rect1.overlaps(rect2);
+                    assertEquals(expected, actual);
+                }
+                
+                /*
+                 * Checks with spans <= 0.
+                 */
+                
+                {
+                    final boolean actual = rect1.overlaps(
+                        rect2.x(), rect2.y(), -rect2.xSpan(), rect2.ySpan());
+                    final boolean expected = rect1.overlaps(rect2.withXSpan(0));
+                    assertEquals(expected, actual);
+                }
+                
+                {
+                    final boolean actual = rect1.overlaps(
+                        rect2.x(), rect2.y(), rect2.xSpan(), -rect2.ySpan());
+                    final boolean expected = rect1.overlaps(rect2.withYSpan(0));
+                    assertEquals(expected, actual);
+                }
+            }
+        }
+    }
+
     public void test_overlap_8int() {
         for (GRect rect1 : RECT_LIST) {
             for (GRect rect2 : RECT_LIST) {
