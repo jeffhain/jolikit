@@ -546,7 +546,7 @@ public class BaseBwdBindingConfig {
     
     /**
      * Required for AbstractBwdGraphics.getArgb32At(x,y) to work properly with
-     * some bindings (such as the ones for JavaFX or Qt), at the cost of
+     * some bindings (such as the ones for JavaFX), at the cost of
      * some additional overhead (typically due to using some intermediary
      * offscreen image).
      * 
@@ -976,7 +976,7 @@ public class BaseBwdBindingConfig {
      */
 
     /**
-     * Default value is Runtime.getRuntime().availableProcessors().
+     * Default value is 1.
      */
     protected final void setParallelizerParallelism_final(int parallelizerParallelism) {
         this.parallelizerParallelism = parallelizerParallelism;

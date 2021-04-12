@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,9 +24,9 @@ public class QtjPaintUtils {
     //--------------------------------------------------------------------------
 
     /**
-     * For now in this binding we just use this format.
+     * In this binding we preferably use this format.
      */
-    public static final Format QIMAGE_FORMAT = Format.Format_ARGB32_Premultiplied;
+    public static final Format FORMAT_ARGB_PRE = Format.Format_ARGB32_Premultiplied;
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS

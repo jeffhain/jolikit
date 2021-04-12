@@ -430,7 +430,7 @@ public class QtjBwdHost extends AbstractBwdHost {
     private QImage offscreenImage = new QImage(
             BindingBasicsUtils.MIN_STORAGE_SPAN,
             BindingBasicsUtils.MIN_STORAGE_SPAN,
-            QtjPaintUtils.QIMAGE_FORMAT);
+            QtjPaintUtils.FORMAT_ARGB_PRE);
     
     /**
      * To contain the reference to a pool of Qt objects,

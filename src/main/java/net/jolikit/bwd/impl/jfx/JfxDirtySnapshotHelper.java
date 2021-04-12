@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,10 +109,10 @@ public class JfxDirtySnapshotHelper {
             return;
         }
         
-        final int xInBase = transform.xIn1(x, y);
-        final int yInBase = transform.yIn1(x, y);
-        
         final GRotation rotation = transform.rotation();
+        
+        final int xInBase = transform.minXIn1(x, y, xSpan, ySpan);
+        final int yInBase = transform.minYIn1(x, y, xSpan, ySpan);
         final int xSpanInBase = rotation.xSpanInOther(xSpan, ySpan);
         final int ySpanInBase = rotation.ySpanInOther(xSpan, ySpan);
         

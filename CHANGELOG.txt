@@ -171,6 +171,7 @@ Jolikit X.X, XXXX/XX/XX
       interleaved manner (due to shared data not being properly updated).
     - Some graphics could not properly handle boxes with negative
       top-left corner coordinates.
+    - SdlUtils: was using wrong bounds for some pixel formats conversions.
   - Optimizations/upgrades:
     - Factored/upgraded/optimized/simplified various internal utilities,
       in particular:

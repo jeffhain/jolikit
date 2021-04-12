@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -317,6 +317,16 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     //--------------------------------------------------------------------------
     
     /**
+     * For calls to finish() specific to make sure that all created graphics
+     * eventually get finished, else with some bindings it causes issues
+     * due to graphics not being able to detect when to release resources
+     * shared by all created children graphics.
+     */
+    private static void finishIt(InterfaceBwdGraphics g) {
+        g.finish();
+    }
+    
+    /**
      * Clears the whole graphics box
      * and then draws results.
      * 
@@ -361,7 +371,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             Boolean[] testPassedByOrdinal) {
         
         final MyTest test = MyTest_VALUES[testOrdinal];
-        
+
         boolean completedNormally = false;
         try {
             switch (test) {
@@ -462,6 +472,10 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                     subBoxB);
             checkEqual(subBoxA, childG3.getBox());
             checkEqual(subBoxAB, childG3.getInitialClipInBase());
+            
+            finishIt(childG1);
+            finishIt(childG2);
+            finishIt(childG3);
         }
         
         /*
@@ -556,7 +570,9 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             for (int k = 0; k < 2; k++) {
                 final boolean beforeInitElseAfterFinish = (k == 0);
                 if (beforeInitElseAfterFinish) {
-                    childG.newChildGraphics(box);
+                    final InterfaceBwdGraphics gg =
+                        childG.newChildGraphics(box);
+                    finishIt(gg);
                 } else {
                     try {
                         childG.newChildGraphics(box);

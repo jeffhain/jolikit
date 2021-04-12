@@ -104,7 +104,6 @@ public class JfxBwdWritableImage extends AbstractJfxBwdImage implements Interfac
                     binding,
                     box,
                     //
-                    isImageGraphics,
                     gc,
                     gcScale,
                     dirtySnapshotHelper);

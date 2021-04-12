@@ -63,17 +63,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
     //--------------------------------------------------------------------------
     
     private static final boolean DEBUG = false;
-
-    /**
-     * Using a HardScheduler instead of a ThreadPoolExecutor.
-     * 
-     * We don't need HardScheduler advanced capabilities,
-     * but we want to avoid spurious ThreadPoolExecutor
-     * shutdown and RejectedExecutionException throwings
-     * that seem to occur under stress for some reason.
-     */
-    private static final boolean MUST_USE_HARD_SCHED_FOR_PRLIZER_EXECUTOR = true;
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -191,7 +181,9 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
      * 
      */
     
-    private final String threadsBaseName = this.getClass().getSimpleName() + "-" + INSTANCE_ID_PRODUCER.incrementAndGet();
+    private final String threadsBaseName =
+        this.getClass().getSimpleName()
+        + "-" + INSTANCE_ID_PRODUCER.incrementAndGet();
     
     private final AtomicBoolean shutdownDownAlreadyCalled = new AtomicBoolean(false);
 
@@ -297,50 +289,17 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
             }
         }
 
-        final int parallelism = bindingConfig.getParallelizerParallelism();
-        NbrsUtils.requireSup(0, parallelism, "parallelism");
-        
-        if (parallelism == 1) {
-            this.parallelizer = SequentialParallelizer.getDefault();
-        } else {
-            final Executor executor;
-            if (MUST_USE_HARD_SCHED_FOR_PRLIZER_EXECUTOR) {
-                executor = HardScheduler.newInstance(
-                        NanoTimeClock.getDefaultInstance(),
-                        getThreadsBaseName() + "-UI_PRLZR",
-                        true, // daemon
-                        parallelism,
-                        null);
-            } else {
-                executor = Executors.newFixedThreadPool(
-                        parallelism,
-                        new ThreadFactory() {
-                            final AtomicInteger threadNum = new AtomicInteger();
-                            @Override
-                            public Thread newThread(Runnable runnable) {
-                                Thread thread = new Thread(runnable);
-                                thread.setName(getThreadsBaseName() + "-UI_PRLZR-" + this.threadNum.incrementAndGet());
-                                thread.setDaemon(true);
-                                return thread;
-                            }
-                        });
-            }
+        {
+            final int parallelism = bindingConfig.getParallelizerParallelism();
+            NbrsUtils.requireSup(0, parallelism, "parallelism");
             
-            // Max value, because painters splits unbalance is not bounded.
-            final int maxDepth = Integer.MAX_VALUE;
-            /*
-             * If this handler rethrows exceptions, it won't cause
-             * parallelizer's parallelism to converge to one in case
-             * of exceptions, since our executor service create threads
-             * as needed to maintain the specified parallelism.
-             */
-            final ConfiguredExceptionHandler exceptionHandler =
-                    new ConfiguredExceptionHandler(bindingConfig);
-            this.parallelizer = new ExecutorParallelizer(
-                    executor,
-                    parallelism,
-                    maxDepth,
-                    exceptionHandler);
+            final String threadNamePrefix =
+                getThreadsBaseName() + "-UI_PRLZR";
+            
+            this.parallelizer = BindingPrlUtils.newParallelizer(
+                this.bindingConfig,
+                parallelism,
+                threadNamePrefix);
         }
         
         this.eventLogicPeriodS = bindingConfig.getWindowEventLogicPeriodS();
@@ -698,7 +657,8 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
          * Best effort.
          */
         if (this.parallelizer instanceof ExecutorParallelizer) {
-            final ExecutorParallelizer prlzrImpl = (ExecutorParallelizer) this.parallelizer;
+            final ExecutorParallelizer prlzrImpl =
+                (ExecutorParallelizer) this.parallelizer;
             final Executor executor = prlzrImpl.getExecutor();
             
             if (executor instanceof ExecutorService) {

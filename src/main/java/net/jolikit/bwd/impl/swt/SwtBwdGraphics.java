@@ -194,7 +194,6 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
                 this.getInitialClipInBase().intersected(
                         childMaxInitialClip.intersected(childBox));
         
-        final SwtBwdGraphics parentGraphics = this;
         return new SwtBwdGraphics(
                 this.getBinding(),
                 this.getRootBoxTopLeft(),
@@ -223,6 +222,11 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     @Override
     protected void finishImpl() {
+        this.shared.onGraphicsFinish();
+    }
+    
+    @Override
+    protected void finishWithoutInitImpl() {
         this.shared.onGraphicsFinish();
     }
     

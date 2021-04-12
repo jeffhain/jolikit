@@ -969,7 +969,6 @@ public class JfxBwdHost extends AbstractBwdHost {
                 this.getBinding(),
                 boxWithBorder,
                 //
-                isImageGraphics,
                 this.currentPainting_graphicsCanvas.getGraphicsContext2D(),
                 graphicsGcScale,
                 this.dirtySnapshotHelper);

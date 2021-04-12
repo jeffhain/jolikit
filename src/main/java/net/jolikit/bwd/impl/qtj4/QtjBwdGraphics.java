@@ -206,14 +206,16 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             final boolean isLastFinish =
                 (this.finishCount == this.graphicsCount);
             if (isLastFinish) {
-                if (this.painter.nativeId() == 0) {
-                    /*
-                     * Can happen if user did shut down during painting,
-                     * in which case calling painter methods could cause
-                     * "com.trolltech.qt.QNoNativeResourcesException: Function call on incomplete object of type: com.trolltech.qt.gui.QPainter".
-                     */
-                } else {
-                    this.painter.end();
+                if (this.beginDone) {
+                    if (this.painter.nativeId() == 0) {
+                        /*
+                         * Can happen if user did shut down during painting,
+                         * in which case calling painter methods could cause
+                         * "com.trolltech.qt.QNoNativeResourcesException: Function call on incomplete object of type: com.trolltech.qt.gui.QPainter".
+                         */
+                    } else {
+                        this.painter.end();
+                    }
                 }
             }
         }
@@ -729,6 +731,13 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         this.shared.onGraphicsFinish();
     }
     
+    @Override
+    protected void finishWithoutInitImpl() {
+        this.releaseQtStuffs(this.qtStuffs);
+        
+        this.shared.onGraphicsFinish();
+    }
+    
     /*
      * 
      */
@@ -826,13 +835,10 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final AbstractQtjBwdImage imageImpl = (AbstractQtjBwdImage) image;
         final QImage backingImage = imageImpl.getBackingImage();
         
-        final GTransform transform = this.getTransform();
-        final GRotation rotation = transform.rotation();
-
         final QPainter painter = this.getConfiguredPainter();
         
-        final int _x;
-        final int _y;
+        final int drawX;
+        final int drawY;
         final boolean scaling = (xSpan != sxSpan) || (ySpan != sySpan);
         if (scaling) {
             final QTransform backingTransformToCombine = this.qtStuffs.tmpBackingTransform;
@@ -847,8 +853,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
              */
             
             {
-                final int specialXShiftInUserForTransform = ((rotation.angDeg() == 0) || (rotation.angDeg() == 90) ? 1 : 0);
-                final int specialYShiftInUserForTransform = ((rotation.angDeg() == 0) || (rotation.angDeg() == 270) ? 1 : 0);
+                final int specialXShiftInUserForTransform = this.xShiftInUser + 1;
+                final int specialYShiftInUserForTransform = this.yShiftInUser + 1;
                 backingTransformToCombine.translate(
                         specialXShiftInUserForTransform,
                         specialYShiftInUserForTransform);
@@ -859,14 +865,14 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             final int specialXShiftInUser = -1;
             final int specialYShiftInUser = -1;
             
-            _x = BindingCoordsUtils.ceilToInt((1.0/xScale) * (x + specialXShiftInUser));
-            _y = BindingCoordsUtils.ceilToInt((1.0/yScale) * (y + specialYShiftInUser));
+            drawX = BindingCoordsUtils.ceilToInt((1.0/xScale) * (x + specialXShiftInUser));
+            drawY = BindingCoordsUtils.ceilToInt((1.0/yScale) * (y + specialYShiftInUser));
             
             final boolean combine = true;
             painter.setTransform(backingTransformToCombine, combine);
         } else {
-            _x = x + this.xShiftInUser;
-            _y = y + this.yShiftInUser;
+            drawX = x + this.xShiftInUser;
+            drawY = y + this.yShiftInUser;
         }
         
         /*
@@ -880,11 +886,11 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         try {
             if (drawingPart || scaling) {
                 painter.drawImage(
-                        _x, _y,
+                        drawX, drawY,
                         backingImage,
                         sx, sy, sxSpan, sySpan);
             } else {
-                painter.drawImage(_x, _y, backingImage);
+                painter.drawImage(drawX, drawY, backingImage);
             }
         } finally {
             if (scaling) {
@@ -927,7 +933,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
          * but having an alpha-premultiplied image should be better
          * for overall preformances.
          */
-        if (backingImage.format() != QtjPaintUtils.QIMAGE_FORMAT) {
+        if (backingImage.format() != QtjPaintUtils.FORMAT_ARGB_PRE) {
             throw new IllegalStateException("" + backingImage.format());
         }
         

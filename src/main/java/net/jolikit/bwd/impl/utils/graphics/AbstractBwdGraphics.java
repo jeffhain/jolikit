@@ -274,6 +274,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         // for symmetry (can be required for proper stacks usages).
         if (this.initCalled) {
             this.finishImpl();
+        } else {
+            this.finishWithoutInitImpl();
         }
     }
     
@@ -1154,6 +1156,14 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * and only called if initImpl() has been called.
      */
     protected abstract void finishImpl();
+    
+    /**
+     * Called on a call to finish() without prior call to init().
+     * Useful to release resources created or shared on graphics creation.
+     * This default implementation does nothing.
+     */
+    protected void finishWithoutInitImpl() {
+    }
     
     /*
      * Backing state setting methods.

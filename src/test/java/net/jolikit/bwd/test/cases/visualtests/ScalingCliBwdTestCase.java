@@ -251,6 +251,8 @@ public class ScalingCliBwdTestCase extends HostBoundsGripsBwdTestCase {
             InterfaceBwdGraphics g,
             GRect innerBox) {
         
+        g.addClipInUser(innerBox);
+        
         /*
          * Filling a semi-transparent oval,
          * to check figures scaling.
@@ -326,8 +328,6 @@ public class ScalingCliBwdTestCase extends HostBoundsGripsBwdTestCase {
         for (String str : textList) {
             cellWidth = Math.max(cellWidth, fm.computeTextWidth(str) + 1);
         }
-        
-        g.addClipInUser(innerBox);
         
         final int xMid = innerBox.xMid();
         final int yMid = innerBox.yMid();

@@ -31,6 +31,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceMainLaunchInfo;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.OsUtils;
 import net.jolikit.lang.RuntimeExecHelper;
 import net.jolikit.lang.RuntimeExecHelper.InterfaceExecution;
@@ -78,7 +79,7 @@ public class BwdMainLaunchUtils {
      * Somehow large, to make sure eventual host decorations
      * won't overlap each other.
      */
-    private static final int CLIENT_SPACING = 40;
+    private static final int CLIENT_SPACING = 60;
 
     /*
      * 
@@ -179,11 +180,14 @@ public class BwdMainLaunchUtils {
      * If a test case home doesn't have the same value than first home
      * for getMustSequenceLaunches(), it's ignored.
      * 
+     * @param smartGrid True for clients grid to be computed
+     *        taking their initial spans and screen spans into account.
      * @param superimposed Can be overridden to true.
      */
     public void launchBindingMainsWithTestCasesInNewJvmsWithMritjAdded(
             List<InterfaceBindingMainLaunchInfo> mainLaunchInfoList,
             List<InterfaceBwdTestCaseHome> testCaseHomeList,
+            boolean smartGrid,
             boolean superimposed) {
         
         final InterfaceBwdTestCaseHome firstHome = testCaseHomeList.get(0);
@@ -207,10 +211,6 @@ public class BwdMainLaunchUtils {
          * 
          */
         
-        final int mainCount = mainLaunchInfoList.size() * testCaseHomeList.size();
-        final int colCount = (int) Math.ceil(Math.sqrt(mainCount));
-        final int rowCount = mainCount / colCount;
-        
         final GRect screenBoundsInOs = BwdTestUtils.getScreenBoundsFromDefaultBinding(
                 ScreenBoundsType.PRIMARY_SCREEN_AVAILABLE);
         {
@@ -222,6 +222,35 @@ public class BwdMainLaunchUtils {
                 }
             });
         }
+        
+        /*
+         * Computing row/col counts.
+         */
+        
+        final int mainCount = mainLaunchInfoList.size() * testCaseHomeList.size();
+        final int colCount;
+        final int rowCount;
+        if (smartGrid) {
+            int widthSum = 0;
+            int heightSum = 0;
+            for (InterfaceBwdTestCaseHome testCaseHome : testCaseHomeList) {
+                final GPoint spans = testCaseHome.getInitialClientSpans();
+                widthSum += spans.x();
+                heightSum += spans.y();
+            }
+            final double aspectRatio =
+                (screenBoundsInOs.xSpan() * (double) heightSum)
+                / (screenBoundsInOs.ySpan() * (double) widthSum);
+            colCount = NbrsUtils.roundToInt(Math.sqrt(mainCount * aspectRatio));
+            rowCount = (int) Math.ceil(mainCount / (double) colCount);
+        } else {
+            colCount = (int) Math.ceil(Math.sqrt(mainCount));
+            rowCount = mainCount / colCount;
+        }
+        
+        /*
+         * 
+         */
         
         int k = -1;
         for (InterfaceBwdTestCaseHome testCaseHome : testCaseHomeList) {
@@ -267,8 +296,8 @@ public class BwdMainLaunchUtils {
                     if (centeredElseNearTopLeft) {
                         final int totalWidth = colCount * (initialClientSpans.x() + CLIENT_SPACING) - CLIENT_SPACING;
                         final int totalHeight = rowCount * (initialClientSpans.y() + CLIENT_SPACING) - CLIENT_SPACING;
-                        xOffset = (screenBounds.xSpan() - totalWidth)/2;
-                        yOffset = (screenBounds.ySpan() - totalHeight)/2;
+                        xOffset = (screenBounds.xSpan() - totalWidth) / 2;
+                        yOffset = (screenBounds.ySpan() - totalHeight) / 2;
                     } else {
                         xOffset = screenBounds.x() + KILL_AREA_SPANS + CLIENT_SPACING;
                         yOffset = screenBounds.y() + KILL_AREA_SPANS + CLIENT_SPACING;

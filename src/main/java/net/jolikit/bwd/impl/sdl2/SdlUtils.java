@@ -25,9 +25,23 @@ import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.bwd.impl.utils.graphics.PixelFormatConverter;
 
 public class SdlUtils {
 
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    private static final boolean NIB = BindingBasicsUtils.NATIVE_IS_BIG;
+    //
+    private static final int B2_0 = (NIB ? 1 : 0);
+    private static final int B2_1 = (NIB ? 0 : 1);
+    //
+    private static final int B3_0 = (NIB ? 2 : 0);
+    private static final int B3_1 = 1;
+    private static final int B3_2 = (NIB ? 0 : 2);
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -50,17 +64,7 @@ public class SdlUtils {
     public static int paletteColorToArgb32(int paletteColor32) {
         return BindingColorUtils.toArgb32FromNativeRgba32(paletteColor32);
     }
-
-    /**
-     * For surfaces that don't have a palette.
-     */
-    public static int formattedPixelToArgb32(SDL_PixelFormat format, int surfPixel) {
-        return BindingColorUtils.toArgb32FromPixelWithMasksAndShifts(
-                surfPixel,
-                format.Amask, format.Rmask, format.Gmask, format.Bmask,
-                format.Ashift, format.Rshift, format.Gshift, format.Bshift);
-    }
-
+    
     /**
      * @param premul True if wanting output to be alpha-premultiplied.
      * @return An array of ARGB values.
@@ -329,55 +333,30 @@ public class SdlUtils {
 
                 surface.pixels.read(lineOffsetFrom, tmpRowByteArr, 0, rowByteLength);
                 if (bytesPerPixel == 3) {
-                    if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-                        for (int x = 0; x < w; x++) {
-                            final int indexFrom = 3 * x;
-                            final int b3 = (tmpRowByteArr[indexFrom] & 0xFF);
-                            final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int b1 = (tmpRowByteArr[indexFrom+2] & 0xFF);
-                            final int pixel = (b1 << 16) | (b2 << 8) | b3;
+                    for (int x = 0; x < w; x++) {
+                        final int indexFrom = 3 * x;
+                        final int b0 = (tmpRowByteArr[indexFrom + B3_0] & 0xFF);
+                        final int b1 = (tmpRowByteArr[indexFrom + B3_1] & 0xFF);
+                        final int b2 = (tmpRowByteArr[indexFrom + B3_2] & 0xFF);
+                        final int pixel = (b2 << 16) | (b1 << 8) | b0;
 
-                            final int indexTo = x + w * y;
-                            pixelArr[indexTo] = pixel;
-                        }
-                    } else {
-                        for (int x = 0; x < rowByteLength; x++) {
-                            final int indexFrom = 3 * x;
-                            final int b1 = (tmpRowByteArr[indexFrom] & 0xFF);
-                            final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int b3 = (tmpRowByteArr[indexFrom+2] & 0xFF);
-                            final int pixel = (b1 << 16) | (b2 << 8) | b3;
-
-                            final int indexTo = x + w * y;
-                            pixelArr[indexTo] = pixel;
-                        }
+                        final int indexTo = x + w * y;
+                        pixelArr[indexTo] = pixel;
                     }
                 } else if (bytesPerPixel == 2) {
-                    if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-                        for (int x = 0; x < rowByteLength; x++) {
-                            final int indexFrom = 2 * x;
-                            final int b2 = (tmpRowByteArr[indexFrom] & 0xFF);
-                            final int b1 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int pixel = (b1 << 8) | b2;
+                    for (int x = 0; x < w; x++) {
+                        final int indexFrom = 2 * x;
+                        final int b0 = (tmpRowByteArr[indexFrom + B2_0] & 0xFF);
+                        final int b1 = (tmpRowByteArr[indexFrom + B2_1] & 0xFF);
+                        final int pixel = (b1 << 8) | b0;
 
-                            final int indexTo = x + w * y;
-                            pixelArr[indexTo] = pixel;
-                        }
-                    } else {
-                        for (int x = 0; x < rowByteLength; x++) {
-                            final int indexFrom = 2 * x;
-                            final int b1 = (tmpRowByteArr[indexFrom] & 0xFF);
-                            final int b2 = (tmpRowByteArr[indexFrom+1] & 0xFF);
-                            final int pixel = (b1 << 8) | b2;
-
-                            final int indexTo = x + w * y;
-                            pixelArr[indexTo] = pixel;
-                        }
+                        final int indexTo = x + w * y;
+                        pixelArr[indexTo] = pixel;
                     }
                 } else if (bytesPerPixel == 1) {
                     // NB: Theoretically this case only occurs with palettes,
                     // but doesn't hurt to handle it if ever comes up.
-                    for (int x = 0; x < rowByteLength; x++) {
+                    for (int x = 0; x < w; x++) {
                         final int indexFrom = x;
                         final int b1 = (tmpRowByteArr[indexFrom] & 0xFF);
                         final int pixel = b1;
@@ -404,8 +383,15 @@ public class SdlUtils {
                 && (format.Gmask == 0x0000FF00)
                 && (format.Bmask == 0x000000FF);
         if (!isAlreadyArgb32) {
+            final PixelFormatConverter converter =
+                PixelFormatConverter.valueOf(
+                    format.Amask,
+                    format.Rmask,
+                    format.Gmask,
+                    format.Bmask);
             for (int i = 0; i < pixelArr.length; i++) {
-                argb32Arr[i] = formattedPixelToArgb32(format, pixelArr[i]);
+                final int pixel = pixelArr[i];
+                argb32Arr[i] = converter.toArgb32(pixel);
             }
         }
 

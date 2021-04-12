@@ -208,11 +208,13 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             final boolean isLastFinish =
                 (this.finishCount == this.graphicsCount);
             if (isLastFinish) {
-                /*
-                 * Popping state, else memory leak in the backing graphics
-                 * (and also restoring before-init state as a side effect).
-                 */
-                this.gc.restore();
+                if (this.initialStateStored) {
+                    /*
+                     * Popping state, else memory leak in the backing graphics
+                     * (and also restoring before-init state as a side effect).
+                     */
+                    this.gc.restore();
+                }
             }
         }
     }
@@ -242,8 +244,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      */
 
     private final MyPrimitives primitives = new MyPrimitives();
-    
-    private final boolean isImageGraphics;
     
     private final MyShared shared;
     
@@ -300,7 +300,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             InterfaceBwdBinding binding,
             GRect box,
             //
-            boolean isImageGraphics,
             GraphicsContext gc,
             int gcScale,
             JfxDirtySnapshotHelper dirtySnapshotHelper) {
@@ -310,7 +309,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 box,
                 box, // initialClip
                 //
-                isImageGraphics,
                 new MyShared(gc),
                 gcScale,
                 new ObjectWrapper<JfxBwdGraphicsWithGc>(),
@@ -354,7 +352,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 childBox,
                 childInitialClip,
                 //
-                this.isImageGraphics,
                 this.shared,
                 this.gcScale,
                 this.gcGraphicsRef,
@@ -385,7 +382,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
          * 
          * NB: Can't clear with a transparent color with GC,
          * so even in case of image graphics, we use this
-         * opaque clearing method.
+         * opaque clearing method (that's why we don't have
+         * an "isImageGraphics" field).
          */
 
         final Color backingColor = (Color) gc.getStroke();
@@ -779,6 +777,15 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         }
     }
     
+    @Override
+    protected void finishWithoutInitImpl() {
+        this.shared.onGraphicsFinish();
+        
+        if (DEBUG) {
+            printClipStack(this.shared.gc, "after finishWithoutInitImpl()");
+        }
+    }
+    
     /*
      * 
      */
@@ -941,7 +948,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             GRect box,
             GRect initialClip,
             //
-            boolean isImageGraphics,
             MyShared shared,
             int gcScale,
             ObjectWrapper<JfxBwdGraphicsWithGc> gcGraphicsRef,
@@ -958,8 +964,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         this.shared = shared;
         
         this.gcScale = NbrsUtils.requireSupOrEq(1, gcScale, "gcScale");
-        
-        this.isImageGraphics = isImageGraphics;
         
         this.gcGraphicsRef = LangUtils.requireNonNull(gcGraphicsRef);
         

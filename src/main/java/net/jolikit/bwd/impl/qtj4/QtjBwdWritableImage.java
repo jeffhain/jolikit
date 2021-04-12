@@ -66,7 +66,7 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
         final QImage backingImage = new QImage(
                 width,
                 height,
-                QtjPaintUtils.QIMAGE_FORMAT);
+                QtjPaintUtils.FORMAT_ARGB_PRE);
         checkNoColorTable(backingImage);
         
         this.backingImage = backingImage;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -154,6 +154,7 @@ public class BwdTestLauncherGui {
                     toOrderedMliList(mainLaunchInfoSet);
             final List<InterfaceBwdTestCaseHome> selectedTestCaseHomeList =
                     toOrderedHomeList(testCaseHomeSet);
+            final boolean selectedSmartGrid = smartGridWrapper[0];
             final boolean selectedSuperimposed = superimposedWrapper[0];
             
             /*
@@ -175,6 +176,7 @@ public class BwdTestLauncherGui {
                         mainLaunchUtils.launchBindingMainsWithTestCasesInNewJvmsWithMritjAdded(
                                 selectedMainLaunchInfoList,
                                 selectedTestCaseHomeList,
+                                selectedSmartGrid,
                                 selectedSuperimposed);
                         /*
                          * We're done launching the mock,
@@ -225,6 +227,7 @@ public class BwdTestLauncherGui {
     
     private final Set<InterfaceBindingMainLaunchInfo> mainLaunchInfoSet = new HashSet<InterfaceBindingMainLaunchInfo>();
     private final Set<InterfaceBwdTestCaseHome> testCaseHomeSet = new HashSet<InterfaceBwdTestCaseHome>();
+    private final boolean[] smartGridWrapper = new boolean[1];
     private final boolean[] superimposedWrapper = new boolean[1];
 
     private final Runnable afterAnyAction = new MyAfterAnyActionRunnable();
@@ -431,6 +434,20 @@ public class BwdTestLauncherGui {
                 panel_2.add(selectNoneButton);
             }
             panel_2.add(new JLabel(VERTICAL_SEPARATOR));
+            {
+                final JToggleButton smartGridButton = newJToggleButton(
+                        "SmartGrid",
+                        new MySelectableBorder(BINDING_BUTTON_BORDER_INSETS));
+                smartGridButton.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        smartGridWrapper[0] = smartGridButton.isSelected();
+                        afterAnyAction.run();
+                    }
+                });
+                
+                panel_2.add(smartGridButton);
+            }
             {
                 final JToggleButton superimposedButton = newJToggleButton(
                         "Superimposed",
