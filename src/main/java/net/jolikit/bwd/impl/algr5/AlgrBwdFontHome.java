@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_FONT;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibFont;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibTtf;
-import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
+import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingStringUtils;
 import net.jolikit.bwd.impl.utils.basics.InterfaceDefaultFontInfoComputer;

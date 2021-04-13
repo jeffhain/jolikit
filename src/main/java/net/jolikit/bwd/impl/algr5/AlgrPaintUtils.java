@@ -28,11 +28,12 @@ import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
+import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils;
-import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.IntArrSrcPixels;
-import net.jolikit.bwd.impl.utils.graphics.ScaledIntRectDrawingUtils.InterfaceScaledRowPartDrawer;
+import net.jolikit.bwd.impl.utils.graphics.InterfaceRowDrawer;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.prl.InterfaceParallelizer;
 
 public class AlgrPaintUtils {
     
@@ -64,11 +65,11 @@ public class AlgrPaintUtils {
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
     
-    private static class MyScaledRowPartDrawer implements InterfaceScaledRowPartDrawer {
+    private static class MyRowDrawer implements InterfaceRowDrawer {
         private ALLEGRO_LOCKED_REGION region;
         private GRect regionClip;
         private Pointer dataPtr;
-        public MyScaledRowPartDrawer() {
+        public MyRowDrawer() {
         }
         /**
          * Clip useful to avoid leak when drawing
@@ -86,37 +87,35 @@ public class AlgrPaintUtils {
             this.dataPtr = dataPtr;
         }
         @Override
-        public void drawScaledRowPart(
-                int[] scaledSrcRowArr,
-                int scaledSrcRowOffset,
-                //
-                int partDstX,
-                int partDstY,
-                //
+        public void drawRow(
+                int[] rowArr,
+                int rowOffset,
+                int dstX,
+                int dstY,
                 int length) {
-            if ((partDstY < this.regionClip.y())
-                || (partDstY > this.regionClip.yMax())) {
+            if ((dstY < this.regionClip.y())
+                || (dstY > this.regionClip.yMax())) {
                 return;
             }
             
             final int leftOver = Math.max(0,
-                this.regionClip.x() - partDstX);
-            scaledSrcRowOffset += leftOver;
-            partDstX += leftOver;
+                this.regionClip.x() - dstX);
+            rowOffset += leftOver;
+            dstX += leftOver;
             length -= leftOver;
             
             final int rightOver = Math.max(0,
-                (partDstX + length)
+                (dstX + length)
                 - (this.regionClip.x() + this.regionClip.xSpan()));
             length -= rightOver;
             
             final long offset =
-                partDstX * this.region.pixel_size
-                + this.region.pitch * partDstY;
+                dstX * this.region.pixel_size
+                + this.region.pitch * dstY;
             this.dataPtr.write(
                 offset,
-                scaledSrcRowArr,
-                scaledSrcRowOffset,
+                rowArr,
+                rowOffset,
                 length);
         }
     }
@@ -127,11 +126,13 @@ public class AlgrPaintUtils {
     
     private static final AlgrJnaLib LIB = AlgrJnaLib.INSTANCE;
     
-    private final ScaledIntRectDrawingUtils scaledRectDrawingUtils =
-            new ScaledIntRectDrawingUtils();
+    /*
+     * temps
+     */
     
-    private final MyScaledRowPartDrawer scaledRowPartDrawer =
-            new MyScaledRowPartDrawer();
+    private final IntArrSrcPixels tmpInputPixels = new IntArrSrcPixels();
+    
+    private final MyRowDrawer tmpRowDrawer = new MyRowDrawer();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -187,6 +188,8 @@ public class AlgrPaintUtils {
         IntArrayGraphicBuffer bufferInBd,
         Pointer display,
         PixelCoordsConverter pixelCoordsConverter,
+        InterfaceParallelizer parallelizer,
+        boolean mustEnsureSmoothImageScaling,
         PrintStream issueStream) {
 
         final int[] bufferArr = bufferInBd.getPixelArr();
@@ -242,11 +245,12 @@ public class AlgrPaintUtils {
             region = AlgrJnaUtils.newAndRead(ALLEGRO_LOCKED_REGION.class, regionPtr);
         }
         try {
-            final IntArrSrcPixels inputPixels = new IntArrSrcPixels(
-                    bufferWidth,
-                    bufferHeight,
-                    bufferArr,
-                    bufferArrScanlineStride);
+            final IntArrSrcPixels inputPixels = this.tmpInputPixels;
+            inputPixels.configure(
+                bufferWidth,
+                bufferHeight,
+                bufferArr,
+                bufferArrScanlineStride);
 
             if (!mustJustLockPaintedRectRegion) {
                 regionClip = GRect.valueOf(
@@ -309,24 +313,22 @@ public class AlgrPaintUtils {
                      * exactly as I want, which is consistently with default images scaling
                      * algorithms.
                      */
-                    this.scaledRowPartDrawer.configure(
+                    final MyRowDrawer rowDrawer = this.tmpRowDrawer;
+                    rowDrawer.configure(
                         region,
                         regionClip,
                         dataPtr);
-                    this.scaledRectDrawingUtils.drawRectScaled(
+                    final GRect srcRect = prInBuffInBd;
+                    final GRect dstRect = rectInDevice;
+                    final GRect dstClip = rectInDevice;
+                    ScaledRectDrawer.drawRectScaled(
+                        parallelizer,
+                        mustEnsureSmoothImageScaling,
                         inputPixels,
-                        //
-                        prInBuffInBd.x(),
-                        prInBuffInBd.y(),
-                        prInBuffInBd.xSpan(),
-                        prInBuffInBd.ySpan(),
-                        //
-                        rectInDevice.x(),
-                        rectInDevice.y(),
-                        rectInDevice.xSpan(),
-                        rectInDevice.ySpan(),
-                        //
-                        this.scaledRowPartDrawer);
+                        srcRect,
+                        dstRect,
+                        dstClip,
+                        rowDrawer);
                 } finally {
                     if (mustJustLockPaintedRectRegion) {
                         LIB.al_unlock_bitmap(windowBitmap);

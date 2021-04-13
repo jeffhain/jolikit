@@ -32,6 +32,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
@@ -152,23 +153,23 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      * Constructor for root graphics.
      */
     public JfxBwdGraphicsWithIntArr(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride,
-                //
-                new ObjectWrapper<JfxSnapshotHelper>());
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride,
+            //
+            new ObjectWrapper<JfxSnapshotHelper>());
     }
 
     /*
@@ -678,7 +679,7 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                     initialClip.y(),
                     width,
                     height,
-                    PixelFormat.getIntArgbPreInstance(),
+                    JfxPaintUtils.FORMAT_INT_ARGB_PRE,
                     premulArgb32Arr,
                     offset,
                     scanlineStride);
@@ -696,25 +697,25 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
 
     private JfxBwdGraphicsWithIntArr(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride,
-            //
-            ObjectWrapper<JfxSnapshotHelper> textSnapshotHelperLazyRef) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride,
+        //
+        ObjectWrapper<JfxSnapshotHelper> textSnapshotHelperLazyRef) {
         super(
-                binding,
-                rootBoxTopLeft,
-                box,
-                initialClip,
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            rootBoxTopLeft,
+            box,
+            initialClip,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         this.textSnapshotHelperLazyRef = textSnapshotHelperLazyRef;
     }
     

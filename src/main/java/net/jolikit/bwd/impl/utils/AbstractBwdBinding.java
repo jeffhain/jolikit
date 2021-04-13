@@ -25,10 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -38,7 +35,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFontHome;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -47,8 +43,6 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
-import net.jolikit.threading.prl.SequentialParallelizer;
-import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.hard.HardScheduler;
@@ -56,7 +50,7 @@ import net.jolikit.time.sched.hard.HardScheduler;
 /**
  * Optional abstract class for bindings implementations.
  */
-public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
+public abstract class AbstractBwdBinding implements InterfaceBwdBindingImpl {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -199,6 +193,8 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
     
     private final InterfaceParallelizer parallelizer;
     
+    private final InterfaceParallelizer internalParallelizer;
+    
     /*
      * 
      */
@@ -295,8 +291,21 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
             
             final String threadNamePrefix =
                 getThreadsBaseName() + "-UI_PRLZR";
-            
+
             this.parallelizer = BindingPrlUtils.newParallelizer(
+                this.bindingConfig,
+                parallelism,
+                threadNamePrefix);
+        }
+        
+        {
+            final int parallelism = bindingConfig.getInternalParallelism();
+            NbrsUtils.requireSup(0, parallelism, "parallelism");
+            
+            final String threadNamePrefix =
+                getThreadsBaseName() + "-INT_PRLZR";
+            
+            this.internalParallelizer = BindingPrlUtils.newParallelizer(
                 this.bindingConfig,
                 parallelism,
                 threadNamePrefix);
@@ -309,6 +318,7 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
      * 
      */
     
+    @Override
     public BaseBwdBindingConfig getBindingConfig() {
         return this.bindingConfig;
     }
@@ -325,7 +335,12 @@ public abstract class AbstractBwdBinding implements InterfaceBwdBindingInOs {
     public InterfaceParallelizer getParallelizer() {
         return this.parallelizer;
     }
-
+    
+    @Override
+    public InterfaceParallelizer getInternalParallelizer() {
+        return this.internalParallelizer;
+    }
+    
     /*
      * Hosts.
      */

@@ -20,7 +20,9 @@ import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.Map;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import com.sun.jna.Pointer;
+import com.sun.jna.ptr.IntByReference;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -39,6 +41,7 @@ import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLibTtf;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaUtils;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -46,9 +49,6 @@ import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-
-import com.sun.jna.Pointer;
-import com.sun.jna.ptr.IntByReference;
 
 /**
  * Can only have a single instance of this binding,
@@ -551,15 +551,15 @@ Exception in thread "main" java.lang.Error: Invalid memory access
 
     @Override
     protected InterfaceBwdWritableImage newWritableImageImpl(
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBindingImpl binding = this;
         return new SdlBwdWritableImage(
-                binding,
-                width,
-                height,
-                disposalListener);
+            binding,
+            width,
+            height,
+            disposalListener);
     }
 
     /*

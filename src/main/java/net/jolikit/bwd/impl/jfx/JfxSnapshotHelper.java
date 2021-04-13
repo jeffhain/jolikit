@@ -18,7 +18,6 @@ package net.jolikit.bwd.impl.jfx;
 import javafx.geometry.Rectangle2D;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.canvas.Canvas;
-import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.scene.image.WritableImage;
 import net.jolikit.bwd.api.graphics.GRect;
@@ -186,7 +185,7 @@ public class JfxSnapshotHelper {
         
         pixelReader.getPixels(
                 0, 0, width, height,
-                PixelFormat.getIntArgbPreInstance(),
+                JfxPaintUtils.FORMAT_INT_ARGB_PRE,
                 argb32Arr,
                 offset,
                 scanlineStride);

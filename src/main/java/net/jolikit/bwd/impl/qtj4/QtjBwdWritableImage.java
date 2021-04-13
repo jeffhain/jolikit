@@ -15,15 +15,13 @@
  */
 package net.jolikit.bwd.impl.qtj4;
 
-import java.util.List;
-
 import com.trolltech.qt.gui.QImage;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.BwdColor;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.ObjectWrapper;
 
@@ -33,7 +31,7 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final QImage backingImage;
+    private final QtjImageHelper backingImageHelper;
     
     private final InterfaceBwdGraphics graphics;
 
@@ -51,11 +49,11 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     public QtjBwdWritableImage(
-            InterfaceBwdBinding binding,
-            int width,
-            int height,
-            ObjectWrapper<Object> qtStuffsPoolRef,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdBindingImpl binding,
+        int width,
+        int height,
+        ObjectWrapper<Object> qtStuffsPoolRef,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
         
         this.checkAndSetWritableImageDims(width, height);
@@ -64,21 +62,22 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
         final GRect box = this.getRect();
         
         final QImage backingImage = new QImage(
-                width,
-                height,
-                QtjPaintUtils.FORMAT_ARGB_PRE);
-        checkNoColorTable(backingImage);
+            width,
+            height,
+            QtjPaintUtils.FORMAT_ARGB_PRE);
         
-        this.backingImage = backingImage;
+        final QtjImageHelper backingImageHelper =
+            new QtjImageHelper(backingImage);
+        this.backingImageHelper = backingImageHelper;
         
         final QtjBwdGraphics graphics = new QtjBwdGraphics(
-                binding,
-                box,
-                //
-                isImageGraphics,
-                backingImage,
-                //
-                qtStuffsPoolRef);
+            binding,
+            box,
+            //
+            isImageGraphics,
+            backingImageHelper,
+            //
+            qtStuffsPoolRef);
         this.graphics = graphics;
         
         graphics.init();
@@ -96,10 +95,10 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
     }
     
     @Override
-    public QImage getBackingImage() {
-        return this.backingImage;
+    public QtjImageHelper getBackingImageHelper() {
+        return this.backingImageHelper;
     }
-    
+
     @Override
     public InterfaceBwdGraphics getGraphics() {
         return this.graphics;
@@ -108,39 +107,17 @@ public class QtjBwdWritableImage extends AbstractQtjBwdImage implements Interfac
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-
-    @Override
-    protected int[] getPremulArgb32ArrElseNull() {
-        return null;
-    }
     
     @Override
-    protected int[] getColorTableArgb32ArrElseNull() {
-        return null;
+    protected int getArgb32AtImpl(int x, int y) {
+        final QtjImageHelper helper = this.getBackingImageHelper();
+        return helper.getSnapshotNonPremulArgb32At(x, y);
     }
     
     @Override
     protected void disposeImpl() {
         this.graphics.finish();
         
-        this.backingImage.dispose();
-    }
-
-    //--------------------------------------------------------------------------
-    // PRIVATE METHODS
-    //--------------------------------------------------------------------------
-    
-    /**
-     * We assume that.
-     */
-    private static void checkNoColorTable(QImage backingImage) {
-        final List<Integer> colorTable = backingImage.colorTable();
-        if ((colorTable != null)
-                && (colorTable.size() != 0)) {
-            for (Integer c : colorTable) {
-                System.out.println(c);
-            }
-            throw new AssertionError();
-        }
+        this.backingImageHelper.getImage().dispose();
     }
 }

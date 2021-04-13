@@ -19,7 +19,6 @@ import java.util.ArrayList;
 
 import com.sun.jna.Pointer;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -34,6 +33,7 @@ import net.jolikit.bwd.impl.sdl2.jlib.SDL_Surface;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLibTtf;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaUtils;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
@@ -149,21 +149,21 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Constructor for root graphics.
      */
     public SdlBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
     }
 
     /*
@@ -397,23 +397,23 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
 
     private SdlBwdGraphics(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride) {
         super(
-                binding,
-                rootBoxTopLeft,
-                box,
-                initialClip,
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            rootBoxTopLeft,
+            box,
+            initialClip,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
     }
 
     /*

@@ -18,7 +18,12 @@ package net.jolikit.bwd.impl.swt;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Monitor;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -27,18 +32,13 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-
-import org.eclipse.swt.SWT;
-import org.eclipse.swt.graphics.Point;
-import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Monitor;
 
 /**
  * TODO swt It could be possible to use multiple such bindings in a same JVM,
@@ -310,16 +310,16 @@ Exception in thread "BwdTestCase-BG-1" org.eclipse.swt.SWTException: Invalid thr
 
     @Override
     protected InterfaceBwdWritableImage newWritableImageImpl(
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBindingImpl binding = this;
         return new SwtBwdWritableImage(
-                binding,
-                width,
-                height,
-                this.display,
-                disposalListener);
+            binding,
+            width,
+            height,
+            this.display,
+            disposalListener);
     }
 
     /*

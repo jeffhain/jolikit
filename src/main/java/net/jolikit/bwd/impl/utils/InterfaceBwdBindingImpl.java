@@ -13,17 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.impl.utils.basics;
+package net.jolikit.bwd.impl.utils;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
+ * Interface for our bindings, with specific methods
+ * used by our bindings implementations.
+ * 
  * To avoid dependency from AbstractBwdHost to AbstractBwdBinding,
  * and a cyclic dependency between them.
  */
-public interface InterfaceBwdBindingInOs extends InterfaceBwdBinding {
+public interface InterfaceBwdBindingImpl extends InterfaceBwdBinding {
     
     /**
      * @return Bounds within which drawing is supposed to occur,
@@ -36,4 +40,12 @@ public interface InterfaceBwdBindingInOs extends InterfaceBwdBinding {
      *         in OS pixels, or a best effort computation of it.
      */
     public GPoint getMousePosInScreenInOs();
+    
+    public BaseBwdBindingConfig getBindingConfig();
+    
+    /**
+     * @return Parallelizer usable in bindings internals,
+     *         in places where it doesn't cause side effects in user code.
+     */
+    public InterfaceParallelizer getInternalParallelizer();
 }

@@ -21,7 +21,6 @@ import java.util.ConcurrentModificationException;
 
 import com.sun.jna.Pointer;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -46,6 +45,7 @@ import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrAtExit;
 import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrTraceHandler;
 import net.jolikit.bwd.impl.algr5.jlib.InterfaceAlgrUserMain;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -704,7 +704,7 @@ libc++abi.dylib: terminating with uncaught exception of type NSException
             int width,
             int height,
             InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        final InterfaceBwdBindingImpl binding = this;
         return new AlgrBwdWritableImage(
                 binding,
                 width,

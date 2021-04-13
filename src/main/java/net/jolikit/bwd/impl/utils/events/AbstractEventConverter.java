@@ -22,7 +22,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostImpl;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
@@ -42,7 +42,7 @@ public abstract class AbstractEventConverter {
     
     private final CmnInputConvState commonState;
     
-    private final InterfaceBwdHostInOs host;
+    private final InterfaceBwdHostImpl host;
     
     private final ScaleHelper scaleHelper;
     
@@ -52,7 +52,7 @@ public abstract class AbstractEventConverter {
     
     public AbstractEventConverter(
         CmnInputConvState commonState,
-        InterfaceBwdHostInOs host,
+        InterfaceBwdHostImpl host,
         ScaleHelper scaleHelper) {
         this.commonState = LangUtils.requireNonNull(commonState);
         this.host = LangUtils.requireNonNull(host);
@@ -265,12 +265,12 @@ public abstract class AbstractEventConverter {
         return this.commonState;
     }
     
-    protected InterfaceBwdHostInOs getHost() {
+    protected InterfaceBwdHostImpl getHost() {
         return this.host;
     }
     
     protected GPoint computePosInClientInBd(GPoint posInScreenInBd) {
-        final InterfaceBwdHostInOs host = this.getHost();
+        final InterfaceBwdHostImpl host = this.getHost();
         final GRect clientBoundsInOs = host.getClientBoundsInOs();
         final GPoint posInClientInBd;
         if (!clientBoundsInOs.isEmpty()) {

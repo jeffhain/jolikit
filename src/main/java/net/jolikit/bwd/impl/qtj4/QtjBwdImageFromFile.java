@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,11 +15,9 @@
  */
 package net.jolikit.bwd.impl.qtj4;
 
-import java.util.List;
+import com.trolltech.qt.gui.QImage;
 
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-
-import com.trolltech.qt.gui.QImage;
 
 public class QtjBwdImageFromFile extends AbstractQtjBwdImage {
     
@@ -27,15 +25,7 @@ public class QtjBwdImageFromFile extends AbstractQtjBwdImage {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final QImage backingImage;
-    
-    /**
-     * If the backing image has a color table,
-     * it's copied into this array (to make it memory-friendly),
-     * and backing image's pixel(...) value is the index to use in this table.
-     * Else, this array is null.
-     */
-    private final int[] colorTableArgb32Arr;
+    private final QtjImageHelper backingImageHelper;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -65,21 +55,8 @@ public class QtjBwdImageFromFile extends AbstractQtjBwdImage {
                             + filePath
                             + " (zero width or height)");
         }
-        this.backingImage = backingImage;
         
-        final List<Integer> colorTable = backingImage.colorTable();
-        final int[] colorTableArgb32Arr;
-        if ((colorTable != null)
-                && (colorTable.size() != 0)) {
-            final int size = colorTable.size();
-            colorTableArgb32Arr = new int[size];
-            for (int i = 0; i < size; i++) {
-                colorTableArgb32Arr[i] = colorTable.get(i);
-            }
-        } else {
-            colorTableArgb32Arr = null;
-        }
-        this.colorTableArgb32Arr = colorTableArgb32Arr;
+        this.backingImageHelper = new QtjImageHelper(backingImage);
         
         final int width = backingImage.width();
         final int height = backingImage.height();
@@ -88,26 +65,22 @@ public class QtjBwdImageFromFile extends AbstractQtjBwdImage {
     }
     
     @Override
-    public QImage getBackingImage() {
-        return this.backingImage;
+    public QtjImageHelper getBackingImageHelper() {
+        return this.backingImageHelper;
     }
-
+    
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-
+    
     @Override
-    protected int[] getPremulArgb32ArrElseNull() {
-        return null;
-    }
-
-    @Override
-    protected int[] getColorTableArgb32ArrElseNull() {
-        return this.colorTableArgb32Arr;
+    protected int getArgb32AtImpl(int x, int y) {
+        final QtjImageHelper helper = this.getBackingImageHelper();
+        return helper.getSnapshotNonPremulArgb32At(x, y);
     }
     
     @Override
     protected void disposeImpl() {
-        this.backingImage.dispose();
+        this.backingImageHelper.getImage().dispose();
     }
 }

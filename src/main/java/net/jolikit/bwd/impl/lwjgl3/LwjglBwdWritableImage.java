@@ -19,6 +19,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
 public class LwjglBwdWritableImage extends AbstractLwjglBwdImage implements InterfaceBwdWritableImage {
@@ -42,17 +43,17 @@ public class LwjglBwdWritableImage extends AbstractLwjglBwdImage implements Inte
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     public LwjglBwdWritableImage(
-            InterfaceBwdBinding binding,
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdBindingImpl binding,
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
         
         this.checkAndSetWritableImageDims(width, height);
         
         final boolean isImageGraphics = true;
         final GRect box = this.getRect();
-
+        
         final int pixelCapacity = box.area();
         final int[] color32Arr = new int[pixelCapacity];
         this.color32Arr = color32Arr;
@@ -60,11 +61,11 @@ public class LwjglBwdWritableImage extends AbstractLwjglBwdImage implements Inte
         final int[] pixelArr = color32Arr;
         final int pixelArrScanlineStride = width;
         final LwjglBwdGraphics graphics = new LwjglBwdGraphics(
-                binding,
-                box,
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            box,
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         this.graphics = graphics;
         
         graphics.init();

@@ -29,6 +29,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFontHome;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
@@ -356,15 +357,15 @@ j  net.jolikit.bwd.impl.lwjgl3.LwjglPaintHelper.paintPixelsIntoOpenGl(Lnet/jolik
 
     @Override
     protected InterfaceBwdWritableImage newWritableImageImpl(
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBindingImpl binding = this;
         return new LwjglBwdWritableImage(
-                binding,
-                width,
-                height,
-                disposalListener);
+            binding,
+            width,
+            height,
+            disposalListener);
     }
     
     /*

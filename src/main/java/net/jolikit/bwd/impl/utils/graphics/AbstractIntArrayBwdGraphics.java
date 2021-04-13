@@ -15,7 +15,6 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -25,8 +24,8 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
-import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -35,12 +34,6 @@ import net.jolikit.lang.LangUtils;
  * color model.
  */
 public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
-    
-    //--------------------------------------------------------------------------
-    // CONFIGURATION
-    //--------------------------------------------------------------------------
-    
-    private static final boolean DEBUG = false;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -97,6 +90,71 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         }
     };
     
+    /*
+     * 
+     */
+    
+    private class MyImgSrcPixels implements InterfaceSrcPixels {
+        private InterfaceBwdImage image;
+        private Object imageDataAccessor;
+        public MyImgSrcPixels() {
+        }
+        public void configure(
+            InterfaceBwdImage image,
+            Object imageDataAccessor) {
+            this.image = image;
+            this.imageDataAccessor = imageDataAccessor;
+        }
+        @Override
+        public int getWidth() {
+            return this.image.getWidth();
+        }
+        @Override
+        public int getHeight() {
+            return this.image.getHeight();
+        }
+        @Override
+        public int[] color32Arr() {
+            return null;
+        }
+        @Override
+        public int getScanlineStride() {
+            return this.getWidth();
+        }
+        @Override
+        public int getColor32At(int x, int y) {
+            return getImageColor32(this.image, this.imageDataAccessor, x, y);
+        }
+    };
+
+    private class MyRowDrawer implements  InterfaceRowDrawer {
+        public MyRowDrawer() {
+        }
+        @Override
+        public void drawRow(
+            int[] rowArr,
+            int rowOffset,
+            int dstX,
+            int dstY,
+            int length) {
+            
+            final GRotation rotation = transformArrToUser.rotation();
+            // Optimization not to have to use transform for each pixel.
+            final int xStepInArr = rotation.cos();
+            final int yStepInArr = rotation.sin();
+            
+            int xInArr = transformArrToUser.xIn1(dstX, dstY);
+            int yInArr = transformArrToUser.yIn1(dstX, dstY);
+            for (int i = 0; i < length; i++) {
+                final int color32 = rowArr[rowOffset + i];
+                final int dstIndex = toPixelArrIndexFromArr(xInArr, yInArr);
+                blendColor32(dstIndex, color32);
+                xInArr += xStepInArr;
+                yInArr += yStepInArr;
+            }
+        }
+    };
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -152,10 +210,16 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     private int arrColorOpaque;
     
     /*
+     * 
+     */
+    
+    private final MyRowDrawer rowDrawer = new MyRowDrawer();
+    
+    /*
      * temps
      */
     
-    private final IntArrHolder tmpArr = new IntArrHolder();
+    private final MyImgSrcPixels tmpImgSrcPixels = new MyImgSrcPixels();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -166,7 +230,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      *        false if it is a client graphics.
      */
     public AbstractIntArrayBwdGraphics(
-            InterfaceBwdBinding binding,
+            InterfaceBwdBindingImpl binding,
             GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,
@@ -179,7 +243,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                 rootBoxTopLeft,
                 box,
                 initialClip);
-
+        
         this.isImageGraphics = isImageGraphics;
         
         this.pixelArr = LangUtils.requireNonNull(pixelArr);
@@ -515,135 +579,38 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     @Override
     protected void drawImageImpl(
             int x, int y, int xSpan, int ySpan,
-            InterfaceBwdImage image,
+            final InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
         
-        final GRect dstRectInUser_initial = GRect.valueOf(x, y, xSpan, ySpan);
-        final GRect srcRectInImg_initial = GRect.valueOf(sx, sy, sxSpan, sySpan);
-        
+        final GRect dstRectInUser = GRect.valueOf(x, y, xSpan, ySpan);
         final GRect clipInUser = this.getClipInUser();
-        
-        /*
-         * 1) Coordinates rework based on clippings (already done for image clip for src).
-         */
-        
-        final GRect dstRectInUser_userClipRework = dstRectInUser_initial.intersected(clipInUser);
-        if (dstRectInUser_userClipRework.isEmpty()) {
-            if (DEBUG) {
-                Dbg.log("drawImageImpl(...) : empty dstRectInUser_userClipRework");
-            }
+        if (!clipInUser.overlaps(dstRectInUser)) {
+            /*
+             * Nothing to be drawn.
+             */
             return;
         }
 
-        /*
-         * 2) Rework clips according to each other, taking scaling into account.
-         * There is no rotation between user and image frames.
-         * Transform to base frame is taken into account last.
-         */
-        
-        final GRect srcRectInImg_userClipRework = ScaledRectUtils.computeNewPeerRect(
-                dstRectInUser_initial,
-                dstRectInUser_userClipRework,
-                srcRectInImg_initial);
-        if (srcRectInImg_userClipRework.isEmpty()) {
-            if (DEBUG) {
-                Dbg.log("drawImageImpl(...) : empty srcRectInImg_userClipRework");
-            }
-            return;
-        }
-        
-        /*
-         * 
-         */
-        
-        final GRect dstRect = dstRectInUser_userClipRework;
-        
-        final int srcRowLengthInitial = srcRectInImg_initial.xSpan();
-        final int srcColLengthInitial = srcRectInImg_initial.ySpan();
-        final int dstRowLengthInitial = dstRectInUser_initial.xSpan();
-        final int dstColLengthInitial = dstRectInUser_initial.ySpan();
-        
-        /*
-         * Taking care to scale as well as possible, i.e. such as if there is no scaling,
-         * floating-point pixel coordinates are exactly (modulo ULP error) computed,
-         * by computing a ratio over the full span (number of pixels),
-         * but using 0.5 offset due to first pixel being centered 0.5 away
-         * from span start.
-         * This way, no clipping test is required during loops.
-         */
-        
-        final double dxi_to_0_1_factor = 1.0 / dstRowLengthInitial;
-        final double dyi_to_0_1_factor = 1.0 / dstColLengthInitial;
-        
-        // dyio = destYIndexOffset, from specified dest Y.
-        final int dyio = dstRect.y() - dstRectInUser_initial.y();
-        final int dxio = dstRect.x() - dstRectInUser_initial.x();
-        
-        // Optimization, to avoid useless scalings.
-        final boolean gotXScaling = (dstRowLengthInitial != srcRowLengthInitial);
-        final boolean gotYScaling = (dstColLengthInitial != srcColLengthInitial);
-        
-        // Optimization, to avoid computing columns scaling for each row.
-        final int[] sxiByDxicArr;
-        if (!gotXScaling) {
-            sxiByDxicArr = null;
-        } else {
-            sxiByDxicArr = this.tmpArr.getArr(dstRect.xSpan());
-            for (int dxic = 0; dxic < dstRect.xSpan(); dxic++) {
-                final int dxi = dxio + dxic;
-                final int sxi = ScaledIntRectDrawingUtils.computeSi(
-                        srcRowLengthInitial,
-                        dxi_to_0_1_factor,
-                        dxi);
-                sxiByDxicArr[dxic] = sxi;
-            }
-        }
-        
-        final GTransform transformArrToUser = this.transformArrToUser;
+        final GRect srcRectInImg = GRect.valueOf(sx, sy, sxSpan, sySpan);
         
         final Object imageDataAccessor = this.getImageDataAccessor(image);
         try {
-            // dyic = destYIndexClipped (0 at clip start,
-            // not specified dest Y).
-            for (int dyic = 0; dyic < dstRect.ySpan(); dyic++) {
-                final int dyi = dyio + dyic;
-                final int syi;
-                if (!gotYScaling) {
-                    syi = dyi;
-                } else {
-                    syi = ScaledIntRectDrawingUtils.computeSi(
-                            srcColLengthInitial,
-                            dyi_to_0_1_factor,
-                            dyi);
-                }
-                final int srcY = sy + syi;
-                final int dstY = y + dyi;
-                
-                for (int dxic = 0; dxic < dstRect.xSpan(); dxic++) {
-                    final int dxi = dxio + dxic;
-                    final int sxi;
-                    if (!gotXScaling) {
-                        sxi = dxi;
-                    } else {
-                        sxi = sxiByDxicArr[dxic];
-                    }
-                    final int srcX = sx + sxi;
-                    final int dstX = x + dxi;
-
-                    final int color32 = this.getImageColor32(image, imageDataAccessor, srcX, srcY);
-
-                    final int xInArr = transformArrToUser.xIn1(dstX, dstY);
-                    final int yInArr = transformArrToUser.yIn1(dstX, dstY);
-                    final int dstIndex = this.toPixelArrIndexFromArr(xInArr, yInArr);
-
-                    this.blendColor32(dstIndex, color32);
-                }
-            }
+            final MyImgSrcPixels srcPixels = this.tmpImgSrcPixels;
+            srcPixels.configure(image, imageDataAccessor);
+            
+            ScaledRectDrawer.drawRectScaled(
+                this.getBinding().getInternalParallelizer(),
+                this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+                srcPixels,
+                srcRectInImg,
+                dstRectInUser,
+                clipInUser,
+                this.rowDrawer);
         } finally {
             this.disposeImageDataAccessor(imageDataAccessor);
         }
     }
-
+    
     /*
      * 
      */
@@ -653,9 +620,9 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      * @return The same color in the format to use in the array of pixels.
      */
     protected abstract int getArrayColor32FromArgb32(int argb32);
-
+    
     protected abstract int getArgb32FromArrayColor32(int color32);
-
+    
     /**
      * @param color32 A 32 bits color, in the format to use
      *        in the array of pixels.

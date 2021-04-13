@@ -24,10 +24,10 @@ import java.awt.Window;
 import java.awt.image.BufferedImage;
 import java.util.List;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 
 public class AwtPaintUtils {
@@ -94,7 +94,7 @@ public class AwtPaintUtils {
     }
     
     public InterfaceBwdGraphics newRootGraphicsImpl(
-        InterfaceBwdBinding binding,
+        InterfaceBwdBindingImpl binding,
         AwtBwdBindingConfig bindingConfig,
         AwtGraphicBuffer offscreenBuffer,
         //

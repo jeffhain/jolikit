@@ -24,7 +24,7 @@ import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostImpl;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
@@ -73,7 +73,7 @@ public class SwtEventConverter extends AbstractEventConverter {
     protected void updateFromBackingEvent(Object backingEvent) {
         
         final CmnInputConvState commonState = this.getCommonState();
-        final InterfaceBwdHostInOs host = this.getHost();
+        final InterfaceBwdHostImpl host = this.getHost();
         
         final Event event = (Event) backingEvent;
         

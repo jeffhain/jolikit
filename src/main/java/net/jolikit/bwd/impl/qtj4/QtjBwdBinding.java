@@ -18,7 +18,12 @@ package net.jolikit.bwd.impl.qtj4;
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ConcurrentModificationException;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import com.trolltech.qt.core.QPoint;
+import com.trolltech.qt.core.QRect;
+import com.trolltech.qt.gui.QApplication;
+import com.trolltech.qt.gui.QCursor;
+import com.trolltech.qt.gui.QDesktopWidget;
+
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
@@ -27,18 +32,13 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.ObjectWrapper;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-
-import com.trolltech.qt.core.QPoint;
-import com.trolltech.qt.core.QRect;
-import com.trolltech.qt.gui.QApplication;
-import com.trolltech.qt.gui.QCursor;
-import com.trolltech.qt.gui.QDesktopWidget;
 
 public class QtjBwdBinding extends AbstractQtjBwdBinding {
 
@@ -281,16 +281,16 @@ public class QtjBwdBinding extends AbstractQtjBwdBinding {
     
     @Override
     protected InterfaceBwdWritableImage newWritableImageImpl(
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBindingImpl binding = this;
         return new QtjBwdWritableImage(
-                binding,
-                width,
-                height,
-                this.bindingQtStuffsPoolRef,
-                disposalListener);
+            binding,
+            width,
+            height,
+            this.bindingQtStuffsPoolRef,
+            disposalListener);
     }
 
     /*

@@ -33,6 +33,7 @@ import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
@@ -123,11 +124,11 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      * @throws IllegalArgumentException if the image is not compatible.
      */
     public AwtBwdGraphicsWithIntArr(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            BufferedImage backingImage) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        BufferedImage backingImage) {
         this(
                 binding,
                 topLeftOf(box),
@@ -458,13 +459,13 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
     
     private AwtBwdGraphicsWithIntArr(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            BufferedImage backingImage) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        BufferedImage backingImage) {
         super(
                 binding,
                 rootBoxTopLeft,

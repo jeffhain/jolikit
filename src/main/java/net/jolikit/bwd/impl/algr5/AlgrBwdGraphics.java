@@ -15,7 +15,8 @@
  */
 package net.jolikit.bwd.impl.algr5;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import com.sun.jna.Pointer;
+
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -31,13 +32,12 @@ import net.jolikit.bwd.impl.algr5.jlib.AlgrBitmapFlag;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLib;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaLibFont;
 import net.jolikit.bwd.impl.algr5.jlib.AlgrJnaUtils;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
-
-import com.sun.jna.Pointer;
 
 public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
     
@@ -103,12 +103,12 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Constructor for root graphics.
      */
     public AlgrBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride) {
         this(
                 binding,
                 topLeftOf(box),
@@ -439,7 +439,7 @@ public class AlgrBwdGraphics extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
 
     private AlgrBwdGraphics(
-            InterfaceBwdBinding binding,
+            InterfaceBwdBindingImpl binding,
             GPoint rootBoxTopLeft,
             GRect box,
             GRect initialClip,

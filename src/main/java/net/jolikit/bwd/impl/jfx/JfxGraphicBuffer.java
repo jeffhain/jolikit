@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,7 +120,7 @@ public class JfxGraphicBuffer extends AbstractGraphicBuffer<WritableImage> {
                     scanlineStride);
         }
         @Override
-        public PixelFormat getPixelFormat() {
+        public PixelFormat<?> getPixelFormat() {
             return this.reader.getPixelFormat();
         }
         @Override
@@ -156,14 +156,15 @@ public class JfxGraphicBuffer extends AbstractGraphicBuffer<WritableImage> {
     //--------------------------------------------------------------------------
 
     /**
-     * Creates a graphic buffer with a default configuration:
-     * - true for mustCopyOnImageResize (to avoid user being surprised),
-     * - true for allowShrinking (to avoid memory waste),
+     * Creates a graphic buffer with a default configuration,
+     * suitable for usage as reusable anti-garbage temporary buffer:
+     * - false for mustCopyOnImageResize,
+     * - false for allowShrinking.
      */
     public JfxGraphicBuffer() {
         this(
-                true, // mustCopyOnImageResize
-                true); // allowShrinking
+            false, // mustCopyOnImageResize
+            false); // allowShrinking
     }
 
     /**

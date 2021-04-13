@@ -427,10 +427,12 @@ public class QtjBwdHost extends AbstractBwdHost {
      * Also useful for pixel reading.
      * Also makes our benches faster.
      */
-    private QImage offscreenImage = new QImage(
-            BindingBasicsUtils.MIN_STORAGE_SPAN,
-            BindingBasicsUtils.MIN_STORAGE_SPAN,
-            QtjPaintUtils.FORMAT_ARGB_PRE);
+    private QtjImageHelper offscreenImageHelper =
+        new QtjImageHelper(
+            new QImage(
+                BindingBasicsUtils.MIN_STORAGE_SPAN,
+                BindingBasicsUtils.MIN_STORAGE_SPAN,
+                QtjPaintUtils.FORMAT_ARGB_PRE));
     
     /**
      * To contain the reference to a pool of Qt objects,
@@ -863,7 +865,7 @@ public class QtjBwdHost extends AbstractBwdHost {
     protected void closeBackingWindow() {
         this.window.close();
         
-        this.offscreenImage.dispose();
+        this.offscreenImageHelper.getImage().dispose();
     }
     
     /*
@@ -884,7 +886,7 @@ public class QtjBwdHost extends AbstractBwdHost {
             boxWithBorder,
             //
             isImageGraphics,
-            this.offscreenImage,
+            this.offscreenImageHelper,
             //
             this.hostQtStuffsPoolRef);
     }
@@ -922,10 +924,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             
             painter.drawImage(
                 dstRect,
-                this.offscreenImage,
+                this.offscreenImageHelper.getImage(),
                 srcRect);
         } else {
-            painter.drawImage(0, 0, this.offscreenImage);
+            painter.drawImage(0, 0, this.offscreenImageHelper.getImage());
         }
     }
     
@@ -1020,7 +1022,7 @@ public class QtjBwdHost extends AbstractBwdHost {
         NbrsUtils.requireSupOrEq(0, minWidthCap, "minWidthCap");
         NbrsUtils.requireSupOrEq(0, minHeightCap, "minHeightCap");
         
-        final QImage oldImage = this.offscreenImage;
+        final QImage oldImage = this.offscreenImageHelper.getImage();
         final int oldWidthCap = oldImage.width();
         final int oldHeightCap = oldImage.height();
 
@@ -1042,7 +1044,8 @@ public class QtjBwdHost extends AbstractBwdHost {
                     newWidthCap,
                     newHeightCap,
                     oldImage.format());
-            this.offscreenImage = newImage;
+            final QtjImageHelper newHelper = new QtjImageHelper(newImage);
+            this.offscreenImageHelper = newHelper;
 
             if (MUST_PRESERVE_OB_CONTENT_ON_RESIZE) {
                 final QPainter painterTo = new QPainter();

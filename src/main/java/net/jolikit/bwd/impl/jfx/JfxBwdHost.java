@@ -22,7 +22,6 @@ import javafx.scene.Scene;
 import javafx.scene.SceneAntialiasing;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
@@ -107,10 +106,6 @@ public class JfxBwdHost extends AbstractBwdHost {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
-    private static final boolean MUST_PRESERVE_OB_CONTENT_ON_RESIZE = true;
-
-    private static final boolean ALLOW_OB_SHRINKING = true;
-    
     /*
      * In case of scaling, we want to use a canvas in binding coordinates,
      * and not regular client canvas with a scale for transform, because:
@@ -126,7 +121,7 @@ public class JfxBwdHost extends AbstractBwdHost {
      *   which are fully defined in binding graphics.
      */
     private static final boolean MUST_DRAW_ON_A_CANVAS_IN_BD = true;
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -427,14 +422,17 @@ public class JfxBwdHost extends AbstractBwdHost {
     private final MyStageEl windowEventListener;
     
     private final IntArrayGraphicBuffer offscreenIntArrayBuffer =
-            new IntArrayGraphicBuffer(
-                    MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
-                    ALLOW_OB_SHRINKING);
+        new IntArrayGraphicBuffer(
+            JfxPaintUtils.MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
+            JfxPaintUtils.ALLOW_OB_SHRINKING);
     
-    private final JfxGraphicBuffer offscreenBackingWiBuffer =
-            new JfxGraphicBuffer(
-                    MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
-                    ALLOW_OB_SHRINKING);
+    private final JfxImgDrawingUtils imgDrawingUtilsForHost =
+        new JfxImgDrawingUtils(
+            JfxPaintUtils.MUST_REUSE_IMG_FOR_HOST_UTILS);
+    
+    private final JfxImgDrawingUtils imgDrawingUtilsForGraphics =
+        new JfxImgDrawingUtils(
+            JfxPaintUtils.MUST_REUSE_IMG_FOR_GRAPHICS_UTILS);
     
     /*
      * 
@@ -627,7 +625,7 @@ public class JfxBwdHost extends AbstractBwdHost {
         this.dirtySnapshotHelper =
                 new JfxDirtySnapshotHelper(
                         canvas,
-                        ALLOW_OB_SHRINKING) {
+                        JfxPaintUtils.ALLOW_OB_SHRINKING) {
             @Override
             protected boolean isDisabled() {
                 return !bindingConfig.getMustImplementBestEffortPixelReading();
@@ -971,6 +969,7 @@ public class JfxBwdHost extends AbstractBwdHost {
                 //
                 this.currentPainting_graphicsCanvas.getGraphicsContext2D(),
                 graphicsGcScale,
+                this.imgDrawingUtilsForGraphics,
                 this.dirtySnapshotHelper);
         }
         return gForBorder;
@@ -998,54 +997,35 @@ public class JfxBwdHost extends AbstractBwdHost {
                 bufferSpansInBd.y());
         
         if (this.currentPainting_mustUseIntArrG) {
-            this.offscreenBackingWiBuffer.setSize(
-                bufferSpansInBd.x(),
-                bufferSpansInBd.y());
-            final WritableImage offscreenImage =
-                this.offscreenBackingWiBuffer.getImage();
-            /*
-             * Copying pixels from int array into JavaFX writable image.
-             */
-            offscreenImage.getPixelWriter().setPixels(
-                0,
-                0,
-                bufferSpansInBd.x(),
-                bufferSpansInBd.y(),
-                PixelFormat.getIntArgbPreInstance(),
-                this.offscreenIntArrayBuffer.getPixelArr(),
-                0,
-                this.offscreenIntArrayBuffer.getScanlineStride());
-            
-            /*
-             * Drawing JavaFX writable image.
-             */
-            gc.drawImage(
-                offscreenImage,
-                //
-                0.0,
-                0.0,
-                bufferSpansInBd.x(),
-                bufferSpansInBd.y(),
-                //
+            this.imgDrawingUtilsForHost.drawIntArrBufferOnGc(
                 bufferPosInCliInOs.x(),
                 bufferPosInCliInOs.y(),
                 bufferXSpanInOs,
-                bufferYSpanInOs);
+                bufferYSpanInOs,
+                //
+                this.offscreenIntArrayBuffer,
+                //
+                0,
+                0,
+                bufferSpansInBd.x(),
+                bufferSpansInBd.y(),
+                //
+                this.getBinding().getInternalParallelizer(),
+                this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+                //
+                gc);
         } else {
-            /*
-             * TODO jfx: Might want to reimplement JavaFX images scaled drawing,
-             * because JavaFX doesn't preserve pixels sharpness,
-             * and makes things blurry.
-             * Before we had binding-wise scaling it only occurred for
-             * scaled images drawing, but here the blurriness applies
-             * the whole client area whenever we have scaling.
-             */
             if (this.currentPainting_graphicsCanvas != this.canvas) {
                 final WritableImage graphicsImage =
                     JfxSnapshotHelper.takeSnapshot(
                         this.currentPainting_graphicsCanvas);
                 
-                gc.drawImage(
+                this.imgDrawingUtilsForHost.drawBackingImageOnGc(
+                    bufferPosInCliInOs.x(),
+                    bufferPosInCliInOs.y(),
+                    bufferXSpanInOs,
+                    bufferYSpanInOs,
+                    //
                     graphicsImage,
                     //
                     0,
@@ -1053,10 +1033,10 @@ public class JfxBwdHost extends AbstractBwdHost {
                     bufferSpansInBd.x(),
                     bufferSpansInBd.y(),
                     //
-                    bufferPosInCliInOs.x(),
-                    bufferPosInCliInOs.y(),
-                    bufferXSpanInOs,
-                    bufferYSpanInOs);
+                    this.getBinding().getInternalParallelizer(),
+                    this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+                    //
+                    gc);
             }
         }
     }

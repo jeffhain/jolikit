@@ -19,11 +19,6 @@
     soft scheduling (fast and deterministic).
   - Bindings to native APIs.
   - Binding to HTML5 (best effort).
-  - Upgrade our pixel-perfect painting scaling (used for images, etc.)
-    by using some kind of anti-aliasing, in particular so that it doesn't
-    just make some details disappear without having any influence on the result.
-  - JavaFX binding : use pixel-perfect painting scaling instead of JavaFX
-    blurry scaling.
   - LWJGL3 and JOGL bindings: use FreeType instead of AWT for fonts
     (couldn't manage to make it work through JNA (???)).
   - JOGL binding: use FreeImage instead of AWT for images.

@@ -20,11 +20,14 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 
 /**
+ * Interface for our hosts, with specific methods
+ * used by our bindings implementations.
+ * 
  * To avoid dependency from AbstractEventConverter to AbstractBwdHost
  * (not having this dependency at the time we create this, but we could),
  * and a cyclic dependency between them.
  */
-public interface InterfaceBwdHostInOs extends InterfaceBwdHost {
+public interface InterfaceBwdHostImpl extends InterfaceBwdHost {
     
     /**
      * Not used by our bindings, but here for completeness.

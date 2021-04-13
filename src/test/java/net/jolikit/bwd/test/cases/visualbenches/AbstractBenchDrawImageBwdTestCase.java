@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,33 +26,49 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.AbstractBwdBinding;
+import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
+import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 /**
- * To bench image drawing.
+ * To bench image drawing, at with different scalings
+ * (of image, not binding).
  */
-public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
+public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestCase {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
+    /**
+     * Image spans : 960x540
+     */
     private static final String IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_PNG;
     private static final String ALPHA_IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG;
 
-    /**
-     * To bench resized image drawing.
-     */
-    private static final double IMAGE_SHRINK_FACTOR = 0.7;
-    
     private static final int NBR_OF_CALLS = 100;
+    
+    private static final int DST_W = 300;
+    private static final int DST_H = 170;
 
-    private static final int INITIAL_WIDTH = 1600;
-    private static final int INITIAL_HEIGHT = 1150;
+    private static final int CELL_W = 310;
+    private static final int CELL_H = 200;
+
+    /**
+     * 1 (not scaled: should be quick)
+     * 2 (exact growth: should be quick (closest algo))
+     * 0.5 (should be quick with closest algo, slower with smooth algo)
+     * 0.3 and 3.1 (not exact: should use smooth algo)
+     */
+    private static final double[] SCALE_ARR = new double[] {
+        0.32, 0.5, 1.0, 2.0, 3.1,
+    };
+
+    private static final int INITIAL_WIDTH = CELL_W * SCALE_ARR.length;
+    private static final int INITIAL_HEIGHT = CELL_H * 2 + 50;
     private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
     //--------------------------------------------------------------------------
@@ -70,23 +86,13 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public BenchDrawImageBwdTestCase() {
+    public AbstractBenchDrawImageBwdTestCase() {
     }
 
-    public BenchDrawImageBwdTestCase(InterfaceBwdBinding binding) {
+    public AbstractBenchDrawImageBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
-    @Override
-    public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new BenchDrawImageBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new BenchDrawImageBwdTestCase(this.getBinding());
-    }
-
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;
@@ -96,10 +102,26 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
+    protected abstract boolean getMustEnsureSmoothImageScaling();
+    
     @Override
     protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
+        
+        {
+            final AbstractBwdBinding binding =
+                (AbstractBwdBinding) this.getBinding();
+            final BaseBwdBindingConfig bindingConfig =
+                binding.getBindingConfig();
+            final boolean flag = this.getMustEnsureSmoothImageScaling();
+            if (bindingConfig.getMustEnsureSmoothImageScaling() != flag) {
+                bindingConfig.setMustEnsureSmoothImageScaling(flag);
+                // We want to draw on a properly configured graphics.
+                this.getHost().ensurePendingClientPainting();
+                return GRect.DEFAULT_EMPTY_LIST;
+            }
+        }
         
         final GRect box = g.getBox();
         
@@ -131,19 +153,30 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
          * 
          */
         
-        final int dh = defaultFont.metrics().height() + 1;
+        int tmpX = box.x();
+        int tmpY = box.y();
+        
+        final int textH = defaultFont.metrics().height() + 1;
         g.setColor(BwdColor.BLACK);
-        int y = 0;
         
         {
             g.setFont(defaultFont);
-            final String comment =
+            {
+                final String comment =
                     "duration since last painting ended = "
                             + TestUtils.nsToSRounded(nanosBetweenPaintings) + " s";
-            g.drawText(0, y, comment);
+                g.drawText(tmpX, tmpY, comment);
+                tmpY += textH;
+            }
+            {
+                final String comment =
+                    NBR_OF_CALLS + " draw calls for each case";
+                g.drawText(tmpX, tmpY, comment);
+                tmpY += textH;
+            }
         }
         
-        y += (2 * dh);
+        tmpY += textH;
         
         /*
          * Ensuring images to use.
@@ -158,42 +191,36 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
          * Benching.
          */
         
-        final int nbrOfCalls = NBR_OF_CALLS;
-        
-        int x = 0;
-        
         for (int k = 0; k < this.imageList.size(); k++) {
             final InterfaceBwdImage image = this.imageList.get(k);
+            final int imgWidth = image.getWidth();
+            final int imgHeight = image.getHeight();
             
             final boolean hasAlpha = (k == 1);
             
-            for (boolean shrunk : new boolean[]{false,true}) {
-                if (shrunk) {
-                    y -= (2 * dh + image.getHeight());
-                    x = image.getWidth() + 1;
-                } else {
-                    x = 0;
-                }
+            for (double scale : SCALE_ARR) {
+                final int srcWidth = NbrsUtils.roundToInt(DST_W / scale);
+                final int srcHeight = NbrsUtils.roundToInt(DST_H / scale);
+                NbrsUtils.requireInfOrEq(imgWidth, srcWidth, "srcWidth");
+                NbrsUtils.requireInfOrEq(imgHeight, srcHeight, "srcHeight");
                 
-                final int dstXSpan;
-                final int dstYSpan;
-                if (shrunk) {
-                    dstXSpan = (int) (image.getWidth() * IMAGE_SHRINK_FACTOR);
-                    dstYSpan = (int) (image.getHeight() * IMAGE_SHRINK_FACTOR);
-                } else {
-                    dstXSpan = image.getWidth();
-                    dstYSpan = image.getHeight();
-                }
+                // Centering src rectangle in image.
+                final int srcX = (imgWidth - srcWidth) / 2;
+                final int srcY = (imgHeight - srcHeight) / 2;
                 
                 /*
-                 * Drawing a lot.
+                 * Drawing image a lot.
                  */
                 
-                y += dh;
+                // Letting room for text.
+                tmpY += textH;
                 
                 final long startNs = System.nanoTime();
-                for (int i = 0; i < nbrOfCalls; i++) {
-                    g.drawImage(x, y, dstXSpan, dstYSpan, image);
+                for (int i = 0; i < NBR_OF_CALLS; i++) {
+                    g.drawImage(
+                        tmpX, tmpY, DST_W, DST_H,
+                        image,
+                        srcX, srcY, srcWidth, srcHeight);
                 }
                 final long endNs = System.nanoTime();
                 
@@ -201,11 +228,14 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 // to avoid over-blended result and make the alpha obvious.
                 if (hasAlpha) {
                     g.setColor(BwdColor.WHITE);
-                    g.clearRect(x, y, dstXSpan, dstYSpan);
-                    g.drawImage(x, y, dstXSpan, dstYSpan, image);
+                    g.clearRect(tmpX, tmpY, DST_W, DST_H);
+                    g.drawImage(
+                        tmpX, tmpY, DST_W, DST_H,
+                        image,
+                        srcX, srcY, srcWidth, srcHeight);
                 }
                 
-                y -= dh;
+                tmpY -= textH;
                 
                 /*
                  * Drawing how long it took.
@@ -214,14 +244,17 @@ public class BenchDrawImageBwdTestCase extends AbstractBwdTestCase {
                 final long dtNs = endNs - startNs;
                 g.setFont(defaultFont);
                 final String comment =
-                        nbrOfCalls + " calls, hasAlpha = " + hasAlpha
-                        + ", shrunk = " + shrunk
+                        (hasAlpha ? "alpha" : "opaque")
+                        + ", scale = " + scale
                         + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
                 g.setColor(BwdColor.BLACK);
-                g.drawText(x, y, comment);
+                g.drawText(tmpX, tmpY, comment);
                 
-                y += (2 * dh + image.getHeight());
+                tmpX += (CELL_W + 1);
             }
+            
+            tmpX = box.x();
+            tmpY += (textH + CELL_H);
         }
         
         /*

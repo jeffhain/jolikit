@@ -93,19 +93,23 @@ public class JfxBwdWritableImage extends AbstractJfxBwdImage implements Interfac
             final Canvas canvas = JfxUtils.newCanvas(width, height);
 
             final GraphicsContext gc = canvas.getGraphicsContext2D();
-            
-            final JfxDirtySnapshotHelper dirtySnapshotHelper =
-                    new JfxDirtySnapshotHelper(
-                            canvas,
-                            ALLOW_SNAPSHOT_STORAGE_SHRINKING);
             // Image in binding pixels, no need to scale.
             final int gcScale = 1;
+            
+            final JfxImgDrawingUtils imgDrawingUtils =
+                new JfxImgDrawingUtils(
+                    JfxPaintUtils.MUST_REUSE_IMG_FOR_GRAPHICS_UTILS);
+            final JfxDirtySnapshotHelper dirtySnapshotHelper =
+                new JfxDirtySnapshotHelper(
+                    canvas,
+                    ALLOW_SNAPSHOT_STORAGE_SHRINKING);
             graphics = new JfxBwdGraphicsWithGc(
                     binding,
                     box,
                     //
                     gc,
                     gcScale,
+                    imgDrawingUtils,
                     dirtySnapshotHelper);
             
             this.dirtySnapshotHelper = dirtySnapshotHelper;

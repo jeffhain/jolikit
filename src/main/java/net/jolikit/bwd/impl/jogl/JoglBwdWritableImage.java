@@ -19,6 +19,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
 public class JoglBwdWritableImage extends AbstractJoglBwdImage implements InterfaceBwdWritableImage {
@@ -42,10 +43,10 @@ public class JoglBwdWritableImage extends AbstractJoglBwdImage implements Interf
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     public JoglBwdWritableImage(
-            InterfaceBwdBinding binding,
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdBindingImpl binding,
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
         
         this.checkAndSetWritableImageDims(width, height);

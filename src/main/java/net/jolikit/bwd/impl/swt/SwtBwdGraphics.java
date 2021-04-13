@@ -23,7 +23,6 @@ import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.ImageData;
 import org.eclipse.swt.widgets.Display;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
@@ -31,6 +30,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
@@ -152,25 +152,25 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      * @param display Is also the device.
      */
     public SwtBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride,
-            //
-            Display display) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride,
+        //
+        Display display) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride,
-                //
-                new MyShared(display));
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride,
+            //
+            new MyShared(display));
     }
     
     /*
@@ -229,7 +229,7 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     protected void finishWithoutInitImpl() {
         this.shared.onGraphicsFinish();
     }
-    
+
     /*
      * 
      */
@@ -500,25 +500,25 @@ public class SwtBwdGraphics extends AbstractIntArrayBwdGraphics {
      * @param parentGraphics Null for root graphics.
      */
     private SwtBwdGraphics(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride,
-            //
-            MyShared shared) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride,
+        //
+        MyShared shared) {
         super(
-                binding,
-                rootBoxTopLeft,
-                box,
-                initialClip,
-                //
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            rootBoxTopLeft,
+            box,
+            initialClip,
+            //
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         
         // Inplicit null check.
         shared.onGraphicsCreation();

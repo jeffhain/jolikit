@@ -863,8 +863,10 @@ public class AlgrBwdHost extends AbstractBwdHost {
             //
             this.offscreenBuffer,
             this.display,
-            getBinding().getPixelCoordsConverter(),
-            getBindingConfig().getIssueStream());
+            this.getBinding().getPixelCoordsConverter(),
+            this.getBinding().getInternalParallelizer(),
+            this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+            this.getBindingConfig().getIssueStream());
         
         this.flushPainting();
     }

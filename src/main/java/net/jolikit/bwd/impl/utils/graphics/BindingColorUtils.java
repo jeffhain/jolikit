@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,25 +91,10 @@ public class BindingColorUtils {
         return i;
     }
 
-    public static int toArgb32FromPixelWithMasksAndShifts(
-            int pixel,
-            int aMask, int rMask, int gMask, int bMask,
-            int aShift, int rShift, int gShift, int bShift) {
-        final int alpha8;
-        if (aMask == 0) {
-            // "no alpha" in formats means always opaque
-            // (always transparent would be pointless).
-            alpha8 = 0xFF;
-        } else {
-            alpha8 = ((pixel & aMask) >>> aShift);
-        }
-        final int red8 = ((pixel & rMask) >>> rShift);
-        final int green8 = ((pixel & gMask) >>> gShift);
-        final int blue8 = ((pixel & bMask) >>> bShift);
-        
-        return toAbcd32_noCheck(alpha8, red8, green8, blue8);
-    }
-
+    /*
+     * 
+     */
+    
     /**
      * @param cptFp Must be in [0,1].
      * @return The corresponding integer value in [0,255].
@@ -456,7 +441,8 @@ public class BindingColorUtils {
         
         if (AZZERTIONS) {
             if ((resPremulX8|resPremulY8|resPremulZ8) < 0) {
-                throw new IllegalArgumentException("not premultiplied axyz : " + Argb32.toString(premulAxyz32));
+                throw new IllegalArgumentException(
+                    "not premultiplied axyz : " + Argb32.toString(premulAxyz32));
             }
         }
         
@@ -479,7 +465,8 @@ public class BindingColorUtils {
 
         if (AZZERTIONS) {
             if ((resPremulX8|resPremulY8|resPremulZ8) < 0) {
-                throw new IllegalArgumentException("not premultiplied xyza : " + Argb32.toString(premulXyza32));
+                throw new IllegalArgumentException(
+                    "not premultiplied xyza : " + Argb32.toString(premulXyza32));
             }
         }
 

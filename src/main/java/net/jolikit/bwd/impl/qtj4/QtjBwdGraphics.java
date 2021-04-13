@@ -29,7 +29,6 @@ import com.trolltech.qt.gui.QPen;
 import com.trolltech.qt.gui.QPolygon;
 import com.trolltech.qt.gui.QTransform;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
@@ -38,12 +37,12 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFont;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
-import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
@@ -173,6 +172,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      * Resources shared between a root graphics and all its descendants.
      */
     private static class MyShared {
+        final boolean isImageGraphics;
         /**
          * For a same device, at most one QPainter can be bound to it
          * (between QPainter.begin(device) and QPainter.end()) at a time,
@@ -182,22 +182,44 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
          * and its descendants.
          */
         final QPainter painter;
-        final QImage backingImage;
+        /**
+         * For backing image.
+         */
+        final QtjImageHelper backingImageHelper;
+        /**
+         * For any image to draw on backing image.
+         */
+        final QtjImgDrawingUtils imgDrawingUtils = new QtjImgDrawingUtils();
+        final ArrayList<MyQtStuffs> qtStuffsPool;
+        /**
+         * Since multiple graphics are allowed to be in use at once
+         * (as long as used from UI thread), that means that we must keep track
+         * of which graphic is "active" (being used), and configure the painter
+         * appropriately on the fly.
+         * 
+         * This reference holds the currently "active" (last used) graphics,
+         * among root graphics and its descendants.
+         */
+        QtjBwdGraphics painterCurrentGraphics = null;
         private int graphicsCount = 0;
         private boolean beginDone = false;
         private int finishCount = 0;
         public MyShared(
+            boolean isImageGraphics,
             QPainter painter,
-            QImage backingImage) {
+            QtjImageHelper backingImageHelper,
+            ArrayList<MyQtStuffs> qtStuffsPool) {
+            this.isImageGraphics = isImageGraphics;
             this.painter = painter;
-            this.backingImage = backingImage;
+            this.backingImageHelper = backingImageHelper;
+            this.qtStuffsPool = qtStuffsPool;
         }
         public void onGraphicsCreation() {
             this.graphicsCount++;
         }
         public void onGraphicsInit() {
             if (!this.beginDone) {
-                this.painter.begin(this.backingImage);
+                this.painter.begin(this.backingImageHelper.getImage());
                 this.beginDone = true;
             }
         }
@@ -218,6 +240,19 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                     }
                 }
             }
+        }
+        public MyQtStuffs borrowQtStuffs() {
+            MyQtStuffs ret = null;
+            final int size = this.qtStuffsPool.size();
+            if (size != 0) {
+                ret = this.qtStuffsPool.remove(size - 1);
+            } else {
+                ret = new MyQtStuffs();
+            }
+            return ret;
+        }
+        public void releaseQtStuffs(MyQtStuffs obj) {
+            this.qtStuffsPool.add(obj);
         }
     }
     
@@ -244,29 +279,14 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     private final MyPrimitives primitives = new MyPrimitives();
     
-    private final boolean isImageGraphics;
-    
     /**
      * Shared with parent graphics.
      */
     private final MyShared shared;
     
-    /**
-     * Since multiple graphics are allowed to be in use at once
-     * (as long as used from UI thread), that means that we must keep track
-     * of which graphic is "active" (being used), and configure the painter
-     * appropriately on the fly.
-     * 
-     * This reference holds the currently "active" (last used) graphics,
-     * among root graphics and its descendants.
-     */
-    private final ObjectWrapper<QtjBwdGraphics> painterGraphicsRef;
-    
     /*
      * 
      */
-    
-    private final ArrayList<MyQtStuffs> qtStuffsPool;
     
     private final MyQtStuffs qtStuffs;
     
@@ -288,23 +308,24 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      *        managed by this class.
      */
     public QtjBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            QImage backingImage,
-            //
-            ObjectWrapper<Object> qtStuffsPoolRef) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        QtjImageHelper backingImageHelper,
+        //
+        ObjectWrapper<Object> qtStuffsPoolRef) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            new MyShared(
                 isImageGraphics,
-                new MyShared(new QPainter(), backingImage),
-                new ObjectWrapper<QtjBwdGraphics>(),
-                getOrCreateQtStuffsPool(qtStuffsPoolRef));
+                new QPainter(),
+                backingImageHelper,
+                getOrCreateQtStuffsPool(qtStuffsPoolRef)));
     }
 
     /*
@@ -334,10 +355,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 childBox,
                 childInitialClip,
                 //
-                this.isImageGraphics,
-                this.shared,
-                this.painterGraphicsRef,
-                this.qtStuffsPool);
+                this.shared);
     }
 
     /*
@@ -357,7 +375,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     public void clearRect(int x, int y, int xSpan, int ySpan) {
         this.checkUsable();
         
-        if (this.isImageGraphics) {
+        if (this.shared.isImageGraphics) {
             this.fillRectWithCompositionMode(
                     x, y, xSpan, ySpan,
                     CompositionMode.CompositionMode_Source);
@@ -365,6 +383,21 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             // Relying on backing clipping.
             this.fillRect_raw(x, y, xSpan, ySpan, this.qtStuffs.backingColorOpaque);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public void drawPoint(int x, int y) {
+        super.drawPoint(x, y);
+        
+        this.shared.backingImageHelper.onPointDrawing(
+            this.getTransform(), x, y);
     }
 
     /*
@@ -372,10 +405,19 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      */
 
     @Override
+    public void drawLine(int x1, int y1, int x2, int y2) {
+        super.drawLine(x1, y1, x2, y2);
+        
+        this.shared.backingImageHelper.onLineDrawing(
+            this.getTransform(), x1, y1, x2, y2);
+    }
+    
+    @Override
     public int drawLineStipple(
             int x1, int y1, int x2, int y2,
             int factor, short pattern, int pixelNum) {
         
+        final int ret;
         if (FORCED_BACKING_GRAPHICS_USAGE) {
             this.checkUsable();
             
@@ -385,7 +427,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             computeQtPatternInto(factor, pattern, qtPattern);
 
             final QPainter painter = this.getConfiguredPainter();
-            
+
             // QPen not in MyQtStuffs because
             // we actually never use this code.
             final QPen tmpPen = new QPen();
@@ -404,14 +446,39 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                         x1, y1, x2, y2,
                         factor, pixelNum);
             }
-            return pixelNum;
+            ret = pixelNum;
         } else {
-            return super.drawLineStipple(
-                    x1, y1, x2, y2,
-                    factor, pattern, pixelNum);
+            ret = super.drawLineStipple(
+                x1, y1, x2, y2,
+                factor, pattern, pixelNum);
         }
+        
+        this.shared.backingImageHelper.onLineDrawing(
+            this.getTransform(), x1, y1, x2, y2);
+
+        return ret;
+    }
+
+    /*
+     * 
+     */
+
+    @Override
+    public void drawRect(int x, int y, int xSpan, int ySpan) {
+        super.drawRect(x, y, xSpan, ySpan);
+
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
+    @Override
+    public void fillRect(int x, int y, int xSpan, int ySpan) {
+        super.fillRect(x, y, xSpan, ySpan);
+
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
+    }
+
     /*
      * 
      */
@@ -423,12 +490,15 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             
             if ((xSpan > 0) && (ySpan > 0)) {
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 painter.drawEllipse(x, y, xSpan - 1, ySpan - 1);
             }
         } else {
             super.drawOval(x, y, xSpan, ySpan);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     @Override
@@ -439,7 +509,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             if ((xSpan > 0) && (ySpan > 0)) {
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 // TODO qtj Why doesn't fill?
                 final QBrush brush = new QBrush(BrushStyle.SolidPattern);
                 painter.setBrush(brush);
@@ -453,6 +523,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         } else {
             super.fillOval(x, y, xSpan, ySpan);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     /*
@@ -472,7 +545,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 final int spanAngle = BindingCoordsUtils.roundToInt(spanDeg * DEG_TO_QT_ANGLE);
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 // TODO qtj Sometimes paints the wrong pixel.
                 painter.drawArc(
                         x, y, xSpan - 1, ySpan - 1,
@@ -483,6 +556,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     @Override
@@ -498,7 +574,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                 final int spanAngle = BindingCoordsUtils.roundToInt(spanDeg * DEG_TO_QT_ANGLE);
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 // TODO qtj Why doesn't fill?
                 final QBrush brush = new QBrush(BrushStyle.SolidPattern);
                 painter.setBrush(brush);
@@ -516,6 +592,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                     x, y, xSpan, ySpan,
                     startDeg, spanDeg);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
     /*
@@ -538,12 +617,17 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                         pointCount);
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 painter.drawPolyline(polygon);
             }
         } else {
             super.drawPolyline(xArr, yArr, pointCount);
         }
+        
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
+        this.shared.backingImageHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
 
     @Override
@@ -562,12 +646,17 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                         pointCount);
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 painter.drawPolygon(polygon);
             }
         } else {
             super.drawPolygon(xArr, yArr, pointCount);
         }
+        
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
+        this.shared.backingImageHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
 
     @Override
@@ -586,7 +675,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
                         pointCount);
                 
                 final QPainter painter = this.getConfiguredPainter();
-                
+
                 // TODO qtj Why doesn't fill?
                 final QBrush brush = new QBrush(BrushStyle.SolidPattern);
                 painter.setBrush(brush);
@@ -599,6 +688,11 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         } else {
             super.fillPolygon(xArr, yArr, pointCount);
         }
+        
+        final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
+        this.shared.backingImageHelper.onRectDrawing(
+                this.getTransform(),
+                bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
 
     /*
@@ -626,6 +720,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final QPainter painter = this.getConfiguredPainter();
         
         painter.drawText(x, y + ascent, text);
+        
+        this.shared.backingImageHelper.onTextDrawing(
+            this.getTransform(), x, y, text, font);
     }
     
     /*
@@ -649,50 +746,44 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
          * As a result, for writable images,
          * we use a more brutal way.
          */
-        
-        if (this.isImageGraphics) {
+        if (this.shared.isImageGraphics) {
+            
             /*
-             * Staying in use coordinates,
-             * since backing transform is aligned
-             * on current transform.
+             * About ten times faster than the previous way
+             * (using CompositionMode.CompositionMode_Source),
+             * and not way slower than using
+             * CompositionMode.RasterOp_SourceXorDestination.
              */
             
             final GRect clip = this.getClipInUser();
             
-            final int xClipped = GRect.intersectedPos(clip.x(), x);
-            final int yClipped = GRect.intersectedPos(clip.y(), y);
+            final GTransform transform = this.getTransform();
+            final GRotation rotation = transform.rotation();
             
-            final int xSpanClipped = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
-            final int ySpanClipped = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
+            final int cx = GRect.intersectedPos(clip.x(), x);
+            final int cy = GRect.intersectedPos(clip.y(), y);
+            final int cxSpan = GRect.intersectedSpan(clip.x(), clip.xSpan(), x, xSpan);
+            final int cySpan = GRect.intersectedSpan(clip.y(), clip.ySpan(), y, ySpan);
             
-            final QPainter painter = this.getConfiguredPainter();
+            final int rx = transform.minXIn1(cx, cy, cxSpan, cySpan);
+            final int ry = transform.minYIn1(cx, cy, cxSpan, cySpan);
+            final int rxSpan = rotation.xSpanInOther(cxSpan, cySpan);
+            final int rySpan = rotation.ySpanInOther(cxSpan, cySpan);
             
-            /*
-             * In some way, Source should be equivalent to Clear,
-             * but here CompositionMode_Clear doesn't work for writable images,
-             * so we use CompositionMode_Source.
-             */
-            painter.setCompositionMode(CompositionMode.CompositionMode_Source);
-            try {
-                for (int j = 0; j < ySpanClipped; j++) {
-                    for (int i = 0; i < xSpanClipped; i++) {
-                        final int px = xClipped + i;
-                        final int py = yClipped + j;
-                        final int argb32 = this.getArgb32At(px, py);
-                        final int invertedArgb32 = Argb32.inverted(argb32);
-                        this.setArgb32(invertedArgb32);
-                        this.drawPoint_raw(px, py);
-                    }
-                }
-            } finally {
-                painter.setCompositionMode(CompositionMode.CompositionMode_SourceOver);
-            }
+            this.shared.backingImageHelper.invertPixels(
+                rx,
+                ry,
+                rxSpan,
+                rySpan);
         } else {
             this.fillRectWithCompositionModeAndPen(
-                    x, y, xSpan, ySpan,
-                    CompositionMode.RasterOp_SourceXorDestination,
-                    WHITE_PEN);
+                x, y, xSpan, ySpan,
+                CompositionMode.RasterOp_SourceXorDestination,
+                WHITE_PEN);
         }
+        
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
     /*
@@ -708,9 +799,8 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         final int xInBase = transform.xIn1(x, y);
         final int yInBase = transform.yIn1(x, y);
         
-        final int premulArgb32 = this.shared.backingImage.pixel(xInBase, yInBase);
-        final int argb32 = BindingColorUtils.toNonPremulAxyz32(premulArgb32);
-        return argb32;
+        final QtjImageHelper helper = this.shared.backingImageHelper;
+        return helper.getSnapshotNonPremulArgb32At(xInBase, yInBase);
     }
 
     //--------------------------------------------------------------------------
@@ -726,18 +816,18 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     
     @Override
     protected void finishImpl() {
-        this.releaseQtStuffs(this.qtStuffs);
+        this.shared.releaseQtStuffs(this.qtStuffs);
         
         this.shared.onGraphicsFinish();
     }
     
     @Override
     protected void finishWithoutInitImpl() {
-        this.releaseQtStuffs(this.qtStuffs);
+        this.shared.releaseQtStuffs(this.qtStuffs);
         
         this.shared.onGraphicsFinish();
     }
-    
+
     /*
      * 
      */
@@ -829,74 +919,30 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
         
-        final int imageWidth = image.getWidth();
-        final int imageHeight = image.getHeight();
-
         final AbstractQtjBwdImage imageImpl = (AbstractQtjBwdImage) image;
-        final QImage backingImage = imageImpl.getBackingImage();
+        final QtjImageHelper imageHelper = imageImpl.getBackingImageHelper();
         
         final QPainter painter = this.getConfiguredPainter();
         
-        final int drawX;
-        final int drawY;
-        final boolean scaling = (xSpan != sxSpan) || (ySpan != sySpan);
-        if (scaling) {
-            final QTransform backingTransformToCombine = this.qtStuffs.tmpBackingTransform;
-            backingTransformToCombine.reset();
-            
-            final double xScale = (xSpan / (double) sxSpan);
-            final double yScale = (ySpan / (double) sySpan);
-            
-            /*
-             * TODO qtj Seems we need these complicated shift hacks
-             * to get proper results, at least for drawn image bounds.
-             */
-            
-            {
-                final int specialXShiftInUserForTransform = this.xShiftInUser + 1;
-                final int specialYShiftInUserForTransform = this.yShiftInUser + 1;
-                backingTransformToCombine.translate(
-                        specialXShiftInUserForTransform,
-                        specialYShiftInUserForTransform);
-            }
-            
-            backingTransformToCombine.scale(xScale, yScale);
-
-            final int specialXShiftInUser = -1;
-            final int specialYShiftInUser = -1;
-            
-            drawX = BindingCoordsUtils.ceilToInt((1.0/xScale) * (x + specialXShiftInUser));
-            drawY = BindingCoordsUtils.ceilToInt((1.0/yScale) * (y + specialYShiftInUser));
-            
-            final boolean combine = true;
-            painter.setTransform(backingTransformToCombine, combine);
-        } else {
-            drawX = x + this.xShiftInUser;
-            drawY = y + this.yShiftInUser;
-        }
+        this.shared.imgDrawingUtils.drawBackingImageOnPainter(
+            this.xShiftInUser,
+            this.yShiftInUser,
+            this.qtStuffs.backingTransform,
+            this.qtStuffs.tmpBackingTransform,
+            //
+            x, y, xSpan, ySpan,
+            //
+            imageHelper,
+            //
+            sx, sy, sxSpan, sySpan,
+            //
+            this.getBinding().getInternalParallelizer(),
+            this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+            //
+            painter);
         
-        /*
-         * Using simplest applicable method,
-         * in case it would help perfs.
-         */
-        
-        final boolean drawingPart =
-                (sx != 0) || (sy != 0)
-                || (sxSpan != imageWidth) || (sySpan != imageHeight);
-        try {
-            if (drawingPart || scaling) {
-                painter.drawImage(
-                        drawX, drawY,
-                        backingImage,
-                        sx, sy, sxSpan, sySpan);
-            } else {
-                painter.drawImage(drawX, drawY, backingImage);
-            }
-        } finally {
-            if (scaling) {
-                painter.setTransform(this.qtStuffs.backingTransform);
-            }
-        }
+        this.shared.backingImageHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
     //--------------------------------------------------------------------------
@@ -907,25 +953,22 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
      * Constructor to reuse instances from parent graphics.
      */
     private QtjBwdGraphics(
-            InterfaceBwdBinding binding,
-            GPoint topLeftCoord,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            MyShared shared,
-            ObjectWrapper<QtjBwdGraphics> painterGraphicsRef,
-            ArrayList<MyQtStuffs> qtStuffsPool) {
+        InterfaceBwdBindingImpl binding,
+        GPoint topLeftCoord,
+        GRect box,
+        GRect initialClip,
+        //
+        MyShared shared) {
         super(
-                binding,
-                topLeftCoord,
-                box,
-                initialClip);
+            binding,
+            topLeftCoord,
+            box,
+            initialClip);
         
         // Inplicit null check.
         shared.onGraphicsCreation();
         
-        final QImage backingImage = shared.backingImage;
+        final QImage backingImage = shared.backingImageHelper.getImage();
         
         /*
          * Format assumed by our pixel reading treatment,
@@ -937,15 +980,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             throw new IllegalStateException("" + backingImage.format());
         }
         
-        this.isImageGraphics = isImageGraphics;
-        
         this.shared = shared;
         
-        this.painterGraphicsRef = LangUtils.requireNonNull(painterGraphicsRef);
-        
-        this.qtStuffsPool = LangUtils.requireNonNull(qtStuffsPool);
-        
-        this.qtStuffs = this.borrowQtStuffs();
+        this.qtStuffs = shared.borrowQtStuffs();
     }
     
     /*
@@ -970,7 +1007,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     }
     
     private void ensurePainterConfiguredForThisGraphics() {
-        final QtjBwdGraphics painterGraphics = this.painterGraphicsRef.value;
+        final QtjBwdGraphics painterGraphics = this.shared.painterCurrentGraphics;
         if (painterGraphics != this) {
             this.configurePainterForThisGraphics();
             
@@ -979,7 +1016,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
              * if trying to configure it while already being
              * configuring it.
              */
-            this.painterGraphicsRef.value = this;
+            this.shared.painterCurrentGraphics = this;
         }
     }
     
@@ -1025,21 +1062,6 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
         return ret;
     }
     
-    private MyQtStuffs borrowQtStuffs() {
-        MyQtStuffs ret = null;
-        final int size = this.qtStuffsPool.size();
-        if (size != 0) {
-            ret = this.qtStuffsPool.remove(size - 1);
-        } else {
-            ret = new MyQtStuffs();
-        }
-        return ret;
-    }
-    
-    private void releaseQtStuffs(MyQtStuffs obj) {
-        this.qtStuffsPool.add(obj);
-    }
-    
     /*
      * 
      */
@@ -1057,7 +1079,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
 
         final int _x = clip.x() + this.xShiftInUser;
         final int _y = clip.y() + this.yShiftInUser;
-
+        
         this.shared.painter.setClipRect(_x, _y, clip.xSpan(), clip.ySpan());
     }
     
@@ -1158,7 +1180,9 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
     }
     
     /*
-     * 
+     * No need to set helper's dirty flag for these raw drawing methods,
+     * since they are only called from higher level public methods
+     * that already take care of setting the flag.
      */
     
     private void drawPoint_raw(int x, int y) {

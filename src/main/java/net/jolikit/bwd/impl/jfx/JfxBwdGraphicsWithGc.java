@@ -25,7 +25,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.ArcType;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontSmoothingType;
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -36,6 +35,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFont;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractBwdGraphics;
@@ -43,8 +43,6 @@ import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NbrsUtils;
-import net.jolikit.lang.ObjectWrapper;
 import net.jolikit.lang.RethrowException;
 
 /**
@@ -179,11 +177,31 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      */
     private static class MyShared {
         final GraphicsContext gc;
+        final int gcScale;
+        final JfxImgDrawingUtils imgDrawingUtils;
+        final JfxDirtySnapshotHelper dirtySnapshotHelper;
+        /**
+         * Since multiple graphics are allowed to be in use at once
+         * (as long as used from UI thread), that means that we must keep track
+         * of which graphic is "active" (being used), and configure the gc
+         * appropriately on the fly.
+         * 
+         * This reference holds the currently "active" (last used) graphics,
+         * among root graphics and its descendants.
+         */
+        JfxBwdGraphicsWithGc gcCurrentGraphics = null;
         private int graphicsCount = 0;
         private boolean initialStateStored = false;
         private int finishCount = 0;
-        public MyShared(GraphicsContext gc) {
+        public MyShared(
+            GraphicsContext gc,
+            int gcScale,
+            JfxImgDrawingUtils imgDrawingUtils,
+            JfxDirtySnapshotHelper dirtySnapshotHelper) {
             this.gc = gc;
+            this.gcScale = gcScale;
+            this.imgDrawingUtils = imgDrawingUtils;
+            this.dirtySnapshotHelper = dirtySnapshotHelper;
         }
         public void onGraphicsCreation() {
             this.graphicsCount++;
@@ -247,22 +265,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     private final MyShared shared;
     
-    /**
-     * For a same graphics instance, not allowing it to change.
-     */
-    private final int gcScale;
-    
-    /**
-     * Since multiple graphics are allowed to be in use at once
-     * (as long as used from UI thread), that means that we must keep track
-     * of which graphic is "active" (being used), and configure the gc
-     * appropriately on the fly.
-     * 
-     * This reference holds the currently "active" (last used) graphics,
-     * among root graphics and its descendants.
-     */
-    private final ObjectWrapper<JfxBwdGraphicsWithGc> gcGraphicsRef;
-
     /*
      * 
      */
@@ -278,12 +280,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     private double xShiftInUser;
     private double yShiftInUser;
-
-    /*
-     * 
-     */
-    
-    private final JfxDirtySnapshotHelper dirtySnapshotHelper;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -297,22 +293,24 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
      * @param dirtySnapshotHelper Must not be null.
      */
     public JfxBwdGraphicsWithGc(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            GraphicsContext gc,
-            int gcScale,
-            JfxDirtySnapshotHelper dirtySnapshotHelper) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        GraphicsContext gc,
+        int gcScale,
+        JfxImgDrawingUtils imgDrawingUtils,
+        JfxDirtySnapshotHelper dirtySnapshotHelper) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
-                new MyShared(gc),
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            new MyShared(
+                gc,
                 gcScale,
-                new ObjectWrapper<JfxBwdGraphicsWithGc>(),
-                dirtySnapshotHelper);
+                imgDrawingUtils,
+                dirtySnapshotHelper));
     }
 
     /**
@@ -352,10 +350,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 childBox,
                 childInitialClip,
                 //
-                this.shared,
-                this.gcScale,
-                this.gcGraphicsRef,
-                this.dirtySnapshotHelper);
+                this.shared);
     }
     
     /*
@@ -415,7 +410,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void drawPoint(int x, int y) {
         super.drawPoint(x, y);
         
-        this.dirtySnapshotHelper.onPointDrawing(this.getTransform(), x, y);
+        this.shared.dirtySnapshotHelper.onPointDrawing(
+            this.getTransform(), x, y);
     }
 
     /*
@@ -426,7 +422,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void drawLine(int x1, int y1, int x2, int y2) {
         super.drawLine(x1, y1, x2, y2);
         
-        this.dirtySnapshotHelper.onLineDrawing(this.getTransform(), x1, y1, x2, y2);
+        this.shared.dirtySnapshotHelper.onLineDrawing(
+            this.getTransform(), x1, y1, x2, y2);
     }
 
     @Override
@@ -437,7 +434,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                 x1, y1, x2, y2,
                 factor, pattern, pixelNum);
         
-        this.dirtySnapshotHelper.onLineDrawing(this.getTransform(), x1, y1, x2, y2);
+        this.shared.dirtySnapshotHelper.onLineDrawing(
+            this.getTransform(), x1, y1, x2, y2);
         
         return ret;
     }
@@ -450,14 +448,16 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     public void drawRect(int x, int y, int xSpan, int ySpan) {
         super.drawRect(x, y, xSpan, ySpan);
 
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     @Override
     public void fillRect(int x, int y, int xSpan, int ySpan) {
         super.fillRect(x, y, xSpan, ySpan);
 
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
     /*
@@ -481,7 +481,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             super.drawOval(x, y, xSpan, ySpan);
         }
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     @Override
@@ -502,7 +503,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             super.fillOval(x, y, xSpan, ySpan);
         }
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     /*
@@ -534,7 +536,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                     startDeg, spanDeg);
         }
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     @Override
@@ -563,7 +566,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
                     startDeg, spanDeg);
         }
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
     
     /*
@@ -596,7 +600,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         }
         
         final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
-        this.dirtySnapshotHelper.onRectDrawing(
+        this.shared.dirtySnapshotHelper.onRectDrawing(
                 this.getTransform(),
                 bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
@@ -627,7 +631,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         }
         
         final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
-        this.dirtySnapshotHelper.onRectDrawing(
+        this.shared.dirtySnapshotHelper.onRectDrawing(
                 this.getTransform(),
                 bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
@@ -658,7 +662,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         }
         
         final GRect bbox = GprimUtils.computePolyBoundingBox(xArr, yArr, pointCount);
-        this.dirtySnapshotHelper.onRectDrawing(
+        this.shared.dirtySnapshotHelper.onRectDrawing(
                 this.getTransform(),
                 bbox.x(), bbox.y(), bbox.xSpan(), bbox.ySpan());
     }
@@ -687,7 +691,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         final InterfaceBwdFontMetrics fontMetrics = font.metrics();
         drawText_raw_shifted(gc, _x, _y, text, rotation, fontMetrics);
         
-        this.dirtySnapshotHelper.onTextDrawing(this.getTransform(), x, y, text, font);
+        this.shared.dirtySnapshotHelper.onTextDrawing(
+            this.getTransform(), x, y, text, font);
     }
     
     /*
@@ -722,7 +727,8 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             gc.setGlobalBlendMode(BlendMode.SRC_OVER);
         }
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
     /*
@@ -738,14 +744,16 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         final int xInBase = transform.xIn1(x, y);
         final int yInBase = transform.yIn1(x, y);
         
-        this.dirtySnapshotHelper.beforePixelReading(xInBase, yInBase);
-        final GRect snapshotBox = this.dirtySnapshotHelper.getSnapshotBox();
+        this.shared.dirtySnapshotHelper.beforePixelReading(xInBase, yInBase);
+        final GRect snapshotBox = this.shared.dirtySnapshotHelper.getSnapshotBox();
         if (!snapshotBox.contains(xInBase, yInBase)) {
             return defaultRes;
         }
         
-        final int[] snapshotPremulArgb32Arr = this.dirtySnapshotHelper.getSnapshotPremulArgb32Arr();
-        final int snapshotScanlineStride = this.dirtySnapshotHelper.getSnapshotScanlineStride();
+        final int[] snapshotPremulArgb32Arr =
+            this.shared.dirtySnapshotHelper.getSnapshotPremulArgb32Arr();
+        final int snapshotScanlineStride =
+            this.shared.dirtySnapshotHelper.getSnapshotScanlineStride();
         
         final int index = yInBase * snapshotScanlineStride + xInBase;
         final int premulArgb32 = snapshotPremulArgb32Arr[index];
@@ -895,9 +903,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
         final GraphicsContext gc = this.getConfiguredGc();
         
-        final int imageWidth = image.getWidth();
-        final int imageHeight = image.getHeight();
-        
         final AbstractJfxBwdImage imageImpl = (AbstractJfxBwdImage) image;
         final Image img = imageImpl.getBackingImageForGcDrawOrRead();
         
@@ -905,37 +910,28 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         final double _x = x + this.xShiftInUser - H;
         final double _y = y + this.yShiftInUser - H;
 
-        /*
-         * Using simplest applicable method,
-         * in case it would help perfs.
-         */
-
-        final boolean drawingPart =
-                (sx != 0) || (sy != 0)
-                || (sxSpan != imageWidth) || (sySpan != imageHeight);
-        if (drawingPart) {
-            gc.drawImage(
-                    img,
-                    sx, sy, sxSpan, sySpan,
-                    _x, _y, xSpan, ySpan);
-        } else {
-            final boolean imgScaling = (xSpan != sxSpan) || (ySpan != sySpan);
-            if (imgScaling) {
-                gc.drawImage(img, _x, _y, xSpan, ySpan);
-            } else {
-                gc.drawImage(img, _x, _y);
-            }
-        }
+        this.shared.imgDrawingUtils.drawBackingImageOnGc(
+            _x, _y, xSpan, ySpan,
+            //
+            img,
+            //
+            sx, sy, sxSpan, sySpan,
+            //
+            this.getBinding().getInternalParallelizer(),
+            this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+            //
+            gc);
         
-        this.dirtySnapshotHelper.onRectDrawing(this.getTransform(), x, y, xSpan, ySpan);
+        this.shared.dirtySnapshotHelper.onRectDrawing(
+            this.getTransform(), x, y, xSpan, ySpan);
     }
 
-    /*
-     * 
-     */
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
     
-    protected JfxDirtySnapshotHelper getDirtySnapshotHelper() {
-        return this.dirtySnapshotHelper;
+    JfxDirtySnapshotHelper getDirtySnapshotHelper() {
+        return this.shared.dirtySnapshotHelper;
     }
 
     //--------------------------------------------------------------------------
@@ -943,15 +939,12 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private JfxBwdGraphicsWithGc(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            MyShared shared,
-            int gcScale,
-            ObjectWrapper<JfxBwdGraphicsWithGc> gcGraphicsRef,
-            JfxDirtySnapshotHelper dirtySnapshotHelper) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        MyShared shared) {
         super(
                 binding,
                 rootBoxTopLeft,
@@ -962,12 +955,6 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         shared.onGraphicsCreation();
         
         this.shared = shared;
-        
-        this.gcScale = NbrsUtils.requireSupOrEq(1, gcScale, "gcScale");
-        
-        this.gcGraphicsRef = LangUtils.requireNonNull(gcGraphicsRef);
-        
-        this.dirtySnapshotHelper = LangUtils.requireNonNull(dirtySnapshotHelper);
     }
     
     /*
@@ -992,7 +979,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     }
     
     private void ensureGcConfiguredForThisGraphics() {
-        final JfxBwdGraphicsWithGc gcGraphics = this.gcGraphicsRef.value;
+        final JfxBwdGraphicsWithGc gcGraphics = this.shared.gcCurrentGraphics;
         if (gcGraphics != this) {
             this.configureGcForThisGraphics();
             
@@ -1001,7 +988,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
              * if trying to configure it while already being
              * configuring it.
              */
-            this.gcGraphicsRef.value = this;
+            this.shared.gcCurrentGraphics = this;
         }
     }
     
@@ -1106,7 +1093,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
         final GraphicsContext gc = this.shared.gc;
         
-        final int gcs = this.gcScale;
+        final int gcs = this.shared.gcScale;
         
         final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         
@@ -1133,7 +1120,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         
         final GRotation rotation = transform.rotation();
         
-        final int gcs = this.gcScale;
+        final int gcs = this.shared.gcScale;
         
         final double myH = (JfxUtils.H_IN_T ? H : 0.0);
         

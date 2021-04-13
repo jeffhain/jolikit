@@ -33,6 +33,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFont;
 import net.jolikit.bwd.impl.awt.AwtUtils;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
@@ -83,25 +84,25 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
      * Constructor for root graphics.
      */
     public LwjglBwdGraphics(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            int[] pixelArr,
-            int pixelArrScanlineStride) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        int[] pixelArr,
+        int pixelArrScanlineStride) {
         this(
-                binding,
-                topLeftOf(box),
-                box,
-                box, // initialClip
-                //
-                isImageGraphics,
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                        pixelArr,
-                        pixelArrScanlineStride,
-                        box.ySpan(),
-                        BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
-                        BufferedImageHelper.PREMUL));
+            binding,
+            topLeftOf(box),
+            box,
+            box, // initialClip
+            //
+            isImageGraphics,
+            BufferedImageHelper.newBufferedImageWithIntArray(
+                pixelArr,
+                pixelArrScanlineStride,
+                box.ySpan(),
+                BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
+                BufferedImageHelper.PREMUL));
     }
 
     /*
@@ -349,22 +350,22 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
     
     private LwjglBwdGraphics(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            BufferedImage bufferedImage) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        BufferedImage bufferedImage) {
         super(
-                binding,
-                rootBoxTopLeft,
-                box,
-                initialClip,
-                //
-                isImageGraphics,
-                BufferedImageHelper.getIntPixelArr(bufferedImage),
-                bufferedImage.getWidth());
+            binding,
+            rootBoxTopLeft,
+            box,
+            initialClip,
+            //
+            isImageGraphics,
+            BufferedImageHelper.getIntPixelArr(bufferedImage),
+            bufferedImage.getWidth());
         
         this.bufferedImage = bufferedImage;
     }

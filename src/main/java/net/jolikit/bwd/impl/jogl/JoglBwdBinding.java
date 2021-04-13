@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.awt.AwtBwdFontHome;
 import net.jolikit.bwd.impl.utils.ConfiguredExceptionHandler;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.ScreenBoundsType;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 import net.jolikit.lang.Dbg;
@@ -278,15 +279,15 @@ public class JoglBwdBinding extends AbstractJoglBwdBinding {
 
     @Override
     protected InterfaceBwdWritableImage newWritableImageImpl(
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
-        final InterfaceBwdBinding binding = this;
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
+        final InterfaceBwdBindingImpl binding = this;
         return new JoglBwdWritableImage(
-                binding,
-                width,
-                height,
-                disposalListener);
+            binding,
+            width,
+            height,
+            disposalListener);
     }
 
     /*

@@ -105,6 +105,14 @@ public class BaseBwdBindingConfig {
     private int parallelizerParallelism = 1;
     
     /**
+     * Parallelism for internal parallelizer.
+     * 
+     * This parallelism doesn't cause concurrency for user code,
+     * only for trusted bindings code, so it's safe not to use 1 by default.
+     */
+    private int internalParallelism = Runtime.getRuntime().availableProcessors();
+
+    /**
      * Type of time provided by the clock used for UI thread scheduler.
      * 
      * NANO_TIME_ZERO by default, to:
@@ -312,6 +320,32 @@ public class BaseBwdBindingConfig {
      * earth-shaking event for the whole GUI.
      */
     private ScaleHelper scaleHelper = new ScaleHelper();
+    
+    /**
+     * Use true to ensure use of smooth scaling (box sampling)
+     * when an image is scaled up or down,
+     * false to just use closest source pixel (nearest neighbor)
+     * or another lower/different quality algorithm from backing library.
+     * 
+     * False by default, not to hurt performances (possibly a lot)
+     * for users that don't care much about exact smoothing,
+     * or worse don't like the slight blurriness that comes with it.
+     * 
+     * Use true if you want qualitative image scaling,
+     * at the cost of eventually (much) higher overhead
+     * (depending on the binding and backing library).
+     * 
+     * For now, not allowing to configure that from public API
+     * (such as with an argument for scaling drawImage() methods,
+     * or a setCanUseCheapImageScaling(boolean) on graphics),
+     * because even if it's set to true, it's still possible
+     * to draw small image icons quickly (typical use-case
+     * for wanting fast drawing of scaled-down large images),
+     * with the workaround of drawing properly scaled images once each
+     * into a writable image, and then drawing these writable images
+     * every time instead (which would also save memory).
+     */
+    private boolean mustEnsureSmoothImageScaling = false;
     
     /*
      * 
@@ -605,6 +639,14 @@ public class BaseBwdBindingConfig {
         this.setParallelizerParallelism_final(parallelizerParallelism);
     }
 
+    public int getInternalParallelism() {
+        return this.internalParallelism;
+    }
+
+    public void setInternalParallelism(int internalParallelism) {
+        this.setInternalParallelism_final(internalParallelism);
+    }
+
     public HardClockTimeType getUiThreadSchedulerHardClockTimeType() {
         return this.uiThreadSchedulerHardClockTimeType;
     }
@@ -780,6 +822,14 @@ public class BaseBwdBindingConfig {
         this.setScale_final(scale);
     }
     
+    public boolean getMustEnsureSmoothImageScaling() {
+        return this.mustEnsureSmoothImageScaling;
+    }
+
+    public void setMustEnsureSmoothImageScaling(boolean mustEnsureSmoothImageScaling) {
+        this.setMustEnsureSmoothImageScaling_final(mustEnsureSmoothImageScaling);
+    }
+
     /*
      * 
      */
@@ -983,6 +1033,13 @@ public class BaseBwdBindingConfig {
     }
 
     /**
+     * Default value is Runtime.getRuntime().availableProcessors().
+     */
+    protected final void setInternalParallelism_final(int internalParallelism) {
+        this.internalParallelism = internalParallelism;
+    }
+    
+    /**
      * Default value is SYSTEM_NANO_TIME.
      */
     protected final void setUiThreadSchedulerHardClockTimeType_final(HardClockTimeType uiThreadSchedulerHardClockTimeType) {
@@ -1124,6 +1181,13 @@ public class BaseBwdBindingConfig {
         this.scaleHelper.setScale(scale);
     }
     
+    /**
+     * Default value is false.
+     */
+    protected final void setMustEnsureSmoothImageScaling_final(boolean mustEnsureSmoothImageScaling) {
+        this.mustEnsureSmoothImageScaling = mustEnsureSmoothImageScaling;
+    }
+
     /*
      * 
      */

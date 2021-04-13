@@ -15,13 +15,13 @@
  */
 package net.jolikit.bwd.impl.swt;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
+import org.eclipse.swt.widgets.Display;
+
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
-
-import org.eclipse.swt.widgets.Display;
 
 public class SwtBwdWritableImage extends AbstractSwtBwdImage implements InterfaceBwdWritableImage {
     
@@ -45,18 +45,18 @@ public class SwtBwdWritableImage extends AbstractSwtBwdImage implements Interfac
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     public SwtBwdWritableImage(
-            InterfaceBwdBinding binding,
-            int width,
-            int height,
-            Display display,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdBindingImpl binding,
+        int width,
+        int height,
+        Display display,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
         
         this.checkAndSetWritableImageDims(width, height);
         
         final boolean isImageGraphics = true;
         final GRect box = this.getRect();
-
+        
         final int pixelCapacity = box.area();
         final int[] premulArgb32Arr = new int[pixelCapacity];
         this.premulArgb32Arr = premulArgb32Arr;
@@ -64,12 +64,12 @@ public class SwtBwdWritableImage extends AbstractSwtBwdImage implements Interfac
         final int[] pixelArr = premulArgb32Arr;
         final int pixelArrScanlineStride = width;
         final SwtBwdGraphics graphics = new SwtBwdGraphics(
-                binding,
-                box,
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride,
-                display);
+            binding,
+            box,
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride,
+            display);
         this.graphics = graphics;
         
         graphics.init();

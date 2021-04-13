@@ -30,6 +30,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFont;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
@@ -368,11 +369,11 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * Constructor for root graphics.
      */
     public AwtBwdGraphicsWithG(
-            InterfaceBwdBinding binding,
-            GRect box,
-            //
-            boolean isImageGraphics,
-            BufferedImage backingImage) {
+        InterfaceBwdBindingImpl binding,
+        GRect box,
+        //
+        boolean isImageGraphics,
+        BufferedImage backingImage) {
         this(
                 binding,
                 topLeftOf(box),
@@ -929,13 +930,13 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     //--------------------------------------------------------------------------
     
     private AwtBwdGraphicsWithG(
-            InterfaceBwdBinding binding,
-            GPoint rootBoxTopLeft,
-            GRect box,
-            GRect initialClip,
-            //
-            boolean isImageGraphics,
-            BufferedImage backingImage) {
+        InterfaceBwdBindingImpl binding,
+        GPoint rootBoxTopLeft,
+        GRect box,
+        GRect initialClip,
+        //
+        boolean isImageGraphics,
+        BufferedImage backingImage) {
         super(
                 binding,
                 rootBoxTopLeft,

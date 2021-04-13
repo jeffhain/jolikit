@@ -15,10 +15,10 @@
  */
 package net.jolikit.bwd.impl.sdl2;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
 
@@ -43,17 +43,17 @@ public class SdlBwdWritableImage extends AbstractSdlBwdImage implements Interfac
      * @throws IllegalArgumentException if width or height is <= 0.
      */
     public SdlBwdWritableImage(
-            InterfaceBwdBinding binding,
-            int width,
-            int height,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdBindingImpl binding,
+        int width,
+        int height,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
         
         this.checkAndSetWritableImageDims(width, height);
         
         final boolean isImageGraphics = true;
         final GRect box = this.getRect();
-
+        
         final int pixelCapacity = box.area();
         final int[] premulArgb32Arr = new int[pixelCapacity];
         
@@ -62,11 +62,11 @@ public class SdlBwdWritableImage extends AbstractSdlBwdImage implements Interfac
         final int[] pixelArr = premulArgb32Arr;
         final int pixelArrScanlineStride = width;
         final SdlBwdGraphics graphics = new SdlBwdGraphics(
-                binding,
-                box,
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            box,
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         this.graphics = graphics;
         
         graphics.init();

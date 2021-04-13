@@ -24,7 +24,6 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 
 /**
@@ -58,7 +57,7 @@ class HostForApiTests extends AbstractBwdHost {
      */
     public HostForApiTests(
             BaseBwdBindingConfig bindingConfig,
-            InterfaceBwdBindingInOs binding,
+            InterfaceBwdBindingImpl binding,
             InterfaceHostLifecycleListener<AbstractBwdHost> hostLifecycleListener,
             HostOfFocusedClientHolder hostOfFocusedClientHolder,
             InterfaceBwdHost owner,

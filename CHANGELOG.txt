@@ -156,6 +156,8 @@ Jolikit X.X, XXXX/XX/XX
     - parallelizerParallelism set to 1 by default, instead of
       to available parallelism, for multi-threading not to hurt
       incognizant users.
+    - Added "internalParallelism" parameter, to configure parallelism
+      of binding internal parallelizer.
     - Reduced default delay and period for key repetition.
     - Added "scale" parameter, which allows for scaling BWD pixels
       span (and related coordinates) as a multiple of OS pixels span
@@ -164,6 +166,10 @@ Jolikit X.X, XXXX/XX/XX
       on 4k+ screens, or to easily scale up a UI without having
       to touch its code, or to check pixel-perfectness of your drawings
       without a magnifying glass, or if you just like pixelated graphics.
+    - Added "mustEnsureSmoothImageScaling" parameter, to allow ensuring
+      of smooth image scaling (box sampling).
+      False by default (i.e. same as previous behavior),
+      because it can make image scaling much slower.
   - Corrections:
     - Corrected an issue in DefaultLineDrawer, where pixels out of clip
       could be drawn when coordinates were huge (>= 500_000_000 or so).
@@ -206,6 +212,8 @@ Jolikit X.X, XXXX/XX/XX
     - AbstractBwdBinding: For the Executor backing the parallelizer,
       now using a HardScheduler instead of a ThreadPoolExecutor,
       to avoid spurious shutdown issues under stress.
+    - JavaFX binding: using redefined image scaling algorithm in case of growth,
+      to avoid blurriness of JavaFX algorithm (linear filtering, cf. JDK-8204060).
   - Internals:
     - Moved file loading into image constructor for the few bindings
       for which that was not the case.

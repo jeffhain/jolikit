@@ -32,8 +32,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdBindingInOs;
-import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostInOs;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostImpl;
 import net.jolikit.bwd.impl.utils.basics.InterfaceDoubleSupplier;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.events.KeyRepetitionHelper;
@@ -65,7 +64,7 @@ import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
  * NB: This remark also applies, to a lesser extend, to other parts (than hosts)
  * of bindings implementations (such as graphics or font homes).
  */
-public abstract class AbstractBwdHost implements InterfaceBwdHostInOs, InterfaceBackingWindowHolder {
+public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, InterfaceBackingWindowHolder {
     
     /*
      * TODO What the messiness of this class shows,
@@ -630,7 +629,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostInOs, Interface
 
     private final BaseBwdBindingConfig bindingConfig;
 
-    private final InterfaceBwdBindingInOs binding;
+    private final InterfaceBwdBindingImpl binding;
 
     /**
      * To listen to life cycle of this host or dialogs created from it.
@@ -861,7 +860,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostInOs, Interface
      */
     public AbstractBwdHost(
             final BaseBwdBindingConfig bindingConfig,
-            InterfaceBwdBindingInOs binding,
+            InterfaceBwdBindingImpl binding,
             InterfaceHostLifecycleListener<AbstractBwdHost> hostLifecycleListener,
             HostOfFocusedClientHolder hostOfFocusedClientHolder,
             InterfaceBwdHost owner,
@@ -970,7 +969,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostInOs, Interface
         return this.bindingConfig.getScaleHelper();
     }
 
-    public InterfaceBwdBindingInOs getBinding() {
+    public InterfaceBwdBindingImpl getBinding() {
         return this.binding;
     }
     

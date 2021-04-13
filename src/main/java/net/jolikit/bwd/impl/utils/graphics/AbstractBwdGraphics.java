@@ -17,7 +17,6 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import java.util.ArrayList;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.Argb64;
@@ -28,6 +27,8 @@ import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
+import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
+import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
@@ -60,7 +61,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * 
      */
     
-    private final InterfaceBwdBinding binding;
+    private final InterfaceBwdBindingImpl binding;
 
     /*
      * 
@@ -171,7 +172,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     //--------------------------------------------------------------------------
     
     public AbstractBwdGraphics(
-        InterfaceBwdBinding binding,
+        InterfaceBwdBindingImpl binding,
         GPoint rootBoxTopLeft,
         GRect box,
         GRect initialClip) {
@@ -217,8 +218,15 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * 
      */
     
-    public InterfaceBwdBinding getBinding() {
+    public InterfaceBwdBindingImpl getBinding() {
         return this.binding;
+    }
+    
+    /**
+     * Convenience method.
+     */
+    public BaseBwdBindingConfig getBindingConfig() {
+        return this.binding.getBindingConfig();
     }
     
     @Override
