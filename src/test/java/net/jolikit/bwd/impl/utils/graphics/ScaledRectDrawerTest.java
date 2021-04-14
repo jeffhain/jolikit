@@ -42,11 +42,11 @@ public class ScaledRectDrawerTest extends TestCase {
     private static final int PARALLELISM = 4;
     
     /*
-     * Small thresholds else parallelism is not triggered.
+     * Small thresholds to trigger parallelism even with small spans.
      */
     
-    private static final double TEST_MIN_AREA_COST_FOR_SEQ_CLOSEST = 5.0;
-    private static final double TEST_MIN_AREA_COST_FOR_SEQ_SMOOTH = 7.0;
+    private static final double TEST_MIN_AREA_COST_FOR_SPLIT_CLOSEST = 2.0;
+    private static final double TEST_MIN_AREA_COST_FOR_SPLIT_SMOOTH = 2.0;
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -1075,8 +1075,8 @@ public class ScaledRectDrawerTest extends TestCase {
         GRect dstClip,
         InterfaceRowDrawer rowDrawer) {
         ScaledRectDrawer.drawRectScaled(
-            TEST_MIN_AREA_COST_FOR_SEQ_CLOSEST,
-            TEST_MIN_AREA_COST_FOR_SEQ_SMOOTH,
+            TEST_MIN_AREA_COST_FOR_SPLIT_CLOSEST,
+            TEST_MIN_AREA_COST_FOR_SPLIT_SMOOTH,
             parallelizer,
             mustUseSmoothElseClosest,
             srcPixels,

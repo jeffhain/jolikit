@@ -131,8 +131,8 @@ public class ScaledRectDrawerPerf {
 
     private void run(String[] args) {
         System.out.println("--- " + ScaledRectDrawerPerf.class.getSimpleName() + "... ---");
-        System.out.println("MIN_AREA_COST_FOR_SEQ_CLOSEST = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SEQ_CLOSEST);
-        System.out.println("MIN_AREA_COST_FOR_SEQ_SMOOTH = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SEQ_SMOOTH);
+        System.out.println("MIN_AREA_COST_FOR_SPLIT_CLOSEST = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_CLOSEST);
+        System.out.println("MIN_AREA_COST_FOR_SPLIT_SMOOTH = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_SMOOTH);
         
         /*
          * scale = 1

@@ -36,16 +36,16 @@ public class ScaledRectDrawer {
     //--------------------------------------------------------------------------
     
     /**
-     * 1000 works, but using 10*1000 to make sure
-     * we don't get too much wasteful splits.
+     * 2000 works, but using 10 times that to make sure
+     * that we don't get too many wasteful splits.
      */
-    static final double MIN_AREA_COST_FOR_SEQ_SMOOTH = 10.0 * 1000.0;
+    static final double MIN_AREA_COST_FOR_SPLIT_SMOOTH = 10.0 * 2000.0;
     
     /**
-     * 10 times more than for smooth,
-     * because this algorithm has less overhead.
+     * 10 times smooth threshold,
+     * because this algorithm has much less overhead.
      */
-    static final double MIN_AREA_COST_FOR_SEQ_CLOSEST = 10.0 * MIN_AREA_COST_FOR_SEQ_SMOOTH;
+    static final double MIN_AREA_COST_FOR_SPLIT_CLOSEST = 10.0 * MIN_AREA_COST_FOR_SPLIT_SMOOTH;
     
     /**
      * Ignoring src pixels which less than an epsilon is covered.
@@ -161,7 +161,7 @@ public class ScaledRectDrawer {
         final GRect drc;
         final InterfaceRowDrawer rowDrawer;
         final double lineCost;
-        final double minAreaCostForSeq;
+        final double minAreaCostForSplit;
         public MyCmnData(
             MyAlgoType algoType,
             InterfaceSrcPixels srcPixels,
@@ -170,7 +170,7 @@ public class ScaledRectDrawer {
             GRect drc,
             InterfaceRowDrawer rowDrawer,
             double lineCost,
-            double minAreaCostForSeq) {
+            double minAreaCostForSplit) {
             this.algoType = algoType;
             this.srcPixels = srcPixels;
             this.sr = sr;
@@ -178,7 +178,7 @@ public class ScaledRectDrawer {
             this.drc = drc;
             this.rowDrawer = rowDrawer;
             this.lineCost = lineCost;
-            this.minAreaCostForSeq = minAreaCostForSeq;
+            this.minAreaCostForSplit = minAreaCostForSplit;
         }
     }
             
@@ -190,6 +190,9 @@ public class ScaledRectDrawer {
             MyCmnData cmn,
             int startY,
             int endY) {
+            if (startY > endY) {
+                throw new IllegalArgumentException(startY + " > " + endY);
+            }
             this.cmn = cmn;
             this.startY = startY;
             this.endY = endY;
@@ -220,7 +223,7 @@ public class ScaledRectDrawer {
                 this.cmn.lineCost,
                 this.startY,
                 this.endY,
-                this.cmn.minAreaCostForSeq);
+                this.cmn.minAreaCostForSplit);
         }
         @Override
         public InterfaceSplittable split() {
@@ -297,8 +300,8 @@ public class ScaledRectDrawer {
         InterfaceRowDrawer rowDrawer) {
         
         drawRectScaled(
-            MIN_AREA_COST_FOR_SEQ_CLOSEST,
-            MIN_AREA_COST_FOR_SEQ_SMOOTH,
+            MIN_AREA_COST_FOR_SPLIT_CLOSEST,
+            MIN_AREA_COST_FOR_SPLIT_SMOOTH,
             parallelizer,
             mustUseSmoothElseClosest,
             srcPixels,
@@ -313,8 +316,8 @@ public class ScaledRectDrawer {
     //--------------------------------------------------------------------------
     
     static void drawRectScaled(
-        double minAreaCostForSeqClosest,
-        double minAreaCostForSeqSmooth,
+        double minAreaCostForSplitClosest,
+        double minAreaCostForSplitSmooth,
         //
         InterfaceParallelizer parallelizer,
         boolean mustUseSmoothElseClosest,
@@ -377,13 +380,13 @@ public class ScaledRectDrawer {
         
         if (parallelizer.getParallelism() >= 2) {
             final double lineCost = computeLineCost(sr, dr, drc);
-            final double minAreaCostForSeq;
+            final double minAreaCostForSplit;
             if (algoType == MyAlgoType.CLOSEST) {
-                minAreaCostForSeq = MIN_AREA_COST_FOR_SEQ_CLOSEST;
+                minAreaCostForSplit = minAreaCostForSplitClosest;
             } else {
-                minAreaCostForSeq = MIN_AREA_COST_FOR_SEQ_SMOOTH;
+                minAreaCostForSplit = minAreaCostForSplitSmooth;
             }
-            if (isWorthToSplit(lineCost, startY, endY, minAreaCostForSeq)) {
+            if (isWorthToSplit(lineCost, startY, endY, minAreaCostForSplit)) {
                 didGoPrl = true;
                 
                 final MyCmnData cmn =
@@ -395,7 +398,7 @@ public class ScaledRectDrawer {
                         drc,
                         rowDrawer,
                         lineCost,
-                        minAreaCostForSeq);
+                        minAreaCostForSplit);
                 
                 final MySplittable splittable =
                     new MySplittable(
@@ -488,10 +491,16 @@ public class ScaledRectDrawer {
         double lineCost,
         int startY,
         int endY,
-        double minAreaCostForSeq) {
+        double minAreaCostForSplit) {
         final int lineCount = (endY - startY + 1);
-        final double areaCost = lineCount * lineCost;
-        return areaCost >= (2 * minAreaCostForSeq);  
+        final boolean ret;
+        if (lineCount <= 1) {
+            ret = false;
+        } else {
+            final double areaCost = lineCount * lineCost;
+            ret = (areaCost >= minAreaCostForSplit);  
+        }
+        return ret;
     }
 
     /*
