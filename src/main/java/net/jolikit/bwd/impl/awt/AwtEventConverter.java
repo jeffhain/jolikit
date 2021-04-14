@@ -15,7 +15,10 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.AWTEvent;
+import java.awt.Insets;
 import java.awt.Panel;
+import java.awt.Window;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseEvent;
@@ -24,7 +27,9 @@ import java.awt.event.MouseWheelEvent;
 import net.jolikit.bwd.api.events.BwdKeyLocations;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
+import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostImpl;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
@@ -122,10 +127,7 @@ public class AwtEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof MouseEvent) {
             final MouseEvent mouseEvent = (MouseEvent) backingEvent;
             
-            final GPoint mousePosInScreenInOs = GPoint.valueOf(
-                mouseEvent.getXOnScreen(),
-                mouseEvent.getYOnScreen());
-            commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
+            this.tryUpdateMousePosInScreenInOs(mouseEvent, commonState);
             
             final int modEx = mouseEvent.getModifiersEx();
             commonState.setPrimaryButtonDown((modEx & MouseEvent.BUTTON1_DOWN_MASK) != 0);
@@ -311,5 +313,61 @@ public class AwtEventConverter extends AbstractEventConverter {
         }
         
         return backingKey;
+    }
+    
+    /**
+     * @param mouseEvent (in)
+     * @param commonState (in,out)
+     */
+    private void tryUpdateMousePosInScreenInOs(
+        MouseEvent mouseEvent,
+        CmnInputConvState commonState) {
+        
+        final GPoint mousePosInScreenInOs;
+        if (mouseEvent instanceof MouseWheelEvent) {
+            /*
+             * TODO awt For these events, getXOnScreen() and getYOnScreen()
+             * always return zero, so we have to compute that.
+             */
+            
+            final InterfaceBwdHostImpl host = this.getHost();
+            final GRect clientBoundsInOs = host.getClientBoundsInOs();
+            if (clientBoundsInOs.isEmpty()) {
+                /*
+                 * Invalid client bounds:
+                 * can't compute position in screen.
+                 */
+                mousePosInScreenInOs = null;
+            } else {
+                int xInClientInOs = mouseEvent.getX();
+                int yInClientInOs = mouseEvent.getY();
+                
+                final AWTEvent awtEvent = (AWTEvent) mouseEvent;
+                final Object source = awtEvent.getSource();
+                if (source instanceof Window) {
+                    /*
+                     * Not coming from a content pane.
+                     * Useful for AWT, for which we can't get events to come
+                     * from a content pane as with Swing.
+                     */
+                    final Window window = (Window) source;
+                    final Insets insets = window.getInsets();
+                    xInClientInOs -= insets.left;
+                    yInClientInOs -= insets.top;
+                }
+                
+                mousePosInScreenInOs = GPoint.valueOf(
+                    clientBoundsInOs.x() + xInClientInOs,
+                    clientBoundsInOs.y() + yInClientInOs);
+            }
+        } else {
+            mousePosInScreenInOs = GPoint.valueOf(
+                mouseEvent.getXOnScreen(),
+                mouseEvent.getYOnScreen());
+        }
+        
+        if (mousePosInScreenInOs != null) {
+            commonState.setMousePosInScreenInOs(mousePosInScreenInOs);
+        }
     }
 }
