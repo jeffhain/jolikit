@@ -80,6 +80,8 @@ import net.jolikit.bwd.test.cases.visualtests.HostBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostCoordsHugeBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageClippingCliBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageClippingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i05_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i1_BwdTestCase;
@@ -228,6 +230,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new ImageFormatsBwdTestCase(),
+                    new ImageClippingCliBwdTestCase(),
+                    new ImageClippingWiBwdTestCase(),
             });
 
             /*

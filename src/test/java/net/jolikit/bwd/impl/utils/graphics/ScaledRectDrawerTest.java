@@ -22,7 +22,6 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.impl.utils.BindingPrlUtils;
-import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
@@ -55,17 +54,25 @@ public class ScaledRectDrawerTest extends TestCase {
     private static class MyPixels
     extends IntArrSrcPixels
     implements InterfaceRowDrawer {
+        private GRect pixelRect = GRect.DEFAULT_EMPTY;
         public MyPixels() {
         }
         public void reset(
             int width,
             int height,
             int scanlineStride) {
+            this.pixelRect = GRect.valueOf(0, 0, width, height);
             this.configure(
                 width,
                 height,
                 new int[scanlineStride * height],
                 scanlineStride);
+        }
+        /**
+         * Top-left coordinates.
+         */
+        public void configureTopLeft(int topLeftX, int topLeftY) {
+            this.pixelRect = this.pixelRect.withPos(topLeftX, topLeftY);
         }
         @Override
         public String toString() {
@@ -135,15 +142,13 @@ public class ScaledRectDrawerTest extends TestCase {
         }
         @Override
         public int getColor32At(int x, int y) {
-            NbrsUtils.requireInRange(0, this.getWidth() - 1, x, "x");
-            NbrsUtils.requireInRange(0, this.getHeight() - 1, y, "y");
-            return super.getColor32At(x, y);
+            this.checkInRange(x, y);
+            return super.getColor32At(x - this.pixelRect.x(), y - this.pixelRect.y());
         }
         @Override
         public void setColor32At(int x, int y, int color32) {
-            NbrsUtils.requireInRange(0, this.getWidth() - 1, x, "x");
-            NbrsUtils.requireInRange(0, this.getHeight() - 1, y, "y");
-            super.setColor32At(x, y, color32);
+            this.checkInRange(x, y);
+            super.setColor32At(x - this.pixelRect.x(), y - this.pixelRect.y(), color32);
         }
         @Override
         public void drawRow(
@@ -202,6 +207,12 @@ public class ScaledRectDrawerTest extends TestCase {
                 }
             }
             return pixelArrArr;
+        }
+        private void checkInRange(int x, int y) {
+            if (!this.pixelRect.contains(x, y)) {
+                throw new IllegalArgumentException(
+                    "(" + x + "," + y + ") not in " + this.pixelRect);
+            }
         }
     }
     
@@ -295,7 +306,7 @@ public class ScaledRectDrawerTest extends TestCase {
         assertEquals(expected, actual);
     }
     
-    public void test_drawRectScaled_negativeCoordinates() {
+    public void test_drawRectScaled_negativeSrcCoords() {
         
         @SuppressWarnings("unused")
         int scanlineStride;
@@ -305,37 +316,42 @@ public class ScaledRectDrawerTest extends TestCase {
             {0, 0},
             {0, 0},
         }, scanlineStride = 2);
+        // Negative srcRect rejected
+        // even if in input pixels rect
+        // (because there is no offset for src array).
+        input.configureTopLeft(-1, -1);
         
-        final MyPixels actual = new MyPixels();
-        actual.reset(
+        final MyPixels output = new MyPixels();
+        output.reset(
             2,
             2,
             scanlineStride = 2);
+        output.configureTopLeft(-1, -1);
 
-        final GRect goodRect = GRect.valueOf(0, 0, 1, 1);
-        
-        for (int badVal : new int[] {Integer.MIN_VALUE, -1}) {
-            final GRect[] rectList = new GRect[] {
-                goodRect,
-                GRect.valueOf(badVal, 0, 1, 1),
-                GRect.valueOf(0, badVal, 1, 1),
-                GRect.valueOf(badVal, badVal, 1, 1),
-            };
-            for (GRect rect1 : rectList) {
-                for (GRect rect2 : rectList) {
-                    final boolean bothGood =
-                        (rect1.equals(goodRect)
-                            && rect2.equals(goodRect));
-                    try {
-                        callDrawRectScaled_seq(
-                            input,
-                            rect1,
-                            rect2,
-                            actual);
-                        assertTrue(bothGood);
-                    } catch (IllegalArgumentException e) {
-                        assertFalse(bothGood);
-                    }
+        for (GRect srcRect : new GRect[] {
+            GRect.valueOf(0, 0, 1, 1),
+            GRect.valueOf(-1, 0, 2, 1),
+            GRect.valueOf(0, -1, 1, 2),
+            GRect.valueOf(-1, -1, 2, 2),
+        }) {
+            for (GRect dstRect : new GRect[] {
+                GRect.valueOf(0, 0, 1, 1),
+                GRect.valueOf(-1, 0, 1, 1),
+                GRect.valueOf(0, -1, 1, 1),
+                GRect.valueOf(-1, -1, 1, 1),
+            }) {
+                final boolean srcPositive =
+                    (srcRect.x() >= 0)
+                    && (srcRect.y() >= 0);
+                try {
+                    callDrawRectScaled_seq(
+                        input,
+                        srcRect,
+                        dstRect,
+                        output);
+                    assertTrue(srcPositive);
+                } catch (IllegalArgumentException e) {
+                    assertFalse(srcPositive);
                 }
             }
         }
@@ -762,6 +778,91 @@ public class ScaledRectDrawerTest extends TestCase {
     }
 
     /**
+     * X and Y spans multiplied by 1.5, smooth
+     * with dstRect leaking outside of dst pixels range but clipped inside.
+     */
+    public void test_drawRectScaled_smooth_clippedToInside() {
+        
+        @SuppressWarnings("unused")
+        int scanlineStride;
+        
+        final boolean mustUseSmoothElseClosest = true;
+        
+        final MyPixels input = new MyPixels();
+        input.setPixels(new int[][] {
+            {0xFF800000, 0xFF008000},
+            {0xFF000040, 0xFF040000},
+        }, scanlineStride = 7);
+        
+        final MyPixels expected = new MyPixels();
+        expected.setPixels(new int[][] {
+            {0xFF800000, 0xFF800000, 0xFF404000, 0xFF008000, 0xFF008000},
+            {0xFF800000, 0xFF800000, 0xFF404000, 0xFF008000, 0xFF008000},
+            {0xFF400020, 0xFF400020, 0xFF212010, 0xFF024000, 0xFF024000},
+            {0xFF000040, 0xFF000040, 0xFF020020, 0xFF040000, 0xFF040000},
+            {0xFF000040, 0xFF000040, 0xFF020020, 0xFF040000, 0xFF040000},
+        }, scanlineStride = 8);
+        
+        final MyPixels actual = new MyPixels();
+        actual.reset(
+            expected.getWidth(),
+            expected.getHeight(),
+            scanlineStride = 9);
+        
+        callDrawRectScaled_seq(
+            mustUseSmoothElseClosest,
+            input,
+            GRect.valueOf(0, 0, 2, 2),
+            GRect.valueOf(-1, -1, 7, 7),
+            GRect.valueOf(0, 0, 5, 5),
+            actual);
+        
+        assertEquals(expected, actual);
+    }
+
+    /**
+     * X and Y spans multiplied by 1.5, closest
+     * with dstRect leaking outside of dst pixels range but clipped inside.
+     */
+    public void test_drawRectScaled_closest_clippedToInside() {
+        
+        @SuppressWarnings("unused")
+        int scanlineStride;
+        
+        final boolean mustUseSmoothElseClosest = false;
+        
+        final MyPixels input = new MyPixels();
+        input.setPixels(new int[][] {
+            {0xFF800000, 0xFF008000},
+            {0xFF000040, 0xFF040000},
+        }, scanlineStride = 7);
+        
+        final MyPixels expected = new MyPixels();
+        expected.setPixels(new int[][] {
+            {0xFF800000, 0xFF800000, 0xFF008000, 0xFF008000},
+            {0xFF800000, 0xFF800000, 0xFF008000, 0xFF008000},
+            {0xFF000040, 0xFF000040, 0xFF040000, 0xFF040000},
+            {0xFF000040, 0xFF000040, 0xFF040000, 0xFF040000},
+        }, scanlineStride = 8);
+        
+        final MyPixels actual = new MyPixels();
+        actual.reset(
+            expected.getWidth(),
+            expected.getHeight(),
+            scanlineStride = 9);
+        
+        callDrawRectScaled_seq(
+            mustUseSmoothElseClosest,
+            input,
+            GRect.valueOf(0, 0, 2, 2),
+            GRect.valueOf(-2, -2, 8, 8),
+            GRect.valueOf(0, 0, 4, 4),
+            actual);
+        
+        assertEquals(expected, actual);
+    }
+
+    /**
      * X and Y spans divided by 1.5.
      */
     public void test_drawRectScaled_shrinking_1d5_1d5() {
@@ -920,6 +1021,7 @@ public class ScaledRectDrawerTest extends TestCase {
         };
 
         final int nbrOfCases = 100 * 1000;
+        final int minDstPos = -3;
         final int maxPos = 3;
         final int maxSpan = 13;
         for (int k = 0; k < nbrOfCases; k++) {
@@ -940,17 +1042,19 @@ public class ScaledRectDrawerTest extends TestCase {
                 random.nextInt(maxPos + 1),
                 random.nextInt(maxSpan + 1),
                 random.nextInt(maxSpan + 1));
+            // src needs to cover srcRect.
             final int srcWidth = srcRect.x() + srcRect.xSpan();
             final int srcHeight = srcRect.y() + srcRect.ySpan();
             final int srcScanlineStride = srcWidth + random.nextInt(4);
             
             final GRect dstRect = GRect.valueOf(
-                random.nextInt(maxPos + 1),
-                random.nextInt(maxPos + 1),
+                minDstPos + random.nextInt(maxPos - minDstPos + 1),
+                minDstPos + random.nextInt(maxPos - minDstPos + 1),
                 random.nextInt(maxSpan + 1),
                 random.nextInt(maxSpan + 1));
-            final int dstWidth = dstRect.x() + dstRect.xSpan();
-            final int dstHeight = dstRect.y() + dstRect.ySpan();
+            // dst just matching dstRect.
+            final int dstWidth = dstRect.xSpan();
+            final int dstHeight = dstRect.ySpan();
             final int dstScanlineStride = dstWidth + random.nextInt(4);
             
             final GRect dstClip;
@@ -990,6 +1094,7 @@ public class ScaledRectDrawerTest extends TestCase {
                 dstWidth,
                 dstHeight,
                 dstScanlineStride);
+            actual.configureTopLeft(dstRect.x(), dstRect.y());
             
             /*
              * Drawing, with bounds checks in MyPixels.

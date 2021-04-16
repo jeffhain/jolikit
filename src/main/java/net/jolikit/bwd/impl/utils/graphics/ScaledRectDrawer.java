@@ -285,10 +285,9 @@ public class ScaledRectDrawer {
      * @param mustUseSmoothElseClosest True to use box sampling algorithm
      *        (slower but smooth), false to use nearest neighbor algorithm
      *        (much faster but pixelated and with information loss on shrinking).
-     * @throws IllegalArgumentException if srcRect or dstRect
-     *         positions have negative coordinates (we don't bother
-     *         to handle negative cases: pixel (0,0) must be the one
-     *         of index 0 in srcPixels, etc.).
+     * @throws IllegalArgumentException if srcRect positions have negative coordinates
+     *         (no offset being defined for srcPixels,
+     *         pixel (0,0) must be the one of index 0).
      */
     public static void drawRectScaled(
         InterfaceParallelizer parallelizer,
@@ -330,39 +329,28 @@ public class ScaledRectDrawer {
         /*
          * Args checks.
          */
-
-        LangUtils.requireNonNull(srcPixels);
-        // Implicit null check.
-        if ((srcRect.x() | srcRect.y()) < 0) {
-            throw new IllegalArgumentException(
-                "srcRect [" + srcRect + "] has negative coordinates");
-        }
-        // Implicit null check.
-        if ((dstRect.x() | dstRect.y()) < 0) {
-            throw new IllegalArgumentException(
-                "dstRect [" + dstRect + "] has negative coordinates");
-        }
-        LangUtils.requireNonNull(dstClip);
+        
+        final GRect sr = LangUtils.requireNonNull(srcRect);
+        final GRect dr = dstRect;
+        final GRect dc = dstClip;
+        // Implicit null checks.
+        final GRect drc = dr.intersected(dc);
         LangUtils.requireNonNull(rowDrawer);
+        
+        if ((sr.x() | sr.y()) < 0) {
+            throw new IllegalArgumentException(
+                "srcRect [" + sr + "] has negative coordinates");
+        }
         
         /*
          * Guard clauses.
          */
         
-        final GRect sr = srcRect;
-        final GRect dr = dstRect;
-        final GRect dc = dstClip;
-        
         if (sr.isEmpty()
-            || dr.isEmpty()) {
+            || drc.isEmpty()) {
             return;
         }
-
-        final GRect drc = dr.intersected(dc);
-        if (drc.isEmpty()) {
-            return;
-        }
-
+        
         /*
          * 
          */
@@ -809,7 +797,7 @@ public class ScaledRectDrawer {
             final double relSrcYMax = (dj + 1) * yFactor;
             /*
              * ceil+cast for ceil, and just cast for floor,
-             * work because values are positive in int range.
+             * works because (src) values are positive in int range.
              */
             final int relSrcYMinCeil = (int) Math.ceil(relSrcYMin);
             final int relSrcYMaxFloor = (int) relSrcYMax;
@@ -828,7 +816,10 @@ public class ScaledRectDrawer {
                 final int di = di0 + dic;
                 final double relSrcXMin = di * xFactor;
                 final double relSrcXMax = (di + 1) * xFactor;
-                //
+                /*
+                 * ceil+cast for ceil, and just cast for floor,
+                 * works because (src) values are positive in int range.
+                 */
                 final int relSrcXMinCeil = (int) Math.ceil(relSrcXMin);
                 final int relSrcXMaxFloor = (int) relSrcXMax;
                 final double leftXRatio;

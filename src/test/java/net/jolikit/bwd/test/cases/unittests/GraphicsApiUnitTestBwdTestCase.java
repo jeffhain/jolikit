@@ -1757,13 +1757,58 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
              * 
              */
 
-            g.drawImage(0, 0, image);
+            final int bxm = g.getBox().xMax();
+            final int bym = g.getBox().yMax();
+            final int iw = image.getWidth();
+            final int ih = image.getHeight();
+            
+            // +1 to enter scaling treatments.
+            final int dw = iw+1;
+            final int dh = ih+1;
+            final GRect drOut1 = GRect.valueOf(-iw, -ih, dw, dh);
+            final GRect drOver1 = GRect.valueOf(-iw/2, -ih/2, dw, dh);
+            final GRect drIn = GRect.valueOf(0, 0, dw, dh);
+            final GRect drOver2 = GRect.valueOf(bxm - iw/2, bym - ih/2, dw, dh);
+            final GRect drOut2 = GRect.valueOf(bxm + 1, bym + 1, dw, dh);
+            final GRect[] drArr = new GRect[] {
+                drOut1,
+                drOver1,
+                drIn,
+                drOver2,
+                drOut2,
+            };
+            final int sw = iw;
+            final int sh = ih;
+            final GRect srOut1 = GRect.valueOf(-iw, -ih, sw, sh);
+            final GRect srOver1 = GRect.valueOf(-iw/2, -ih/2, sw, sh);
+            final GRect srIn = GRect.valueOf(1, 1, sw-2, sh-2);
+            final GRect srAll = GRect.valueOf(0, 0, sw, sh);
+            final GRect srOver2 = GRect.valueOf(iw/2, ih/2, sw, sh);
+            final GRect srOut2 = GRect.valueOf(iw, ih, sw, sh);
+            final GRect[] srArr = new GRect[] {
+                srOut1,
+                srOver1,
+                srIn,
+                srAll,
+                srOver2,
+                srOut2,
+            };
+            
+            for (GRect dr : drArr) {
+                g.drawImage(dr.x(), dr.y(), image);
+                g.drawImage(dr.x(), dr.y(), dr.xSpan(), dr.ySpan(), image);
+                g.drawImage(dr, image);
+            }
 
-            g.drawImage(0, 0, 100, 100, image);
-            g.drawImage(GRect.valueOf(0, 0, 100, 100), image);
-
-            g.drawImage(0, 0, 100, 100, image, 0, 0, 10, 10);
-            g.drawImage(GRect.valueOf(0, 0, 100, 100), image, GRect.valueOf(0, 0, 10, 10));
+            for (GRect dr : drArr) {
+                for (GRect sr : srArr) {
+                    g.drawImage(
+                        dr.x(), dr.y(), dr.xSpan(), dr.ySpan(),
+                        image,
+                        sr.x(), sr.y(), sr.xSpan(), sr.ySpan());
+                    g.drawImage(dr, image, sr);
+                }
+            }
             
             /*
              * Can't draw a writable image in itself.
@@ -1772,9 +1817,8 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
             if (isWritableImage) {
                 final InterfaceBwdWritableImage wi =
                         (InterfaceBwdWritableImage) image;
-                final InterfaceBwdGraphics wig = wi.getGraphics();
-                wig.init();
                 try {
+                    final InterfaceBwdGraphics wig = wi.getGraphics();
                     try {
                         wig.drawImage(0, 0, image);
                         fail();
@@ -1812,7 +1856,7 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                         // ok
                     }
                 } finally {
-                    wig.finish();
+                    wi.dispose();
                 }
             }
 

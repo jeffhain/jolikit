@@ -64,16 +64,9 @@ public class ScalingWiBwdTestCase extends ScalingCliBwdTestCase {
             this.getBinding().newWritableImage(
                 box.xSpan(), box.ySpan());
         try {
-            final InterfaceBwdGraphics wig = wi.getGraphics();
-            wig.init();
-            try {
-                super.paintInnerBox(
-                    wi.getGraphics(),
-                    innerBox);
-            } finally {
-                wig.finish();
-            }
-            
+            super.paintInnerBox(
+                wi.getGraphics(),
+                innerBox);
             g.drawImage(box.x(), box.y(), wi);
         } finally {
             wi.dispose();

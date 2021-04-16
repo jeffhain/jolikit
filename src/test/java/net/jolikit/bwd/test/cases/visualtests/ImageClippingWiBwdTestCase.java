@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Jeff Hain
+ * Copyright 2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,53 +18,35 @@ package net.jolikit.bwd.test.cases.visualtests;
 import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
-import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
-/**
- * Text clipping using writable image graphics.
- */
-public class TextClippingWiBwdTestCase extends AbstractBwdTestCase {
-    
-    //--------------------------------------------------------------------------
-    // FIELDS
-    //--------------------------------------------------------------------------
-    
-    private final TextClippingBwdPainter painter;
+public class ImageClippingWiBwdTestCase extends ImageClippingCliBwdTestCase {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public TextClippingWiBwdTestCase() {
-        this.painter = null;
+    public ImageClippingWiBwdTestCase() {
     }
-
-    public TextClippingWiBwdTestCase(InterfaceBwdBinding binding) {
+    
+    public ImageClippingWiBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
-        this.painter = new TextClippingBwdPainter(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new TextClippingWiBwdTestCase(binding);
+        return new ImageClippingWiBwdTestCase(binding);
     }
 
     @Override
     public InterfaceBwdTestCaseClient newClient() {
-        return new TextClippingWiBwdTestCase(this.getBinding());
+        return new ImageClippingWiBwdTestCase(this.getBinding());
     }
-
-    @Override
-    public GPoint getInitialClientSpans() {
-        return TextClippingBwdPainter.INITIAL_CLIENT_SPANS;
-    }
-
+    
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
@@ -74,14 +56,16 @@ public class TextClippingWiBwdTestCase extends AbstractBwdTestCase {
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        final InterfaceBwdBinding binding = this.getBinding();
+        final GRect box = g.getBox();
         
-        final InterfaceBwdWritableImage wi = binding.newWritableImage(
-                getInitialClientSpans().x(),
-                getInitialClientSpans().y());
+        final InterfaceBwdWritableImage wi =
+            this.getBinding().newWritableImage(
+                box.xSpan(), box.ySpan());
         try {
-            this.painter.paint(wi.getGraphics());
-            g.drawImage(0, 0, wi);
+            super.paintClientImpl(
+                wi.getGraphics(),
+                dirtyRect);
+            g.drawImage(box.x(), box.y(), wi);
         } finally {
             wi.dispose();
         }
