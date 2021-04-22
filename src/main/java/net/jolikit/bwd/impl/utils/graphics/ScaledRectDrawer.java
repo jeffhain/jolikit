@@ -23,11 +23,12 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplittable;
 
 /**
- * Designed for drawing of client area (dirty) parts into
+ * Designed to scale images, or for drawing of client area (dirty) parts into
  * some backing library's device pixel sized buffer.
  * 
- * Simple quick algorithm, without anti aliasing (which would cause a dependency
- * to some color model).
+ * Can choose among two algorithms:
+ * closest neighbor (fast, but looses information on shrinking),
+ * or box sampling (accurate, but slower).
  */
 public class ScaledRectDrawer {
 
@@ -39,13 +40,13 @@ public class ScaledRectDrawer {
      * 2000 works, but using 10 times that to make sure
      * that we don't get too many wasteful splits.
      */
-    static final double MIN_AREA_COST_FOR_SPLIT_SMOOTH = 10.0 * 2000.0;
+    static final double MIN_AREA_COST_FOR_SPLIT_SAMPLING = 10.0 * 2000.0;
     
     /**
-     * 10 times smooth threshold,
+     * 10 times accurate threshold,
      * because this algorithm has much less overhead.
      */
-    static final double MIN_AREA_COST_FOR_SPLIT_CLOSEST = 10.0 * MIN_AREA_COST_FOR_SPLIT_SMOOTH;
+    static final double MIN_AREA_COST_FOR_SPLIT_CLOSEST = 10.0 * MIN_AREA_COST_FOR_SPLIT_SAMPLING;
     
     /**
      * Ignoring src pixels which less than an epsilon is covered.
@@ -69,8 +70,8 @@ public class ScaledRectDrawer {
     
     private enum MyAlgoType {
         CLOSEST,
-        SMOOTH_ALIGNED_SHRINKING,
-        SMOOTH_GENERAL;
+        SAMPLING_ALIGNED_SHRINKING,
+        SAMPLING_GENERAL;
     }
     
     /*
@@ -282,8 +283,8 @@ public class ScaledRectDrawer {
      * returning default values (like fully transparent color)
      * for pixels out of clip.
      * 
-     * @param mustUseSmoothElseClosest True to use box sampling algorithm
-     *        (slower but smooth), false to use nearest neighbor algorithm
+     * @param mustUseSamplingElseClosest True to use box sampling algorithm
+     *        (slower but accurate), false to use closest neighbor algorithm
      *        (much faster but pixelated and with information loss on shrinking).
      * @throws IllegalArgumentException if srcRect positions have negative coordinates
      *         (no offset being defined for srcPixels,
@@ -291,7 +292,7 @@ public class ScaledRectDrawer {
      */
     public static void drawRectScaled(
         InterfaceParallelizer parallelizer,
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         InterfaceSrcPixels srcPixels,
         GRect srcRect,
         GRect dstRect,
@@ -300,9 +301,9 @@ public class ScaledRectDrawer {
         
         drawRectScaled(
             MIN_AREA_COST_FOR_SPLIT_CLOSEST,
-            MIN_AREA_COST_FOR_SPLIT_SMOOTH,
+            MIN_AREA_COST_FOR_SPLIT_SAMPLING,
             parallelizer,
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             srcPixels,
             srcRect,
             dstRect,
@@ -316,10 +317,10 @@ public class ScaledRectDrawer {
     
     static void drawRectScaled(
         double minAreaCostForSplitClosest,
-        double minAreaCostForSplitSmooth,
+        double minAreaCostForSplitSampling,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         InterfaceSrcPixels srcPixels,
         GRect srcRect,
         GRect dstRect,
@@ -356,7 +357,7 @@ public class ScaledRectDrawer {
          */
         
         final MyAlgoType algoType = computeAlgoType(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             sr,
             dr,
             drc);
@@ -372,7 +373,7 @@ public class ScaledRectDrawer {
             if (algoType == MyAlgoType.CLOSEST) {
                 minAreaCostForSplit = minAreaCostForSplitClosest;
             } else {
-                minAreaCostForSplit = minAreaCostForSplitSmooth;
+                minAreaCostForSplit = minAreaCostForSplitSampling;
             }
             if (isWorthToSplit(lineCost, startY, endY, minAreaCostForSplit)) {
                 didGoPrl = true;
@@ -423,13 +424,13 @@ public class ScaledRectDrawer {
      */
     
     private static MyAlgoType computeAlgoType(
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         GRect sr,
         GRect dr,
         GRect drc) {
         
         final MyAlgoType ret;
-        if ((!mustUseSmoothElseClosest)
+        if ((!mustUseSamplingElseClosest)
             || ((dr.xSpan() % sr.xSpan() == 0)
                 && (dr.ySpan() % sr.ySpan() == 0))) {
             // Always wanting to use closest,
@@ -439,10 +440,10 @@ public class ScaledRectDrawer {
             if ((sr.xSpan() % dr.xSpan() == 0)
                 && (sr.ySpan() % dr.ySpan() == 0)) {
                 // Pixel-aligned shrinking.
-                ret = MyAlgoType.SMOOTH_ALIGNED_SHRINKING;
+                ret = MyAlgoType.SAMPLING_ALIGNED_SHRINKING;
             } else {
                 // General case.
-                ret = MyAlgoType.SMOOTH_GENERAL;
+                ret = MyAlgoType.SAMPLING_GENERAL;
             }
         }
         
@@ -524,8 +525,8 @@ public class ScaledRectDrawer {
                     endY,
                     rowDrawer);
             } break;
-            case SMOOTH_ALIGNED_SHRINKING: {
-                drawRectScaled_smooth_alignedShrinking(
+            case SAMPLING_ALIGNED_SHRINKING: {
+                drawRectScaled_sampling_alignedShrinking(
                     srcPixels,
                     sr,
                     dr,
@@ -534,8 +535,8 @@ public class ScaledRectDrawer {
                     endY,
                     rowDrawer);
             } break;
-            case SMOOTH_GENERAL: {
-                drawRectScaled_smooth_general(
+            case SAMPLING_GENERAL: {
+                drawRectScaled_sampling_general(
                     srcPixels,
                     sr,
                     dr,
@@ -673,7 +674,7 @@ public class ScaledRectDrawer {
      * sr spans must be multiples of dr spans.
      * 
      * About 10 percents performance gain
-     * over the general smoothing method.
+     * over the general sampling method.
      * 
      * Rectangles/clip emptiness checks are supposed already done
      * (must not be a public method).
@@ -682,7 +683,7 @@ public class ScaledRectDrawer {
      * @param dr Destination rectangle.
      * @param drc The clipped destination rectangle (not just the clip).
      */
-    private static void drawRectScaled_smooth_alignedShrinking(
+    private static void drawRectScaled_sampling_alignedShrinking(
         InterfaceSrcPixels srcPixels,
         GRect sr,
         //
@@ -759,7 +760,7 @@ public class ScaledRectDrawer {
      * @param dr Destination rectangle.
      * @param drc The clipped destination rectangle (not just the clip).
      */
-    private static void drawRectScaled_smooth_general(
+    private static void drawRectScaled_sampling_general(
             InterfaceSrcPixels srcPixels,
             GRect sr,
             //

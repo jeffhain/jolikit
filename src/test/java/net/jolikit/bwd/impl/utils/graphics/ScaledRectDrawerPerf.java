@@ -132,7 +132,7 @@ public class ScaledRectDrawerPerf {
     private void run(String[] args) {
         System.out.println("--- " + ScaledRectDrawerPerf.class.getSimpleName() + "... ---");
         System.out.println("MIN_AREA_COST_FOR_SPLIT_CLOSEST = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_CLOSEST);
-        System.out.println("MIN_AREA_COST_FOR_SPLIT_SMOOTH = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_SMOOTH);
+        System.out.println("MIN_AREA_COST_FOR_SPLIT_SAMPLING = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_SAMPLING);
         
         /*
          * scale = 1
@@ -258,10 +258,10 @@ public class ScaledRectDrawerPerf {
         final GRect dstRect = GRect.valueOf(
             0, 0, dstSpans, dstSpans);
         
-        for (boolean smoothElseClosest : new boolean[] {false,true}) {
+        for (boolean samplingElseClosest : new boolean[] {false,true}) {
             // Pixels values don't matter for closest algorithm.
             final double[] randomProbaArr =
-                (smoothElseClosest ? new double[] {1.0, 0.1, 0.0} : new double[] {1.0});
+                (samplingElseClosest ? new double[] {1.0, 0.1, 0.0} : new double[] {1.0});
             for (double randomProba : randomProbaArr) {
                 input.randomize(random, randomProba);
                 
@@ -277,7 +277,7 @@ public class ScaledRectDrawerPerf {
                         for (int i = 0; i < nbrOfCalls; i++) {
                             callDrawRectScaled(
                                 parallelizer,
-                                smoothElseClosest,
+                                samplingElseClosest,
                                 input,
                                 srcRect,
                                 dstRect,
@@ -286,9 +286,9 @@ public class ScaledRectDrawerPerf {
                         final long b = System.nanoTime();
                         System.out.println(nbrOfCalls + " calls"
                             + ", spans (" + srcSpans + " -> " + dstSpans + ")"
-                            + ", " + (smoothElseClosest ? "smooth" : "closest")
+                            + ", " + (samplingElseClosest ? "sampling" : "closest")
                             + ", prl = " + parallelizer.getParallelism()
-                            + (smoothElseClosest ? ", rndProb = " + randomProba : "") 
+                            + (samplingElseClosest ? ", rndProb = " + randomProba : "") 
                             + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
@@ -302,7 +302,7 @@ public class ScaledRectDrawerPerf {
     
     private static void callDrawRectScaled(
         InterfaceParallelizer parallelizer,
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         InterfaceSrcPixels srcPixels,
         GRect srcRect,
         GRect dstRect,
@@ -311,7 +311,7 @@ public class ScaledRectDrawerPerf {
         final GRect dstClip = dstRect;
         ScaledRectDrawer.drawRectScaled(
             parallelizer,
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             srcPixels,
             srcRect,
             dstRect,

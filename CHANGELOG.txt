@@ -166,8 +166,8 @@ Jolikit X.X, XXXX/XX/XX
       on 4k+ screens, or to easily scale up a UI without having
       to touch its code, or to check pixel-perfectness of your drawings
       without a magnifying glass, or if you just like pixelated graphics.
-    - Added "mustEnsureSmoothImageScaling" parameter, to allow ensuring
-      of smooth image scaling (box sampling).
+    - Added "mustEnsureAccurateImageScaling" parameter, to allow ensuring
+      of accurate image scaling.
       False by default (i.e. same as previous behavior),
       because it can make image scaling much slower.
   - Corrections:

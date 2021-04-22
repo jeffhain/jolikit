@@ -1011,7 +1011,7 @@ public class JfxBwdHost extends AbstractBwdHost {
                 bufferSpansInBd.y(),
                 //
                 this.getBinding().getInternalParallelizer(),
-                this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+                this.getBindingConfig().getMustEnsureAccurateImageScaling(),
                 //
                 gc);
         } else {
@@ -1034,7 +1034,7 @@ public class JfxBwdHost extends AbstractBwdHost {
                     bufferSpansInBd.y(),
                     //
                     this.getBinding().getInternalParallelizer(),
-                    this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+                    this.getBindingConfig().getMustEnsureAccurateImageScaling(),
                     //
                     gc);
             }

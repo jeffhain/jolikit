@@ -189,7 +189,7 @@ public class AlgrPaintUtils {
         Pointer display,
         PixelCoordsConverter pixelCoordsConverter,
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureSmoothImageScaling,
+        boolean mustEnsureAccurateImageScaling,
         PrintStream issueStream) {
 
         final int[] bufferArr = bufferInBd.getPixelArr();
@@ -323,7 +323,7 @@ public class AlgrPaintUtils {
                     final GRect dstClip = rectInDevice;
                     ScaledRectDrawer.drawRectScaled(
                         parallelizer,
-                        mustEnsureSmoothImageScaling,
+                        mustEnsureAccurateImageScaling,
                         inputPixels,
                         srcRect,
                         dstRect,

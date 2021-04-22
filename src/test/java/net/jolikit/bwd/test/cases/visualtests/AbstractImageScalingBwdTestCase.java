@@ -52,17 +52,17 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
     
     private enum MyDrawType {
-        BASE_SCALING_CHEAP(false, false),
-        BASE_SCALING_SMOOTH(false, true),
-        BASE_SCALING_P1_CHEAP(true, false),
-        BASE_SCALING_P1_SMOOTH(true, true);
+        BASE_SCALING_FAST(false, false),
+        BASE_SCALING_ACCURATE(false, true),
+        BASE_SCALING_P1_FAST(true, false),
+        BASE_SCALING_P1_ACCURATE(true, true);
         final boolean isP1;
-        final boolean isSmooth;
+        final boolean isAccurate;
         private MyDrawType(
             boolean isP1,
-            boolean isSmooth) {
+            boolean isAccurate) {
             this.isP1 = isP1;
-            this.isSmooth = isSmooth;
+            this.isAccurate = isAccurate;
         }
     }
     
@@ -220,7 +220,7 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
         
         final MyDrawType newType;
         if (prevType == null) {
-            newType = MyDrawType.BASE_SCALING_CHEAP;
+            newType = MyDrawType.BASE_SCALING_FAST;
         } else {
             final MyDrawType[] typeArr = MyDrawType.values();
             newType = typeArr[(prevType.ordinal() + 1) % typeArr.length];
@@ -239,7 +239,7 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
         
         final AbstractBwdBinding binding =
             (AbstractBwdBinding) this.getBinding();
-        binding.getBindingConfig().setMustEnsureSmoothImageScaling(newType.isSmooth);
+        binding.getBindingConfig().setMustEnsureAccurateImageScaling(newType.isAccurate);
         
         host.setClientBounds(newRect);
         

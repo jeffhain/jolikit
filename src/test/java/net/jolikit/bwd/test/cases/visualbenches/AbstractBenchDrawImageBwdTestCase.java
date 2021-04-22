@@ -60,8 +60,8 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
     /**
      * 1 (not scaled: should be quick)
      * 2 (exact growth: should be quick (closest algo))
-     * 0.5 (should be quick with closest algo, slower with smooth algo)
-     * 0.3 and 3.1 (not exact: should use smooth algo)
+     * 0.5 (should be quick with closest algo, slower with sampling algo)
+     * 0.3 and 3.1 (not exact: should use sampling algo)
      */
     private static final double[] SCALE_ARR = new double[] {
         0.32, 0.5, 1.0, 2.0, 3.1,
@@ -102,7 +102,7 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
-    protected abstract boolean getMustEnsureSmoothImageScaling();
+    protected abstract boolean getMustEnsureAccurateImageScaling();
     
     @Override
     protected List<GRect> paintClientImpl(
@@ -114,9 +114,9 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
                 (AbstractBwdBinding) this.getBinding();
             final BaseBwdBindingConfig bindingConfig =
                 binding.getBindingConfig();
-            final boolean flag = this.getMustEnsureSmoothImageScaling();
-            if (bindingConfig.getMustEnsureSmoothImageScaling() != flag) {
-                bindingConfig.setMustEnsureSmoothImageScaling(flag);
+            final boolean flag = this.getMustEnsureAccurateImageScaling();
+            if (bindingConfig.getMustEnsureAccurateImageScaling() != flag) {
+                bindingConfig.setMustEnsureAccurateImageScaling(flag);
                 // We want to draw on a properly configured graphics.
                 this.getHost().ensurePendingClientPainting();
                 return GRect.DEFAULT_EMPTY_LIST;

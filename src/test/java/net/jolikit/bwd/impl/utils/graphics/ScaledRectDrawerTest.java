@@ -45,7 +45,7 @@ public class ScaledRectDrawerTest extends TestCase {
      */
     
     private static final double TEST_MIN_AREA_COST_FOR_SPLIT_CLOSEST = 2.0;
-    private static final double TEST_MIN_AREA_COST_FOR_SPLIT_SMOOTH = 2.0;
+    private static final double TEST_MIN_AREA_COST_FOR_SPLIT_SAMPLING = 2.0;
 
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -446,7 +446,7 @@ public class ScaledRectDrawerTest extends TestCase {
         @SuppressWarnings("unused")
         int scanlineStride;
         
-        final boolean mustUseSmoothElseClosest = true;
+        final boolean mustUseSamplingElseClosest = true;
         
         final MyPixels input = new MyPixels();
         input.setPixels(new int[][] {
@@ -474,7 +474,7 @@ public class ScaledRectDrawerTest extends TestCase {
             scanlineStride = 9);
         
         callDrawRectScaled_seq(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             input,
             GRect.valueOf(0, 0, 2, 3),
             GRect.valueOf(1, 1, 4, 6),
@@ -694,14 +694,14 @@ public class ScaledRectDrawerTest extends TestCase {
     }
 
     /**
-     * X and Y spans multiplied by 1.5, smooth clipped.
+     * X and Y spans multiplied by 1.5, sampling clipped.
      */
-    public void test_drawRectScaled_growth_1d5_1d5_smooth_clipped() {
+    public void test_drawRectScaled_growth_1d5_1d5_sampling_clipped() {
         
         @SuppressWarnings("unused")
         int scanlineStride;
         
-        final boolean mustUseSmoothElseClosest = true;
+        final boolean mustUseSamplingElseClosest = true;
         
         final MyPixels input = new MyPixels();
         input.setPixels(new int[][] {
@@ -725,7 +725,7 @@ public class ScaledRectDrawerTest extends TestCase {
             scanlineStride = 9);
         
         callDrawRectScaled_seq(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             input,
             GRect.valueOf(0, 0, 2, 2),
             GRect.valueOf(1, 1, 3, 3),
@@ -743,7 +743,7 @@ public class ScaledRectDrawerTest extends TestCase {
         @SuppressWarnings("unused")
         int scanlineStride;
         
-        final boolean mustUseSmoothElseClosest = false;
+        final boolean mustUseSamplingElseClosest = false;
         
         final MyPixels input = new MyPixels();
         input.setPixels(new int[][] {
@@ -767,7 +767,7 @@ public class ScaledRectDrawerTest extends TestCase {
             scanlineStride = 9);
         
         callDrawRectScaled_seq(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             input,
             GRect.valueOf(0, 0, 2, 2),
             GRect.valueOf(1, 1, 3, 3),
@@ -778,15 +778,15 @@ public class ScaledRectDrawerTest extends TestCase {
     }
 
     /**
-     * X and Y spans multiplied by 1.5, smooth
+     * X and Y spans multiplied by 1.5, sampling
      * with dstRect leaking outside of dst pixels range but clipped inside.
      */
-    public void test_drawRectScaled_smooth_clippedToInside() {
+    public void test_drawRectScaled_sampling_clippedToInside() {
         
         @SuppressWarnings("unused")
         int scanlineStride;
         
-        final boolean mustUseSmoothElseClosest = true;
+        final boolean mustUseSamplingElseClosest = true;
         
         final MyPixels input = new MyPixels();
         input.setPixels(new int[][] {
@@ -810,7 +810,7 @@ public class ScaledRectDrawerTest extends TestCase {
             scanlineStride = 9);
         
         callDrawRectScaled_seq(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             input,
             GRect.valueOf(0, 0, 2, 2),
             GRect.valueOf(-1, -1, 7, 7),
@@ -829,7 +829,7 @@ public class ScaledRectDrawerTest extends TestCase {
         @SuppressWarnings("unused")
         int scanlineStride;
         
-        final boolean mustUseSmoothElseClosest = false;
+        final boolean mustUseSamplingElseClosest = false;
         
         final MyPixels input = new MyPixels();
         input.setPixels(new int[][] {
@@ -852,7 +852,7 @@ public class ScaledRectDrawerTest extends TestCase {
             scanlineStride = 9);
         
         callDrawRectScaled_seq(
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             input,
             GRect.valueOf(0, 0, 2, 2),
             GRect.valueOf(-2, -2, 8, 8),
@@ -1033,7 +1033,7 @@ public class ScaledRectDrawerTest extends TestCase {
                 parallelizer = SequentialParallelizer.getDefault();
             }
             
-            final boolean mustUseSmoothElseClosest = random.nextBoolean();
+            final boolean mustUseSamplingElseClosest = random.nextBoolean();
             
             final boolean mustUseNullArr = random.nextBoolean();
 
@@ -1068,7 +1068,7 @@ public class ScaledRectDrawerTest extends TestCase {
                 System.out.println();
                 System.out.println("k = " + k);
                 System.out.println("parallelism = " + parallelizer.getParallelism());
-                System.out.println("mustUseSmoothElseClosest = " + mustUseSmoothElseClosest);
+                System.out.println("mustUseSamplingElseClosest = " + mustUseSamplingElseClosest);
                 System.out.println("mustUseNullArr = " + mustUseNullArr);
                 System.out.println("srcRect = " + srcRect);
                 System.out.println("srcScanlineStride = " + srcScanlineStride);
@@ -1102,7 +1102,7 @@ public class ScaledRectDrawerTest extends TestCase {
             
             callDrawRectScaled(
                 parallelizer,
-                mustUseSmoothElseClosest,
+                mustUseSamplingElseClosest,
                 input,
                 srcRect,
                 dstRect,
@@ -1116,7 +1116,7 @@ public class ScaledRectDrawerTest extends TestCase {
             if (srcRect.isEmpty()
                 || dstRect.isEmpty()) {
                 // Nothing to check.
-            } else if (mustUseSmoothElseClosest
+            } else if (mustUseSamplingElseClosest
                 && dstClip.equals(dstRect)) {
                 
                 final int srcMeanArgb32 = computeMeanArgb32(input, srcRect);
@@ -1142,11 +1142,11 @@ public class ScaledRectDrawerTest extends TestCase {
         GRect srcRect,
         GRect dstRect,
         InterfaceRowDrawer rowDrawer) {
-        final boolean mustUseSmoothElseClosest = true;
+        final boolean mustUseSamplingElseClosest = true;
         final GRect dstClip = dstRect;
         ScaledRectDrawer.drawRectScaled(
             SequentialParallelizer.getDefault(),
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             srcPixels,
             srcRect,
             dstRect,
@@ -1155,7 +1155,7 @@ public class ScaledRectDrawerTest extends TestCase {
     }
     
     private static void callDrawRectScaled_seq(
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         InterfaceSrcPixels srcPixels,
         GRect srcRect,
         GRect dstRect,
@@ -1163,7 +1163,7 @@ public class ScaledRectDrawerTest extends TestCase {
         InterfaceRowDrawer rowDrawer) {
         ScaledRectDrawer.drawRectScaled(
             SequentialParallelizer.getDefault(),
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             srcPixels,
             srcRect,
             dstRect,
@@ -1173,7 +1173,7 @@ public class ScaledRectDrawerTest extends TestCase {
 
     private static void callDrawRectScaled(
         InterfaceParallelizer parallelizer,
-        boolean mustUseSmoothElseClosest,
+        boolean mustUseSamplingElseClosest,
         InterfaceSrcPixels srcPixels,
         GRect srcRect,
         GRect dstRect,
@@ -1181,9 +1181,9 @@ public class ScaledRectDrawerTest extends TestCase {
         InterfaceRowDrawer rowDrawer) {
         ScaledRectDrawer.drawRectScaled(
             TEST_MIN_AREA_COST_FOR_SPLIT_CLOSEST,
-            TEST_MIN_AREA_COST_FOR_SPLIT_SMOOTH,
+            TEST_MIN_AREA_COST_FOR_SPLIT_SAMPLING,
             parallelizer,
-            mustUseSmoothElseClosest,
+            mustUseSamplingElseClosest,
             srcPixels,
             srcRect,
             dstRect,

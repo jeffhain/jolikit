@@ -89,12 +89,12 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureSmoothImageScaling,
+        boolean mustEnsureAccurateImageScaling,
         //
         GraphicsContext gc) {
         
         final boolean mustUseRedefinedScaling =
-            mustEnsureSmoothImageScaling
+            mustEnsureAccurateImageScaling
             || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
                 && ((dxSpan > sxSpan)
                     || (dySpan > sySpan)));
@@ -136,7 +136,7 @@ public class JfxImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureSmoothImageScaling,
+                mustEnsureAccurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,
@@ -199,12 +199,12 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureSmoothImageScaling,
+        boolean mustEnsureAccurateImageScaling,
         //
         GraphicsContext gc) {
         
         final boolean mustUseRedefinedScaling =
-            mustEnsureSmoothImageScaling
+            mustEnsureAccurateImageScaling
             || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
                 && ((dxSpan > sxSpan)
                     || (dySpan > sySpan)));
@@ -231,7 +231,7 @@ public class JfxImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureSmoothImageScaling,
+                mustEnsureAccurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,

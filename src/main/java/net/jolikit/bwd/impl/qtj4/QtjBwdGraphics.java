@@ -937,7 +937,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             sx, sy, sxSpan, sySpan,
             //
             this.getBinding().getInternalParallelizer(),
-            this.getBindingConfig().getMustEnsureSmoothImageScaling(),
+            this.getBindingConfig().getMustEnsureAccurateImageScaling(),
             //
             painter);
         

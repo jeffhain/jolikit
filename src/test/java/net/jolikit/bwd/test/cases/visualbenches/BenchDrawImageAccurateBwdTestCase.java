@@ -19,27 +19,27 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
-public class BenchDrawImageNotSmoothBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
+public class BenchDrawImageAccurateBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public BenchDrawImageNotSmoothBwdTestCase() {
+    public BenchDrawImageAccurateBwdTestCase() {
     }
 
-    public BenchDrawImageNotSmoothBwdTestCase(InterfaceBwdBinding binding) {
+    public BenchDrawImageAccurateBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new BenchDrawImageNotSmoothBwdTestCase(binding);
+        return new BenchDrawImageAccurateBwdTestCase(binding);
     }
 
     @Override
     public InterfaceBwdTestCaseClient newClient() {
-        return new BenchDrawImageNotSmoothBwdTestCase(this.getBinding());
+        return new BenchDrawImageAccurateBwdTestCase(this.getBinding());
     }
 
     //--------------------------------------------------------------------------
@@ -47,7 +47,7 @@ public class BenchDrawImageNotSmoothBwdTestCase extends AbstractBenchDrawImageBw
     //--------------------------------------------------------------------------
 
     @Override
-    protected boolean getMustEnsureSmoothImageScaling() {
-        return false;
+    protected boolean getMustEnsureAccurateImageScaling() {
+        return true;
     }
 }

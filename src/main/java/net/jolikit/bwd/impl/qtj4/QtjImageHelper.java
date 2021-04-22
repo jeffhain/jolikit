@@ -44,7 +44,7 @@ import net.jolikit.lang.NbrsUtils;
  * 
  * That said, QImage.pixel() still being kind of slow,
  * to avoid its overhead when needing a fresh int array of pixels
- * (such as when doing smooth scaling), this class maintains
+ * (such as when doing accurate scaling), this class maintains
  * an alpha-premultiplied ARGB32 snapshot of image.
  */
 public class QtjImageHelper {

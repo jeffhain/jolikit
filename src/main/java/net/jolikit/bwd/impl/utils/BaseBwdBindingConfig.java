@@ -322,22 +322,17 @@ public class BaseBwdBindingConfig {
     private ScaleHelper scaleHelper = new ScaleHelper();
     
     /**
-     * Use true to ensure use of smooth scaling (box sampling)
-     * when an image is scaled up or down,
-     * false to just use closest source pixel (nearest neighbor)
-     * or another lower/different quality algorithm from backing library.
+     * Use true to indicate to the binding that you prefer
+     * accuracy over speed when an image is scaled up or down,
+     * false to indicate that you prefer speed over accuracy.
      * 
      * False by default, not to hurt performances (possibly a lot)
-     * for users that don't care much about exact smoothing,
-     * or worse don't like the slight blurriness that comes with it.
-     * 
-     * Use true if you want qualitative image scaling,
-     * at the cost of eventually (much) higher overhead
-     * (depending on the binding and backing library).
+     * for users that don't care much about accuracy,
+     * or worse don't like the slight blurriness that can come with it.
      * 
      * For now, not allowing to configure that from public API
      * (such as with an argument for scaling drawImage() methods,
-     * or a setCanUseCheapImageScaling(boolean) on graphics),
+     * or a setMustUseAccurateImageScaling(boolean) on graphics),
      * because even if it's set to true, it's still possible
      * to draw small image icons quickly (typical use-case
      * for wanting fast drawing of scaled-down large images),
@@ -345,7 +340,7 @@ public class BaseBwdBindingConfig {
      * into a writable image, and then drawing these writable images
      * every time instead (which would also save memory).
      */
-    private boolean mustEnsureSmoothImageScaling = false;
+    private boolean mustEnsureAccurateImageScaling = false;
     
     /*
      * 
@@ -822,12 +817,12 @@ public class BaseBwdBindingConfig {
         this.setScale_final(scale);
     }
     
-    public boolean getMustEnsureSmoothImageScaling() {
-        return this.mustEnsureSmoothImageScaling;
+    public boolean getMustEnsureAccurateImageScaling() {
+        return this.mustEnsureAccurateImageScaling;
     }
 
-    public void setMustEnsureSmoothImageScaling(boolean mustEnsureSmoothImageScaling) {
-        this.setMustEnsureSmoothImageScaling_final(mustEnsureSmoothImageScaling);
+    public void setMustEnsureAccurateImageScaling(boolean mustEnsureAccurateImageScaling) {
+        this.setMustEnsureAccurateImageScaling_final(mustEnsureAccurateImageScaling);
     }
 
     /*
@@ -1184,8 +1179,8 @@ public class BaseBwdBindingConfig {
     /**
      * Default value is false.
      */
-    protected final void setMustEnsureSmoothImageScaling_final(boolean mustEnsureSmoothImageScaling) {
-        this.mustEnsureSmoothImageScaling = mustEnsureSmoothImageScaling;
+    protected final void setMustEnsureAccurateImageScaling_final(boolean mustEnsureAccurateImageScaling) {
+        this.mustEnsureAccurateImageScaling = mustEnsureAccurateImageScaling;
     }
 
     /*

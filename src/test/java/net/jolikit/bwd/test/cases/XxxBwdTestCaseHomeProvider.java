@@ -37,8 +37,8 @@ import net.jolikit.bwd.test.cases.unittests.HostUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageNotSmoothBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageSmoothBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageFastBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageAccurateBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchNewChildGBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestCase;
@@ -289,8 +289,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new BenchDrawTextBwdTestCase(),
-                    new BenchDrawImageNotSmoothBwdTestCase(),
-                    new BenchDrawImageSmoothBwdTestCase(),
+                    new BenchDrawImageFastBwdTestCase(),
+                    new BenchDrawImageAccurateBwdTestCase(),
             });
 
             /*

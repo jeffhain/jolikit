@@ -73,13 +73,13 @@ public class QtjImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureSmoothImageScaling,
+        boolean mustEnsureAccurateImageScaling,
         //
         QPainter painter) {
         
         final QImage image = imageHelper.getImage();
         
-        if (mustEnsureSmoothImageScaling) {
+        if (mustEnsureAccurateImageScaling) {
             
             /*
              * Scaling into a scaled buffer.
@@ -109,7 +109,7 @@ public class QtjImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureSmoothImageScaling,
+                mustEnsureAccurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,
