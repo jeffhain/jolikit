@@ -26,8 +26,6 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
-import net.jolikit.bwd.impl.utils.AbstractBwdBinding;
-import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.lang.NbrsUtils;
@@ -109,19 +107,7 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        {
-            final AbstractBwdBinding binding =
-                (AbstractBwdBinding) this.getBinding();
-            final BaseBwdBindingConfig bindingConfig =
-                binding.getBindingConfig();
-            final boolean flag = this.getMustEnsureAccurateImageScaling();
-            if (bindingConfig.getMustEnsureAccurateImageScaling() != flag) {
-                bindingConfig.setMustEnsureAccurateImageScaling(flag);
-                // We want to draw on a properly configured graphics.
-                this.getHost().ensurePendingClientPainting();
-                return GRect.DEFAULT_EMPTY_LIST;
-            }
-        }
+        g.setAccurateImageScaling(this.getMustEnsureAccurateImageScaling());
         
         final GRect box = g.getBox();
         

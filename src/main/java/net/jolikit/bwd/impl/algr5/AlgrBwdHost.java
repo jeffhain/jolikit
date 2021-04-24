@@ -865,7 +865,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
             this.display,
             this.getBinding().getPixelCoordsConverter(),
             this.getBinding().getInternalParallelizer(),
-            this.getBindingConfig().getMustEnsureAccurateImageScaling(),
+            this.getAccurateClientScaling(),
             this.getBindingConfig().getIssueStream());
         
         this.flushPainting();

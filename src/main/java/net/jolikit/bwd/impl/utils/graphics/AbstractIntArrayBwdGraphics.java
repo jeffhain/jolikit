@@ -600,7 +600,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             
             ScaledRectDrawer.drawRectScaled(
                 this.getBinding().getInternalParallelizer(),
-                this.getBindingConfig().getMustEnsureAccurateImageScaling(),
+                this.getAccurateImageScaling(),
                 srcPixels,
                 srcRectInImg,
                 dstRectInUser,

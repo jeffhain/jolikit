@@ -1064,6 +1064,25 @@ public interface InterfaceBwdGraphics {
      */
     
     /**
+     * The default value for this parameter (i.e. its value after
+     * call to init() or reset()) is false, not to hurt performances
+     * (possibly a lot) for users that don't care much about accuracy,
+     * or worse don't like the slight blurriness that can come with it.
+     * 
+     * If this binding does not support multiple image scaling algorithms,
+     * this method must just do the state check.
+     * 
+     * See also setAccurateClientScaling() in host API.
+     * 
+     * @param accurate True if image scaling should use an accurate
+     *        (but possibly slow) algorithm, rather than a fast
+     *        (but typically less accurate) one.
+     * @throws IllegalStateException if init() has not been called
+     *         or if finish() has been called.
+     */
+    public void setAccurateImageScaling(boolean accurate);
+
+    /**
      * @param x Destination x, in user coordinates.
      * @param y Destination y, in user coordinates.
      * @param image Image to draw. Must not be null.

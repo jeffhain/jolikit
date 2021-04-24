@@ -937,7 +937,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             sx, sy, sxSpan, sySpan,
             //
             this.getBinding().getInternalParallelizer(),
-            this.getBindingConfig().getMustEnsureAccurateImageScaling(),
+            this.getAccurateImageScaling(),
             //
             painter);
         
@@ -974,7 +974,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
          * Format assumed by our pixel reading treatment,
          * which wants non alpha-premultiplied pixels in the end,
          * but having an alpha-premultiplied image should be better
-         * for overall preformances.
+         * for overall performances.
          */
         if (backingImage.format() != QtjPaintUtils.FORMAT_ARGB_PRE) {
             throw new IllegalStateException("" + backingImage.format());

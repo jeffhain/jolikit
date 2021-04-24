@@ -270,6 +270,36 @@ public class ScaledRectDrawer {
     //--------------------------------------------------------------------------
     
     /**
+     * Useful to delegate to native and eventually not very accurate
+     * scaling algorithms, if even closest algorithm would be exact,
+     * in which case we can assume native algorithms should be exact too.
+     * 
+     * If any destination span is zero, returns true,
+     * else, if any source span is zero, returns false,
+     * else does a meaningful computation.
+     * 
+     * @return True if no scale change, or if pixel-aligned growth.
+     */
+    public static boolean isExactWithClosest(
+        int sxSpan,
+        int sySpan,
+        int dxSpan,
+        int dySpan) {
+        final boolean ret;
+        if ((dxSpan == 0)
+            || (dySpan == 0)) {
+            ret = true;
+        } else if ((sxSpan == 0)
+            || (sySpan == 0)) {
+            ret = false;
+        } else {
+            ret = ((dxSpan % sxSpan == 0)
+                && (dySpan % sySpan == 0));
+        }
+        return ret;
+    }
+    
+    /**
      * Draws the specified source rectangle of the specified pixels,
      * into the specified destination rectangle.
      * 
@@ -431,8 +461,9 @@ public class ScaledRectDrawer {
         
         final MyAlgoType ret;
         if ((!mustUseSamplingElseClosest)
-            || ((dr.xSpan() % sr.xSpan() == 0)
-                && (dr.ySpan() % sr.ySpan() == 0))) {
+            || isExactWithClosest(
+                sr.xSpan(), sr.ySpan(),
+                dr.xSpan(), dr.ySpan())) {
             // Always wanting to use closest,
             // or no scale change, or pixel-aligned growth.
             ret = MyAlgoType.CLOSEST;

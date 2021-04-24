@@ -89,12 +89,15 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureAccurateImageScaling,
+        boolean accurateImageScaling,
         //
         GraphicsContext gc) {
         
         final boolean mustUseRedefinedScaling =
-            mustEnsureAccurateImageScaling
+            (accurateImageScaling
+                && (!ScaledRectDrawer.isExactWithClosest(
+                    sxSpan, sySpan,
+                    dxSpan, dySpan)))
             || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
                 && ((dxSpan > sxSpan)
                     || (dySpan > sySpan)));
@@ -136,7 +139,7 @@ public class JfxImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureAccurateImageScaling,
+                accurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,
@@ -199,12 +202,15 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureAccurateImageScaling,
+        boolean accurateImageScaling,
         //
         GraphicsContext gc) {
         
         final boolean mustUseRedefinedScaling =
-            mustEnsureAccurateImageScaling
+            (accurateImageScaling
+                && (!ScaledRectDrawer.isExactWithClosest(
+                    sxSpan, sySpan,
+                    dxSpan, dySpan)))
             || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
                 && ((dxSpan > sxSpan)
                     || (dySpan > sySpan)));
@@ -231,7 +237,7 @@ public class JfxImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureAccurateImageScaling,
+                accurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,

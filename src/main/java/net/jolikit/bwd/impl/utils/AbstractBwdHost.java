@@ -705,6 +705,12 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     /*
      * 
      */
+    
+    private volatile boolean accurateClientScaling;
+    
+    /*
+     * 
+     */
 
     private final Object dirtyRectBbMutex = new Object();
 
@@ -1059,6 +1065,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      */
     
     @Override
+    public void setAccurateClientScaling(boolean accurate) {
+        this.accurateClientScaling = accurate;
+    }
+    
+    @Override
     public void makeDirty(GRect dirtyRect) {
         // Constraining dirty rectangles within DEFAULT_HUGE bounds,
         // to avoid ArithmeticException when computing bounding boxes.
@@ -1067,7 +1078,7 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
         // Implicit null check.
         dirtyRect = dirtyRect.intersected(GRect.DEFAULT_HUGE);
         
-        synchronized (dirtyRectBbMutex) {
+        synchronized (this.dirtyRectBbMutex) {
             this.dirtyRectBb = this.dirtyRectBb.unionBoundingBox(dirtyRect);
         }
     }
@@ -1895,7 +1906,22 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     protected InterfaceClock getUiThreadSchedulerClock() {
         return getUiThreadScheduler().getClock();
     }
+
+    /*
+     * 
+     */
     
+    /**
+     * For use in paintBackingClient().
+     * 
+     * @return Whether paintBackingClient() must use accurate or fast
+     *         client scaling algorithms, if there are multiple ones
+     *         to choose from.
+     */
+    protected final boolean getAccurateClientScaling() {
+        return this.accurateClientScaling;
+    }
+
     /*
      * 
      */

@@ -760,6 +760,14 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                  * 
                  */
                 try {
+                    childG.setAccurateImageScaling(false);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
+                    childG.setAccurateImageScaling(true);
+                    fail();
+                } catch (IllegalStateException ok) {}
+                try {
                     childG.drawImage(0, 0, image);
                     fail();
                 } catch (IllegalStateException ok) {}
@@ -1757,6 +1765,9 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
              * 
              */
 
+            g.setAccurateImageScaling(false);
+            g.setAccurateImageScaling(true);
+            
             final int bxm = g.getBox().xMax();
             final int bym = g.getBox().yMax();
             final int iw = image.getWidth();

@@ -28,11 +28,14 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
-import net.jolikit.bwd.impl.utils.AbstractBwdBinding;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
+/**
+ * To test both accurate image scaling
+ * and accurate client scaling flags effects.
+ */
 public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCase {
 
     //--------------------------------------------------------------------------
@@ -52,17 +55,28 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
     
     private enum MyDrawType {
-        BASE_SCALING_FAST(false, false),
-        BASE_SCALING_ACCURATE(false, true),
-        BASE_SCALING_P1_FAST(true, false),
-        BASE_SCALING_P1_ACCURATE(true, true);
-        final boolean isP1;
-        final boolean isAccurate;
+        BASE_SCALING_IMG_F_CLI_F(0, false, false),
+        BASE_SCALING_IMG_F_CLI_A(0, false, true),
+        BASE_SCALING_IMG_A_CLI_F(0, true, false),
+        BASE_SCALING_IMG_A_CLI_A(0, true, true),
+        BASE_SCALING_P1_IMG_F_CLI_F(1, false, false),
+        BASE_SCALING_P1_IMG_F_CLI_A(1, false, true),
+        BASE_SCALING_P1_IMG_A_CLI_F(1, true, false),
+        BASE_SCALING_P1_IMG_A_CLI_A(1, true, true),
+        BASE_SCALING_M1_IMG_F_CLI_F(-1, false, false),
+        BASE_SCALING_M1_IMG_F_CLI_A(-1, false, true),
+        BASE_SCALING_M1_IMG_A_CLI_F(-1, true, false),
+        BASE_SCALING_M1_IMG_A_CLI_A(-1, true, true);
+        final int dSpan;
+        final boolean isImageAccurate;
+        final boolean isClientAccurate;
         private MyDrawType(
-            boolean isP1,
-            boolean isAccurate) {
-            this.isP1 = isP1;
-            this.isAccurate = isAccurate;
+            int dSpan,
+            boolean isImageAccurate,
+            boolean isClientAccurate) {
+            this.dSpan = dSpan;
+            this.isImageAccurate = isImageAccurate;
+            this.isClientAccurate = isClientAccurate;
         }
     }
     
@@ -75,6 +89,8 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
     private InterfaceBwdImage image;
     
     private MyDrawType drawType = null;
+    
+    private boolean accurateImageScaling;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -134,6 +150,13 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
      */
     protected abstract double getBaseImageScaling();
 
+    /**
+     * @return Current value to use in this test.
+     */
+    protected boolean getAccurateImageScaling() {
+        return this.accurateImageScaling;
+    }
+    
     @Override
     protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
@@ -148,6 +171,8 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
          */
         
         final InterfaceBwdImage image = this.getOrCreateImage();
+        
+        g.setAccurateImageScaling(this.getAccurateImageScaling());
         
         final long t1 = System.nanoTime();
         g.drawImage(box, image);
@@ -220,7 +245,7 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
         
         final MyDrawType newType;
         if (prevType == null) {
-            newType = MyDrawType.BASE_SCALING_FAST;
+            newType = MyDrawType.BASE_SCALING_IMG_F_CLI_F;
         } else {
             final MyDrawType[] typeArr = MyDrawType.values();
             newType = typeArr[(prevType.ordinal() + 1) % typeArr.length];
@@ -233,15 +258,12 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
         GRect newRect = clientBounds.withSpans(
             NbrsUtils.roundToInt(imgRect.xSpan() * baseScaling),
             NbrsUtils.roundToInt(imgRect.ySpan() * baseScaling));
-        if (newType.isP1) {
-            newRect = newRect.withSpansDeltas(1, 1);
-        }
-        
-        final AbstractBwdBinding binding =
-            (AbstractBwdBinding) this.getBinding();
-        binding.getBindingConfig().setMustEnsureAccurateImageScaling(newType.isAccurate);
+        newRect = newRect.withSpansDeltas(newType.dSpan, newType.dSpan);
         
         host.setClientBounds(newRect);
+        
+        this.accurateImageScaling = newType.isImageAccurate;
+        host.setAccurateClientScaling(newType.isClientAccurate);
         
         host.ensurePendingClientPainting();
     }

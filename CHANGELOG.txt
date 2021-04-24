@@ -95,6 +95,8 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdGraphics.drawPolyline().
     - InterfaceBwdGraphics.drawPolygon().
     - InterfaceBwdGraphics.fillPolygon().
+    - InterfaceBwdGraphics.setAccurateImageScaling().
+    - InterfaceBwdHost.setAccurateClientScaling().
     - InterfaceBwdImage.getRect().
     - InterfaceBwdWritableImage class.
     - InterfaceBwdFontHome.newFontXxx() methods that always use
@@ -166,10 +168,6 @@ Jolikit X.X, XXXX/XX/XX
       on 4k+ screens, or to easily scale up a UI without having
       to touch its code, or to check pixel-perfectness of your drawings
       without a magnifying glass, or if you just like pixelated graphics.
-    - Added "mustEnsureAccurateImageScaling" parameter, to allow ensuring
-      of accurate image scaling.
-      False by default (i.e. same as previous behavior),
-      because it can make image scaling much slower.
   - Corrections:
     - Corrected an issue in DefaultLineDrawer, where pixels out of clip
       could be drawn when coordinates were huge (>= 500_000_000 or so).

@@ -918,7 +918,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
             sx, sy, sxSpan, sySpan,
             //
             this.getBinding().getInternalParallelizer(),
-            this.getBindingConfig().getMustEnsureAccurateImageScaling(),
+            this.getAccurateImageScaling(),
             //
             gc);
         
@@ -946,10 +946,10 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         //
         MyShared shared) {
         super(
-                binding,
-                rootBoxTopLeft,
-                box,
-                initialClip);
+            binding,
+            rootBoxTopLeft,
+            box,
+            initialClip);
         
         // Implicit null check.
         shared.onGraphicsCreation();

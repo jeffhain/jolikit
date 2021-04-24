@@ -152,6 +152,18 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     /**
+     * For this flag, not providing a way to set a corresponding
+     * "backing" state: drawImage() methods implementations must
+     * simply read and apply the flag at call time, if they have
+     * multiple algorithms to choose from.
+     */
+    private boolean accurateImageScaling;
+    
+    /*
+     * 
+     */
+    
+    /**
      * For simple usage check.
      */
     private boolean initCalled = false;
@@ -193,6 +205,8 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.clipInUser = initialClip;
         
         this.font = defaultFont;
+        
+        this.accurateImageScaling = false;
     }
     
     @Override
@@ -356,6 +370,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
             this.font = newFont;
         }
         
+        /*
+         * Images.
+         */
+        
+        this.accurateImageScaling = false;
+
         /*
          * Backing state.
          */
@@ -853,11 +873,17 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
                 pointCount,
                 this.areHorVerFlipped());
     }
-
     
     /*
      * 
      */
+    
+    @Override
+    public void setAccurateImageScaling(boolean accurate) {
+        this.checkUsable();
+        
+        this.accurateImageScaling = accurate;
+    }
     
     @Override
     public void drawImage(
@@ -1392,6 +1418,17 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     /*
      * Images.
      */
+    
+    /**
+     * For use in drawImageImpl().
+     * 
+     * @return Whether drawImageImpl() must use accurate or fast
+     *         image scaling algorithms, if there are multiple ones
+     *         to choose from.
+     */
+    protected final boolean getAccurateImageScaling() {
+        return this.accurateImageScaling;
+    }
     
     /**
      * Source, destination and image spans are all > 0,
