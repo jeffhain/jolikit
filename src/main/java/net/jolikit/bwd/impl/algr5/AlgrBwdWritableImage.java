@@ -15,7 +15,6 @@
  */
 package net.jolikit.bwd.impl.algr5;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
@@ -62,11 +61,11 @@ public class AlgrBwdWritableImage extends AbstractAlgrBwdImage implements Interf
         final int[] pixelArr = premulArgb32Arr;
         final int pixelArrScanlineStride = width;
         final AlgrBwdGraphics graphics = new AlgrBwdGraphics(
-                binding,
-                box,
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            box,
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         this.graphics = graphics;
         
         graphics.init();

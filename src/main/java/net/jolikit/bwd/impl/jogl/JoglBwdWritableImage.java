@@ -15,7 +15,6 @@
  */
 package net.jolikit.bwd.impl.jogl;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
@@ -62,11 +61,11 @@ public class JoglBwdWritableImage extends AbstractJoglBwdImage implements Interf
         final int[] pixelArr = color32Arr;
         final int pixelArrScanlineStride = width;
         final JoglBwdGraphics graphics = new JoglBwdGraphics(
-                binding,
-                box,
-                isImageGraphics,
-                pixelArr,
-                pixelArrScanlineStride);
+            binding,
+            box,
+            isImageGraphics,
+            pixelArr,
+            pixelArrScanlineStride);
         this.graphics = graphics;
         
         graphics.init();

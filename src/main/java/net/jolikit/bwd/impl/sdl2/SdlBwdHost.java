@@ -46,7 +46,6 @@ import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
 
 public class SdlBwdHost extends AbstractBwdHost {
@@ -75,8 +74,6 @@ public class SdlBwdHost extends AbstractBwdHost {
     //--------------------------------------------------------------------------
 
     private static final SdlJnaLib LIB = SdlJnaLib.INSTANCE;
-    
-    private final AbstractSdlBwdBinding binding;
     
     private final SdlEventConverter eventConverter;
 
@@ -159,8 +156,6 @@ public class SdlBwdHost extends AbstractBwdHost {
                 client);
         
         final SdlBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        this.binding = LangUtils.requireNonNull(binding);
         
         this.eventConverter = new SdlEventConverter(
                 binding.getEventsConverterCommonState(),
@@ -324,17 +319,17 @@ public class SdlBwdHost extends AbstractBwdHost {
             InterfaceBwdClient client) {
         final SdlBwdHost owner = this;
         return new SdlBwdHost(
-                this.binding,
-                this.getDialogLifecycleListener(),
-                owner,
-                //
-                title,
-                decorated,
-                modal,
-                //
-                client,
-                //
-                this.cursorManager.getBackingCursorRepository());
+            this.getBinding(),
+            this.getDialogLifecycleListener(),
+            owner,
+            //
+            title,
+            decorated,
+            modal,
+            //
+            client,
+            //
+            this.cursorManager.getBackingCursorRepository());
     }
     
     /*
@@ -969,7 +964,7 @@ public class SdlBwdHost extends AbstractBwdHost {
             this.offscreenBuffer.getScanlineStride();
 
         return new SdlBwdGraphics(
-            this.binding,
+            this.getBinding(),
             boxWithBorder,
             //
             isImageGraphics,

@@ -48,7 +48,6 @@ import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
 import net.jolikit.time.sched.AbstractProcess;
 import net.jolikit.time.sched.InterfaceScheduler;
@@ -429,8 +428,6 @@ public class LwjglBwdHost extends AbstractBwdHost {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-
-    private final AbstractLwjglBwdBinding binding;
     
     private final LwjglEventConverter eventConverter;
     
@@ -518,8 +515,6 @@ public class LwjglBwdHost extends AbstractBwdHost {
                 client);
         
         final LwjglBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        this.binding = LangUtils.requireNonNull(binding);
         
         this.eventConverter = new LwjglEventConverter(
                 binding.getEventsConverterCommonState(),
@@ -647,17 +642,17 @@ public class LwjglBwdHost extends AbstractBwdHost {
             InterfaceBwdClient client) {
         final LwjglBwdHost owner = this;
         return new LwjglBwdHost(
-                this.binding,
-                this.getDialogLifecycleListener(),
-                owner,
-                //
-                title,
-                decorated,
-                modal,
-                //
-                client,
-                //
-                this.cursorManager.getBackingCursorRepository());
+            this.getBinding(),
+            this.getDialogLifecycleListener(),
+            owner,
+            //
+            title,
+            decorated,
+            modal,
+            //
+            client,
+            //
+            this.cursorManager.getBackingCursorRepository());
     }
 
     //--------------------------------------------------------------------------
@@ -969,7 +964,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
             this.offscreenBuffer.getScanlineStride();
         
         return new LwjglBwdGraphics(
-            this.binding,
+            this.getBinding(),
             boxWithBorder,
             //
             isImageGraphics,
@@ -990,7 +985,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
         }
         
         final boolean glDoubleBuffered =
-            this.binding.getBindingConfig().getGlDoubleBuffered();
+            this.getBindingConfig().getGlDoubleBuffered();
         if (glDoubleBuffered) {
             /*
              * Can't do partial painting if double buffered,
@@ -1007,7 +1002,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
         }
         
         final PixelCoordsConverter pixelCoordsConverter =
-            this.binding.getPixelCoordsConverter();
+            this.getBinding().getPixelCoordsConverter();
         
         this.paintHelper.paintPixelsIntoOpenGl(
             scaleHelper,
@@ -1029,7 +1024,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
 
     private void flushPainting() {
         final boolean glDoubleBuffered =
-                binding.getBindingConfig().getGlDoubleBuffered();
+            this.getBinding().getBindingConfig().getGlDoubleBuffered();
         // Not much more we can do.
         this.paintHelper.flushPainting(this.window, glDoubleBuffered);
     }

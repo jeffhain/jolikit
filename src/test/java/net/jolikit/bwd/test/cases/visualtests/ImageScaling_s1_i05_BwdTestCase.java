@@ -16,6 +16,7 @@
 package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.utils.BwdTestResources;
@@ -65,10 +66,11 @@ public class ImageScaling_s1_i05_BwdTestCase extends AbstractImageScalingBwdTest
         
         final InterfaceBwdWritableImage wi =
             this.getBinding().newWritableImage(2 * w, 2 * h);
-        wi.getGraphics().drawImage(0, 0, baseImage);
-        wi.getGraphics().drawImage(w, 0, baseImage);
-        wi.getGraphics().drawImage(0, h, baseImage);
-        wi.getGraphics().drawImage(w, h, baseImage);
+        final InterfaceBwdGraphics wig = wi.getGraphics();
+        wig.drawImage(0, 0, baseImage);
+        wig.drawImage(w, 0, baseImage);
+        wig.drawImage(0, h, baseImage);
+        wig.drawImage(w, h, baseImage);
         
         baseImage.dispose();
         

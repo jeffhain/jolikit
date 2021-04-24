@@ -54,7 +54,6 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
-import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.ObjectWrapper;
 
@@ -389,8 +388,6 @@ public class QtjBwdHost extends AbstractBwdHost {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final AbstractQtjBwdBinding binding;
-    
     private final QtjEventConverter eventConverter;
 
     private final QFrame window;
@@ -491,8 +488,6 @@ public class QtjBwdHost extends AbstractBwdHost {
                 client);
         
         final QtjBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        this.binding = LangUtils.requireNonNull(binding);
         
         final AbstractBwdHost host = this;
         
@@ -686,15 +681,15 @@ public class QtjBwdHost extends AbstractBwdHost {
             InterfaceBwdClient client) {
         final QtjBwdHost owner = this;
         return new QtjBwdHost(
-                this.binding,
-                this.getDialogLifecycleListener(),
-                owner,
-                //
-                title,
-                decorated,
-                modal,
-                //
-                client);
+            this.getBinding(),
+            this.getDialogLifecycleListener(),
+            owner,
+            //
+            title,
+            decorated,
+            modal,
+            //
+            client);
     }
 
     //--------------------------------------------------------------------------
@@ -882,7 +877,7 @@ public class QtjBwdHost extends AbstractBwdHost {
             boxWithBorder.ySpan());
         
         return new QtjBwdGraphics(
-            this.binding,
+            this.getBinding(),
             boxWithBorder,
             //
             isImageGraphics,
@@ -954,7 +949,7 @@ public class QtjBwdHost extends AbstractBwdHost {
         final boolean hadResizeEvent = this.hadResizeEventSinceLastPainting;
         this.hadResizeEventSinceLastPainting = false;
         if (hadResizeEvent) {
-            if (!this.binding.getBindingConfig().getMustTryToPaintDuringResize()) {
+            if (!this.getBindingConfig().getMustTryToPaintDuringResize()) {
                 /*
                  * Making sure we don't paint during the paint event
                  * that follows each resize event.

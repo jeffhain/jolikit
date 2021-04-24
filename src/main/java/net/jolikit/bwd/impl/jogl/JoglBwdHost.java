@@ -52,7 +52,6 @@ import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.PixelCoordsConverter;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.LangUtils;
 import net.jolikit.time.TimeUtils;
 
 public class JoglBwdHost extends AbstractBwdHost {
@@ -91,7 +90,7 @@ public class JoglBwdHost extends AbstractBwdHost {
              */
             
             final GRect defaultClientBoundsInOs =
-                binding.getBindingConfig().getDefaultClientOrWindowBoundsInOs();
+                getBindingConfig().getDefaultClientOrWindowBoundsInOs();
             final int initialWidth = defaultClientBoundsInOs.xSpan();
             final int initialHeight = defaultClientBoundsInOs.ySpan();
             final PixelCoordsConverter pixelCoordsConverter = getBinding().getPixelCoordsConverter();
@@ -137,7 +136,7 @@ public class JoglBwdHost extends AbstractBwdHost {
                 lastReshapedWidthInOs,
                 lastReshapedHeightInOs);
 
-            if (binding.getBindingConfig().getMustTryToPaintDuringResize()) {
+            if (getBindingConfig().getMustTryToPaintDuringResize()) {
                 // Making all dirty on reshape, so that everything gets repainted.
                 makeAllDirty();
             }
@@ -413,8 +412,6 @@ public class JoglBwdHost extends AbstractBwdHost {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final AbstractJoglBwdBinding binding;
-    
     /*
      * Might be good to keep hard references to these listeners
      * (as for lwjgl3), so we do.
@@ -501,8 +498,6 @@ public class JoglBwdHost extends AbstractBwdHost {
                 client);
 
         final JoglBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        this.binding = LangUtils.requireNonNull(binding);
         
         final AbstractBwdHost host = this;
         this.hostBoundsHelper = new JoglHostBoundsHelper(host);
@@ -639,17 +634,17 @@ public class JoglBwdHost extends AbstractBwdHost {
             InterfaceBwdClient client) {
         final JoglBwdHost owner = this;
         return new JoglBwdHost(
-                this.binding,
-                this.getDialogLifecycleListener(),
-                owner,
-                //
-                title,
-                decorated,
-                modal,
-                //
-                client,
-                //
-                this.cursorManager.getBackingCursorRepository());
+            this.getBinding(),
+            this.getDialogLifecycleListener(),
+            owner,
+            //
+            title,
+            decorated,
+            modal,
+            //
+            client,
+            //
+            this.cursorManager.getBackingCursorRepository());
     }
 
     //--------------------------------------------------------------------------
@@ -713,7 +708,7 @@ public class JoglBwdHost extends AbstractBwdHost {
 
     @Override
     protected void showBackingWindow() {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             if (this.isBackingWindowShowing()) {
                 return;
             }
@@ -731,7 +726,7 @@ public class JoglBwdHost extends AbstractBwdHost {
 
     @Override
     protected void hideBackingWindow() {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             if (!this.isBackingWindowShowing()) {
                 return;
             }
@@ -760,7 +755,7 @@ public class JoglBwdHost extends AbstractBwdHost {
 
     @Override
     protected boolean isBackingWindowFocused() {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             if (this.isBackingWindowIconified()) {
                 return false;
             }
@@ -780,7 +775,7 @@ public class JoglBwdHost extends AbstractBwdHost {
 
     @Override
     protected boolean doesSetBackingWindowIconifiedOrNotWork() {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             return true;
         } else {
             return false;
@@ -789,7 +784,7 @@ public class JoglBwdHost extends AbstractBwdHost {
     
     @Override
     protected boolean isBackingWindowIconified() {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             return this.backingWindowIconified_hack;
         } else {
             return false;
@@ -798,7 +793,7 @@ public class JoglBwdHost extends AbstractBwdHost {
     
     @Override
     protected void setBackingWindowIconifiedOrNot(boolean iconified) {
-        if (this.binding.getBindingConfig().getMustDoBestEffortIconification()) {
+        if (this.getBindingConfig().getMustDoBestEffortIconification()) {
             if (!this.isBackingWindowShowing()) {
                 // Allowed not to work in this case.
                 return;
@@ -945,7 +940,7 @@ public class JoglBwdHost extends AbstractBwdHost {
         final double nowS = this.getUiThreadSchedulerClock().getTimeS();
         final double dtS = nowS - this.lastBackingBoundsSettingTimeS;
         final boolean mustBlock =
-                (dtS < this.binding.getBindingConfig().getPostBoundsSettingDragMoveBlockingDelayS());
+                (dtS < this.getBindingConfig().getPostBoundsSettingDragMoveBlockingDelayS());
         if (mustBlock) {
             if (DEBUG) {
                 hostLog(this, "blocking drag move detection, because of recent bounds setting : dtS = " + dtS);
@@ -972,7 +967,7 @@ public class JoglBwdHost extends AbstractBwdHost {
             this.offscreenBuffer.getScanlineStride();
         
         return new JoglBwdGraphics(
-            this.binding,
+            this.getBinding(),
             boxWithBorder,
             //
             isImageGraphics,
@@ -993,7 +988,7 @@ public class JoglBwdHost extends AbstractBwdHost {
         }
         
         final boolean glDoubleBuffered =
-            this.binding.getBindingConfig().getGlDoubleBuffered();
+            this.getBindingConfig().getGlDoubleBuffered();
         if (glDoubleBuffered) {
             /*
              * Can't do partial painting if double buffered,

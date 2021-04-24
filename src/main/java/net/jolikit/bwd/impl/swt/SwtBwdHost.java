@@ -40,7 +40,6 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
 
 public class SwtBwdHost extends AbstractBwdHost {
@@ -170,8 +169,6 @@ public class SwtBwdHost extends AbstractBwdHost {
      * 
      */
     
-    private final AbstractSwtBwdBinding binding;
-    
     private final SwtEventConverter eventConverter;
     
     private final Shell window;
@@ -242,8 +239,6 @@ public class SwtBwdHost extends AbstractBwdHost {
                 client);
         
         final SwtBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        this.binding = LangUtils.requireNonNull(binding);
         
         this.eventConverter = new SwtEventConverter(
                 binding.getEventsConverterCommonState(),
@@ -372,17 +367,17 @@ public class SwtBwdHost extends AbstractBwdHost {
             InterfaceBwdClient client) {
         final SwtBwdHost owner = this;
         return new SwtBwdHost(
-                this.binding,
-                this.getDialogLifecycleListener(),
-                owner,
-                //
-                title,
-                decorated,
-                modal,
-                //
-                client,
-                //
-                this.cursorManager.getBackingCursorRepository());
+            this.getBinding(),
+            this.getDialogLifecycleListener(),
+            owner,
+            //
+            title,
+            decorated,
+            modal,
+            //
+            client,
+            //
+            this.cursorManager.getBackingCursorRepository());
     }
 
     //--------------------------------------------------------------------------
@@ -657,14 +652,14 @@ public class SwtBwdHost extends AbstractBwdHost {
             this.offscreenBuffer.getScanlineStride();
         
         return new SwtBwdGraphics(
-            this.binding,
+            this.getBinding(),
             boxWithBorder,
             //
             isImageGraphics,
             pixelArr,
             pixelArrScanlineStride,
             //
-            this.binding.getDisplay());
+            this.getBinding().getDisplay());
     }
     
     @Override
@@ -681,7 +676,7 @@ public class SwtBwdHost extends AbstractBwdHost {
         
         final GC backingG = this.currentPainting_backingG;
         
-        final Device device = this.binding.getDisplay();
+        final Device device = this.getBinding().getDisplay();
         
         final int[] pixelArr =
             this.offscreenBuffer.getPixelArr();
@@ -721,7 +716,7 @@ public class SwtBwdHost extends AbstractBwdHost {
         }
         
         if (hadResizeEvent) {
-            if (this.binding.getBindingConfig().getMustTryToPaintDuringResize()) {
+            if (this.getBindingConfig().getMustTryToPaintDuringResize()) {
                 /*
                  * Making sure we don't paint synchronously at each resize event,
                  * but instead rely on ensurePendingClientPainting(...) to respect
@@ -772,7 +767,7 @@ public class SwtBwdHost extends AbstractBwdHost {
         }
         
         final Display eventDisplay = backingEvent.display;
-        if (eventDisplay != this.binding.getDisplay()) {
+        if (eventDisplay != this.getBinding().getDisplay()) {
             // Not for us (if can ever happen).
             return;
         }
