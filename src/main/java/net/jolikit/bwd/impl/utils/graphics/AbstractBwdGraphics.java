@@ -211,9 +211,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public String toString() {
-        return "[rootBoxTopLeft = "
-            + this.rootBoxTopLeft
-            + ", box = "
+        return "[box = "
             + this.box
             + ", initialClipInBase = "
             + this.initialClipInBase
