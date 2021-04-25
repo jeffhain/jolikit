@@ -438,6 +438,11 @@ public class JfxBwdHost extends AbstractBwdHost {
      * 
      */
     
+    /**
+     * Reused to preserve non-dirty (non-painted) areas.
+     */
+    private Canvas lastOffscreenCanvas;
+    
     private boolean currentPainting_mustUseIntArrG;
     private Canvas currentPainting_graphicsCanvas;
     
@@ -952,9 +957,16 @@ public class JfxBwdHost extends AbstractBwdHost {
                  * Painting at scale 1 on a smaller and offscreen canvas,
                  * and then will do a scaled copy of it into displayed canvas.
                  */
-                this.currentPainting_graphicsCanvas = new Canvas(
-                    boxWithBorder.xSpan(),
-                    boxWithBorder.ySpan());
+                Canvas offscreenCanvas = this.lastOffscreenCanvas;
+                if ((offscreenCanvas == null)
+                    || (offscreenCanvas.getWidth() != boxWithBorder.xSpan())
+                    || (offscreenCanvas.getHeight() != boxWithBorder.ySpan())) {
+                    offscreenCanvas = new Canvas(
+                        boxWithBorder.xSpan(),
+                        boxWithBorder.ySpan());
+                    this.lastOffscreenCanvas = offscreenCanvas;
+                }
+                this.currentPainting_graphicsCanvas = offscreenCanvas;
                 graphicsGcScale = 1;
             } else {
                 /*

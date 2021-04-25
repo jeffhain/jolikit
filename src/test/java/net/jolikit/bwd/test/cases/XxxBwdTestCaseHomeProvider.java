@@ -37,8 +37,8 @@ import net.jolikit.bwd.test.cases.unittests.HostUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageFastBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageAccurateBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageFastBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchNewChildGBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestCase;
@@ -58,6 +58,7 @@ import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinOpaqueBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.AlphaNLayersWinTranspBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ArcDrawFillBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClearBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ClientDirtyPaintScaledTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClientDirtyPaintTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClientRepaintTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ClippingBwdTestCase;
@@ -157,6 +158,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new ClientRepaintTestBwdTestCase(),
                     new ClientDirtyPaintTestBwdTestCase(),
+                    new ClientDirtyPaintScaledTestBwdTestCase(),
             });
 
             /*

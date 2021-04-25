@@ -236,7 +236,7 @@ public class AwtBwdHost extends AbstractBwdHost {
     
     /**
      * For dialog hosts.
-     * TODO xxx dialog Why have grey sneaky fill rect on some kinds of resize?
+     * TODO awt Having grey sneaky fill rect on some kinds of resizes.
      */
     private class MyDialog extends Dialog {
         private static final long serialVersionUID = 1L;

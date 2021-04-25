@@ -110,8 +110,8 @@ public class AlgrPaintUtils {
             length -= rightOver;
             
             final long offset =
-                dstX * this.region.pixel_size
-                + this.region.pitch * dstY;
+                dstY * this.region.pitch
+                + dstX * this.region.pixel_size;
             this.dataPtr.write(
                 offset,
                 rowArr,
@@ -228,7 +228,6 @@ public class AlgrPaintUtils {
         final boolean mustJustLockPaintedRectRegion = true;
         Pointer regionPtr = null;
         ALLEGRO_LOCKED_REGION region = null;
-        GRect regionClip = GRect.DEFAULT_EMPTY;
         if (!mustJustLockPaintedRectRegion) {
             regionPtr = LIB.al_lock_bitmap(
                     windowBitmap,
@@ -252,14 +251,6 @@ public class AlgrPaintUtils {
                 bufferArr,
                 bufferArrScanlineStride);
 
-            if (!mustJustLockPaintedRectRegion) {
-                regionClip = GRect.valueOf(
-                    0,
-                    0,
-                    bitmapWidthInDevice,
-                    bitmapHeightInDevice);
-            }
-            
             for (GRect prInBuffInBd : paintedRectList) {
                 final GRect prInBuffInOs = scaleHelper.rectBdToOs(prInBuffInBd);
                 
@@ -277,9 +268,12 @@ public class AlgrPaintUtils {
                  * Locking fails if we leak out of bitmap,
                  * so we need to clip.
                  */
+                final GRect clipInDevice = bitmapRectInDevice;
                 final GRect rectInDeviceClipped =
-                    rectInDevice.intersected(bitmapRectInDevice);
-
+                    rectInDevice.intersected(clipInDevice);
+                
+                final GRect rectInRegion;
+                final GRect clipInRegion;
                 if (mustJustLockPaintedRectRegion) {
                     regionPtr = LIB.al_lock_bitmap_region(
                             windowBitmap,
@@ -297,11 +291,19 @@ public class AlgrPaintUtils {
                             throw new BindingError("could not lock window bitmap: " + LIB.al_get_errno());
                         }
                     }
+                    rectInRegion = rectInDevice.withPosDeltas(
+                        -rectInDeviceClipped.x(),
+                        -rectInDeviceClipped.y());
+                    clipInRegion = clipInDevice.withPosDeltas(
+                        -rectInDeviceClipped.x(),
+                        -rectInDeviceClipped.y());
+                } else {
+                    rectInRegion = rectInDevice;
+                    clipInRegion = clipInDevice;
                 }
                 try {
                     if (mustJustLockPaintedRectRegion) {
                         region = AlgrJnaUtils.newAndRead(ALLEGRO_LOCKED_REGION.class, regionPtr);
-                        regionClip = rectInDeviceClipped;
                     }
                     final Pointer dataPtr = region.data;
                     
@@ -316,11 +318,11 @@ public class AlgrPaintUtils {
                     final MyRowDrawer rowDrawer = this.tmpRowDrawer;
                     rowDrawer.configure(
                         region,
-                        regionClip,
+                        clipInRegion,
                         dataPtr);
                     final GRect srcRect = prInBuffInBd;
-                    final GRect dstRect = rectInDevice;
-                    final GRect dstClip = rectInDevice;
+                    final GRect dstRect = rectInRegion;
+                    final GRect dstClip = clipInRegion;
                     ScaledRectDrawer.drawRectScaled(
                         parallelizer,
                         accurateClientScaling,

@@ -196,8 +196,8 @@ public class AwtPaintUtils {
         final int wInBd = rectInBd.xSpan();
         final int hInBd = rectInBd.ySpan();
         
-        final int dxInOs = imageXInBackingGInOs;
-        final int dyInOs = imageYInBackingGInOs;
+        final int dxInOs = imageXInBackingGInOs + scaleHelper.spanBdToOs(sxInBd);
+        final int dyInOs = imageYInBackingGInOs + scaleHelper.spanBdToOs(syInBd);
         final int wInOs = scaleHelper.spanBdToOs(wInBd);
         final int hInOs = scaleHelper.spanBdToOs(hInBd);
         
@@ -207,6 +207,11 @@ public class AwtPaintUtils {
                 AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC, 1.0f);
                 g.setComposite(composite);
             }
+            /*
+             * Eventual scaling only due to pixel scaling,
+             * so always exact: no need for
+             * accurate scaling algorithm.
+             */
             g.drawImage(
                 imageInBd,
                 dxInOs, // dx1
