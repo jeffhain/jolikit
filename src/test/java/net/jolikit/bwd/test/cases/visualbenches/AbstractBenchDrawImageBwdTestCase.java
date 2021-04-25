@@ -100,14 +100,14 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
-    protected abstract boolean getMustEnsureAccurateImageScaling();
+    protected abstract boolean getAccurateImageScaling();
     
     @Override
     protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        g.setAccurateImageScaling(this.getMustEnsureAccurateImageScaling());
+        g.setAccurateImageScaling(this.getAccurateImageScaling());
         
         final GRect box = g.getBox();
         

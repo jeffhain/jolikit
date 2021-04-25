@@ -20,7 +20,7 @@ import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
-import net.jolikit.bwd.impl.utils.graphics.IntArrRowDrawer;
+import net.jolikit.bwd.impl.utils.graphics.IntArrCopyRowDrawer;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
@@ -57,7 +57,7 @@ public class JfxImgDrawingUtils {
     
     private final IntArrSrcPixels tmpSrcPixels = new IntArrSrcPixels();
 
-    private final IntArrRowDrawer tmpRowDrawer = new IntArrRowDrawer();
+    private final IntArrCopyRowDrawer tmpRowDrawer = new IntArrCopyRowDrawer();
     
     private final IntArrHolder tmpIntArr1 = new IntArrHolder();
     private final IntArrHolder tmpIntArr2 = new IntArrHolder();
@@ -131,7 +131,7 @@ public class JfxImgDrawingUtils {
             
             final int minDstLength = dxSpan * dySpan;
             final int[] scaledBufferArr = this.tmpIntArr2.getArr(minDstLength);
-            final IntArrRowDrawer rowDrawer = this.tmpRowDrawer;
+            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
             rowDrawer.configure(scaledBufferArr, dxSpan);
             
             final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
@@ -229,7 +229,7 @@ public class JfxImgDrawingUtils {
             
             final int minDstLength = dxSpan * dySpan;
             final int[] scaledBufferArr = this.tmpIntArr1.getArr(minDstLength);
-            final IntArrRowDrawer rowDrawer = this.tmpRowDrawer;
+            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
             rowDrawer.configure(scaledBufferArr, dxSpan);
             
             final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);

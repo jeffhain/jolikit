@@ -23,7 +23,7 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
-import net.jolikit.bwd.impl.utils.graphics.IntArrRowDrawer;
+import net.jolikit.bwd.impl.utils.graphics.IntArrCopyRowDrawer;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
@@ -43,7 +43,7 @@ public class QtjImgDrawingUtils {
     
     private final IntArrSrcPixels tmpSrcPixels = new IntArrSrcPixels();
     
-    private final IntArrRowDrawer tmpRowDrawer = new IntArrRowDrawer();
+    private final IntArrCopyRowDrawer tmpRowDrawer = new IntArrCopyRowDrawer();
     
     private final IntArrHolder tmpIntArr = new IntArrHolder();
     
@@ -73,13 +73,18 @@ public class QtjImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean mustEnsureAccurateImageScaling,
+        boolean accurateImageScaling,
         //
         QPainter painter) {
         
         final QImage image = imageHelper.getImage();
         
-        if (mustEnsureAccurateImageScaling) {
+        final boolean mustUseRedefinedScaling =
+            accurateImageScaling
+            && (!ScaledRectDrawer.isExactWithClosest(
+                sxSpan, sySpan,
+                dxSpan, dySpan));
+        if (mustUseRedefinedScaling) {
             
             /*
              * Scaling into a scaled buffer.
@@ -101,7 +106,7 @@ public class QtjImgDrawingUtils {
             
             final int minDstLength = dxSpan * dySpan;
             final int[] scaledBufferArr = this.tmpIntArr.getArr(minDstLength);
-            final IntArrRowDrawer rowDrawer = this.tmpRowDrawer;
+            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
             rowDrawer.configure(scaledBufferArr, dxSpan);
             
             final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
@@ -109,7 +114,7 @@ public class QtjImgDrawingUtils {
             final GRect dstClip = dstRect;
             ScaledRectDrawer.drawRectScaled(
                 parallelizer,
-                mustEnsureAccurateImageScaling,
+                accurateImageScaling,
                 srcPixels,
                 srcRect,
                 dstRect,

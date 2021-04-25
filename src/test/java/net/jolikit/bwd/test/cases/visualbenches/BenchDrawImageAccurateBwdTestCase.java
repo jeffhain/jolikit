@@ -47,7 +47,7 @@ public class BenchDrawImageAccurateBwdTestCase extends AbstractBenchDrawImageBwd
     //--------------------------------------------------------------------------
 
     @Override
-    protected boolean getMustEnsureAccurateImageScaling() {
+    protected boolean getAccurateImageScaling() {
         return true;
     }
 }

@@ -18,9 +18,10 @@ package net.jolikit.bwd.impl.utils.graphics;
 import net.jolikit.lang.LangUtils;
 
 /**
- * A default implementation backed by an int array.
+ * A default implementation backed by an int array,
+ * that does COPY (or SRC) blending.
  */
-public class IntArrRowDrawer implements InterfaceRowDrawer {
+public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -47,7 +48,7 @@ public class IntArrRowDrawer implements InterfaceRowDrawer {
      * Creates an empty instance.
      * To be configured before use.
      */
-    public IntArrRowDrawer() {
+    public IntArrCopyRowDrawer() {
         this.configure_final(EMPTY_ARR, 0);
     }
 
