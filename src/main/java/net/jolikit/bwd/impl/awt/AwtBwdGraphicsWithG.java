@@ -19,7 +19,6 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -131,7 +130,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
 
     /**
      * True to be consistent with drawLine().
-     * Also, our implementation is faster most
+     * Also, our implementation is faster most often
      * and in worse cases, especially with alpha.
      * 
      * - Ellipse polygon ("trivial"):
@@ -324,8 +323,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
          * since they are not used by others of our primitives,
          * so redirection is done only in public implementations.
          */
-    };
-
+    }
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -346,6 +345,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     private final BufferedImageHelper bufferedImageHelper;
     
+    private final AwtImgDrawingUtils imgDrawingUtils = new AwtImgDrawingUtils();
+    
     private Graphics2D g;
     
     /**
@@ -359,7 +360,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     private int xShiftInUser;
     private int yShiftInUser;
-
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -883,45 +884,26 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
         
-        final int imageWidth = image.getWidth();
-        final int imageHeight = image.getHeight();
-        
         final AbstractAwtBwdImage imageImpl = (AbstractAwtBwdImage) image;
-        final BufferedImage img = imageImpl.getBufferedImage();
+        final BufferedImage backingImage = imageImpl.getBufferedImage();
         
-        final ImageObserver observer = null;
-        
-        final int _x = x + this.xShiftInUser;
-        final int _y = y + this.yShiftInUser;
-        
-        /*
-         * Using simplest applicable method,
-         * in case it would help perfs.
-         */
-
-        final boolean drawingPart =
-                (sx != 0) || (sy != 0)
-                || (sxSpan != imageWidth) || (sySpan != imageHeight);
-        if (drawingPart) {
-            this.g.drawImage(
-                    img,
-                    _x, // dx1
-                    _y, // dy1
-                    _x+xSpan, // dx2 (exclusive)
-                    _y+ySpan, // dy2 (exclusive)
-                    sx, // sx1
-                    sy, // sy1
-                    sx+sxSpan, // sx2 (exclusive)
-                    sy+sySpan, // sy2 (exclusive)
-                    observer);
-        } else {
-            final boolean scaling = (xSpan != sxSpan) || (ySpan != sySpan);
-            if (scaling) {
-                this.g.drawImage(img, _x, _y, xSpan, ySpan, observer);
-            } else {
-                this.g.drawImage(img, _x, _y, observer);
-            }
-        }
+        this.imgDrawingUtils.drawBufferedImageOnG(
+            this.xShiftInUser,
+            this.yShiftInUser,
+            this.getTransform(),
+            this.getClipInUser(),
+            //
+            x, y, xSpan, ySpan,
+            //
+            backingImage,
+            //
+            sx, sy, sxSpan, sySpan,
+            //
+            this.getBinding().getInternalParallelizer(),
+            this.getAccurateImageScaling(),
+            //
+            this.bufferedImageHelper,
+            this.g);
     }
 
     //--------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -591,6 +591,8 @@ public class BufferedImageHelper {
      */
     
     /**
+     * Retrieves the whole image.
+     * 
      * @param color32Arr (out) Must not be helper's image pixel array,
      *        else behavior is undefined.
      * @param pixelFormat Pixel format to use for output.
@@ -602,9 +604,38 @@ public class BufferedImageHelper {
             //
             BihPixelFormat pixelFormat,
             boolean premul) {
-
         final int width = this.image.getWidth();
         final int height = this.image.getHeight();
+        this.getPixelsInto(
+            0, 0, width, height,
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormat,
+            premul);
+    }
+    
+    /**
+     * Top-left pixel of src rectangle will be put at index 0
+     * in the output array.
+     * 
+     * @param color32Arr (out) Must not be helper's image pixel array,
+     *        else behavior is undefined.
+     * @param pixelFormat Pixel format to use for output.
+     * @param premul Whether output must be alpha-premultiplied.
+     */
+    public void getPixelsInto(
+        int sx,
+        int sy,
+        int sxSpan,
+        int sySpan,
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+
+        final int width = sxSpan;
+        final int height = sySpan;
 
         if (MUST_READ_BULK_PIXELS_WITH_DRAW_IMAGE) {
             
@@ -612,10 +643,10 @@ public class BufferedImageHelper {
             // with image, for it does blending
             // (matters for non-opaque images).
             zeroizePixels(
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    width,
-                    height);
+                color32Arr,
+                color32ArrScanlineStride,
+                width,
+                height);
             
             final BihPixelFormat tmpPixelFormat;
             if (MUST_ALWAYS_USE_ARGB_FOR_PIXELS_READING_IMAGE) {
@@ -624,14 +655,27 @@ public class BufferedImageHelper {
                 tmpPixelFormat = pixelFormat;
             }
             final BufferedImage tmpImage = newBufferedImageWithIntArray(
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    height,
-                    tmpPixelFormat,
-                    premul);
+                color32Arr,
+                color32ArrScanlineStride,
+                height,
+                tmpPixelFormat,
+                premul);
             final Graphics2D tmpG = tmpImage.createGraphics();
             try {
-                tmpG.drawImage(this.image, 0, 0, null);
+                tmpG.drawImage(
+                    this.image,
+                    //
+                    0, // dx1
+                    0, // dy1
+                    width, // dx2 (exclusive)
+                    height, // dy2 (exclusive)
+                    //
+                    sx, // sx1
+                    sy, // sy1
+                    sx + sxSpan, // sx2 (exclusive)
+                    sy + sySpan, // sy2 (exclusive)
+                    //
+                    null);
             } finally {
                 tmpG.dispose();
             }
@@ -643,22 +687,23 @@ public class BufferedImageHelper {
             if (MUST_ALWAYS_USE_ARGB_FOR_PIXELS_READING_IMAGE) {
                 final BihPixelFormat pixelFormatTo = pixelFormat;
                 ensurePixelFormatFromArgb32(
-                        color32Arr,
-                        color32ArrScanlineStride,
-                        width,
-                        height,
-                        pixelFormatTo);
+                    color32Arr,
+                    color32ArrScanlineStride,
+                    width,
+                    height,
+                    pixelFormatTo);
             }
         } else {
-            for (int y = 0; y < height; y++) {
-                final int lineOffset = y * color32ArrScanlineStride;
-                for (int x = 0; x < width; x++) {
-                    final int index = lineOffset + x;
+            for (int j = 0; j < height; j++) {
+                final int lineOffset =
+                    j * color32ArrScanlineStride;
+                for (int i = 0; i < width; i++) {
+                    final int index = lineOffset + i;
                     final int color32 = getPixelAt(
-                            x,
-                            y,
-                            pixelFormat,
-                            premul);
+                        sx + i,
+                        sy + j,
+                        pixelFormat,
+                        premul);
                     color32Arr[index] = color32;
                 }
             }
