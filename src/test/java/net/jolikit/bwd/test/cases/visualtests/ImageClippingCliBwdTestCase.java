@@ -170,6 +170,6 @@ public class ImageClippingCliBwdTestCase extends AbstractBwdTestCase {
             }
         }
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
 }

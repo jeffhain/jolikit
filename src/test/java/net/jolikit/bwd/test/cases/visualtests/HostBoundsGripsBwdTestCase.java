@@ -291,7 +291,7 @@ public class HostBoundsGripsBwdTestCase extends AbstractBwdTestCase {
          * 
          */
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

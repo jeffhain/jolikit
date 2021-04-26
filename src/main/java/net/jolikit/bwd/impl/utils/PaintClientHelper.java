@@ -61,6 +61,8 @@ public class PaintClientHelper {
      * 
      * @throws IllegalStateException if client's painting method
      *         is already being called by this instance.
+     * @return Never null (An actual list is ensured if paintClient(
+     *         returned null).
      */
     public List<GRect> initPaintFinish(
             InterfaceBwdGraphics g,
@@ -76,6 +78,10 @@ public class PaintClientHelper {
                     paintedRectList = this.client.paintClient(g, dirtyRect);
                 } finally {
                     g.finish();
+                }
+                
+                if (paintedRectList == null) {
+                    paintedRectList = GRect.DEFAULT_HUGE_IN_LIST;
                 }
                 
                 // Output clipping (easier to deal with for bindings).

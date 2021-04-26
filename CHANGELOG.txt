@@ -139,6 +139,7 @@ Jolikit X.X, XXXX/XX/XX
       when they could correspond to the box of a writable image.
       Also removed "opaque" from clear methods name,
       to allow for non-opaque clearing in case of writable images.
+    - InterfaceBwdClient.paintClient() is now allowed to return null.
     - InterfaceBwdGraphics:
       - getBoxInClient() renamed into getBox().
       - getBaseClipInClient() renamed into getInitialClipInBase().

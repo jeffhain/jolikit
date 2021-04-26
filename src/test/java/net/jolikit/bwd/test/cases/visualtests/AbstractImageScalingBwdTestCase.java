@@ -217,7 +217,7 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
          * 
          */
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

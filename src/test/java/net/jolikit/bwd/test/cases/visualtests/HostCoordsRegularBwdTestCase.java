@@ -200,6 +200,6 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
         g.drawText(textX, textY, "move pos in client = " + lastMouseMovePosInClient);
         textY += lineHeight;
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -191,7 +191,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
             g.drawText(tlo, textY, "read c.b. = " + readClientBounds);
             textY += th;
 
-            return GRect.DEFAULT_HUGE_IN_LIST;
+            return null;
         }
     }
     
@@ -315,7 +315,7 @@ public class HostBoundsSetGetBwdTestCase extends AbstractBwdTestCase {
         g.setColor(BwdColor.BLACK);
         g.drawText(gBox.xMid(), gBox.yMid(), "Click Here");
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

@@ -156,7 +156,7 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
             g.drawText(x + 1, y + 1, text);
         }
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

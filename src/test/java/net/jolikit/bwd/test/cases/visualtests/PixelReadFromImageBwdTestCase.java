@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public class PixelReadFromImageBwdTestCase extends AbstractBwdTestCase {
                 box.yMid(),
                 this.imageTransparent);
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

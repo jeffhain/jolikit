@@ -218,7 +218,7 @@ public class SampleBwd {
                     2 + (defaultFontHeight + 1),
                     text);
             
-            return GRect.DEFAULT_HUGE_IN_LIST;
+            return null;
         }
         private void onNewMousePos() {
             

@@ -251,6 +251,6 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
         
         getHost().ensurePendingClientPainting();
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
 }

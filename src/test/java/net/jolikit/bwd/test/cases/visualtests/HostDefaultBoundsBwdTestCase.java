@@ -132,7 +132,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
             g.drawText(1, textY, "ySpan = " + clientBounds.ySpan());
             textY += lineH;
             
-            return GRect.DEFAULT_HUGE_IN_LIST;
+            return null;
         }
     }
 
@@ -330,7 +330,7 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
                     text);
         }
 
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

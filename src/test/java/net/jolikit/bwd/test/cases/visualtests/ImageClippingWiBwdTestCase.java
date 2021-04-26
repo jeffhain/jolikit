@@ -70,6 +70,6 @@ public class ImageClippingWiBwdTestCase extends ImageClippingCliBwdTestCase {
             wi.dispose();
         }
         
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
 }

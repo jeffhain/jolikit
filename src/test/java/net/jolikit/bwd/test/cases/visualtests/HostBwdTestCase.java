@@ -444,7 +444,7 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
                     text);
         }
 
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
     
     //--------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,12 +86,14 @@ public interface InterfaceBwdClient extends InterfaceBwdEventListener {
      * @return A list of rectangles corresponding to the areas that were
      *         actually painted, to indicate to the binding which pixels
      *         might have changed, in case that could help to optimize rendering.
-     *         Should cover the pixels of the dirty rectangle if it's not empty,
-     *         and possibly more.
-     *         Can cover pixels outside client area, which allows for using
-     *         default all-covering values like GRect.DEFAULT_HUGE.
-     *         Must not be null, but can be empty (if dirtyRect was empty,
-     *         and painting was already up to date).
+     *         Should cover the pixels of the specified dirty rectangle
+     *         if it's not empty, and possibly more.
+     *         Rectangles are allowed to cover pixels outside client area
+     *         (the binding has to clip them properly before use).
+     *         Can be empty (if dirtyRect was empty, and painting was already
+     *         up to date).
+     *         Can also be null, in which case the whole client area
+     *         must be considered as having been painted.
      */
     public List<GRect> paintClient(
             InterfaceBwdGraphics g,

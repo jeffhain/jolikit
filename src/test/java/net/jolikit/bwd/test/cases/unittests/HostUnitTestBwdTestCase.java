@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -584,7 +584,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
             g.drawText(2, textY, "stepNum = " + stepNum);
             textY += h;
 
-            return GRect.DEFAULT_HUGE_IN_LIST;
+            return null;
         }
         @Override
         protected void onAnyEvent(BwdEventType expectedEventType, BwdEvent event) {

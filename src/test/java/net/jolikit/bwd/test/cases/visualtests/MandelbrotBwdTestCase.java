@@ -33,11 +33,11 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.ext.drag.AbstractDragController;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
+import net.jolikit.bwd.test.cases.utils.fractals.FracColorComputer;
 import net.jolikit.bwd.test.cases.utils.fractals.FracColoring;
 import net.jolikit.bwd.test.cases.utils.fractals.FracPoint;
 import net.jolikit.bwd.test.cases.utils.fractals.FracRect;
 import net.jolikit.bwd.test.cases.utils.fractals.FracView;
-import net.jolikit.bwd.test.cases.utils.fractals.FracColorComputer;
 import net.jolikit.bwd.test.cases.utils.fractals.MandDrawer;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
@@ -759,7 +759,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
         final GRect clientBounds = getHost().getClientBounds();
         if (clientBounds.isEmpty()) {
             // We don't want empty client bounds further.
-            return GRect.DEFAULT_HUGE_IN_LIST;
+            return null;
         }
 
         // Useful in case some client bounds change is missed.
@@ -869,7 +869,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
          * 
          */
 
-        return GRect.DEFAULT_HUGE_IN_LIST;
+        return null;
     }
 
     //--------------------------------------------------------------------------
