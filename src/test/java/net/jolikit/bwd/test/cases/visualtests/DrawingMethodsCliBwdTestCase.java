@@ -23,7 +23,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * Draws using client graphics.
@@ -53,12 +52,7 @@ public class DrawingMethodsCliBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new DrawingMethodsCliBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new DrawingMethodsCliBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return DrawingMethodsBwdPainter.INITIAL_CLIENT_SPANS;

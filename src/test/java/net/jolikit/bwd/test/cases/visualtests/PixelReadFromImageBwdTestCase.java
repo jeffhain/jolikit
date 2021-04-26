@@ -25,7 +25,6 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To test image's getArgb32At(x,y) method.
@@ -65,12 +64,7 @@ public class PixelReadFromImageBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new PixelReadFromImageBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new PixelReadFromImageBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

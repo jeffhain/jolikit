@@ -27,7 +27,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To see the default font, and variations of it with various sizes:
@@ -62,12 +61,7 @@ public class DefaultFontBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new DefaultFontBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new DefaultFontBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

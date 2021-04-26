@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * Draws using client graphics, with pixel scaling.
@@ -45,12 +44,7 @@ public class DrawingMethodsCliScaledBwdTestCase extends DrawingMethodsCliBwdTest
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new DrawingMethodsCliScaledBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new DrawingMethodsCliScaledBwdTestCase(this.getBinding());
-    }
-
+    
     /*
      * 
      */

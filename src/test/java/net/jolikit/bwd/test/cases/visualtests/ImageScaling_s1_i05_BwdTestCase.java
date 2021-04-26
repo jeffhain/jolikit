@@ -21,7 +21,6 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 public class ImageScaling_s1_i05_BwdTestCase extends AbstractImageScalingBwdTestCase {
 
@@ -46,12 +45,7 @@ public class ImageScaling_s1_i05_BwdTestCase extends AbstractImageScalingBwdTest
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new ImageScaling_s1_i05_BwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ImageScaling_s1_i05_BwdTestCase(this.getBinding());
-    }
-
+    
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------

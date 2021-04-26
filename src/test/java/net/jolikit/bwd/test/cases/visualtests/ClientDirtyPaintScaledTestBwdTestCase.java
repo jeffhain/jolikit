@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * TO test that dirty rectangles are properly scaled.
@@ -40,11 +39,6 @@ public class ClientDirtyPaintScaledTestBwdTestCase extends ClientDirtyPaintTestB
         return new ClientDirtyPaintScaledTestBwdTestCase(binding);
     }
     
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ClientDirtyPaintScaledTestBwdTestCase(this.getBinding());
-    }
-
     /*
      * 
      */

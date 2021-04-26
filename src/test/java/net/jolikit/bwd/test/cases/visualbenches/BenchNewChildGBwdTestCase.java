@@ -24,7 +24,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.NbrsUtils;
 
 /**
@@ -122,12 +121,7 @@ public class BenchNewChildGBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new BenchNewChildGBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new BenchNewChildGBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

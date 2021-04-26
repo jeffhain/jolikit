@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 public class HostBoundsSetGetScaledBwdTestCase extends HostBoundsSetGetBwdTestCase {
 
@@ -42,12 +41,7 @@ public class HostBoundsSetGetScaledBwdTestCase extends HostBoundsSetGetBwdTestCa
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new HostBoundsSetGetScaledBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new HostBoundsSetGetScaledBwdTestCase(this.getBinding());
-    }
-
+    
     /*
      * 
      */

@@ -27,7 +27,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To test that window and client bounds and coordinates,
@@ -77,12 +76,7 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new HostCoordsRegularBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new HostCoordsRegularBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

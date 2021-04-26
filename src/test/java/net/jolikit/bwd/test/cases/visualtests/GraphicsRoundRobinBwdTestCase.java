@@ -31,7 +31,6 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To test that multiple graphics (parent/child/sibling,
@@ -91,11 +90,6 @@ public class GraphicsRoundRobinBwdTestCase extends AbstractBwdTestCase {
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new GraphicsRoundRobinBwdTestCase(binding);
-    }
-    
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new GraphicsRoundRobinBwdTestCase(this.getBinding());
     }
     
     @Override

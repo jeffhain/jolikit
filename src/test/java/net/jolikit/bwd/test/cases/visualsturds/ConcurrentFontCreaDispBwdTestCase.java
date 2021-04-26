@@ -30,7 +30,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplitmergable;
 import net.jolikit.threading.prl.InterfaceSplittable;
@@ -163,12 +162,7 @@ public class ConcurrentFontCreaDispBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new ConcurrentFontCreaDispBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ConcurrentFontCreaDispBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

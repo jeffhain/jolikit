@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualbenches;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 public class BenchDrawImageFastBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
     
@@ -35,11 +34,6 @@ public class BenchDrawImageFastBwdTestCase extends AbstractBenchDrawImageBwdTest
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new BenchDrawImageFastBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new BenchDrawImageFastBwdTestCase(this.getBinding());
     }
 
     //--------------------------------------------------------------------------

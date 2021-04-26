@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * Scaled variant.
@@ -44,11 +43,6 @@ public class GraphicsRoundRobinScaledBwdTestCase extends GraphicsRoundRobinBwdTe
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new GraphicsRoundRobinScaledBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new GraphicsRoundRobinScaledBwdTestCase(this.getBinding());
     }
     
     /*

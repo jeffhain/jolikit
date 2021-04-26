@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To test that when using client spans larger than screen spans,
@@ -51,11 +50,6 @@ public class HostCoordsHugeBwdTestCase extends HostCoordsRegularBwdTestCase {
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new HostCoordsHugeBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new HostCoordsHugeBwdTestCase(this.getBinding());
     }
     
     //--------------------------------------------------------------------------

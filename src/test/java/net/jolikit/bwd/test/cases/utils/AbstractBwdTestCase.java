@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.SortedSet;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.events.BwdMouseButtons;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
@@ -37,7 +38,6 @@ import net.jolikit.bwd.impl.utils.basics.InterfaceDefaultFontInfoComputer;
 import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.lang.LangUtils;
 
@@ -53,7 +53,7 @@ import net.jolikit.lang.LangUtils;
  * can be deactivated.
  */
 public abstract class AbstractBwdTestCase extends BwdClientMock implements
-InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
+InterfaceBwdTestCaseHome, InterfaceBwdTestCase {
 
     //--------------------------------------------------------------------------
     // FIELDS
@@ -205,6 +205,14 @@ InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
         return false;
     }
 
+    /**
+     * @return A new client instance corresponding to this test case
+     *         (which is also the initial client).
+     */
+    public InterfaceBwdClient newClient() {
+        return this.newTestCase(this.getBinding());
+    }
+    
     /*
      * InterfaceBwdTestCase methods
      */
@@ -233,10 +241,6 @@ InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
         return 1.0;
     }
     
-    /*
-     * InterfaceBwdTestCaseClient methods
-     */
-    
     /**
      * This default implementation returns null.
      */
@@ -252,22 +256,6 @@ InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
     
     public SortedSet<String> getLoadedFontFilePathSet() {
         return this.loadedFontFilePathSet;
-    }
-    
-    /*
-     * 
-     */
-    
-    @Override
-    public List<GRect> paintClient(
-            InterfaceBwdGraphics g,
-            GRect dirtyRect) {
-        
-        if (this.dragOnLeftClickActivated) {
-            this.dragController.setGripPaintedBox(g.getBox());
-        }
-
-        return super.paintClient(g, dirtyRect);
     }
 
     /*
@@ -363,6 +351,22 @@ InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
         if (this.dragOnLeftClickActivated) {
             this.dragHelper.onMouseDragged(event);
         }
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public List<GRect> paintClient(
+            InterfaceBwdGraphics g,
+            GRect dirtyRect) {
+        
+        if (this.dragOnLeftClickActivated) {
+            this.dragController.setGripPaintedBox(g.getBox());
+        }
+
+        return super.paintClient(g, dirtyRect);
     }
     
     //--------------------------------------------------------------------------

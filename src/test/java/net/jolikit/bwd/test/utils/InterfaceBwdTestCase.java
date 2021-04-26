@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,11 @@
  */
 package net.jolikit.bwd.test.utils;
 
+import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.SortedSet;
+
+import net.jolikit.bwd.api.InterfaceBwdClient;
+
 /**
  * Interface for BWD tests making use of a client mock.
  * 
@@ -22,21 +27,37 @@ package net.jolikit.bwd.test.utils;
  * to avoid issue with libraries supposing that all classes classes
  * ending with "Test" must contain JUnit tests or else.
  */
-public interface InterfaceBwdTestCase {
+public interface InterfaceBwdTestCase extends InterfaceBwdClient {
     
     /*
-     * Stuffs for configuring the binding.
+     * Binding configuration.
      */
     
     public boolean getMustImplementBestEffortPixelReading();
-
-    /*
-     * 
-     */
     
-    public InterfaceBwdTestCaseClient newClient();
+    /*
+     * Host configuration.
+     */
 
     public boolean getHostDecorated();
     
     public double getWindowAlphaFp();
+    
+    /*
+     * Client configuration.
+     */
+    
+    /**
+     * @return The exception handler to set in binding config,
+     *         or null if want to use default one.
+     */
+    public UncaughtExceptionHandler getExceptionHandlerElseNull();
+    
+    /**
+     * Provided here in case wanting to test it.
+     * 
+     * @param The array where to put loadedFontFilePathSet
+     *        as returned by fonts loading method.
+     */
+    public void setLoadedFontFilePathSet(SortedSet<String> loadedFontFilePathSet);
 }

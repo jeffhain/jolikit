@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.lang.Unchecked;
@@ -126,12 +125,7 @@ public class UiSchedulerAndThrowUnitTestBwdTestCase extends AbstractUnitTestBwdT
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new UiSchedulerAndThrowUnitTestBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new UiSchedulerAndThrowUnitTestBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public UncaughtExceptionHandler getExceptionHandlerElseNull() {
         return this.exceptionHandler;

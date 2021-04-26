@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * To check that only dirty areas are properly propagated to the client
@@ -89,11 +88,6 @@ public class ClientDirtyPaintTestBwdTestCase extends AbstractBwdTestCase {
         return new ClientDirtyPaintTestBwdTestCase(binding);
     }
     
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ClientDirtyPaintTestBwdTestCase(this.getBinding());
-    }
-
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

@@ -22,7 +22,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 public class ImageClippingWiBwdTestCase extends ImageClippingCliBwdTestCase {
     
@@ -40,11 +39,6 @@ public class ImageClippingWiBwdTestCase extends ImageClippingCliBwdTestCase {
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new ImageClippingWiBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ImageClippingWiBwdTestCase(this.getBinding());
     }
     
     //--------------------------------------------------------------------------

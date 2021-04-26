@@ -20,7 +20,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * Testing scaling with inner box drawing happening
@@ -42,11 +41,6 @@ public class ScalingWiBwdTestCase extends ScalingCliBwdTestCase {
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new ScalingWiBwdTestCase(binding);
-    }
-    
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new ScalingWiBwdTestCase(this.getBinding());
     }
     
     //--------------------------------------------------------------------------

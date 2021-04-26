@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@ import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 /**
  * Bench for fillRect(...) covering small parts of client area,
@@ -83,11 +82,6 @@ public class BenchDirtyFillRectBwdTestCase extends AbstractDirtyBenchBwdTestCase
         return new BenchDirtyFillRectBwdTestCase(binding);
     }
     
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new BenchDirtyFillRectBwdTestCase(this.getBinding());
-    }
-
     @Override
     public boolean getMustSequenceLaunches() {
         /*

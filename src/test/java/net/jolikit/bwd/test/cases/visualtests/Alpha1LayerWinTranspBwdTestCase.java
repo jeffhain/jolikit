@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 
 public class Alpha1LayerWinTranspBwdTestCase extends AbstractAlpha1LayerBwdTestCase {
     
@@ -41,11 +40,6 @@ public class Alpha1LayerWinTranspBwdTestCase extends AbstractAlpha1LayerBwdTestC
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new Alpha1LayerWinTranspBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new Alpha1LayerWinTranspBwdTestCase(this.getBinding());
     }
     
     /*

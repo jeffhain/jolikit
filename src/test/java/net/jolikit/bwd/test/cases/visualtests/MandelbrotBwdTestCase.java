@@ -41,7 +41,6 @@ import net.jolikit.bwd.test.cases.utils.fractals.FracView;
 import net.jolikit.bwd.test.cases.utils.fractals.MandDrawer;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplitmergable;
@@ -520,12 +519,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new MandelbrotBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new MandelbrotBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

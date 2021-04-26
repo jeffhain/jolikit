@@ -19,6 +19,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.SortedSet;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
@@ -27,7 +28,6 @@ import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.test.utils.ArgsHelper;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHomeProvider;
 import net.jolikit.lang.Dbg;
@@ -211,30 +211,20 @@ public class BwdBindingLaunchUtils {
         final String baseTitle = "BWD-" + bindingName + "-" + testCase.getClass().getSimpleName();
         final String title = baseTitle + "-" + 1;
 
-        final InterfaceBwdTestCaseClient client;
-        if (testCase instanceof InterfaceBwdTestCaseClient) {
-            /*
-             * Most (or all) of BWD test cases are also the client.
-             */
-            client = (InterfaceBwdTestCaseClient) testCase;
-        } else {
-            client = testCase.newClient();
-        }
-        if (client instanceof InterfaceBwdTestCase) {
-            final UncaughtExceptionHandler exceptionHandler = client.getExceptionHandlerElseNull();
-            if (exceptionHandler != null) {
-                if (DEBUG) {
-                    Dbg.log("configuring binding from client as test case...");
-                }
-                bindingConfig.setExceptionHandler(exceptionHandler);
+        final UncaughtExceptionHandler exceptionHandler = testCase.getExceptionHandlerElseNull();
+        if (exceptionHandler != null) {
+            if (DEBUG) {
+                Dbg.log("configuring binding from client as test case...");
             }
-            client.setLoadedFontFilePathSet(loadedFontFilePathSet);
+            bindingConfig.setExceptionHandler(exceptionHandler);
         }
+        testCase.setLoadedFontFilePathSet(loadedFontFilePathSet);
         
         if (DEBUG) {
             Dbg.log("creating host...");
         }
 
+        final InterfaceBwdClient client = testCase;
         final InterfaceBwdHost host = binding.newHost(
                 title,
                 !noHostDeco,

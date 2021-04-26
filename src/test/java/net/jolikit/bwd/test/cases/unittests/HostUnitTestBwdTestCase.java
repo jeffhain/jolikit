@@ -47,7 +47,6 @@ import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.bwd.test.utils.BwdEventTestHelper;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.OsUtils;
@@ -757,12 +756,7 @@ at org.lwjgl.glfw.GLFW.glfwIconifyWindow(GLFW.java:1957)
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new HostUnitTestBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new HostUnitTestBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

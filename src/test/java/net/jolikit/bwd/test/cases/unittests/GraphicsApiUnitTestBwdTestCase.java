@@ -40,7 +40,6 @@ import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.bwd.test.cases.utils.AbstractUnitTestBwdTestCase;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.time.TimeUtils;
 
@@ -205,11 +204,6 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new GraphicsApiUnitTestBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new GraphicsApiUnitTestBwdTestCase(this.getBinding());
     }
     
     /*

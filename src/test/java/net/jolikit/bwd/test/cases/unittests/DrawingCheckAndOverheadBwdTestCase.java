@@ -39,7 +39,6 @@ import net.jolikit.bwd.test.utils.BwdClientMock;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
@@ -1011,12 +1010,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new DrawingCheckAndOverheadBwdTestCase(binding);
     }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new DrawingCheckAndOverheadBwdTestCase(this.getBinding());
-    }
-
+    
     @Override
     public GPoint getInitialClientSpans() {
         return INITIAL_CLIENT_SPANS;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.utils.BwdUnicode;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
@@ -96,11 +95,6 @@ public class FontMetricsApiUnitTestBwdTestCase extends AbstractFontUnitTestBwdTe
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
         return new FontMetricsApiUnitTestBwdTestCase(binding);
-    }
-
-    @Override
-    public InterfaceBwdTestCaseClient newClient() {
-        return new FontMetricsApiUnitTestBwdTestCase(this.getBinding());
     }
 
     //--------------------------------------------------------------------------
