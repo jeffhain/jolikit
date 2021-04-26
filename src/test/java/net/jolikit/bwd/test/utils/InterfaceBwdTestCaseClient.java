@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,10 @@ public interface InterfaceBwdTestCaseClient extends InterfaceBwdClient {
     public UncaughtExceptionHandler getExceptionHandlerElseNull();
     
     /**
-     * @param The array where to put loadedFontFilePathSet as returned by fonts loading method.
+     * Provided here in case wanting to test it.
+     * 
+     * @param The array where to put loadedFontFilePathSet
+     *        as returned by fonts loading method.
      */
     public void setLoadedFontFilePathSet(SortedSet<String> loadedFontFilePathSet);
 }

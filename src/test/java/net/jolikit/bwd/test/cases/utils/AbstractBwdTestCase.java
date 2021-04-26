@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,9 +33,12 @@ import net.jolikit.bwd.ext.drag.DefaultGripRectComputer;
 import net.jolikit.bwd.ext.drag.GripDragController;
 import net.jolikit.bwd.ext.drag.GripType;
 import net.jolikit.bwd.ext.drag.InterfaceGripRectComputer;
-import net.jolikit.bwd.test.utils.AbstractBwdTestCaseHome;
+import net.jolikit.bwd.impl.utils.basics.InterfaceDefaultFontInfoComputer;
+import net.jolikit.bwd.test.utils.BwdClientMock;
+import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseClient;
+import net.jolikit.bwd.test.utils.InterfaceBwdTestCaseHome;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -49,7 +52,8 @@ import net.jolikit.lang.LangUtils;
  * and host close on middle button click, both of which
  * can be deactivated.
  */
-public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implements InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
+public abstract class AbstractBwdTestCase extends BwdClientMock implements
+InterfaceBwdTestCaseHome, InterfaceBwdTestCase, InterfaceBwdTestCaseClient {
 
     //--------------------------------------------------------------------------
     // FIELDS
@@ -127,6 +131,132 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
                 gripRectComputer,
                 dragControllerByGripType);
     }
+    
+    /*
+     * InterfaceBwdTestCaseHome methods
+     */
+    
+    /**
+     * This default implementation returns null.
+     * 
+     * Note that tests use a sequential parallelizer if the binding
+     * doesn't support parallelism for their test cases.
+     */
+    @Override
+    public Integer getParallelizerParallelismElseNull() {
+        return null;
+    }
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Integer getScaleElseNull() {
+        return null;
+    }
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Double getClientPaintDelaySElseNull() {
+        return null;
+    }
+
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Boolean getMustUseFontBoxForFontKindElseNull() {
+        return null;
+    }
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Boolean getMustUseFontBoxForCanDisplayElseNull() {
+        return null;
+    }
+    
+    @Override
+    public List<String> getBonusSystemFontFilePathList() {
+        return BwdTestUtils.BONUS_SYSTEM_FONT_FILE_PATH_LIST;
+    }
+    
+    @Override
+    public InterfaceDefaultFontInfoComputer getDefaultFontInfoComputer() {
+        return BwdTestUtils.DEFAULT_FONT_INFO_COMPUTER;
+    }
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public List<String> getUserFontFilePathListElseNull() {
+        return null;
+    }
+
+    /**
+     * This default implementation returns false.
+     */
+    @Override
+    public boolean getMustSequenceLaunches() {
+        return false;
+    }
+
+    /*
+     * InterfaceBwdTestCase methods
+     */
+    
+    /**
+     * This default implementation returns true.
+     */
+    @Override
+    public boolean getMustImplementBestEffortPixelReading() {
+        return true;
+    }
+    
+    /**
+     * This default implementation returns true.
+     */
+    @Override
+    public boolean getHostDecorated() {
+        return true;
+    }
+    
+    /**
+     * This default implementation returns 1.0.
+     */
+    @Override
+    public double getWindowAlphaFp() {
+        return 1.0;
+    }
+    
+    /*
+     * InterfaceBwdTestCaseClient methods
+     */
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public UncaughtExceptionHandler getExceptionHandlerElseNull() {
+        return null;
+    }
+
+    @Override
+    public void setLoadedFontFilePathSet(SortedSet<String> loadedFontFilePathSet) {
+        this.loadedFontFilePathSet = loadedFontFilePathSet;
+    }
+    
+    public SortedSet<String> getLoadedFontFilePathSet() {
+        return this.loadedFontFilePathSet;
+    }
+    
+    /*
+     * 
+     */
     
     @Override
     public List<GRect> paintClient(
@@ -234,64 +364,7 @@ public abstract class AbstractBwdTestCase extends AbstractBwdTestCaseHome implem
             this.dragHelper.onMouseDragged(event);
         }
     }
-
-    /*
-     * 
-     */
     
-    /**
-     * This default implementation returns null.
-     */
-    @Override
-    public UncaughtExceptionHandler getExceptionHandlerElseNull() {
-        return null;
-    }
-
-    /**
-     * This default implementation returns false.
-     */
-    @Override
-    public boolean getMustSequenceLaunches() {
-        return false;
-    }
-
-    /**
-     * This default implementation returns true.
-     */
-    @Override
-    public boolean getHostDecorated() {
-        return true;
-    }
-    
-    /**
-     * This default implementation returns 1.0.
-     */
-    @Override
-    public double getWindowAlphaFp() {
-        return 1.0;
-    }
-    
-    /**
-     * This default implementation returns true.
-     */
-    @Override
-    public boolean getMustImplementBestEffortPixelReading() {
-        return true;
-    }
-    
-    /*
-     * 
-     */
-
-    @Override
-    public void setLoadedFontFilePathSet(SortedSet<String> loadedFontFilePathSet) {
-        this.loadedFontFilePathSet = loadedFontFilePathSet;
-    }
-    
-    public SortedSet<String> getLoadedFontFilePathSet() {
-        return this.loadedFontFilePathSet;
-    }
-
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------

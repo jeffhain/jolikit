@@ -166,7 +166,7 @@ public class BwdBindingLaunchUtils {
         
         // Loading fonts before creating test case,
         // in case its creation would make use of default font
-        // or other fonts to inititialize stuffs.
+        // or other fonts to initialize stuffs.
         final SortedSet<String> loadedFontFilePathSet =
                 binding.getFontHome().loadSystemAndUserFonts(
                         testCaseHome.getUserFontFilePathListElseNull());
@@ -211,12 +211,20 @@ public class BwdBindingLaunchUtils {
         final String baseTitle = "BWD-" + bindingName + "-" + testCase.getClass().getSimpleName();
         final String title = baseTitle + "-" + 1;
 
-        final InterfaceBwdTestCaseClient client = testCase.newClient();
+        final InterfaceBwdTestCaseClient client;
+        if (testCase instanceof InterfaceBwdTestCaseClient) {
+            /*
+             * Most (or all) of BWD test cases are also the client.
+             */
+            client = (InterfaceBwdTestCaseClient) testCase;
+        } else {
+            client = testCase.newClient();
+        }
         if (client instanceof InterfaceBwdTestCase) {
             final UncaughtExceptionHandler exceptionHandler = client.getExceptionHandlerElseNull();
             if (exceptionHandler != null) {
                 if (DEBUG) {
-                    Dbg.log("configuring binding from client as test aase...");
+                    Dbg.log("configuring binding from client as test case...");
                 }
                 bindingConfig.setExceptionHandler(exceptionHandler);
             }
