@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -133,10 +133,10 @@ public abstract class AbstractDragController implements InterfaceDragController 
                     } else {
                         // Bounds look valid.
                         final GPoint mousePosInScreen = host.getMousePosInScreen();
-                        final int mouseXInClient = mousePosInScreen.x() - clientBounds.x();
-                        final int mouseYInClient = mousePosInScreen.y() - clientBounds.y();
+                        final GPoint mousePosInClient =
+                            clientBounds.toThisRelative(mousePosInScreen);
                         
-                        mustRemoveCursor = !this.isOverDraggable(mouseXInClient, mouseYInClient);
+                        mustRemoveCursor = !this.isOverDraggable(mousePosInClient);
                     }
                 }
                 
@@ -155,13 +155,13 @@ public abstract class AbstractDragController implements InterfaceDragController 
     /**
      * @return True if started drag, false otherwise.
      */
-    public boolean mousePressed(int x, int y) {
-        final boolean overDraggable = this.isOverDraggable(x, y);
+    public boolean mousePressed(GPoint pos) {
+        final boolean overDraggable = this.isOverDraggable(pos);
         if (overDraggable) {
             if (DEBUG) {
-                Dbg.log("mousePressed(" + x + ", " + y + ") : overDraggable");
+                Dbg.log("mousePressed(" + pos + ") : overDraggable");
             }
-            this.mousePressed_forceDrag(x, y);
+            this.mousePressed_forceDrag(pos);
         }
         return overDraggable;
     }
@@ -169,7 +169,7 @@ public abstract class AbstractDragController implements InterfaceDragController 
     /**
      * Starts dragging even if mouse is not over draggable.
      */
-    public void mousePressed_forceDrag(int x, int y) {
+    public void mousePressed_forceDrag(GPoint pos) {
         this.dragging = true;
 
         final int draggableX = this.getDraggableX();
@@ -178,16 +178,16 @@ public abstract class AbstractDragController implements InterfaceDragController 
         this.draggableXOnDragStart = draggableX;
         this.draggableYOnDragStart = draggableY;
 
-        final int xOffset = x - draggableX;
-        final int yOffset = y - draggableY;
+        final int xOffset = pos.x() - draggableX;
+        final int yOffset = pos.y() - draggableY;
         this.draggableToCursorXOffsetOnDragStart = xOffset;
         this.draggableToCursorYOffsetOnDragStart = yOffset;
 
         if (DEBUG) {
-            Dbg.log("mousePressed_forceDrag : mouse pos = ("
-                    + x + ", " + y + "), draggable = ("
-                    + draggableX + ", " + draggableY + "), delta = ("
-                    + xOffset + ", " + yOffset + ")");
+            Dbg.log("mousePressed_forceDrag : mouse pos = " + pos
+                + ", draggable = (" + draggableX + ", " + draggableY
+                + "), delta = (" + xOffset + ", " + yOffset
+                + ")");
         }
         
         // So that it can be used before actual drag.
@@ -202,7 +202,7 @@ public abstract class AbstractDragController implements InterfaceDragController 
     /**
      * @return True if stopped drag, false otherwise.
      */
-    public boolean mouseReleased(int x, int y) {
+    public boolean mouseReleased(GPoint pos) {
         final boolean wasDragging = this.dragging;
         if (wasDragging) {
             if (DEBUG) {
@@ -213,7 +213,7 @@ public abstract class AbstractDragController implements InterfaceDragController 
             if (this.cursorAddKey != null) {
                 final InterfaceBwdCursorManager cursorManager = this.getCursorManager();
                 if (cursorManager != null) {
-                    if (!this.isOverDraggable(x, y)) {
+                    if (!this.isOverDraggable(pos)) {
                         this.removeDragCursorIfAny();
                     }
                 }
@@ -223,13 +223,14 @@ public abstract class AbstractDragController implements InterfaceDragController 
     }
 
     /**
-     * @return True if there is a drag cursor and it's set, false otherwise.
+     * @return True if there is a drag cursor and it's set,
+     *         false otherwise.
      */
-    public boolean mouseMoved(int x, int y) {
+    public boolean mouseMoved(GPoint pos) {
         if (this.dragCursor != BwdCursors.NO_STATEMENT) {
             final InterfaceBwdCursorManager cursorManager = this.getCursorManager();
             if (cursorManager != null) {
-                if (this.isOverDraggable(x, y)) {
+                if (this.isOverDraggable(pos)) {
                     this.ensureDragCursorIfPossible();
                     return true;
                 } else {
@@ -244,13 +245,16 @@ public abstract class AbstractDragController implements InterfaceDragController 
      * @return True if is dragging, in which case target draggable position has
      *         been computed and can be retrieved next, false otherwise.
      */
-    public boolean mouseDragged(int x, int y) {
+    public boolean mouseDragged(GPoint pos) {
         final boolean isDragging = this.dragging;
         if (isDragging) {
-            this.draggableDesiredX = x - this.draggableToCursorXOffsetOnDragStart;
-            this.draggableDesiredY = y - this.draggableToCursorYOffsetOnDragStart;
+            this.draggableDesiredX = pos.x() - this.draggableToCursorXOffsetOnDragStart;
+            this.draggableDesiredY = pos.y() - this.draggableToCursorYOffsetOnDragStart;
             if (DEBUG) {
-                Dbg.log("mouseDragged(" + x + ", " + y + ") : desired = (" + this.draggableDesiredX + ", " + this.draggableDesiredY + ")");
+                Dbg.log("mouseDragged(" + pos
+                    + ") : desired = (" + this.draggableDesiredX
+                    + ", " + this.draggableDesiredY
+                    + ")");
             }
         }
         return isDragging;
@@ -308,13 +312,12 @@ public abstract class AbstractDragController implements InterfaceDragController 
      * Can test visibility or not, depending on whether this drag controller
      * will be used only after visibility checks or not.
      * 
-     * @param x In client.
-     * @param y In client.
+     * @param pos Position in client.
      * @return True if the drag must be started in case of left-press at the
      *         specified position, or if eventual drag cursor must be set in
      *         when the mouse is at the specified position, false otherwise.
      */
-    protected abstract boolean isOverDraggable(int x, int y);
+    protected abstract boolean isOverDraggable(GPoint pos);
     
     /**
      * @return X coordinate, in client, of draggable object.

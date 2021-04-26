@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,20 +98,14 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
     public void onMouseMoved(BwdMouseEvent event) {
         super.onMouseMoved(event);
         
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        
-        this.onEventOfInterest(x, y);
+        this.onEventOfInterest(event.posInClient());
     }
     
     @Override
     public void onMouseEnteredClient(BwdMouseEvent event) {
         super.onMouseEnteredClient(event);
         
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        
-        this.onEventOfInterest(x, y);
+        this.onEventOfInterest(event.posInClient());
     }
     
     @Override
@@ -123,10 +117,7 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
          * so we use made-up coordinates outside of client.
          */
         
-        final int x = -1;
-        final int y = -1;
-        
-        this.onEventOfInterest(x, y);
+        this.onEventOfInterest(GPoint.NEG_ONE);
     }
 
     //--------------------------------------------------------------------------
@@ -184,27 +175,20 @@ public class CursorManagerBwdTestCase extends AbstractBwdTestCase {
         return col;
     }
     
-    /**
-     * @param x Mouse X position in client.
-     * @param y Mouse Y position in client.
-     */
-    private void onEventOfInterest(int x, int y) {
+    private void onEventOfInterest(GPoint posInClient) {
         
         final InterfaceBwdCursorManager cursorManager =
                 this.getHost().getCursorManager();
 
         final GRect clientRect = this.getHost().getClientBounds();
-        final int xSpan = clientRect.xSpan();
-        final int ySpan = clientRect.ySpan();
+        
+        final GRect clientRectZero = clientRect.withPos(0, 0);
         
         int pointedCellIndex = -1;
-        if ((x >= 0)
-                && (y >= 0)
-                && (x < xSpan)
-                && (y < ySpan)) {
+        if (clientRectZero.contains(posInClient)) {
             // Mouse in client.
-            final int row = y / CELL_Y_SPAN;
-            final int col = x / CELL_X_SPAN;
+            final int row = posInClient.y() / CELL_Y_SPAN;
+            final int col = posInClient.x() / CELL_X_SPAN;
             final int cellIndex = col + row * COL_COUNT;
             if (cellIndex < BwdCursors.cursorList().size()) {
                 pointedCellIndex = cellIndex;

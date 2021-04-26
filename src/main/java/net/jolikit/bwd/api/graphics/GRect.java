@@ -594,6 +594,16 @@ public final class GRect implements Comparable<GRect> {
     }
 
     /**
+     * @param pos A position.
+     * @return True if the specified position is contained in this rectangle,
+     *         false otherwise.
+     * @throws NullPointerException if the specified point is null.
+     */
+    public boolean contains(GPoint pos) {
+        return this.contains(pos.x(), pos.y());
+    }
+
+    /**
      * @param x An x coordinate.
      * @param y An y coordinate.
      * @return True if the specified (x,y) position is contained in this rectangle,
@@ -992,6 +1002,60 @@ public final class GRect implements Comparable<GRect> {
             return span;
         }
         return trimmedSpan_raw(pos, span);
+    }
+    
+    /*
+     * Relative.
+     */
+    
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param pos A position in the same frame of reference
+     *        as this rectangle.
+     * @return The specified position relative to
+     *         this rectangle's (x,y) position.
+     */
+    public GPoint toThisRelative(GPoint pos) {
+        return pos.withDeltas(-this.x, -this.y);
+    }
+    
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param rect A rectangle in the same frame of reference
+     *        as this rectangle.
+     * @return The specified rectangle relative to
+     *         this rectangle's (x,y) position.
+     */
+    public GRect toThisRelative(GRect rect) {
+        return rect.withPosDeltas(-this.x, -this.y);
+    }
+
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param pos A position relative to this rectangle's (x,y) position.
+     * @return The specified position in the same frame of reference
+     *         as this rectangle.
+     */
+    public GPoint fromThisRelative(GPoint pos) {
+        return pos.withDeltas(this.x, this.y);
+    }
+
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param rect A rectangle relative to this rectangle's (x,y) position.
+     * @return The specified rectangle in the same frame of reference
+     *         as this rectangle.
+     */
+    public GRect fromThisRelative(GRect rect) {
+        return rect.withPosDeltas(this.x, this.y);
     }
 
     //--------------------------------------------------------------------------

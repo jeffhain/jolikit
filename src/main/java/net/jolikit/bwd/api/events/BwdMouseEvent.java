@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 package net.jolikit.bwd.api.events;
 
 import java.util.SortedSet;
+
+import net.jolikit.bwd.api.graphics.GPoint;
 
 /**
  * Class for MOUSE_XXX events.
@@ -39,11 +41,9 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final int xInScreen;
-    private final int yInScreen;
+    private final GPoint posInScreen;
 
-    private final int xInClient;
-    private final int yInClient;
+    private final GPoint posInClient;
 
     private final int button;
 
@@ -57,37 +57,23 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
      * @param button @see #BwdMouseButtons
      */
     public BwdMouseEvent(
-            Object source,
-            BwdEventType eventType,
-            //
-            int xInScreen,
-            int yInScreen,
-            //
-            int xInClient,
-            int yInClient,
-            //
-            int button,
-            //
-            SortedSet<Integer> buttonDownSet,
-            //
-            SortedSet<Integer> modifierKeyDownSet) {
+        Object source,
+        BwdEventType eventType,
+        GPoint posInScreen,
+        GPoint posInClient,
+        int button,
+        SortedSet<Integer> buttonDownSet,
+        SortedSet<Integer> modifierKeyDownSet) {
         this(
-                null,
-                //
-                source,
-                checkedEventType(eventType),
-                //
-                xInScreen,
-                yInScreen,
-                //
-                xInClient,
-                yInClient,
-                //
-                button,
-                //
-                newImmutableSortedSet(buttonDownSet),
-                //
-                newImmutableSortedSet(modifierKeyDownSet));
+            null,
+            //
+            source,
+            checkedEventType(eventType),
+            posInScreen,
+            posInClient,
+            button,
+            newImmutableSortedSet(buttonDownSet),
+            newImmutableSortedSet(modifierKeyDownSet));
     }
 
     @Override
@@ -95,34 +81,18 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
         final StringBuilder sb = new StringBuilder();
 
         sb.append("[").append(this.getEventType());
-
-        /*
-         * 
-         */
-
-        sb.append(", posInScreen = (");
-        sb.append(this.xInScreen()).append(",").append(this.yInScreen());
-        sb.append(")");
-        sb.append(", posInClient = (");
-        sb.append(this.xInClient()).append(",").append(this.yInClient());
-        sb.append(")");
-
-        /*
-         * 
-         */
-
+        
+        sb.append(", posInScreen = ").append(this.posInScreen);
+        sb.append(", posInClient = ").append(this.posInClient);
+        
         sb.append(", button = ").append(BwdMouseButtons.toString(this.button));
-
+        
         for (int down : this.buttonDownSet) {
             sb.append(", ");
             sb.append(BwdMouseButtons.toString(down));
             sb.append(" down");
         }
-
-        /*
-         * 
-         */
-
+        
         this.appendModifiers(sb);
 
         sb.append("]");
@@ -146,21 +116,15 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
             throw new IllegalStateException();
         }
         return new BwdMouseEvent(
-                null,
-                //
-                this.getSource(),
-                BwdEventType.MOUSE_CLICKED,
-                //
-                xInScreen,
-                yInScreen,
-                xInClient,
-                yInClient,
-                //
-                button,
-                //
-                this.getButtonDownSet(),
-                //
-                this.getModifierKeyDownSet());
+            null,
+            //
+            this.getSource(),
+            BwdEventType.MOUSE_CLICKED,
+            this.posInScreen,
+            this.posInClient,
+            this.button,
+            this.getButtonDownSet(),
+            this.getModifierKeyDownSet());
     }
 
     /**
@@ -175,21 +139,15 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
             throw new IllegalStateException();
         }
         return new BwdMouseEvent(
-                null,
-                //
-                this.getSource(),
-                BwdEventType.MOUSE_DRAGGED,
-                //
-                xInScreen,
-                yInScreen,
-                xInClient,
-                yInClient,
-                //
-                button,
-                //
-                this.getButtonDownSet(),
-                //
-                this.getModifierKeyDownSet());
+            null,
+            //
+            this.getSource(),
+            BwdEventType.MOUSE_DRAGGED,
+            this.posInScreen,
+            this.posInClient,
+            this.button,
+            this.getButtonDownSet(),
+            this.getModifierKeyDownSet());
     }
 
     /*
@@ -197,17 +155,24 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
      */
 
     /**
+     * @return Position in screen.
+     */
+    public GPoint posInScreen() {
+        return this.posInScreen;
+    }
+
+    /**
      * @return x in screen.
      */
     public int xInScreen() {
-        return this.xInScreen;
+        return this.posInScreen.x();
     }
 
     /**
      * @return y in screen.
      */
     public int yInScreen() {
-        return this.yInScreen;
+        return this.posInScreen.y();
     }
 
     /*
@@ -215,17 +180,24 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
      */
 
     /**
+     * @return Position in client.
+     */
+    public GPoint posInClient() {
+        return this.posInClient;
+    }
+
+    /**
      * @return x in client.
      */
     public int xInClient() {
-        return this.xInClient;
+        return this.posInClient.x();
     }
 
     /**
      * @return y in client.
      */
     public int yInClient() {
-        return this.yInClient;
+        return this.posInClient.y();
     }
 
     /*
@@ -341,36 +313,27 @@ public class BwdMouseEvent extends AbstractBwdModAwareEvent {
      * @param modifierKeyDownSet Instance to use internally. Must never be modified.
      */
     BwdMouseEvent(
-            Void nnul,
-            //
-            Object source,
-            BwdEventType eventType,
-            //
-            int xInScreen,
-            int yInScreen,
-            //
-            int xInClient,
-            int yInClient,
-            //
-            int button,
-            //
-            SortedSet<Integer> buttonDownSet,
-            //
-            SortedSet<Integer> modifierKeyDownSet) {
+        Void nnul,
+        //
+        Object source,
+        BwdEventType eventType,
+        GPoint posInScreen,
+        GPoint posInClient,
+        int button,
+        SortedSet<Integer> buttonDownSet,
+        SortedSet<Integer> modifierKeyDownSet) {
         super(
-                nnul,
-                //
-                source,
-                eventType,
-                //
-                modifierKeyDownSet);
+            nnul,
+            //
+            source,
+            eventType,
+            //
+            modifierKeyDownSet);
 
-        this.xInScreen = xInScreen;
-        this.yInScreen = yInScreen;
-
-        this.xInClient = xInClient;
-        this.yInClient = yInClient;
-
+        this.posInScreen = posInScreen;
+        
+        this.posInClient = posInClient;
+        
         this.button = button;
 
         this.buttonDownSet = buttonDownSet;

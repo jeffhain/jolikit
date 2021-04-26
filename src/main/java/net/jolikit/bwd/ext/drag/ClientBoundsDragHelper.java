@@ -154,36 +154,27 @@ public class ClientBoundsDragHelper {
     
     public void onMousePressed(BwdMouseEvent event) {
         if (event.hasDragButton()) {
-            final int x = event.xInClient();
-            final int y = event.yInClient();
             for (AbstractDragController dragController : this.dragControllerByGripType.values()) {
-                dragController.mousePressed(x, y);
+                dragController.mousePressed(event.posInClient());
             }
         }
     }
 
     public void onMouseReleased(BwdMouseEvent event) {
         if (event.hasDragButton()) {
-            final int x = event.xInClient();
-            final int y = event.yInClient();
             for (AbstractDragController dragController : this.dragControllerByGripType.values()) {
-                dragController.mouseReleased(x, y);
+                dragController.mouseReleased(event.posInClient());
             }
         }
     }
     
     public void onMouseMoved(BwdMouseEvent event) {
-        final int x = event.xInClient();
-        final int y = event.yInClient();
         for (AbstractDragController dragController : this.dragControllerByGripType.values()) {
-            dragController.mouseMoved(x, y);
+            dragController.mouseMoved(event.posInClient());
         }
     }
 
     public void onMouseDragged(BwdMouseEvent event) {
-        
-        final int x = event.xInClient();
-        final int y = event.yInClient();
         
         final InterfaceBwdHost host = this.hostSupplier.getHost();
         
@@ -218,7 +209,9 @@ public class ClientBoundsDragHelper {
         for (Map.Entry<GripType,AbstractDragController> entry : this.dragControllerByGripType.entrySet()) {
             final GripType myGripType = entry.getKey();
             final AbstractDragController myDragController = entry.getValue();
-            final boolean isDragging = myDragController.mouseDragged(x, y);
+            final boolean isDragging =
+                myDragController.mouseDragged(
+                    event.posInClient());
             if (isDragging) {
                 gripType = myGripType;
                 dragController = myDragController;

@@ -252,11 +252,8 @@ public class HostDefaultBoundsBwdTestCase extends AbstractBwdTestCase {
         super.onMousePressed(event);
         
         if (event.getButton() == BwdMouseButtons.PRIMARY) {
-            final int x = event.xInClient();
-            final int y = event.yInClient();
-            
             for (MyButton button : this.buttonList) {
-                if (button.box.contains(x, y)) {
+                if (button.box.contains(event.posInClient())) {
                     /*
                      * Executing command asynchronously,
                      * to avoid concurrent modification issue

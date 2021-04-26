@@ -41,7 +41,7 @@ public class GRectTest extends TestCase {
     /**
      * General and special cases.
      */
-    private static final int[] POS_ARR = new int[]{
+    private static final int[] SCALAR_ARR = new int[]{
             MIN, MIN+1,
             MIN/2-1, MIN/2, MIN/2+1,
             -3, -2, -1,
@@ -72,7 +72,7 @@ public class GRectTest extends TestCase {
         /*
          * X cases.
          */
-        for (int x : POS_ARR) {
+        for (int x : SCALAR_ARR) {
             for (int xSpan : SPAN_ARR) {
                 // Empty in y.
                 list.add(GRect.valueOf(x, 0, xSpan, 0));
@@ -83,7 +83,7 @@ public class GRectTest extends TestCase {
         /*
          * Y cases.
          */
-        for (int y : POS_ARR) {
+        for (int y : SCALAR_ARR) {
             for (int ySpan : SPAN_ARR) {
                 // Empty in x.
                 list.add(GRect.valueOf(0, y, 0, ySpan));
@@ -856,13 +856,21 @@ public class GRectTest extends TestCase {
         assertFalse(GRect.valueOf(0, 0, 1, 1).isEmpty());
     }
     
-    public void test_contains_2int() {
+    public void test_contains_2int_or_GPoint() {
         for (GRect rect : RECT_LIST) {
             final int x = rect.x();
             final int y = rect.y();
             
+            try {
+                rect.contains((GPoint) null);
+                fail();
+            } catch (NullPointerException e) {
+                // ok
+            }
+
             if (rect.isEmpty()) {
                 assertFalse(rect.contains(x, y));
+                assertFalse(rect.contains(GPoint.valueOf(x, y)));
                 continue;
             }
             
@@ -888,8 +896,10 @@ public class GRectTest extends TestCase {
                 }
                 if (rect.isEmpty()) {
                     assertFalse(rect.contains(px, py));
+                    assertFalse(rect.contains(GPoint.valueOf(px, py)));
                 } else {
                     assertTrue(rect.contains(px, py));
+                    assertTrue(rect.contains(GPoint.valueOf(px, py)));
                 }
             }
             
@@ -918,6 +928,7 @@ public class GRectTest extends TestCase {
                     System.out.println("py = " + py);
                 }
                 assertFalse(rect.contains(px, py));
+                assertFalse(rect.contains(GPoint.valueOf(px, py)));
             }
         }
     }
@@ -929,7 +940,7 @@ public class GRectTest extends TestCase {
             }
 
             try {
-                rect.contains(null);
+                rect.contains((GRect) null);
                 fail();
             } catch (NullPointerException e) {
                 // ok
@@ -1203,8 +1214,8 @@ public class GRectTest extends TestCase {
     }
 
     public void test_intersectedPos_2int() {
-        for (int pos1 : POS_ARR) {
-            for (int pos2 : POS_ARR) {
+        for (int pos1 : SCALAR_ARR) {
+            for (int pos2 : SCALAR_ARR) {
                 final int expected = Math.max(pos1, pos2);
                 final int actual = GRect.intersectedPos(pos1, pos2);
                 assertEquals(expected, actual);
@@ -1497,9 +1508,9 @@ public class GRectTest extends TestCase {
     }
 
     public void test_doesOverflow_2int() {
-        for (int pos : POS_ARR) {
+        for (int pos : SCALAR_ARR) {
             // Pos list for spans, to have negative spans.
-            for (int span : POS_ARR) {
+            for (int span : SCALAR_ARR) {
                 final boolean expected =
                         (span > 0)
                         && ((pos + (long) span - 1) > Integer.MAX_VALUE);
@@ -1545,9 +1556,9 @@ public class GRectTest extends TestCase {
     }
 
     public void test_trimmedSpan_2int() {
-        for (int pos : POS_ARR) {
+        for (int pos : SCALAR_ARR) {
             // Pos list for spans, to have negative spans.
-            for (int span : POS_ARR) {
+            for (int span : SCALAR_ARR) {
                 final int expected;
                 if (span <= 0) {
                     expected = span;
@@ -1561,6 +1572,56 @@ public class GRectTest extends TestCase {
                     }
                 }
                 assertEquals(expected, GRect.trimmedSpan(pos, span));
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_toThisRelative_GPoint() {
+        for (GRect rect : RECT_LIST) {
+            for (int x : SCALAR_ARR) {
+                for (int y : SCALAR_ARR) {
+                    final GPoint abs = GPoint.valueOf(x, y);
+                    assertEquals(
+                        GPoint.valueOf(x - rect.x(), y - rect.y()),
+                        rect.toThisRelative(abs));
+                }
+            }
+        }
+    }
+    
+    public void test_toThisRelative_GRect() {
+        for (GRect rect : RECT_LIST) {
+            for (GRect abs : RECT_LIST) {
+                assertEquals(
+                    abs.withPos(abs.x() - rect.x(), abs.y() - rect.y()),
+                    rect.toThisRelative(abs));
+            }
+        }
+    }
+
+    public void test_fromThisRelative_GPoint() {
+        for (GRect rect : RECT_LIST) {
+            for (int x : SCALAR_ARR) {
+                for (int y : SCALAR_ARR) {
+                    final GPoint rel = GPoint.valueOf(x, y);
+                    assertEquals(
+                        GPoint.valueOf(x + rect.x(), y + rect.y()),
+                        rect.fromThisRelative(rel));
+                }
+            }
+        }
+    }
+    
+    public void test_fromThisRelative_GRect() {
+        for (GRect rect : RECT_LIST) {
+            for (GRect rel : RECT_LIST) {
+                assertEquals(
+                    rel.withPos(rel.x() + rect.x(), rel.y() + rect.y()),
+                    rect.fromThisRelative(rel));
             }
         }
     }

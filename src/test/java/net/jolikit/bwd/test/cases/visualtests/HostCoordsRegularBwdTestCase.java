@@ -96,14 +96,8 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
     public void onMouseMoved(BwdMouseEvent event) {
         super.onMouseMoved(event);
         
-        this.lastMouseMovePosInScreen =
-                GPoint.valueOf(
-                        event.xInScreen(),
-                        event.yInScreen());
-        this.lastMouseMovePosInClient =
-                GPoint.valueOf(
-                        event.xInClient(),
-                        event.yInClient());
+        this.lastMouseMovePosInScreen = event.posInScreen();
+        this.lastMouseMovePosInClient = event.posInClient();
         
         // To get displayed move pos updated.
         this.getHost().makeAllDirtyAndEnsurePendingClientPainting();

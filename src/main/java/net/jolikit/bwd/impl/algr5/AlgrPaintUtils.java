@@ -291,12 +291,8 @@ public class AlgrPaintUtils {
                             throw new BindingError("could not lock window bitmap: " + LIB.al_get_errno());
                         }
                     }
-                    rectInRegion = rectInDevice.withPosDeltas(
-                        -rectInDeviceClipped.x(),
-                        -rectInDeviceClipped.y());
-                    clipInRegion = clipInDevice.withPosDeltas(
-                        -rectInDeviceClipped.x(),
-                        -rectInDeviceClipped.y());
+                    rectInRegion = rectInDeviceClipped.toThisRelative(rectInDevice);
+                    clipInRegion = rectInDeviceClipped.toThisRelative(clipInDevice);
                 } else {
                     rectInRegion = rectInDevice;
                     clipInRegion = clipInDevice;

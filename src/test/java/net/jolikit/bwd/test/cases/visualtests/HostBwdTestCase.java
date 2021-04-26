@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -316,11 +316,8 @@ public class HostBwdTestCase extends AbstractBwdTestCase {
         this.onAnyEvent(event);
         
         if (event.getButton() == BwdMouseButtons.PRIMARY) {
-            final int x = event.xInClient();
-            final int y = event.yInClient();
-            
             for (MyButton button : this.buttonList) {
-                if (button.box.contains(x, y)) {
+                if (button.box.contains(event.posInClient())) {
                     /*
                      * Executing command asynchronously,
                      * to avoid list's concurrent modification issue

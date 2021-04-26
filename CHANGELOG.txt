@@ -82,11 +82,22 @@ Jolikit X.X, XXXX/XX/XX
 - BWD API:
   - Additions:
     - Argb32.toOpaque(int), Argb64.toOpaque(long).
+    - GPoint.NEG_ONE.
+    - GPoint.ONE.
+    - GPoint.MIN.
+    - GPoint.MAX.
+    - GPoint.toThisRelative(GPoint).
+    - GPoint.fromThisRelative(GPoint).
     - GRect.xMidFp() and yMidFp().
     - GRect.minSpan() and maxSpan().
     - GRect.area() and areaLong().
     - GRect.withBordersDeltasElseEmpty(int,int,int,int).
     - GRect.overlaps(int,int,int,int).
+    - GRect.contains(GPoint).
+    - GRect.toThisRelative(GPoint).
+    - GRect.toThisRelative(GRect).
+    - GRect.fromThisRelative(GPoint).
+    - GRect.fromThisRelative(GRect).
     - GRotation.areHorVerFlipped().
     - GTransform.areHorVerFlipped().
     - InterfaceBwdGraphics.newChildGraphics(GRect,GRect).
@@ -105,6 +116,10 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
     - BwdKeyEventPr.isRepeat().
+    - BwdMouseEvent.posInScreen().
+    - BwdMouseEvent.posInClient().
+    - BwdWheelEvent.posInScreen().
+    - BwdWheelEvent.posInClient().
   - Modifications:
     - Now requiring repetition of key pressed events,
       in addition to key typed events.

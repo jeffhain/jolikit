@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -304,7 +304,7 @@ public abstract class AbstractDrawerTezt<ARG> extends TestCase {
                 final int x = drawingBBox.x() + i;
                 final GPoint pixel = GPoint.valueOf(x, y);
                 
-                final boolean pixelInClip = clip.contains(pixel.x(), pixel.y());
+                final boolean pixelInClip = clip.contains(pixel);
                 
                 final PixelFigStatus pixelFigStatus =
                         helper.computePixelFigStatus(

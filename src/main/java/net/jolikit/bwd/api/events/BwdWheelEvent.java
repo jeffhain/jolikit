@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 package net.jolikit.bwd.api.events;
 
 import java.util.SortedSet;
+
+import net.jolikit.bwd.api.graphics.GPoint;
 
 /**
  * Class for WHEEL_ROLLED events.
@@ -38,50 +40,35 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final int xInScreen;
-    private final int yInScreen;
-    private final int xInClient;
-    private final int yInClient;
+    private final GPoint posInScreen;
+
+    private final GPoint posInClient;
     
-    private final int xRoll;
-    private final int yRoll;
+    private final GPoint roll;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     /**
-     * @param xRoll Signed roll quantity along x axis, in clicks if any, or about
-     *        three to four standard deviations of user-plus-device accuracy.
-     * @param yRoll Signed roll quantity along y axis, in clicks if any, or about
-     *        three to four standard deviations of user-plus-device accuracy.
+     * @param roll Signed roll quantity along x and y axis, in clicks if any,
+     *        or about three to four standard deviations of
+     *        user-plus-device accuracy.
      */
     public BwdWheelEvent(
-            Object source,
-            //
-            int xInScreen,
-            int yInScreen,
-            int xInClient,
-            int yInClient,
-            //
-            int xRoll,
-            int yRoll,
-            //
-            SortedSet<Integer> modifierKeyDownSet) {
+        Object source,
+        GPoint posInScreen,
+        GPoint posInClient,
+        GPoint roll,
+        SortedSet<Integer> modifierKeyDownSet) {
         this(
-                null,
-                //
-                source,
-                //
-                xInScreen,
-                yInScreen,
-                xInClient,
-                yInClient,
-                //
-                xRoll,
-                yRoll,
-                //
-                newImmutableSortedSet(modifierKeyDownSet));
+            null,
+            //
+            source,
+            posInScreen,
+            posInClient,
+            roll,
+            newImmutableSortedSet(modifierKeyDownSet));
     }
     
     @Override
@@ -90,27 +77,10 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
 
         sb.append("[").append(this.getEventType());
         
-        /*
-         * 
-         */
-        
-        sb.append(", posInScreen = (");
-        sb.append(this.xInScreen()).append(",").append(this.yInScreen());
-        sb.append(")");
-        sb.append(", posInClient = (");
-        sb.append(this.xInClient()).append(",").append(this.yInClient());
-        sb.append(")");
+        sb.append(", posInScreen = ").append(this.posInScreen);
+        sb.append(", posInClient = ").append(this.posInClient);
 
-        /*
-         * 
-         */
-        
-        sb.append(", xRoll = ").append(this.xRoll());
-        sb.append(", yRoll = ").append(this.yRoll());
-        
-        /*
-         * 
-         */
+        sb.append(", roll = ").append(this.roll);
         
         this.appendModifiers(sb);
 
@@ -122,33 +92,72 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
     /*
      * 
      */
-
-    public int xInScreen() {
-        return this.xInScreen;
-    }
-
-    public int yInScreen() {
-        return this.yInScreen;
-    }
     
-    public int xInClient() {
-        return this.xInClient;
+    /**
+     * @return Position in screen.
+     */
+    public GPoint posInScreen() {
+        return this.posInScreen;
     }
 
-    public int yInClient() {
-        return this.yInClient;
+    /**
+     * @return x in screen.
+     */
+    public int xInScreen() {
+        return this.posInScreen.x();
+    }
+
+    /**
+     * @return y in screen.
+     */
+    public int yInScreen() {
+        return this.posInScreen.y();
     }
 
     /*
      * 
      */
+
+    /**
+     * @return Position in client.
+     */
+    public GPoint posInClient() {
+        return this.posInClient;
+    }
+
+    /**
+     * @return x in client.
+     */
+    public int xInClient() {
+        return this.posInClient.x();
+    }
+
+    /**
+     * @return y in client.
+     */
+    public int yInClient() {
+        return this.posInClient.y();
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * @return Signed roll quantity along x and y axis, in clicks if any,
+     *         or about three to four standard deviations of
+     *         user-plus-device accuracy.
+     */
+    public GPoint roll() {
+        return this.roll();
+    }
     
     /**
      * @return Signed roll quantity along x axis, in clicks if any, or about
      *         three to four standard deviations of user-plus-device accuracy.
      */
     public int xRoll() {
-        return this.xRoll;
+        return this.roll.x();
     }
 
     /**
@@ -156,7 +165,7 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
      *         three to four standard deviations of user-plus-device accuracy.
      */
     public int yRoll() {
-        return this.yRoll;
+        return this.roll.y();
     }
     
     //--------------------------------------------------------------------------
@@ -169,33 +178,25 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
      * @param modifierKeyDownSet Instance to use internally. Must never be modified.
      */
     BwdWheelEvent(
-            Void nnul,
-            //
-            Object source,
-            //
-            int xInScreen,
-            int yInScreen,
-            int xInClient,
-            int yInClient,
-            //
-            int xRoll,
-            int yRoll,
-            //
-            SortedSet<Integer> modifierKeyDownSet) {
+        Void nnul,
+        //
+        Object source,
+        GPoint posInScreen,
+        GPoint posInClient,
+        GPoint roll,
+        SortedSet<Integer> modifierKeyDownSet) {
         super(
-                nnul,
-                //
-                source,
-                BwdEventType.WHEEL_ROLLED,
-                //
-                modifierKeyDownSet);
+            nnul,
+            //
+            source,
+            BwdEventType.WHEEL_ROLLED,
+            //
+            modifierKeyDownSet);
         
-        this.xInScreen = xInScreen;
-        this.yInScreen = yInScreen;
-        this.xInClient = xInClient;
-        this.yInClient = yInClient;
+        this.posInScreen = posInScreen;
         
-        this.xRoll = xRoll;
-        this.yRoll = yRoll;
+        this.posInClient = posInClient;
+        
+        this.roll = roll;
     }
 }

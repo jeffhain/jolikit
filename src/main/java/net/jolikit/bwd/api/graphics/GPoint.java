@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,18 +26,31 @@ public final class GPoint implements Comparable<GPoint> {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final GPoint INSTANCE_0_0 = new GPoint(0, 0);
-    
-    /**
-     * A constant for (max,max), in case used a lot for max spans.
-     */
-    private static final GPoint INSTANCE_MAX_MAX = new GPoint(Integer.MAX_VALUE, Integer.MAX_VALUE);
-    
     /**
      * The (0,0) instance ((0,0) is always necessarily this instance).
      */
-    public static final GPoint ZERO = INSTANCE_0_0;
+    public static final GPoint ZERO = new GPoint(0, 0);
+
+    /**
+     * A (-1,-1) instance.
+     */
+    public static final GPoint NEG_ONE = new GPoint(-1, -1);
     
+    /**
+     * A (1,1) instance.
+     */
+    public static final GPoint ONE = new GPoint(1, 1);
+    
+    /**
+     * An (Integer.MIN_VALUE,Integer.MIN_VALUE) instance.
+     */
+    public static final GPoint MIN = new GPoint(Integer.MIN_VALUE, Integer.MIN_VALUE);
+    
+    /**
+     * An (Integer.MAX_VALUE,Integer.MAX_VALUE) instance.
+     */
+    public static final GPoint MAX = new GPoint(Integer.MAX_VALUE, Integer.MAX_VALUE);
+
     private final int x;
     private final int y;
     
@@ -55,14 +68,13 @@ public final class GPoint implements Comparable<GPoint> {
      * @return An instance corresponding to the specified arguments.
      */
     public static GPoint valueOf(int x, int y) {
+        final GPoint ret;
         if ((x|y) == 0) {
-            return INSTANCE_0_0;
-        } else if ((x == Integer.MAX_VALUE)
-                && (y == Integer.MAX_VALUE)) {
-            return INSTANCE_MAX_MAX;
+            ret = ZERO;
         } else {
-            return new GPoint(x, y);
+            ret = new GPoint(x, y);
         }
+        return ret;
     }
     
     /*
@@ -98,7 +110,36 @@ public final class GPoint implements Comparable<GPoint> {
     public GPoint withDeltas(int dx, int dy) {
         return valueOf(this.x + dx, this.y + dy);
     }
-
+    
+    /*
+     * Relative.
+     */
+    
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param pos A position in the same frame of reference
+     *        as this position.
+     * @return The specified position relative to
+     *         this position.
+     */
+    public GPoint toThisRelative(GPoint pos) {
+        return pos.withDeltas(-this.x, -this.y);
+    }
+    
+    /**
+     * Shifts are done with modulo arithmetic
+     * (so that we can avoid checks overhead).
+     * 
+     * @param pos A position relative to this position.
+     * @return The specified position in the same frame of reference
+     *         as this position.
+     */
+    public GPoint fromThisRelative(GPoint pos) {
+        return pos.withDeltas(this.x, this.y);
+    }
+    
     /*
      * Generic.
      */

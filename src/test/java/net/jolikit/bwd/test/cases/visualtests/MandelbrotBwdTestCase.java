@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -250,7 +250,7 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
      */
     private class MyDragController extends AbstractDragController {
         @Override
-        protected boolean isOverDraggable(int x, int y) {
+        protected boolean isOverDraggable(GPoint pos) {
             // Anywhere in client fits.
             return true;
         }
@@ -605,36 +605,28 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
     public void onMousePressed(BwdMouseEvent event) {
         super.onMousePressed(event);
 
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        this.dragController.mousePressed(x, y);
+        this.dragController.mousePressed(event.posInClient());
     }
 
     @Override
     public void onMouseReleased(BwdMouseEvent event) {
         super.onMouseReleased(event);
 
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        this.dragController.mouseReleased(x, y);
+        this.dragController.mouseReleased(event.posInClient());
     }
 
     @Override
     public void onMouseMoved(BwdMouseEvent event) {
         super.onMouseMoved(event);
 
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        this.dragController.mouseMoved(x, y);
+        this.dragController.mouseMoved(event.posInClient());
     }
 
     @Override
     public void onMouseDragged(BwdMouseEvent event) {
         super.onMouseDragged(event);
 
-        final int x = event.xInClient();
-        final int y = event.yInClient();
-        if (this.dragController.mouseDragged(x, y)) {
+        if (this.dragController.mouseDragged(event.posInClient())) {
             final int cx = this.dragController.getDesiredX();
             final int cy = this.dragController.getDesiredY();
 

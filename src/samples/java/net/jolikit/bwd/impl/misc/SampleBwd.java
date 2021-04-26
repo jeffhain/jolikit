@@ -156,9 +156,7 @@ public class SampleBwd {
         }
         @Override
         public void onMouseMoved(BwdMouseEvent event) {
-            this.lastMousePos = GPoint.valueOf(
-                    event.xInScreen(),
-                    event.yInScreen());
+            this.lastMousePos = event.posInScreen();
             
             onNewMousePos();
         }

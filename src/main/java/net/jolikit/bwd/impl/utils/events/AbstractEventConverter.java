@@ -184,19 +184,14 @@ public abstract class AbstractEventConverter {
              */
             return null;
         }
-
+        
+        final GPoint roll = GPoint.valueOf(xRoll, yRoll);
         return new BwdWheelEvent(
-                this.host,
-                //
-                posInScreenInBd.x(),
-                posInScreenInBd.y(),
-                posInClientInBd.x(),
-                posInClientInBd.y(),
-                //
-                xRoll,
-                yRoll,
-                //
-                this.commonState.getModifierKeyDownSet());
+            this.host,
+            posInScreenInBd,
+            posInClientInBd,
+            roll,
+            this.commonState.getModifierKeyDownSet());
     }
     
     //--------------------------------------------------------------------------
@@ -319,16 +314,10 @@ public abstract class AbstractEventConverter {
         return new BwdMouseEvent(
                 this.host,
                 eventType,
-                //
-                posInScreenInBd.x(),
-                posInScreenInBd.y(),
-                posInClientInBd.x(),
-                posInClientInBd.y(),
-                //
+                posInScreenInBd,
+                posInClientInBd,
                 this.getButton(backingEvent),
-                //
                 this.commonState.getButtonDownSet(),
-                //
                 this.commonState.getModifierKeyDownSet());
     }
 }

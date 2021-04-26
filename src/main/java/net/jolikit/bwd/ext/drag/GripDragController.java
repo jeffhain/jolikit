@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.bwd.ext.drag;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.ext.InterfaceHostSupplier;
 import net.jolikit.lang.LangUtils;
@@ -64,8 +65,8 @@ public class GripDragController extends AbstractDragController {
     //--------------------------------------------------------------------------
     
     @Override
-    protected boolean isOverDraggable(int x, int y) {
-        return this.gripPaintedBox.contains(x, y);
+    protected boolean isOverDraggable(GPoint pos) {
+        return this.gripPaintedBox.contains(pos);
     }
     
     @Override

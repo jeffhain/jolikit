@@ -108,14 +108,13 @@ public class ScalingCliBwdTestCase extends HostBoundsGripsBwdTestCase {
         
         this.onMouseEvent(event);
 
-        final int x = event.xInClient();
-        final int y = event.yInClient();
+        final GPoint pos = event.posInClient();
         
-        if (this.lastInnerBox.contains(x, y)) {
-            final boolean mustIcoDeico = this.icoDeicoCell.contains(x, y);
-            final boolean mustMaxDemax = this.maxDemaxCell.contains(x, y);
-            final boolean mustIncrScale = this.incrScaleCell.contains(x, y);
-            final boolean mustDecrScale = this.decrScaleCell.contains(x, y);
+        if (this.lastInnerBox.contains(pos)) {
+            final boolean mustIcoDeico = this.icoDeicoCell.contains(pos);
+            final boolean mustMaxDemax = this.maxDemaxCell.contains(pos);
+            final boolean mustIncrScale = this.incrScaleCell.contains(pos);
+            final boolean mustDecrScale = this.decrScaleCell.contains(pos);
             if (mustIcoDeico
                 || mustMaxDemax
                 || mustIncrScale
@@ -411,8 +410,8 @@ public class ScalingCliBwdTestCase extends HostBoundsGripsBwdTestCase {
                 g.setColor(BwdColor.WHITE);
                 final String[] textArr = new String[] {
                     "Last mouse event:",
-                    "in screen: (" + event.xInScreen() + ", " + event.yInScreen() + ")",
-                    "in client: (" + event.xInClient() + ", " + event.yInClient() + ")",
+                    "in screen: " + event.posInScreen(),
+                    "in client: " + event.posInClient(),
                 };
                 for (int i = 0; i < textArr.length; i++) {
                     g.drawText(

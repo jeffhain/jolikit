@@ -378,7 +378,7 @@ public class LwjglBwdHost extends AbstractBwdHost {
      */
     private class MySynthMmeProcess extends AbstractProcess {
         private final double periodS;
-        private GPoint lastPos = GPoint.valueOf(-1, -1);
+        private GPoint lastPos = GPoint.NEG_ONE;
         private final double[] tmpXPosArr = new double[1];
         private final double[] tmpYPosArr = new double[1];
         public MySynthMmeProcess(

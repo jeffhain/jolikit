@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,12 +60,17 @@ public class GPointTest extends TestCase {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
+    
+    public void test_constants() {
+        assertSame(GPoint.valueOf(0,0), GPoint.ZERO);
+        assertEquals(GPoint.valueOf(-1,-1), GPoint.NEG_ONE);
+        assertEquals(GPoint.valueOf(1,1), GPoint.ONE);
+        assertEquals(GPoint.valueOf(Integer.MIN_VALUE,Integer.MIN_VALUE), GPoint.MIN);
+        assertEquals(GPoint.valueOf(Integer.MAX_VALUE,Integer.MAX_VALUE), GPoint.MAX);
+    }
+    
     public void test_valueOf_2int() {
         assertSame(GPoint.ZERO, GPoint.valueOf(0, 0));
-        assertSame(
-                GPoint.valueOf(Integer.MAX_VALUE, Integer.MAX_VALUE),
-                GPoint.valueOf(Integer.MAX_VALUE, Integer.MAX_VALUE));
         
         final int[] coordArr = new int[]{Integer.MIN_VALUE, -7, -1, 0, 1, 7, Integer.MAX_VALUE};
         for (int x : coordArr) {
@@ -98,6 +103,28 @@ public class GPointTest extends TestCase {
                 GPoint.valueOf(5, 7).withDeltas(Integer.MIN_VALUE, Integer.MAX_VALUE));
     }
     
+    /*
+     * 
+     */
+    
+    public void test_toThisRelative_GPoint() {
+        assertEquals(
+            GPoint.valueOf(11 - 5, 19 - 7),
+            GPoint.valueOf(5, 7).toThisRelative(GPoint.valueOf(11, 19)));
+        assertEquals(
+            GPoint.valueOf(Integer.MIN_VALUE - 5, Integer.MAX_VALUE - 7),
+            GPoint.valueOf(5, 7).toThisRelative(GPoint.valueOf(Integer.MIN_VALUE, Integer.MAX_VALUE)));
+    }
+    
+    public void test_fromThisRelative_GPoint() {
+        assertEquals(
+            GPoint.valueOf(11 + 5, 19 + 7),
+            GPoint.valueOf(5, 7).fromThisRelative(GPoint.valueOf(11, 19)));
+        assertEquals(
+            GPoint.valueOf(Integer.MIN_VALUE + 5, Integer.MAX_VALUE + 7),
+            GPoint.valueOf(5, 7).fromThisRelative(GPoint.valueOf(Integer.MIN_VALUE, Integer.MAX_VALUE)));
+    }
+
     /*
      * 
      */

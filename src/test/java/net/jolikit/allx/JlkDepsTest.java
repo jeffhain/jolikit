@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -163,6 +163,22 @@ public class JlkDepsTest extends TestCase {
         final DepUnit depUnit = newDepUnit(compDirPath);
         
         /*
+         * Positive checks.
+         */
+        
+        depUnit.addAllowedDirectDeps(
+            ElemType.CLASS,
+            NameFilters.startsWithName("net.jolikit.bwd.api.events"),
+            new InterfaceNameFilter[]{
+                NameFilters.startsWithName("net.jolikit.bwd.api.events"),
+                NameFilters.startsWithName("java.lang"),
+                NameFilters.startsWithName("java.util"),
+                NameFilters.startsWithName("net.jolikit.lang"),
+                NameFilters.startsWithName("net.jolikit.bwd.api.utils"),
+                NameFilters.equalsName("net.jolikit.bwd.api.graphics.GPoint"),
+            });
+        
+        /*
          * Negative checks.
          */
         
@@ -291,7 +307,6 @@ public class JlkDepsTest extends TestCase {
                 new InterfaceNameFilter[]{
                     NameFilters.or(
                             NameFilters.equalsName("net.jolikit.bwd.api"),
-                            NameFilters.startsWithName("net.jolikit.bwd.api.graphics"),
                             NameFilters.startsWithName("net.jolikit.bwd.api.fonts")),
                 });
 

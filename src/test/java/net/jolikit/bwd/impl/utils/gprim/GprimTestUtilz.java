@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ class GprimTestUtilz {
             Map<GPoint,Integer> paintedCountByPixel) {
         boolean foundPixelOutOfClippedBBox = false;
         for (GPoint pixel : paintedCountByPixel.keySet()) {
-            if (!clippedBBox.contains(pixel.x(), pixel.y())) {
+            if (!clippedBBox.contains(pixel)) {
                 if (debug) {
                     Dbg.log("pixel out of clipped bounding box : " + pixel + " out of " + clippedBBox);
                 }
