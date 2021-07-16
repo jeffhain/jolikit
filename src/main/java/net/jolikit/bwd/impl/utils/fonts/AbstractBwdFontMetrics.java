@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,8 +36,6 @@ public abstract class AbstractBwdFontMetrics implements InterfaceBwdFontMetrics 
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final int[] EMPTY_CACHE = new int[0];
-
     /**
      * Optimization to avoid garbage for common characters.
      * 
@@ -46,7 +44,7 @@ public abstract class AbstractBwdFontMetrics implements InterfaceBwdFontMetrics 
      * extending classes can also use cache when implementing
      * computeTextWidth_twoOrMoreCp(..).
      */
-    private int[] widthByCodePoint = EMPTY_CACHE;
+    private int[] widthByCodePoint = LangUtils.EMPTY_INT_ARR;
     
     private int ascent;
     private int descent;

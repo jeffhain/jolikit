@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.utils.fonts;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 
+import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 
 /**
@@ -29,7 +30,8 @@ public final class CodePointSet {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    public static final CodePointSet DEFAULT_EMPTY = new CodePointSet(new int[0]);
+    public static final CodePointSet DEFAULT_EMPTY =
+        new CodePointSet(LangUtils.EMPTY_INT_ARR);
     
     private final int[] minMaxCpArr;
     

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -1357,6 +1357,106 @@ public class GprimUtils {
             Dbg.log("ret = " + ret + " (startToAngDeltaDeg = " + startToAngDeltaDeg + ", endToAngDeltaDeg = " + endToAngDeltaDeg + ")");
         }
         return ret;
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Derived from java.awt.Polygon.contains().
+     * 
+     * If the polygon only contains 2 or less points,
+     * always returns false.
+     */
+    public static boolean isInPolygon(
+            final int[] xArr,
+            final int[] yArr,
+            final int pointCount,
+            //
+            final int x,
+            final int y) {
+        
+        if (pointCount <= 2) {
+            return false;
+        }
+
+        int hits = 0;
+
+        int lastx = xArr[pointCount - 1];
+        int lasty = yArr[pointCount - 1];
+        int curx;
+        int cury;
+
+        // Looping on edges.
+        for (int i = 0; i < pointCount; lastx = curx, lasty = cury, i++) {
+            curx = xArr[i];
+            cury = yArr[i];
+
+            if (cury == lasty) {
+                // Point on same line.
+                continue;
+            }
+
+            int leftx;
+            if (curx < lastx) {
+                // Going left.
+                if (x >= lastx) {
+                    // But not as far as before.
+                    continue;
+                }
+                // New leftmost.
+                leftx = curx;
+            } else {
+                // Going rightish.
+                if (x >= curx) {
+                    continue;
+                }
+                leftx = lastx;
+            }
+
+            double test1;
+            double test2;
+            if (cury < lasty) {
+                if ((y < cury) || (y >= lasty)) {
+                    continue;
+                }
+                if (x < leftx) {
+                    hits++;
+                    continue;
+                }
+                test1 = x - curx;
+                test2 = y - cury;
+            } else {
+                if ((y < lasty) || (y >= cury)) {
+                    continue;
+                }
+                if (x < leftx) {
+                    hits++;
+                    continue;
+                }
+                test1 = x - lastx;
+                test2 = y - lasty;
+            }
+
+            /*
+             * JDK code uses "test1 < (test2 / dy * dx)" here,
+             * but we want to avoid the division.
+             */
+            final int dx = (lastx - curx);
+            final int dy = (lasty - cury);
+            if (dy < 0) {
+                if (test1 * dy > test2 * dx) {
+                    hits++;
+                }
+            } else {
+                if (test1 * dy < test2 * dx) {
+                    hits++;
+                }
+            }
+        }
+
+        return ((hits & 1) != 0);
     }
     
     //--------------------------------------------------------------------------

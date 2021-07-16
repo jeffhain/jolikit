@@ -29,12 +29,6 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final int[] EMPTY_ARR = new int[0];
-    
-    /*
-     * 
-     */
-    
     private GTransform transformArrToRow;
     
     /**
@@ -53,7 +47,7 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
      * To be configured before use.
      */
     public IntArrSrcOverRowDrawer() {
-        this.configure_final(GTransform.IDENTITY, EMPTY_ARR, 0);
+        this.configure_final(GTransform.IDENTITY, LangUtils.EMPTY_INT_ARR, 0);
     }
 
     /**

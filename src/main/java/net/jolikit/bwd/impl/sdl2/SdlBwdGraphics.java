@@ -39,6 +39,7 @@ import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.LangUtils;
 
 public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
@@ -137,9 +138,9 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
 
     private static final MyCtda EMPTY_CLIPPED_TEXT_DATA_ACCESSOR =
             new MyCtda(
-                    new int[0],
-                    0,
-                    GRect.DEFAULT_EMPTY);
+                LangUtils.EMPTY_INT_ARR,
+                0,
+                GRect.DEFAULT_EMPTY);
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

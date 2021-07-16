@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,6 +50,20 @@ public class LangUtils {
      * it's Boolean.TRUE or Boolean.FALSE matters, etc.
      */
     public static final Object NON_NULL = new Object();
+    
+    /*
+     * 
+     */
+    
+    public static final boolean[] EMPTY_BOOLEAN_ARR = new boolean[0];
+    public static final byte[] EMPTY_BYTE_ARR = new byte[0];
+    public static final short[] EMPTY_SHORT_ARR = new short[0];
+    public static final char[] EMPTY_CHAR_ARR = new char[0];
+    public static final int[] EMPTY_INT_ARR = new int[0];
+    public static final long[] EMPTY_LONG_ARR = new long[0];
+    public static final float[] EMPTY_FLOAT_ARR = new float[0];
+    public static final double[] EMPTY_DOUBLE_ARR = new double[0];
+    public static final Object[] EMPTY_OBJECT_ARR = new Object[0];
     
     /*
      * 

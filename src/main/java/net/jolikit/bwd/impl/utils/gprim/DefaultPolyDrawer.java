@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2021 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -78,18 +78,16 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
     //--------------------------------------------------------------------------
 
     private static class MyTemps {
-        private static final byte[] EMPTY_BYTE_ARR = new byte[0];
-        private static final int[] EMPTY_INT_ARR = new int[0];
         final MyClippedPointDrawerWithFlag clippedPointDrawerWithFlag =
                 new MyClippedPointDrawerWithFlag();
         final DefaultClippedLineDrawer clippedLineDrawer =
                 new DefaultClippedLineDrawer();
-        byte[] tmpFlagByIndex = EMPTY_BYTE_ARR;
+        byte[] tmpFlagByIndex = LangUtils.EMPTY_BYTE_ARR;
         /*
          * min/max lit X on each row.
          */
-        int[] tmpXMinArr = EMPTY_INT_ARR;
-        int[] tmpXMaxArr = EMPTY_INT_ARR;
+        int[] tmpXMinArr = LangUtils.EMPTY_INT_ARR;
+        int[] tmpXMaxArr = LangUtils.EMPTY_INT_ARR;
     }
 
     private static class MyFlagManager {
@@ -612,12 +610,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             if (isClipClearlyInOrOut) {
                 if (isFillElseDraw) {
                     final boolean isClipInPolyElseOut =
-                            computeBelongingToPolygon(
-                                    xArr,
-                                    yArr,
-                                    pointCount,
-                                    clip.xMid(),
-                                    clip.yMid());
+                        GprimUtils.isInPolygon(
+                            xArr,
+                            yArr,
+                            pointCount,
+                            clip.xMid(),
+                            clip.yMid());
                     if (DEBUG) {
                         Dbg.log("isClipInPolyElseOut = " + isClipInPolyElseOut);
                     }
@@ -874,12 +872,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
             final int xMid = cbbox.xMid();
             final int yMid = cbbox.yMid();
             final boolean isMidIn =
-                    computeBelongingToPolygon(
-                            xArr,
-                            yArr,
-                            pointCount,
-                            xMid,
-                            yMid);
+                GprimUtils.isInPolygon(
+                    xArr,
+                    yArr,
+                    pointCount,
+                    xMid,
+                    yMid);
             if (isMidIn) {
                 /*
                  * cbbox fully in the polygon:
@@ -987,12 +985,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         byte leftSegmentFlag;
         if (topLeftNonLitX == cbbox.x()) {
             final boolean isIn =
-                    computeBelongingToPolygon(
-                            xArr,
-                            yArr,
-                            pointCount,
-                            topLeftNonLitX,
-                            topLeftNonLitY);
+                GprimUtils.isInPolygon(
+                    xArr,
+                    yArr,
+                    pointCount,
+                    topLeftNonLitX,
+                    topLeftNonLitY);
             leftSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
         } else {
             leftSegmentFlag = FLAG_EDGE;
@@ -1072,12 +1070,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
         byte rightSegmentFlag;
         {
             final boolean isIn =
-                    computeBelongingToPolygon(
-                            xArr,
-                            yArr,
-                            pointCount,
-                            cbbox.xMax(),
-                            topLeftNonLitY);
+                GprimUtils.isInPolygon(
+                    xArr,
+                    yArr,
+                    pointCount,
+                    cbbox.xMax(),
+                    topLeftNonLitY);
             rightSegmentFlag = (isIn ? FLAG_IN : FLAG_OUT);
         }
         
@@ -1335,12 +1333,12 @@ public class DefaultPolyDrawer implements InterfacePolyDrawer {
              * and ensuring its pixels are flagged accordingly.
              */
             final boolean isIn =
-                    computeBelongingToPolygon(
-                            xArr,
-                            yArr,
-                            pointCount,
-                            segmentStartX,
-                            y);
+                GprimUtils.isInPolygon(
+                    xArr,
+                    yArr,
+                    pointCount,
+                    segmentStartX,
+                    y);
             if (isIn) {
                 segmentFlag = FLAG_IN;
             } else {

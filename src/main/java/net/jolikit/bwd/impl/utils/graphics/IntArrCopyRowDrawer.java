@@ -27,12 +27,6 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final int[] EMPTY_ARR = new int[0];
-    
-    /*
-     * 
-     */
-    
     /**
      * Never null.
      */
@@ -49,7 +43,7 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
      * To be configured before use.
      */
     public IntArrCopyRowDrawer() {
-        this.configure_final(EMPTY_ARR, 0);
+        this.configure_final(LangUtils.EMPTY_INT_ARR, 0);
     }
 
     /**

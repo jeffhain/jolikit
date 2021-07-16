@@ -26,12 +26,6 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final int[] EMPTY_ARR = new int[0];
-    
-    /*
-     * 
-     */
-    
     private int width;
     
     private int height;
@@ -52,7 +46,7 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      * To be configured before use.
      */
     public IntArrSrcPixels() {
-        this.configure_final(0, 0, EMPTY_ARR, 0);
+        this.configure_final(0, 0, LangUtils.EMPTY_INT_ARR, 0);
     }
 
     /**

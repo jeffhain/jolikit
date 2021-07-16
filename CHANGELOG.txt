@@ -11,6 +11,9 @@ Jolikit X.X, XXXX/XX/XX
   or to call stopAccepting() and then drain or cancellation methods before
   calling shutdownNow(...).
 
+- LangUtils:
+  - Added empty arrays EMPTY_XXX_ARR constants for primitive types and Object.
+
 - NumbersUtils:
   - Renamed NumbersUtils into NbrsUtils
     (low level and used a lot, so a short name is better).

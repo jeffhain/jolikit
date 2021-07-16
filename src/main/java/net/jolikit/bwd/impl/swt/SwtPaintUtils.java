@@ -42,7 +42,7 @@ public class SwtPaintUtils {
      * temps
      */
 
-    private byte[] tmpByteArr = new byte[0];
+    private byte[] tmpByteArr = LangUtils.EMPTY_BYTE_ARR;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

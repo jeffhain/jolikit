@@ -34,6 +34,7 @@ import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 
 public class JoglPaintHelper {
@@ -157,7 +158,7 @@ public class JoglPaintHelper {
      */
     private static final double TEXTURE_ARRAY_MIN_GROWTH_FACTOR = 1.2;
     
-    private int[] tmpTexturePixelArr = new int[0];
+    private int[] tmpTexturePixelArr = LangUtils.EMPTY_INT_ARR;
     
     /*
      * 
