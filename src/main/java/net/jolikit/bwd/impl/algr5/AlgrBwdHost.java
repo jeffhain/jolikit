@@ -709,24 +709,26 @@ public class AlgrBwdHost extends AbstractBwdHost {
         
         try {
             if (hasMouseDelta) {
-                final BwdMouseEvent event = this.eventConverter.newMouseMovedEvent(backingEvent);
-                /*
-                 * TODO algr MOUSE_AXES event is generated,
-                 * not (just) when mouse moves relatively to the screen,
-                 * but (also) whenever it moves relatively to the window,
-                 * i.e. when mouse is still but window moves.
-                 */
-                final int xInScreen = event.xInScreen();
-                final int yInScreen = event.yInScreen();
-                if ((xInScreen == this.lastMouseAxesXInScreen)
+                final BwdMouseEvent event = this.eventConverter.newMouseMovedEventElseNull(backingEvent);
+                if (event != null) {
+                    /*
+                     * TODO algr MOUSE_AXES event is generated,
+                     * not (just) when mouse moves relatively to the screen,
+                     * but (also) whenever it moves relatively to the window,
+                     * i.e. when mouse is still but window moves.
+                     */
+                    final int xInScreen = event.xInScreen();
+                    final int yInScreen = event.yInScreen();
+                    if ((xInScreen == this.lastMouseAxesXInScreen)
                         && (yInScreen == this.lastMouseAxesYInScreen)) {
-                    if (DEBUG) {
-                        hostLog(this, "ignoring MOUSE_AXES (dx,dy) (same absolute pos as before)");
+                        if (DEBUG) {
+                            hostLog(this, "ignoring MOUSE_AXES (dx,dy) (same absolute pos as before)");
+                        }
+                    } else {
+                        this.lastMouseAxesXInScreen = xInScreen;
+                        this.lastMouseAxesYInScreen = yInScreen;
+                        this.onBackingMouseMoved(event);
                     }
-                } else {
-                    this.lastMouseAxesXInScreen = xInScreen;
-                    this.lastMouseAxesYInScreen = yInScreen;
-                    this.onBackingMouseMoved(event);
                 }
             }
         } finally {
@@ -743,32 +745,40 @@ public class AlgrBwdHost extends AbstractBwdHost {
         if (DEBUG) {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_BUTTON_DOWN(...)");
         }
-        final BwdMouseEvent event = this.eventConverter.newMousePressedEvent(backingEvent);
-        this.onBackingMousePressed(event);
+        final BwdMouseEvent event = this.eventConverter.newMousePressedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMousePressed(event);
+        }
     }
 
     public void onEvent_ALLEGRO_EVENT_MOUSE_BUTTON_UP(ALLEGRO_MOUSE_EVENT backingEvent) {
         if (DEBUG) {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_BUTTON_UP(...)");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseReleasedEvent(backingEvent);
-        this.onBackingMouseReleased(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseReleasedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseReleased(event);
+        }
     }
 
     public void onEvent_ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY(ALLEGRO_MOUSE_EVENT backingEvent) {
         if (DEBUG) {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_ENTER_DISPLAY(...)");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseEnteredClientEvent(backingEvent);
-        this.onBackingMouseEnteredClient(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseEnteredClient(event);
+        }
     }
 
     public void onEvent_ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY(ALLEGRO_MOUSE_EVENT backingEvent) {
         if (DEBUG) {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_LEAVE_DISPLAY(...)");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseExitedClientEvent(backingEvent);
-        this.onBackingMouseExitedClient(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseExitedClient(event);
+        }
     }
 
     public void onEvent_ALLEGRO_EVENT_MOUSE_WARPED(ALLEGRO_MOUSE_EVENT backingEvent) {
@@ -776,8 +786,10 @@ public class AlgrBwdHost extends AbstractBwdHost {
             hostLog(this, "onEvent_ALLEGRO_EVENT_MOUSE_WARPED(...)");
         }
         // TODO algr Shouldn't hurt to consider warpings (???) as moves (micro-warps).
-        final BwdMouseEvent event = this.eventConverter.newMouseMovedEvent(backingEvent);
-        this.onBackingMouseMoved(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseMovedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseMoved(event);
+        }
     }
 
     /*

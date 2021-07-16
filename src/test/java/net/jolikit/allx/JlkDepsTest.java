@@ -176,6 +176,7 @@ public class JlkDepsTest extends TestCase {
                 NameFilters.startsWithName("net.jolikit.lang"),
                 NameFilters.startsWithName("net.jolikit.bwd.api.utils"),
                 NameFilters.equalsName("net.jolikit.bwd.api.graphics.GPoint"),
+                NameFilters.equalsName("net.jolikit.bwd.api.graphics.GRect"),
             });
         
         /*

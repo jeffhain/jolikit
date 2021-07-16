@@ -119,10 +119,17 @@ Jolikit X.X, XXXX/XX/XX
     - InterfaceBwdBinding.newWritableImage(int,int).
     - AbstractBwdClient class.
     - BwdKeyEventPr.isRepeat().
+    - AbstractBwdPosAwareEvent class.
     - BwdMouseEvent.posInScreen().
     - BwdMouseEvent.posInClient().
+    - BwdMouseEvent.clientBounds().
+    - BwdMouseEvent.isPosInClient().
+    - BwdMouseEvent.asMouseEnteredClientEvent().
+    - BwdMouseEvent.asMouseExitedClientEvent().
     - BwdWheelEvent.posInScreen().
     - BwdWheelEvent.posInClient().
+    - BwdWheelEvent.clientBounds().
+    - BwdWheelEvent.isPosInClient().
   - Modifications:
     - Now requiring repetition of key pressed events,
       in addition to key typed events.

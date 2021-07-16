@@ -70,6 +70,7 @@ import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsCliScaledBwdTestCase
 import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.DrawingMethodsWiScaledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.EventsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.EventsScaledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.FontGlyphTableBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.GraphicsRoundRobinBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.GraphicsRoundRobinScaledBwdTestCase;
@@ -193,6 +194,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new EventsBwdTestCase(),
+                    new EventsScaledBwdTestCase(),
             });
         }
         {

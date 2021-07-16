@@ -16,7 +16,9 @@
 package net.jolikit.bwd.impl.utils;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.jolikit.bwd.api.InterfaceBwdClient;
 import net.jolikit.bwd.api.InterfaceBwdHost;
@@ -850,6 +852,15 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     private GRect clientBoundsInOsToEnforceOnShowDeicoDemax = null;
     private GRect windowBoundsInOsToEnforceOnShowDeicoDemax = null;
 
+    /*
+     * For mouse events synthesizing and/or blocking in case of scaling,
+     * but also useful when scale is 1 due to libraries glitches
+     * (such as SDL2 on Mac).
+     */
+    
+    private boolean isLastMouseEventInClient = false;
+    private final Set<Integer> mouseButtonPressedInClientSet = new HashSet<Integer>();
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -2207,30 +2218,74 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      */
 
     protected void onBackingMousePressed(BwdMouseEvent event) {
-        if (this.bindingConfig.getMustFixBoundsDuringDrag()
-                && event.hasDragButton()) {
-            this.onDragPress();
+        try {
+            this.eventuallyGenerateEnteredExitedEvent(event);
+        } finally {
+            if (event.isPosInClient()) {
+                this.mouseButtonPressedInClientSet.add(event.getButton());
+                if (this.bindingConfig.getMustFixBoundsDuringDrag()
+                    && event.hasDragButton()) {
+                    this.onDragPress();
+                }
+                this.clientWrapper.onMousePressed(event);
+            } else {
+                this.mouseButtonPressedInClientSet.remove(event.getButton());
+            }
         }
-        this.clientWrapper.onMousePressed(event);
     }
 
     protected void onBackingMouseReleased(BwdMouseEvent event) {
         try {
-            if (this.isDragPressDetected()
-                    && event.hasDragButton()) {
-                this.onDragEnd();
-            }
+            this.eventuallyGenerateEnteredExitedEvent(event);
         } finally {
-            this.clientWrapper.onMouseReleased(event);
+            if (this.mouseButtonPressedInClientSet.remove(event.getButton())) {
+                // try/finally because onDragEnd() might throw.
+                try {
+                    if (this.isDragPressDetected()
+                            && event.hasDragButton()) {
+                        this.onDragEnd();
+                    }
+                } finally {
+                    this.clientWrapper.onMouseReleased(event);
+                }
+            } else {
+                /*
+                 * Mouse released not to be generated if not pressed in client.
+                 */
+            }
         }
     }
 
     protected void onBackingMouseEnteredClient(BwdMouseEvent event) {
-        this.clientWrapper.onMouseEnteredClient(event);
+        if (this.isLastMouseEventInClient) {
+            /*
+             * We already synthesized entered event.
+             */
+        } else {
+            if (event.isPosInClient()) {
+                /*
+                 * Backing event is in client:
+                 * no need to synthesize it later. 
+                 */
+                this.isLastMouseEventInClient = true;
+                this.clientWrapper.onMouseEnteredClient(event);
+            }
+        }
     }
 
     protected void onBackingMouseExitedClient(BwdMouseEvent event) {
-        this.clientWrapper.onMouseExitedClient(event);
+        if (this.isLastMouseEventInClient) {
+            /*
+             * We didn't synthesize exited event:
+             * forwarding backing one.
+             */
+            this.isLastMouseEventInClient = false;
+            this.clientWrapper.onMouseExitedClient(event);
+        } else {
+            /*
+             * We already synthesized exited event.
+             */
+        }
     }
 
     /**
@@ -2239,19 +2294,27 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      * @param event A MOUSE_MOVED event.
      */
     protected void onBackingMouseMoved(BwdMouseEvent event) {
-        if (event.isDragButtonDown()) {
-            if (this.isDragPressDetected()) {
-                this.onDragMove();
+        try {
+            this.eventuallyGenerateEnteredExitedEvent(event);
+        } finally {
+            if (event.isDragButtonDown()) {
+                if (this.isDragPressDetected()) {
+                    this.onDragMove();
+                }
+                final BwdMouseEvent draggedEvent = event.asMouseDraggedEvent();
+                this.clientWrapper.onMouseDragged(draggedEvent);
+            } else {
+                if (this.isDragPressDetected()) {
+                    // Useful in case we missed
+                    // some drag-canceling condition.
+                    this.onDragCancel();
+                }
+                // Mouse moved events must only occur
+                // when the mouse is in client bounds.
+                if (this.isLastMouseEventInClient) {
+                    this.clientWrapper.onMouseMoved(event);
+                }
             }
-            final BwdMouseEvent draggedEvent = event.asMouseDraggedEvent();
-            this.clientWrapper.onMouseDragged(draggedEvent);
-        } else {
-            if (this.isDragPressDetected()) {
-                // Useful in case we missed
-                // some drag-canceling condition.
-                this.onDragCancel();
-            }
-            this.clientWrapper.onMouseMoved(event);
         }
     }
 
@@ -2888,6 +2951,24 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
+    
+    private void eventuallyGenerateEnteredExitedEvent(BwdMouseEvent event) {
+        final boolean isInClient = event.isPosInClient();
+        if (isInClient != this.isLastMouseEventInClient) {
+            this.isLastMouseEventInClient = isInClient;
+            if (isInClient) {
+                final BwdMouseEvent enteredEvent = event.asMouseEnteredClientEvent();
+                this.clientWrapper.onMouseEnteredClient(enteredEvent);
+            } else {
+                final BwdMouseEvent exitedEvent = event.asMouseExitedClientEvent();
+                this.clientWrapper.onMouseExitedClient(exitedEvent);
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
 
     private static void fillWith(double[] arr, double value) {
         for (int i = 0; i < arr.length; i++) {
@@ -3041,7 +3122,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     /**
      * Must be called on mouse drag button released,
      * or when window gets hidden, iconified, or loses focus,
-     * but not on mouse exited because it can happen during drag.
+     * but not on mouse exited because it can happen during drag
+     * and must not stop it.
      * 
      * Might throw, since might set bounds, which might cause
      * synchronous calls to user code.

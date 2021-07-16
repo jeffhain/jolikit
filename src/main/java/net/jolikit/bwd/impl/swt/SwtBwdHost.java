@@ -1058,16 +1058,20 @@ public class SwtBwdHost extends AbstractBwdHost {
             hostLog(this, "handleEvent_MouseDown(" + backingEvent + ")");
         }
         
-        final BwdMouseEvent event = this.eventConverter.newMousePressedEvent(backingEvent);
-        this.onBackingMousePressed(event);
+        final BwdMouseEvent event = this.eventConverter.newMousePressedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMousePressed(event);
+        }
     }
     
     private void handleEvent_MouseUp(Event backingEvent) {
         if (DEBUG) {
             hostLog(this, "handleEvent_MouseUp(" + backingEvent + ")");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseReleasedEvent(backingEvent);
-        this.onBackingMouseReleased(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseReleasedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseReleased(event);
+        }
     }
     
     private void handleEvent_MouseDoubleClick(Event backingEvent) {
@@ -1084,24 +1088,30 @@ public class SwtBwdHost extends AbstractBwdHost {
         if (DEBUG_SPAM) {
             hostLog(this, "handleEvent_MouseMove(" + backingEvent + ")");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseMovedEvent(backingEvent);
-        this.onBackingMouseMoved(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseMovedEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseMoved(event);
+        }
     }
     
     private void handleEvent_MouseEnter(Event backingEvent) {
         if (DEBUG) {
             hostLog(this, "handleEvent_MouseEnter(" + backingEvent + ")");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseEnteredClientEvent(backingEvent);
-        this.onBackingMouseEnteredClient(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseEnteredClient(event);
+        }
     }
     
     private void handleEvent_MouseExit(Event backingEvent) {
         if (DEBUG) {
             hostLog(this, "handleEvent_MouseExit(" + backingEvent + ")");
         }
-        final BwdMouseEvent event = this.eventConverter.newMouseExitedClientEvent(backingEvent);
-        this.onBackingMouseExitedClient(event);
+        final BwdMouseEvent event = this.eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+        if (event != null) {
+            this.onBackingMouseExitedClient(event);
+        }
     }
     
     private void handleEvent_MouseHover(Event backingEvent) {

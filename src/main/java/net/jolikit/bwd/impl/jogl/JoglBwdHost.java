@@ -344,8 +344,10 @@ public class JoglBwdHost extends AbstractBwdHost {
                     hostLog(this, "ignoring backing mouse pressed event (looks like a duplicate one)");
                 }
             } else {
-                final BwdMouseEvent event = eventConverter.newMousePressedEvent(backingEvent);
-                onBackingMousePressed(event);
+                final BwdMouseEvent event = eventConverter.newMousePressedEventElseNull(backingEvent);
+                if (event != null) {
+                    onBackingMousePressed(event);
+                }
             }
         }
         @Override
@@ -353,8 +355,10 @@ public class JoglBwdHost extends AbstractBwdHost {
             if (DEBUG) {
                 hostLog(this, "mouseReleased(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseReleasedEvent(backingEvent);
-            onBackingMouseReleased(event);
+            final BwdMouseEvent event = eventConverter.newMouseReleasedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseReleased(event);
+            }
         }
         @Override
         public void mouseClicked(MouseEvent backingEvent) {
@@ -367,16 +371,20 @@ public class JoglBwdHost extends AbstractBwdHost {
             if (DEBUG_SPAM) {
                 hostLog(this, "mouseMoved(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
-            onBackingMouseMoved(event);
+            final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseMoved(event);
+            }
         }
         @Override
         public void mouseEntered(MouseEvent backingEvent) {
             if (DEBUG) {
                 hostLog(this, "mouseEntered(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseEnteredClientEvent(backingEvent);
-            onBackingMouseEnteredClient(event);
+            final BwdMouseEvent event = eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseEnteredClient(event);
+            }
         }
         @Override
         public void mouseExited(MouseEvent backingEvent) {
@@ -384,8 +392,10 @@ public class JoglBwdHost extends AbstractBwdHost {
                 hostLog(this, "mouseExited(" + backingEvent + ")");
             }
             clearMousePressedEventNotToDuplicate();
-            final BwdMouseEvent event = eventConverter.newMouseExitedClientEvent(backingEvent);
-            onBackingMouseExitedClient(event);
+            final BwdMouseEvent event = eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseExitedClient(event);
+            }
         }
         @Override
         public void mouseDragged(MouseEvent backingEvent) {
@@ -393,8 +403,10 @@ public class JoglBwdHost extends AbstractBwdHost {
                 hostLog(this, "mouseDragged(" + backingEvent + ")");
             }
             // Bindings must not generate mouse dragged events.
-            final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
-            onBackingMouseMoved(event);
+            final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseMoved(event);
+            }
         }
         @Override
         public void mouseWheelMoved(MouseEvent backingEvent) {

@@ -205,8 +205,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             if (DEBUG) {
                 hostLog(this, "mousePressEvent(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMousePressedEvent(backingEvent);
-            onBackingMousePressed(event);
+            final BwdMouseEvent event = eventConverter.newMousePressedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMousePressed(event);
+            }
         }
 
         @Override
@@ -214,8 +216,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             if (DEBUG) {
                 hostLog(this, "mouseReleaseEvent(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseReleasedEvent(backingEvent);
-            onBackingMouseReleased(event);
+            final BwdMouseEvent event = eventConverter.newMouseReleasedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseReleased(event);
+            }
         }
 
         @Override
@@ -223,8 +227,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             if (DEBUG) {
                 hostLog(this, "enterEvent(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseEnteredClientEvent(backingEvent);
-            onBackingMouseEnteredClient(event);
+            final BwdMouseEvent event = eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseEnteredClient(event);
+            }
         }
 
         @Override
@@ -232,8 +238,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             if (DEBUG) {
                 hostLog(this, "leaveEvent(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseExitedClientEvent(backingEvent);
-            onBackingMouseExitedClient(event);
+            final BwdMouseEvent event = eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseExitedClient(event);
+            }
         }
 
         @Override
@@ -241,8 +249,10 @@ public class QtjBwdHost extends AbstractBwdHost {
             if (DEBUG_SPAM) {
                 hostLog(this, "mouseMoveEvent(" + backingEvent + ")");
             }
-            final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
-            onBackingMouseMoved(event);
+            final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
+            if (event != null) {
+                onBackingMouseMoved(event);
+            }
         }
 
         @Override

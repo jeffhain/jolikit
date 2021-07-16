@@ -18,6 +18,7 @@ package net.jolikit.bwd.api.events;
 import java.util.SortedSet;
 
 import net.jolikit.bwd.api.graphics.GPoint;
+import net.jolikit.bwd.api.graphics.GRect;
 
 /**
  * Class for WHEEL_ROLLED events.
@@ -34,15 +35,11 @@ import net.jolikit.bwd.api.graphics.GPoint;
  * 
  * xRoll() and yRoll() must not be both zero.
  */
-public class BwdWheelEvent extends AbstractBwdModAwareEvent {
+public class BwdWheelEvent extends AbstractBwdPosAwareEvent {
 
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-    
-    private final GPoint posInScreen;
-
-    private final GPoint posInClient;
     
     private final GPoint roll;
     
@@ -51,6 +48,8 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
     //--------------------------------------------------------------------------
     
     /**
+     * @param clientBounds Client bounds at the time the event was constructed.
+     *        Must not be empty.
      * @param roll Signed roll quantity along x and y axis, in clicks if any,
      *        or about three to four standard deviations of
      *        user-plus-device accuracy.
@@ -58,7 +57,7 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
     public BwdWheelEvent(
         Object source,
         GPoint posInScreen,
-        GPoint posInClient,
+        GRect clientBounds,
         GPoint roll,
         SortedSet<Integer> modifierKeyDownSet) {
         this(
@@ -66,7 +65,7 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
             //
             source,
             posInScreen,
-            posInClient,
+            clientBounds,
             roll,
             newImmutableSortedSet(modifierKeyDownSet));
     }
@@ -77,9 +76,8 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
 
         sb.append("[").append(this.getEventType());
         
-        sb.append(", posInScreen = ").append(this.posInScreen);
-        sb.append(", posInClient = ").append(this.posInClient);
-
+        this.appendPositions(sb);
+        
         sb.append(", roll = ").append(this.roll);
         
         this.appendModifiers(sb);
@@ -87,56 +85,6 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
         sb.append("]");
         
         return sb.toString();
-    }
-
-    /*
-     * 
-     */
-    
-    /**
-     * @return Position in screen.
-     */
-    public GPoint posInScreen() {
-        return this.posInScreen;
-    }
-
-    /**
-     * @return x in screen.
-     */
-    public int xInScreen() {
-        return this.posInScreen.x();
-    }
-
-    /**
-     * @return y in screen.
-     */
-    public int yInScreen() {
-        return this.posInScreen.y();
-    }
-
-    /*
-     * 
-     */
-
-    /**
-     * @return Position in client.
-     */
-    public GPoint posInClient() {
-        return this.posInClient;
-    }
-
-    /**
-     * @return x in client.
-     */
-    public int xInClient() {
-        return this.posInClient.x();
-    }
-
-    /**
-     * @return y in client.
-     */
-    public int yInClient() {
-        return this.posInClient.y();
     }
     
     /*
@@ -175,6 +123,8 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
     /**
      * For usage by trusted code.
      * 
+     * @param clientBounds Client bounds at the time the event was constructed.
+     *        Must not be empty.
      * @param modifierKeyDownSet Instance to use internally. Must never be modified.
      */
     BwdWheelEvent(
@@ -182,7 +132,7 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
         //
         Object source,
         GPoint posInScreen,
-        GPoint posInClient,
+        GRect clientBounds,
         GPoint roll,
         SortedSet<Integer> modifierKeyDownSet) {
         super(
@@ -190,12 +140,10 @@ public class BwdWheelEvent extends AbstractBwdModAwareEvent {
             //
             source,
             BwdEventType.WHEEL_ROLLED,
+            posInScreen,
+            clientBounds,
             //
             modifierKeyDownSet);
-        
-        this.posInScreen = posInScreen;
-        
-        this.posInClient = posInClient;
         
         this.roll = roll;
     }

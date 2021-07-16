@@ -498,15 +498,19 @@ public class SdlBwdHost extends AbstractBwdHost {
                 if (DEBUG) {
                     hostLog(this, "onEvent(...) : SDL_WINDOWEVENT_ENTER");
                 }
-                final BwdMouseEvent event = eventConverter.newMouseEnteredClientEvent(backingEvent);
-                this.onBackingMouseEnteredClient(event);
+                final BwdMouseEvent event = eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+                if (event != null) {
+                    this.onBackingMouseEnteredClient(event);
+                }
             } break;
             case SDL_WINDOWEVENT_LEAVE: {
                 if (DEBUG) {
                     hostLog(this, "onEvent(...) : SDL_WINDOWEVENT_LEAVE");
                 }
-                final BwdMouseEvent event = eventConverter.newMouseExitedClientEvent(backingEvent);
-                this.onBackingMouseExitedClient(event);
+                final BwdMouseEvent event = eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+                if (event != null) {
+                    this.onBackingMouseExitedClient(event);
+                }
             } break;
             case SDL_WINDOWEVENT_FOCUS_GAINED: {
                 if (DEBUG) {
@@ -612,24 +616,30 @@ public class SdlBwdHost extends AbstractBwdHost {
                     backingEvent.y = mousePosInScreen.y() - clientBounds.y();
                 }
             }
-            final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
-            this.onBackingMouseMoved(event);
+            final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
+            if (event != null) {
+                this.onBackingMouseMoved(event);
+            }
         } break;
         case SDL_MOUSEBUTTONDOWN: {
             if (DEBUG) {
                 hostLog(this, "onEvent(...) : SDL_MOUSEBUTTONDOWN");
             }
             final SDL_MouseButtonEvent backingEvent = SdlJnaUtils.getMouseButtonEvent(backingEventUnion);
-            final BwdMouseEvent event = eventConverter.newMousePressedEvent(backingEvent);
-            this.onBackingMousePressed(event);
+            final BwdMouseEvent event = eventConverter.newMousePressedEventElseNull(backingEvent);
+            if (event != null) {
+                this.onBackingMousePressed(event);
+            }
         } break;
         case SDL_MOUSEBUTTONUP: {
             if (DEBUG) {
                 hostLog(this, "onEvent(...) : SDL_MOUSEBUTTONUP");
             }
             final SDL_MouseButtonEvent backingEvent = SdlJnaUtils.getMouseButtonEvent(backingEventUnion);
-            final BwdMouseEvent event = eventConverter.newMouseReleasedEvent(backingEvent);
-            this.onBackingMouseReleased(event);
+            final BwdMouseEvent event = eventConverter.newMouseReleasedEventElseNull(backingEvent);
+            if (event != null) {
+                this.onBackingMouseReleased(event);
+            }
         } break;
         case SDL_MOUSEWHEEL: {
             if (DEBUG) {

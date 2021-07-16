@@ -293,11 +293,13 @@ public class LwjglBwdHost extends AbstractBwdHost {
                     (synthMmeProcess == null);
             if (mustRelyOnBackingMouseMovedEvents) {
                 final LwjglCursorPosEvent backingEvent = new LwjglCursorPosEvent(xpos, ypos);
-                final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
+                final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
                 if (DEBUG_SPAM) {
                     hostLog(this, "onCursorPosEvent(" + xpos + ", " + ypos + ") : " + event);
                 }
-                onBackingMouseMoved(event);
+                if (event != null) {
+                    onBackingMouseMoved(event);
+                }
             }
         }
         
@@ -310,11 +312,15 @@ public class LwjglBwdHost extends AbstractBwdHost {
             final LwjglCursorEnterEvent backingEvent = new LwjglCursorEnterEvent(entered);
             
             if (entered) {
-                final BwdMouseEvent event = eventConverter.newMouseEnteredClientEvent(backingEvent);
-                onBackingMouseEnteredClient(event);
+                final BwdMouseEvent event = eventConverter.newMouseEnteredClientEventElseNull(backingEvent);
+                if (event != null) {
+                    onBackingMouseEnteredClient(event);
+                }
             } else {
-                final BwdMouseEvent event = eventConverter.newMouseExitedClientEvent(backingEvent);
-                onBackingMouseExitedClient(event);
+                final BwdMouseEvent event = eventConverter.newMouseExitedClientEventElseNull(backingEvent);
+                if (event != null) {
+                    onBackingMouseExitedClient(event);
+                }
             }
         }
         
@@ -327,11 +333,15 @@ public class LwjglBwdHost extends AbstractBwdHost {
             final LwjglMouseButtonEvent backingEvent = new LwjglMouseButtonEvent(button, action, mods);
             
             if (action == GLFW.GLFW_PRESS) {
-                final BwdMouseEvent event = eventConverter.newMousePressedEvent(backingEvent);
-                onBackingMousePressed(event);
+                final BwdMouseEvent event = eventConverter.newMousePressedEventElseNull(backingEvent);
+                if (event != null) {
+                    onBackingMousePressed(event);
+                }
             } else if (action == GLFW.GLFW_RELEASE) {
-                final BwdMouseEvent event = eventConverter.newMouseReleasedEvent(backingEvent);
-                onBackingMouseReleased(event);
+                final BwdMouseEvent event = eventConverter.newMouseReleasedEventElseNull(backingEvent);
+                if (event != null) {
+                    onBackingMouseReleased(event);
+                }
             }
         }
         
@@ -413,11 +423,13 @@ public class LwjglBwdHost extends AbstractBwdHost {
                     @Override
                     public void run() {
                         final LwjglCursorPosEvent backingEvent = new LwjglCursorPosEvent(xpos, ypos);
-                        final BwdMouseEvent event = eventConverter.newMouseMovedEvent(backingEvent);
+                        final BwdMouseEvent event = eventConverter.newMouseMovedEventElseNull(backingEvent);
                         if (DEBUG_SPAM) {
                             hostLog(this, "(synthetic) onCursorPosEvent(" + xpos + ", " + ypos + ") : " + event);
                         }
-                        onBackingMouseMoved(event);
+                        if (event != null) {
+                            onBackingMouseMoved(event);
+                        }
                     }
                 });
             }

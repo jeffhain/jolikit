@@ -77,6 +77,8 @@ public class EventsBwdTestCase extends AbstractBwdTestCase {
         super(binding);
         // Else can't see that event.
         this.setCloseOnMiddleClickActivated(false);
+        // Else can't see what happens when dragging mouse exits client.
+        this.setDragOnLeftClickActivated(false);
     }
     
     @Override
