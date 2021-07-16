@@ -97,7 +97,7 @@ public abstract class AbstractDragController implements InterfaceDragController 
         if (dragCursor == BwdCursors.NO_STATEMENT) {
             throw new IllegalArgumentException("no cursor");
         }
-        this.dragCursor = LangUtils.requireNonNull(dragCursor);
+        this.dragCursor = dragCursor;
         this.hostSupplier = LangUtils.requireNonNull(hostSupplier);
     }
     

@@ -91,7 +91,7 @@ public class BaseBwdBindingConfig {
      * Set it to false if you want to use backing library exception handling
      * instead.
      */
-    private boolean mustUseExceptionHandlerForClient = false;
+    private boolean mustUseExceptionHandlerForClient = true;
     
     /*
      * 
