@@ -48,7 +48,10 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
      */
     private static final boolean MUST_CREATE_FONT_AT_EACH_PAINTING = false;
 
-    private static final int INITIAL_WIDTH = 300;
+    /**
+     * Large enough to see window drag area by default, even on Widows 10.
+     */
+    private static final int INITIAL_WIDTH = 400;
     private static final int INITIAL_HEIGHT = 7 * (TARGET_FONT_HEIGHT + 2);
     private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
