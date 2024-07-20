@@ -97,7 +97,7 @@ public class HardSchedulerTest extends TestCase {
         public MyThreadFactory() {
             super(null, new MyExceptionHandler());
         }
-    };
+    }
 
     private static class MySchedulingReport {
         private final long runCallTimeNs;
@@ -112,6 +112,7 @@ public class HardSchedulerTest extends TestCase {
             this.runCallTimeNs = runCallTimeNs;
             this.orderNum = orderNum;
         }
+        @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
             sb.append("[runCallTimeNs=");
@@ -189,7 +190,7 @@ public class HardSchedulerTest extends TestCase {
 
                 throwIfNeeded(this.throwableInRun);
             } finally {
-                final long orderNum = counter.incrementAndGet();
+                final long orderNum = nextOrderNum.incrementAndGet();
 
                 this.report = new MySchedulingReport(
                         runCallTimeNs,
@@ -282,7 +283,7 @@ public class HardSchedulerTest extends TestCase {
 
     private final Random random = TestUtils.newRandom123456789L();
     
-    private final AtomicLong counter = new AtomicLong();
+    private final AtomicLong nextOrderNum = new AtomicLong();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -2071,8 +2072,7 @@ public class HardSchedulerTest extends TestCase {
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
-            // Reseting counter.
-            this.counter.set(0);
+            this.nextOrderNum.set(0);
 
             final ArrayList<MyRunnable> runnableList = new ArrayList<MyRunnable>();
 
@@ -2111,8 +2111,7 @@ public class HardSchedulerTest extends TestCase {
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
-            // Reseting counter.
-            this.counter.set(0);
+            this.nextOrderNum.set(0);
 
             final int nbrOfRunnables = 100000;
 
@@ -2151,8 +2150,7 @@ public class HardSchedulerTest extends TestCase {
         final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
-            // Reseting counter.
-            this.counter.set(0);
+            this.nextOrderNum.set(0);
 
             /*
              * "timed fairness" : according to theoretical times,
@@ -2218,6 +2216,51 @@ public class HardSchedulerTest extends TestCase {
         }
         
         shutdownNowAndWait(schedulerList);
+    }
+    
+    /*
+     * Stealing.
+     */
+    
+    public void test_stealAsapRunnable() {
+        final EnslavedControllableHardClock clock = getClockForTest();
+        
+        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        
+        for (HardScheduler scheduler : schedulerList) {
+            
+            /*
+             * No runnable to steal.
+             */
+            
+            assertNull(scheduler.stealAsapRunnable());
+            
+            /*
+             * Two to steal.
+             */
+            
+            // Making sure they don't get executed.
+            scheduler.stopProcessing();
+            
+            final MyRunnable runnable1 = new MyRunnable(clock);
+            final MyRunnable runnable2 = new MyRunnable(clock);
+            scheduler.execute(runnable1);
+            scheduler.execute(runnable2);
+            
+            assertSame(runnable1, scheduler.stealAsapRunnable());
+            assertSame(runnable2, scheduler.stealAsapRunnable());
+            assertNull(scheduler.stealAsapRunnable());
+            
+            assertEquals(0, runnable1.nbrOfRunCalls);
+            assertEquals(0, runnable2.nbrOfRunCalls);
+            
+            scheduler.shutdown();
+            
+            assertEquals(0, runnable1.nbrOfRunCalls);
+            assertEquals(0, runnable1.nbrOfOnCancelCalls);
+            assertEquals(0, runnable2.nbrOfRunCalls);
+            assertEquals(0, runnable2.nbrOfOnCancelCalls);
+        }
     }
 
     /*
@@ -2822,7 +2865,7 @@ public class HardSchedulerTest extends TestCase {
     }
     
     /*
-     * InterfaceWorkerAwareScheduler
+     * InterfaceWorkerAware
      */
     
     public void test_isWorkerThread_andChecks_withThreads() {
@@ -2933,6 +2976,7 @@ public class HardSchedulerTest extends TestCase {
         // checking runnables (ASAP schedules having
         // priority over timed ones).
         scheduler.executeAfterNs(new Runnable() {
+            @Override
             public void run() {
                 scheduler.shutdown();
             }

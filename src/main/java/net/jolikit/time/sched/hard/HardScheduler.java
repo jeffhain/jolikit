@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      */
     
     /*
-     * NB: Not designed for being backing by an Executor,
+     * NB: Not designed for being backed by an Executor,
      * but could maybe be added (would allow to make schedulers
      * based on executors based on schedulers etc., and check
      * it would still work, even though with more overhead).
@@ -216,6 +216,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
          * this runnable using a thread factory, else default
          * JDK handling is used.
          */
+        @Override
         public void run() {
             if (this.done) {
                 throw new IllegalStateException("worker done");
@@ -319,7 +320,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             return schedule;
         }
         private void growArr() {
-            final int newCapacity = LangUtils.increasedArrayLength(this.arr.length, this.arr.length + 1);
+            final int newCapacity = LangUtils.increasedArrayLength(
+                this.arr.length, this.arr.length + 1);
             final MySequencedSchedule[] newArr = new MySequencedSchedule[newCapacity];
             if (this.beginIndex <= this.endIndex) {
                 System.arraycopy(this.arr, this.beginIndex, newArr, 0, this.size);
@@ -444,7 +446,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      */
     private final ReentrantLock schedLock = new ReentrantLock();
     private final Condition schedCondition = this.schedLock.newCondition();
-    private final InterfaceCondilock schedSystemTimeCondilock = new LockCondilock(this.schedLock, this.schedCondition);
+    private final InterfaceCondilock schedSystemTimeCondilock =
+        new LockCondilock(this.schedLock, this.schedCondition);
     private final HardClockCondilock schedClockTimeCondilock;
 
     /*
@@ -452,7 +455,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      */
     
     private final Object noRunningWorkerMutex = new Object();
-    private final InterfaceCondilock noRunningWorkerSystemTimeCondilock = new MonitorCondilock(this.noRunningWorkerMutex);
+    private final InterfaceCondilock noRunningWorkerSystemTimeCondilock =
+        new MonitorCondilock(this.noRunningWorkerMutex);
     private final HardClockCondilock noRunningWorkerClockTimeCondilock;
 
     /*
@@ -1442,6 +1446,35 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         }
     }
 
+    /*
+     * Stealing.
+     */
+    
+    /**
+     * Useful to implement work stealing,
+     * typically for implementing a parallelizer
+     * on top of this scheduler.
+     * 
+     * If called during shut down,
+     * the returned runnable should be cancelled accordingly
+     * if it implements InterfaceCancellable.
+     * 
+     * @return Next ASAP runnable that was to be executed by this scheduler,
+     *         after removal from it, or null if none.
+     */
+    public Runnable stealAsapRunnable() {
+        
+        Runnable ret = null;
+        
+        final MySequencedSchedule seqSched =
+            this.pollAsapScheduleInLock();
+        if (seqSched != null) {
+            ret = seqSched.getRunnable();
+        }
+        
+        return ret;
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -1506,8 +1539,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
          * 
          */
         
-        this.schedClockTimeCondilock = new HardClockCondilock(clock, this.schedSystemTimeCondilock);
-        this.noRunningWorkerClockTimeCondilock = new HardClockCondilock(clock, this.noRunningWorkerSystemTimeCondilock);
+        this.schedClockTimeCondilock =
+            new HardClockCondilock(clock, this.schedSystemTimeCondilock);
+        this.noRunningWorkerClockTimeCondilock =
+            new HardClockCondilock(clock, this.noRunningWorkerSystemTimeCondilock);
 
         this.schedClockTimeCondilock.setMaxSystemWaitTimeNs(DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
         this.noRunningWorkerClockTimeCondilock.setMaxSystemWaitTimeNs(DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
@@ -1629,6 +1664,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             ret = this.asapSchedQueue.poll();
             if (ret != null) {
+                // In case some treatment ever waits
+                // for no more ASAP schedules.
                 this.schedCondition.signalAll();
             }
         } finally {
@@ -1644,6 +1681,9 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             ret = this.timedSchedQueue.poll();
             if (ret != null) {
+                // A worker might have been waiting
+                // for the time to execute it,
+                // in which case it no longer has to.
                 this.schedCondition.signalAll();
             }
         } finally {

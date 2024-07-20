@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,38 +15,8 @@
  */
 package net.jolikit.time.sched;
 
-import java.util.ConcurrentModificationException;
-
 /**
  * Interface for schedulers that are aware of their threads.
  */
-public interface InterfaceWorkerAwareScheduler extends InterfaceScheduler {
-    
-    /*
-     * Not defining an isWorkerThread(Thread) method,
-     * for it to be implementable even if it would, when true,
-     * only be computable from within a worker thread.
-     */
-    
-    /**
-     * @return Whether current thread is, currently at least,
-     *         a worker thread of this scheduler.
-     */
-    public boolean isWorkerThread();
-
-    /**
-     * Convenience method.
-     * 
-     * @throws ConcurrentModificationException if current thread
-     *         is not a worker thread of this scheduler.
-     */
-    public void checkIsWorkerThread();
-
-    /**
-     * Convenience method.
-     * 
-     * @throws IllegalStateException if current thread
-     *         is a worker thread of this scheduler.
-     */
-    public void checkIsNotWorkerThread();
+public interface InterfaceWorkerAwareScheduler extends InterfaceScheduler, InterfaceWorkerAware {
 }

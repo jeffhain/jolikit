@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
     //--------------------------------------------------------------------------
 
     /**
-     * Can be used for raw runnables, when wanting to asign a sequnce number
+     * Can be used for raw runnables, when wanting to asign a sequence number
      * to their schedules, to implement fairness with timed schedules,
      * for example to prevent a spam of timed schedules in the past
      * to prevent ASAP schedules from being executed.
