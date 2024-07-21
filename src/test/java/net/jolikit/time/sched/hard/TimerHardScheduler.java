@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,15 +93,14 @@ public class TimerHardScheduler extends AbstractScheduler {
             Runnable runnable,
             long timeNs) {
         final long delayNs = NbrsUtils.minusBounded(timeNs, this.clock.getTimeNs());
-        executeTimed(runnable, delayNs, timeNs);
+        executeTimed(runnable, delayNs);
     }
 
     @Override
     public void executeAfterNs(
             Runnable runnable,
             long delayNs) {
-        final long timeNs = NbrsUtils.plusBounded(this.clock.getTimeNs(), delayNs);
-        executeTimed(runnable, delayNs, timeNs);
+        executeTimed(runnable, delayNs);
     }
     
     //--------------------------------------------------------------------------
@@ -110,8 +109,7 @@ public class TimerHardScheduler extends AbstractScheduler {
 
     private void executeTimed(
             final Runnable runnable,
-            long delayNs,
-            long timeNs) {
+            long delayNs) {
         /*
          * Timer does not accept already schedule tasks for new schedules,
          * so we need to create one each time.

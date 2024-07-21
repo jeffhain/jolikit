@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,8 +31,8 @@ public class WorkerThreadChecker {
      * @throws ConcurrentModificationException if current thread is not
      *         a worker thread.
      */
-    public static void checkIsWorkerThread(InterfaceWorkerAwareScheduler scheduler) {
-        if (!scheduler.isWorkerThread()) {
+    public static void checkIsWorkerThread(InterfaceWorkerAware workerAware) {
+        if (!workerAware.isWorkerThread()) {
             throw new ConcurrentModificationException(
                     "current thread ["
                             + Thread.currentThread()
@@ -43,8 +43,8 @@ public class WorkerThreadChecker {
     /**
      * @throws IllegalStateException if current thread is a worker thread.
      */
-    public static void checkIsNotWorkerThread(InterfaceWorkerAwareScheduler scheduler) {
-        if (scheduler.isWorkerThread()) {
+    public static void checkIsNotWorkerThread(InterfaceWorkerAware workerAware) {
+        if (workerAware.isWorkerThread()) {
             throw new IllegalStateException(
                     "current thread ["
                             + Thread.currentThread()

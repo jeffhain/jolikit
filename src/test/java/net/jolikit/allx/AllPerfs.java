@@ -28,7 +28,7 @@ import net.jolikit.lang.NbrsUtilsPerf;
 import net.jolikit.lang.ThinTimePerf;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.prl.ParallelizersPerf;
-import net.jolikit.time.sched.hard.HardSchedulersPerf;
+import net.jolikit.time.sched.hard.HardExecutorsPerf;
 
 public class AllPerfs {
 
@@ -85,6 +85,6 @@ public class AllPerfs {
          * net.jolikit.time.sched.hard
          */
         
-        HardSchedulersPerf.newRun(args);
+        HardExecutorsPerf.newRun(args);
     }
 }
