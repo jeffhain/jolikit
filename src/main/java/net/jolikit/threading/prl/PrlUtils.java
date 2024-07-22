@@ -87,7 +87,7 @@ public class PrlUtils {
      * We define work discrepancy as a measure of the difference between Wl
      * and Wr when they are not equal, such as (with Wl >= Wr by convention):
      * Wl = Wr * (1 + discrepancy).
-     * Similarly, we can define computational discrepancy as a measure
+     * Similarly, we can define CPU discrepancy as a measure
      * of the difference of CPU time between threads.
      * The specified discrepancy is the sum of these two discrepancies.
      * 

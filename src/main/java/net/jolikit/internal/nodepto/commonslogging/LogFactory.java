@@ -161,10 +161,12 @@ public class LogFactory {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    @SuppressWarnings("unused")
     public static Log getLog(String name) {
         return LOGGER;
     }
     
+    @SuppressWarnings("unused")
     public static Log getLog(Class<?> clazz) {
         return LOGGER;
     }

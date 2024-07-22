@@ -37,46 +37,57 @@ public class NoOpBwdEventListener implements InterfaceBwdEventListener {
     
     @Override
     public void onWindowShown(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowHidden(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowFocusGained(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowFocusLost(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowIconified(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowDeiconified(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowMaximized(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowDemaximized(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowMoved(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onWindowResized(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onWindowClosed(BwdWindowEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     /*
@@ -85,14 +96,17 @@ public class NoOpBwdEventListener implements InterfaceBwdEventListener {
 
     @Override
     public void onKeyPressed(BwdKeyEventPr event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onKeyTyped(BwdKeyEventT event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onKeyReleased(BwdKeyEventPr event) {
+        this.onAnyBwdEvent(event);
     }
 
     /*
@@ -101,30 +115,37 @@ public class NoOpBwdEventListener implements InterfaceBwdEventListener {
 
     @Override
     public void onMousePressed(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onMouseReleased(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
     
     @Override
     public void onMouseClicked(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onMouseEnteredClient(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onMouseExitedClient(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onMouseMoved(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     @Override
     public void onMouseDragged(BwdMouseEvent event) {
+        this.onAnyBwdEvent(event);
     }
 
     /*
@@ -133,5 +154,21 @@ public class NoOpBwdEventListener implements InterfaceBwdEventListener {
 
     @Override
     public void onWheelRolled(BwdWheelEvent event) {
+        this.onAnyBwdEvent(event);
+    }
+    
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * Called by default specific onXxx() methods implementations.
+     * Allows to easily intercept event of multiple types.
+     * 
+     * Overriding must call super.
+     * This default implementation does nothing.
+     */
+    @SuppressWarnings("unused")
+    protected void onAnyBwdEvent(BwdEvent event) {
     }
 }

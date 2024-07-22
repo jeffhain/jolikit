@@ -24,8 +24,7 @@ import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
-import net.jolikit.time.clocks.hard.NanoTimeClock;
-import net.jolikit.time.sched.hard.HardScheduler;
+import net.jolikit.time.sched.hard.HardExecutor;
 
 public class BindingPrlUtils {
     
@@ -34,14 +33,13 @@ public class BindingPrlUtils {
     //--------------------------------------------------------------------------
     
     /**
-     * Using a HardScheduler instead of a ThreadPoolExecutor.
-     * 
-     * We don't need HardScheduler advanced capabilities,
-     * but we want to avoid spurious ThreadPoolExecutor
+     * Using a HardExecutor instead of a ThreadPoolExecutor,
+     * not primarily for its lower overhead,
+     * but to avoid spurious ThreadPoolExecutor
      * shutdown and RejectedExecutionException throwings
      * that seem to occur under stress for some reason.
      */
-    private static final boolean MUST_USE_HARD_SCHED_FOR_PRLZR_EXECUTOR = true;
+    private static final boolean MUST_USE_HARD_EXEC_FOR_PRLZR_EXECUTOR = true;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -78,11 +76,10 @@ public class BindingPrlUtils {
                 }
             };
             final Executor executor;
-            if (MUST_USE_HARD_SCHED_FOR_PRLZR_EXECUTOR) {
+            if (MUST_USE_HARD_EXEC_FOR_PRLZR_EXECUTOR) {
                 // Thread name set by our thread factory.
                 final String namePrefixForHardScheduler = null;
-                executor = HardScheduler.newInstance(
-                        NanoTimeClock.getDefaultInstance(),
+                executor = HardExecutor.newInstance(
                         namePrefixForHardScheduler,
                         daemon,
                         parallelism,

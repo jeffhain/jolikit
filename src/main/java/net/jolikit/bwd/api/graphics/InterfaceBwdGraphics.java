@@ -241,7 +241,7 @@ public interface InterfaceBwdGraphics {
      * 
      * NB: If the backing library could allow for parallel painting,
      * but creating child graphics usable concurrently with each other
-     * is too heavy, it is advised to make the binding no longer supporting
+     * is too heavy, it is advised to make the binding no longer support
      * parallel painting if it then allows to make child graphics creation
      * overhead smaller, so as to optimize for the simple case of sequential
      * painting.

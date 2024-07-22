@@ -99,7 +99,7 @@ public class SampleSinusoidalScheduling {
             System.out.flush();
             return sToNs(nsToS(actualTimeNs) + PROCESS_DELAY_S);
         }
-    };
+    }
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS

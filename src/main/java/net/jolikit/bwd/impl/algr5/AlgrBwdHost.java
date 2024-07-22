@@ -688,7 +688,7 @@ public class AlgrBwdHost extends AbstractBwdHost {
                         mousePosInScreenInOs.x() - clientBoundsInOs.x());
                 final int newY =
                     pixelCoordsConverter.computeYInDevicePixel(
-                        mousePosInScreenInOs.y() - clientBoundsInOs.y());;
+                        mousePosInScreenInOs.y() - clientBoundsInOs.y());
                 backingEvent.x = newX;
                 backingEvent.y = newY;
                 backingEvent.dx += (newX - oldX);
@@ -869,7 +869,6 @@ public class AlgrBwdHost extends AbstractBwdHost {
         
         this.paintUtils.paintPixelsOnClient(
             scaleHelper,
-            clientSpansInOs,
             bufferPosInCliInOs,
             paintedRectList,
             //

@@ -181,7 +181,6 @@ public class AlgrPaintUtils {
      */
     public void paintPixelsOnClient(
         ScaleHelper scaleHelper,
-        GPoint clientSpansInOs,
         GPoint bufferPosInCliInOs,
         List<GRect> paintedRectList,
         //
