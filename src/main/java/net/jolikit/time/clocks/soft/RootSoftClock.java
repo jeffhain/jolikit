@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,6 +45,17 @@ public class RootSoftClock implements InterfaceSoftClock {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
+    
+    /**
+     * For logarithmic (instead of brutal) reduction of non-annulled lateness.
+     * Without this, when using a master hard clock,
+     * the more the target time speed is too large for catch up,
+     * the quicker the lateness increases,
+     * the more often lateness gets annulled,
+     * the more often small waits occur (due to no longer being late),
+     * the lower the actual time speed.
+     */
+    static final int ANNULLED_LATENESS_DIVISOR = 2;
     
     private final InterfaceHardClock hardClock;
 
@@ -135,13 +146,19 @@ public class RootSoftClock implements InterfaceSoftClock {
     /**
      * Only relevant for non-ASAP clocks (i.e. if a hard clock has been specified).
      * 
-     * Current lateness is forgiven each time it is seen (from within setTimeXXX methods)
-     * to be strictly superior to this threshold, from within setTimeXXX methods.
+     * Current lateness is partially (to avoid hickups) forgiven
+     * in setTimeXXX methods, each time it is detected
+     * to be strictly superior to this threshold.
      * 
      * Long.MAX_VALUE is a special value that ensures the soft clock always
      * tries to catch up with the hard clock.
      * 
-     * @param latenessThresholdNs Amount of lateness (>=0) above which all current lateness is forgiven.
+     * Call to this method resets to zero internal bookkeeping
+     * of annulled lateness, i.e. the specified threshold
+     * will have to be reached from zero before next forgiving.
+     * 
+     * @param latenessThresholdNs Amount of lateness (>=0)
+     *        above which current lateness is partially forgiven.
      */
     public void setLatenessThresholdNS(long latenessThresholdNs) {
         this.setLatenessThresholdNS_private(latenessThresholdNs);
@@ -237,7 +254,15 @@ public class RootSoftClock implements InterfaceSoftClock {
     public void setTimeNsAndTimeSpeed(long timeNs, double timeSpeed) {
         throw new UnsupportedOperationException();
     }
-
+    
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    long getAnnuledLatenessNs() {
+        return this.annulledLatenessNs;
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -250,6 +275,7 @@ public class RootSoftClock implements InterfaceSoftClock {
         } else {
             this.negLatenessThresholdNs = -latenessThresholdNs;
         }
+        this.annulledLatenessNs = 0;
     }
 
     /**
@@ -278,13 +304,15 @@ public class RootSoftClock implements InterfaceSoftClock {
                      */
                     if (clockWaitTimeNs < this.negLatenessThresholdNs) {
                         /*
-                         * We are too late: forgiving current lateness (not trying to catch it up).
+                         * We are too late: forgiving some of current lateness
+                         * (not trying to catch it all up).
                          * "lateness" = "minus soft clock wait time",
-                         * but we don't take minus, for -Long.MIN_VALUE does not exist as long.
+                         * but we don't take minus, for -Long.MIN_VALUE
+                         * does not exist as long.
                          */
                         this.annulledLatenessNs = NbrsUtils.minusBounded(
                                 this.annulledLatenessNs,
-                                clockWaitTimeNs);
+                                clockWaitTimeNs / ANNULLED_LATENESS_DIVISOR);
                     }
                     return requestedTimeNs;
                 }

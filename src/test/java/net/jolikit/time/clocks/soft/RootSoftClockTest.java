@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,15 +25,7 @@ public class RootSoftClockTest extends TestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
-    private static final double REAL_TIME_TOLERANCE_S = 0.1;
-    
-    //--------------------------------------------------------------------------
-    // FIELDS
-    //--------------------------------------------------------------------------
-    
-    private static final long REAL_TIME_TOLERANCE_NS = TimeUtils.sToNs(REAL_TIME_TOLERANCE_S);
-    
-    private static final long ONE_SECOND_NS = TimeUtils.sToNs(1.0);
+    private static final double TOLERANCE_S = 0.1;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -46,24 +38,25 @@ public class RootSoftClockTest extends TestCase {
         final RootSoftClock clock = new RootSoftClock(hardClock);
         
         // Must not wait (current time).
-        long aNs = nowNs();
-        clock.setTimeNs(hardClock.getTimeNs());
-        long bNs = nowNs();
-        assertTrue(Math.abs(bNs-aNs) < REAL_TIME_TOLERANCE_NS);
+        setSoftTimeSAndCheckWaitTimeS(
+            clock,
+            hardClock.getTimeS(),
+            0.0);
         
         // Must wait (future time).
-        long timeJumpNs = ONE_SECOND_NS;
-        aNs = nowNs();
-        clock.setTimeNs(hardClock.getTimeNs() + timeJumpNs);
-        bNs = nowNs();
-        assertTrue(Math.abs(bNs-aNs - timeJumpNs) < REAL_TIME_TOLERANCE_NS);
+        {
+            double timeJumpS = 1.0;
+            setSoftTimeSAndCheckWaitTimeS(
+                clock,
+                hardClock.getTimeS() + timeJumpS,
+                timeJumpS);
+        }
         
         // Must not wait (past time).
-        timeJumpNs = -ONE_SECOND_NS;
-        aNs = nowNs();
-        clock.setTimeNs(hardClock.getTimeNs() + timeJumpNs);
-        bNs = nowNs();
-        assertTrue(Math.abs(bNs-aNs) < REAL_TIME_TOLERANCE_NS);
+        setSoftTimeSAndCheckWaitTimeS(
+            clock,
+            hardClock.getTimeS() - 1.0,
+            0.0);
     }
 
     public void test_RootSoftClock_nonAFAP_latenessThreshold() {
@@ -72,72 +65,134 @@ public class RootSoftClockTest extends TestCase {
         
         final RootSoftClock clock = new RootSoftClock(hardClock);
         
-        /*
-         * Clock late, but lateness inferior to threshold:
-         * soft clock will catch up hard clock.
-         */
-        
-        // Modifying hard clock's time to make root clock late.
-        hardClock.setTimeNs(clock.getTimeNs() + 1000 * ONE_SECOND_NS);
-        
         // Default value (always tries to catch up).
         assertEquals(Long.MAX_VALUE, clock.getLatenessThresholdNS());
-
-        // Clock late, but catches up (just waits 1 second, after catching up 1000 seconds).
         
-        // Does not forgive lateness (1000 s < +Infinity).
-        clock.setTimeNs(clock.getTimeNs());
+        final double latenessThresholdS = 0.9;
+        clock.setLatenessThresholdNS(TimeUtils.sToNs(latenessThresholdS));
         
-        // Not waiting (catches up the lateness).
-        long timeJumpNs = ONE_SECOND_NS;
-        long aNs = nowNs();
-        clock.setTimeNs(clock.getTimeNs() + timeJumpNs);
-        long bNs = nowNs();
-        assertTrue(Math.abs(bNs-aNs) < REAL_TIME_TOLERANCE_NS);
-
         /*
-         * Clock late, but lateness above threshold:
-         * lateness forgiven.
+         * Target time in the past: will return immediately.
+         * Lateness superior to threshold: will store/forgive it.
          */
         
-        // lateness threshold (forgives lateness above that)
-        clock.setLatenessThresholdNS(TimeUtils.sToNs(100.0));
+        hardClock.setTimeNs(TimeUtils.sToNs(1000.0));
+        double expectedAnnulledLatenessS;
+        {
+            final double latenessS = 3.0;
+            setSoftTimeSAndCheckWaitTimeS(clock, 1000.0 - latenessS, 0.0);
+            expectedAnnulledLatenessS =
+                latenessS / RootSoftClock.ANNULLED_LATENESS_DIVISOR;
+            assertEquals(
+                expectedAnnulledLatenessS,
+                TimeUtils.nsToS(clock.getAnnuledLatenessNs()),
+                TOLERANCE_S);
+        }
         
-        // Modifying hard clock's time to make root clock late (more than threshold).
-        hardClock.setTimeNs(clock.getTimeNs() + 1000 * ONE_SECOND_NS);
-
-        // forgives lateness (1000 > 100)
-        clock.setTimeNs(clock.getTimeNs());
+        // Setting threshold resets annulled lateness.
+        clock.setLatenessThresholdNS(TimeUtils.sToNs(latenessThresholdS));
+        assertEquals(0L, clock.getAnnuledLatenessNs());
         
-        // Waits (lateness forgiven).
-        timeJumpNs = ONE_SECOND_NS;
-        aNs = nowNs();
-        clock.setTimeNs(clock.getTimeNs() + timeJumpNs);
-        bNs = nowNs();
-        assertTrue(Math.abs(bNs-aNs - timeJumpNs) < REAL_TIME_TOLERANCE_NS);
+        /*
+         * Target time in the past: will return immediately.
+         * Lateness inferior to threshold: will not store/forgive it.
+         */
+        
+        hardClock.setTimeNs(TimeUtils.sToNs(1000.0));
+        setSoftTimeSAndCheckWaitTimeS(clock, 999.5, 0.0);
+        assertEquals(0L, clock.getAnnuledLatenessNs());
+        
+        /*
+         * Target time is hard time: will return immediately.
+         */
+        
+        setSoftTimeSAndCheckWaitTimeS(clock, 1000.0, 0.0);
+        
+        /*
+         * Target time in the future: will wait.
+         */
+        
+        setSoftTimeSAndCheckWaitTimeS(clock, 1002.0, 2.0);
+        
+        /*
+         * Target time in the past: will return immediately.
+         * Lateness superior to threshold:
+         * will store/forgive some of it (not all).
+         */
+        
+        hardClock.setTimeNs(TimeUtils.sToNs(1010.0));
+        {
+            final double latenessS = 1.0;
+            // 1009.0
+            final double targetTimeS = 1010.0 - latenessS;
+            setSoftTimeSAndCheckWaitTimeS(clock, targetTimeS, 0.0);
+            expectedAnnulledLatenessS =
+                1.0 / RootSoftClock.ANNULLED_LATENESS_DIVISOR;
+            assertEquals(
+                expectedAnnulledLatenessS,
+                TimeUtils.nsToS(clock.getAnnuledLatenessNs()),
+                TOLERANCE_S);
+        }
+        
+        /*
+         * Target time in the future: will wait some,
+         * taking annulled lateness into account.
+         */
+        
+        {
+            // 1010.0 (hard time) + 1.0
+            final double targetTimeS = 1011.0;
+            /*
+             * wait time
+             * = 1011.0 (target time)
+             *   - (1010.0 (hard time) - 0.5 (annulled lateness))
+             * = 1011.0 - 1009.5 = 1.5
+             */
+            final double expectedWaitDurationS = 1.5;
+            setSoftTimeSAndCheckWaitTimeS(
+                clock,
+                targetTimeS,
+                expectedWaitDurationS);
+            assertEquals(
+                expectedAnnulledLatenessS,
+                TimeUtils.nsToS(clock.getAnnuledLatenessNs()),
+                TOLERANCE_S);
+        }
     }
 
     public void test_RootSoftClock_AFAP() {
         final RootSoftClock clock = new RootSoftClock();
         
         // Must not wait.
-        long aNs = nowNs();
-        clock.setTimeNs(10 * ONE_SECOND_NS);
-        long bNs = nowNs();
-        assertTrue(bNs-aNs < REAL_TIME_TOLERANCE_NS);
+        setSoftTimeSAndCheckWaitTimeS(clock, 10.0, 0.0);
         
         // Must not wait.
-        aNs = nowNs();
-        clock.setTimeNs(100 * ONE_SECOND_NS);
-        bNs = nowNs();
-        assertTrue(bNs-aNs < REAL_TIME_TOLERANCE_NS);
+        setSoftTimeSAndCheckWaitTimeS(clock, 100.0, 0.0);
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private static long nowNs() {
-        return System.nanoTime();
+    private static double realTimeS() {
+        return TimeUtils.nsToS(System.nanoTime());
+    }
+    
+    private static void setSoftTimeSAndCheckWaitTimeS(
+        RootSoftClock clock,
+        double targetTimeS,
+        double expectedWaitDurationS) {
+        final double oldTimeS = clock.getTimeS();
+        final double aS = realTimeS();
+        clock.setTimeNs(TimeUtils.sToNs(targetTimeS));
+        final double bS = realTimeS();
+        final double actualWaitDurationS = bS - aS;
+        if (!(Math.abs(actualWaitDurationS - expectedWaitDurationS) < TOLERANCE_S)) {
+            System.out.println("oldTimeS =    " + oldTimeS);
+            System.out.println("targetTimeS = " + targetTimeS);
+            System.out.println("expectedWaitDurationS = " + expectedWaitDurationS);
+            System.out.println("actualWaitDurationS =   " + actualWaitDurationS);
+            fail();
+        }
     }
 }
