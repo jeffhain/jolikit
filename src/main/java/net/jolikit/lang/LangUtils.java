@@ -15,6 +15,7 @@
  */
 package net.jolikit.lang;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
@@ -190,6 +191,39 @@ public class LangUtils {
         }
         
         return result;
+    }
+    
+    /*
+     * List utils.
+     * 
+     * Not putting these in some CollUtils class,
+     * because increasedArrayLength() is already in this class,
+     * and here we just want the most basic and frequent use cases
+     * Java collections don't provide an API for.
+     */
+    
+    /**
+     * Short for "list.get(list.size()-1)".
+     * 
+     * @param list Must no be null.
+     * @return The last element.
+     * @throws NullPointerException if the specified list is null.
+     * @throws IndexOutOfBoundsException if the specified list is empty.
+     */
+    public static <E> E getLast(List<E> list) {
+        return list.get(list.size() - 1);
+    }
+    
+    /**
+     * Short for "list.remove(list.size()-1)".
+     * 
+     * @param list Must no be null.
+     * @return The last element, removed.
+     * @throws NullPointerException if the specified list is null.
+     * @throws IndexOutOfBoundsException if the specified list is empty.
+     */
+    public static <E> E removeLast(List<E> list) {
+        return list.remove(list.size() - 1);
     }
     
     /*

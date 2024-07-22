@@ -18,6 +18,8 @@ package net.jolikit.lang;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,7 +67,7 @@ public class LangUtilsTest extends TestCase {
             this.recorded.append(x);
             this.recorded.append(LangUtils.LINE_SEPARATOR);
         }
-    };
+    }
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -177,24 +179,58 @@ public class LangUtilsTest extends TestCase {
         }
     }
     
-    public void test_assertionsEnabled() {
-        // Supposing same enabling for assertions
-        // in LangUtils and in this class.
-        boolean enabled = false;
-        assert(enabled = !enabled);
-        assertEquals(enabled,LangUtils.assertionsEnabled());
-    }
-
-    public void test_azzert_boolean() {
+    public void test_getLast_List() {
         try {
-            LangUtils.azzert(false);
+            LangUtils.getLast(null);
             fail();
-        } catch (AssertionError e) {
+        } catch (NullPointerException e) {
             // ok
         }
-        assertTrue(LangUtils.azzert(true));
+        
+        final List<Integer> list = new ArrayList<>();
+        try {
+            LangUtils.getLast(list);
+            fail();
+        } catch (IndexOutOfBoundsException e) {
+            // ok
+        }
+        
+        list.add(3);
+        assertEquals(3, (int) LangUtils.getLast(list));
+        assertEquals(1, list.size());
+        
+        list.add(5);
+        assertEquals(5, (int) LangUtils.getLast(list));
+        assertEquals(2, list.size());
     }
-
+    
+    public void test_removeLast_List() {
+        try {
+            LangUtils.removeLast(null);
+            fail();
+        } catch (NullPointerException e) {
+            // ok
+        }
+        
+        final List<Integer> list = new ArrayList<>();
+        try {
+            LangUtils.removeLast(list);
+            fail();
+        } catch (IndexOutOfBoundsException e) {
+            // ok
+        }
+        
+        list.add(3);
+        assertEquals(3, (int) LangUtils.removeLast(list));
+        assertEquals(0, list.size());
+        
+        list.add(3);
+        list.add(5);
+        assertEquals(5, (int) LangUtils.removeLast(list));
+        assertEquals(1, list.size());
+        assertEquals(3, (int) list.get(0));
+    }
+    
     public void test_hashCode_boolean() {
         assertEquals(0, LangUtils.hashCode(false));
         assertEquals(1, LangUtils.hashCode(true));
@@ -216,6 +252,24 @@ public class LangUtilsTest extends TestCase {
         assertFalse(LangUtils.equalOrBothNull(null, 1));
         assertFalse(LangUtils.equalOrBothNull(1, null));
         assertFalse(LangUtils.equalOrBothNull(1, 1L));
+    }
+    
+    public void test_assertionsEnabled() {
+        // Supposing same enabling for assertions
+        // in LangUtils and in this class.
+        boolean enabled = false;
+        assert(enabled = !enabled);
+        assertEquals(enabled,LangUtils.assertionsEnabled());
+    }
+    
+    public void test_azzert_boolean() {
+        try {
+            LangUtils.azzert(false);
+            fail();
+        } catch (AssertionError e) {
+            // ok
+        }
+        assertTrue(LangUtils.azzert(true));
     }
     
     public void test_checkNonNull_Object() {
