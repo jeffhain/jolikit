@@ -103,6 +103,14 @@ public class TimerHardScheduler extends AbstractScheduler {
         executeTimed(runnable, delayNs);
     }
     
+    /*
+     * 
+     */
+    
+    public void shutdown() {
+        this.timer.cancel();
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------

@@ -16,7 +16,6 @@
 package net.jolikit.time.sched.hard;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -27,8 +26,8 @@ import net.jolikit.lang.InterfaceFactory;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.time.clocks.InterfaceClock;
-import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
+import net.jolikit.time.clocks.hard.ZeroHardClock;
 import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 
@@ -51,21 +50,26 @@ public class HardExecutorsPerf {
     private static class MyExecutorData {
         private final Executor executor;
         private final InterfaceClock clock;
-        private final int nbrOfThreads;
-        private final String info;
+        private final int nbrOfCallers;
+        private final int nbrOfWorkers;
         public MyExecutorData(
             final Executor executor,
             final InterfaceClock clock,
-            int nbrOfThreads,
-            final String info) {
+            int nbrOfCallers,
+            int nbrOfThreads) {
             this.executor = executor;
             this.clock = clock;
-            this.nbrOfThreads = nbrOfThreads;
-            this.info = info;
+            this.nbrOfCallers = nbrOfCallers;
+            this.nbrOfWorkers = nbrOfThreads;
         }
-        @Override
-        public String toString() {
-            return "[" + this.info + ", " + this.nbrOfThreads + " thread(s)]";
+        public String getInfo() {
+            return "[" + this.executor.getClass().getSimpleName()
+                + ", " + this.nbrOfCallers + " caller(s)"
+                + ", " + this.nbrOfWorkers + " worker(s)"
+                + ")]";
+        }
+        public void shutdown() {
+            throw new UnsupportedOperationException();
         }
     }
     
@@ -113,16 +117,10 @@ public class HardExecutorsPerf {
             }
             if ((--this.nbrOfSchedules) > 0) {
                 if (this.rescheduleType == MyRescheduleType.EXECUTE) {
-                    // will have one more sequence of calls to run
-                    endCounter.incrementAndGet();
                     this.executor.execute(this);
                 } else if (this.rescheduleType == MyRescheduleType.EXECUTE_AFTER_0) {
-                    // will have one more sequence of calls to run
-                    endCounter.incrementAndGet();
                     asScheduler(this.executor).executeAfterNs(this, 0L);
                 } else if (this.rescheduleType == MyRescheduleType.EXECUTE_AFTER_1NS) {
-                    // will have one more sequence of calls to run
-                    endCounter.incrementAndGet();
                     asScheduler(this.executor).executeAfterNs(this, 1);
                 } else {
                     throw new AssertionError(this.rescheduleType);
@@ -228,12 +226,23 @@ public class HardExecutorsPerf {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * Little hack for new line when number of threads changes.
-     */
-    private static final MyExecutorData BLANK_LINE = new MyExecutorData(null, null, 0, null);
+    private static final int MIN_PARALLELISM = 1;
     
-    private static final int MAX_NBR_OF_THREADS = 2 * Runtime.getRuntime().availableProcessors();
+    /**
+     * Twice to bench core contention.
+     */
+    private static final int MAX_PARALLELISM = 2 * Runtime.getRuntime().availableProcessors();
+    
+    private static final int NBR_OF_RUNS = 2;
+    
+    /**
+     * Doing multiple bursts, to avoid using huge memory by scheduling
+     * millions of works in one shot
+     * (we don't have backpressure as with ringbuffers).
+     */
+    private static final int NBR_OF_BURSTS = 10;
+    private static final int NBR_OF_CALLS_PER_BURST = 100 * 1000;
+    private static final int NBR_OF_CALLS = NBR_OF_BURSTS * NBR_OF_CALLS_PER_BURST;
     
     private final AtomicLong endCounter = new AtomicLong();
     
@@ -241,9 +250,6 @@ public class HardExecutorsPerf {
      * Notified by scheduled that decrements counter to zero.
      */
     private final Object endMutex = new Object();
-    
-    protected int nbrOfK = 2;
-    protected int nbrOfRuns = 100;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -267,98 +273,84 @@ public class HardExecutorsPerf {
     
     private void run() {
         System.out.println("--- " + HardExecutorsPerf.class.getSimpleName() + "... ---");
-        
-        final HardExecutorsPerf tester = new HardExecutorsPerf();
-        tester.nbrOfK = 1;
-        tester.nbrOfRuns = 10;
+        System.out.println("number of calls = " + NBR_OF_CALLS);
         
         System.out.println("t1 = time elapsed up to last executeXxx called");
         System.out.println("t2 = time elapsed up to last runnable called");
         
-        final InterfaceHardClock clock = new SystemTimeClock();
-        
-        /*
-         * 
-         */
-        
-        final ArrayList<MyExecutorData> executorDataList = new ArrayList<MyExecutorData>();
-        for (int nbrOfThreads = 1; nbrOfThreads <= MAX_NBR_OF_THREADS; nbrOfThreads *= 2) {
-            if (true && (nbrOfThreads == 1)) {
-                TimerHardScheduler scheduler = new TimerHardScheduler(clock);
-                MyExecutorData data = new MyExecutorData(
-                    scheduler,
-                    clock,
-                    1, // Timer is mono-threaded.
-                    scheduler.getClass().getSimpleName());
-                executorDataList.add(data);
-            }
-            if (true) {
-                ExecutorHardScheduler scheduler = new ExecutorHardScheduler(clock, nbrOfThreads, nbrOfThreads);
-                MyExecutorData data = new MyExecutorData(
-                    scheduler,
-                    clock,
-                    nbrOfThreads,
-                    scheduler.getClass().getSimpleName());
-                executorDataList.add(data);
-            }
-            if (true) {
-                HardScheduler scheduler = HardScheduler.newInstance(clock, "THREAD", true, nbrOfThreads);
-                MyExecutorData data = new MyExecutorData(
-                    scheduler,
-                    clock,
-                    nbrOfThreads,
-                    scheduler.getClass().getSimpleName());
-                executorDataList.add(data);
-            }
-            if (true) {
-                HardExecutor executor = HardExecutor.newInstance("THREAD", true, nbrOfThreads);
-                MyExecutorData data = new MyExecutorData(
-                    executor,
-                    clock,
-                    nbrOfThreads,
-                    executor.getClass().getSimpleName());
-                executorDataList.add(data);
-            }
-            
-            executorDataList.add(BLANK_LINE);
-        }
-        
-        /*
-         * 
-         */
-        
-        if (true) {
-            tester.bench_execute(executorDataList, 0, null);
-        }
-        if (true) {
-            tester.bench_executeAfterNs(executorDataList, 0, null);
-        }
-        if (true) {
-            tester.bench_executeAfterNs(executorDataList, 9, MyRescheduleType.EXECUTE_AFTER_0);
-        }
-        if (true) {
-            tester.bench_executeAfterNs(executorDataList, 9, MyRescheduleType.EXECUTE_AFTER_1NS);
-        }
+        this.benchThroughput();
         
         System.out.println("--- ..." + HardExecutorsPerf.class.getSimpleName() + " ---");
     }
     
+    private void benchThroughput() {
+        @SuppressWarnings("unused")
+        int nbrOfCallers;
+        @SuppressWarnings("unused")
+        int nbrOfWorkers;
+        for (int parallelism = MIN_PARALLELISM; parallelism <= MAX_PARALLELISM; parallelism *= 2) {
+            System.out.println();
+            System.out.println("parallelism = "+parallelism);
+            if (true && parallelism >= 2) {
+                if (true) {
+                    benchThroughput(nbrOfCallers = 1, nbrOfWorkers = parallelism);
+                }
+                if (true && parallelism >= 4) {
+                    benchThroughput(nbrOfCallers = 2, nbrOfWorkers = parallelism);
+                }
+                if (true) {
+                    benchThroughput(nbrOfCallers = parallelism, nbrOfWorkers = 1);
+                }
+                if (true && parallelism >= 4) {
+                    benchThroughput(nbrOfCallers = parallelism, nbrOfWorkers = 2);
+                }
+            }
+            if (true) {
+                benchThroughput(nbrOfCallers = parallelism, nbrOfWorkers = parallelism);
+            }
+        }
+    }
+    
+    private void benchThroughput(
+        int nbrOfCallers,
+        int nbrOfWorkers) {
+        
+        final ArrayList<MyExecutorData> executorDataList =
+            newExecutorDataList(
+                nbrOfCallers,
+                nbrOfWorkers);
+        
+        if (true) {
+            this.bench_execute(executorDataList, 0, null);
+        }
+        if (true) {
+            this.bench_executeAfterNs(executorDataList, 0, null);
+        }
+        if (true) {
+            this.bench_executeAfterNs(executorDataList, 9, MyRescheduleType.EXECUTE_AFTER_0);
+        }
+        if (true) {
+            this.bench_executeAfterNs(executorDataList, 9, MyRescheduleType.EXECUTE_AFTER_1NS);
+        }
+        
+        for (MyExecutorData executorData : executorDataList) {
+            executorData.shutdown();
+        }
+    }
+    
     private void bench_execute(
-        final Collection<MyExecutorData> schedulersData,
+        final List<MyExecutorData> executorDataList,
         int nbrOfReSchedules,
         final MyRescheduleType rescheduleType) {
         
-        int nbrOfSchedules = nbrOfReSchedules+1;
-        int nbrOfCallsPerRun = 100000/nbrOfSchedules;
-        
-        for (int nbrOfSqrt = 0; nbrOfSqrt <= 100; nbrOfSqrt += 100) {
-            System.out.println("");
-            for (MyExecutorData schedulerData : schedulersData) {
-                if (schedulerData == BLANK_LINE) {
-                    System.out.println("");
-                    continue;
-                }
-                final Executor executor = schedulerData.executor;
+        for (boolean withWork : new boolean[] {false, true}) {
+            final int nbrOfSqrt = (withWork ? 100 : 0);
+            
+            System.out.println();
+            
+            for (MyExecutorData executorData : executorDataList) {
+                final Executor executor = executorData.executor;
+                final int nbrOfSchedules = nbrOfReSchedules + 1;
                 MyNShotCancellableFactory sFactory = new MyNShotCancellableFactory(
                     executor,
                     nbrOfSchedules,
@@ -368,9 +360,18 @@ public class HardExecutorsPerf {
                     executor,
                     sFactory);
                 
-                String benchInfo = getBenchInfo("execute", nbrOfReSchedules, rescheduleType, nbrOfSqrt);
-                for (int k = 0; k < nbrOfK; k++) {
-                    this.bench_executeXXX(schedulerData, benchInfo, cFactory, nbrOfRuns, nbrOfCallsPerRun);
+                String benchInfo = getBenchInfo(
+                    "execute",
+                    nbrOfReSchedules,
+                    rescheduleType,
+                    nbrOfSqrt,
+                    executorData);
+                for (int k = 0; k < NBR_OF_RUNS; k++) {
+                    this.bench_executeXXX(
+                        executorData,
+                        benchInfo,
+                        cFactory,
+                        nbrOfReSchedules);
                 }
             }
         }
@@ -381,95 +382,111 @@ public class HardExecutorsPerf {
         int nbrOfReSchedules,
         final MyRescheduleType rescheduleType) {
         
-        int nbrOfSchedules = nbrOfReSchedules+1;
-        int nbrOfCallsPerRun = 100000/nbrOfSchedules;
-        
-        for (int nbrOfSqrt = 0; nbrOfSqrt <= 100; nbrOfSqrt += 100) {
-            System.out.println("");
-            for (MyExecutorData schedulerData : executorDataList) {
-                if (schedulerData == BLANK_LINE) {
-                    System.out.println("");
-                    continue;
-                }
+        for (boolean withWork : new boolean[] {false, true}) {
+            final int nbrOfSqrt = (withWork ? 100 : 0);
+            
+            System.out.println();
+            
+            for (MyExecutorData executorData : executorDataList) {
                 final InterfaceScheduler scheduler =
                     asSchedulerElseNull(
-                        schedulerData.executor);
+                        executorData.executor);
                 if (scheduler == null) {
                     continue;
                 }
+                final int nbrOfSchedules = nbrOfReSchedules + 1;
                 MyNShotCancellableFactory sFactory = new MyNShotCancellableFactory(
                     scheduler,
                     nbrOfSchedules,
                     rescheduleType,
                     nbrOfSqrt);
                 MyTimedCallerFactory cFactory = new MyTimedCallerFactory(
-                    schedulerData.clock,
+                    executorData.clock,
                     scheduler,
                     sFactory);
                 
-                String benchInfo = getBenchInfo("executeAfterNs", nbrOfReSchedules, rescheduleType, nbrOfSqrt);
-                for (int k = 0; k < nbrOfK; k++) {
-                    this.bench_executeXXX(schedulerData, benchInfo, cFactory, nbrOfRuns, nbrOfCallsPerRun);
+                String benchInfo = getBenchInfo(
+                    "executeAfterNs",
+                    nbrOfReSchedules,
+                    rescheduleType,
+                    nbrOfSqrt,
+                    executorData);
+                for (int k = 0; k < NBR_OF_RUNS; k++) {
+                    this.bench_executeXXX(
+                        executorData,
+                        benchInfo,
+                        cFactory,
+                        nbrOfReSchedules);
                 }
             }
         }
     }
     
-    /**
-     * Doing multiple runs, to avoid using huge memory by scheduling
-     * millions of works in one shot.
-     */
     private void bench_executeXXX(
-        MyExecutorData schedulerData,
+        MyExecutorData executorData,
         String benchInfo,
         MyInterfaceCallerFactory cFactory,
-        int nbrOfRuns,
-        int nbrOfCallsPerRun) {
+        int nbrOfReSchedules) {
         
         // for each test to start with about the same memory
         System.gc();
         
-        final int nbrOfCallingThreads = schedulerData.nbrOfThreads;
+        final int nbrOfCallers = executorData.nbrOfCallers;
         
-        final int nbrOfCallsPerThread = nbrOfCallsPerRun / nbrOfCallingThreads;
-        // Recomputing number of calls per run,
-        // for it to be exact, not to stall waiting
-        // for calls that won't be made.
-        nbrOfCallsPerRun = nbrOfCallsPerThread * nbrOfCallingThreads;
+        final int nbrOfSchedules = nbrOfReSchedules + 1;
+
+        final int callCountPerBurstForAllCallers = NBR_OF_CALLS_PER_BURST / nbrOfSchedules;
+        // Division needs to be exact, else might wait forever.
+        if (callCountPerBurstForAllCallers * nbrOfSchedules != NBR_OF_CALLS_PER_BURST) {
+            throw new AssertionError();
+        }
+
+        final int minCallCountPerBurstPerCaller = callCountPerBurstForAllCallers / nbrOfCallers;
+        final int callCountPerBurstForFirstCaller =
+            callCountPerBurstForAllCallers - minCallCountPerBurstPerCaller * (nbrOfCallers - 1);
         
         /*
          * 
          */
         
         long callsDurationNs = 0;
-        long a = System.nanoTime();
-        for (int k = 0; k < nbrOfRuns; k++) {
-            this.endCounter.set(nbrOfCallsPerRun);
-            ExecutorService executor = Executors.newCachedThreadPool();
-            long u = System.nanoTime();
-            for (int t = 0; t < nbrOfCallingThreads; t++) {
-                executor.execute(cFactory.newInstance(nbrOfCallsPerThread));
+        final long a = System.nanoTime();
+        for (int kb = 0; kb < NBR_OF_BURSTS; kb++) {
+            this.endCounter.set(NBR_OF_CALLS_PER_BURST);
+            final ExecutorService executor = Executors.newCachedThreadPool();
+            final long u = System.nanoTime();
+            for (int i = 0; i < nbrOfCallers; i++) {
+                final int callCountForCaller = 
+                    (i == 0) ? callCountPerBurstForFirstCaller :
+                        minCallCountPerBurstPerCaller;
+                executor.execute(cFactory.newInstance(callCountForCaller));
             }
-            Unchecked.shutdownAndAwaitTermination(executor);
-            long v = System.nanoTime();
-            callsDurationNs += (v-u);
             this.waitForEnd();
+            final long v = System.nanoTime();
+            callsDurationNs += (v-u);
+            Unchecked.shutdownAndAwaitTermination(executor);
         }
-        long b = System.nanoTime();
-        System.out.println(benchInfo + ": " + schedulerData + ": t1 = " + TestUtils.nsToSRounded(callsDurationNs) + " s");
-        System.out.println(benchInfo + ": " + schedulerData + ": t2 = " + TestUtils.nsToSRounded(b-a) + " s");
+        final long b = System.nanoTime();
+        System.out.println(benchInfo + ": t1 = " + TestUtils.nsToSRounded(callsDurationNs) + " s");
+        System.out.println(benchInfo + ": t2 = " + TestUtils.nsToSRounded(b-a) + " s");
     }
     
     /*
      * 
      */
     
-    private static String getBenchInfo(String methodName, int nbrOfReSchedules, MyRescheduleType rescheduleType, int nbrOfSqrt) {
+    private static String getBenchInfo(
+        String methodName,
+        int nbrOfReSchedules,
+        MyRescheduleType rescheduleType,
+        int nbrOfSqrt,
+        MyExecutorData executorData) {
         String benchInfo = methodName;
         if (nbrOfReSchedules != 0) {
             benchInfo += ", " + nbrOfReSchedules + " " + rescheduleType;
         }
         benchInfo += (nbrOfSqrt == 0) ? "(no work)" : "(work)";
+        benchInfo += ": " + executorData.getInfo();
         return benchInfo;
     }
     
@@ -486,6 +503,97 @@ public class HardExecutorsPerf {
             }
         }
     }
+    
+    /*
+     * 
+     */
+    
+    private static ArrayList<MyExecutorData> newExecutorDataList(
+        final int nbrOfCallers,
+        final int nbrOfWorkers) {
+        
+        final ArrayList<MyExecutorData> executorDataList = new ArrayList<MyExecutorData>();
+        
+        if (true && (nbrOfWorkers == 1)) {
+            final SystemTimeClock clock = new SystemTimeClock();
+            final TimerHardScheduler scheduler = new TimerHardScheduler(clock);
+            final MyExecutorData data = new MyExecutorData(
+                scheduler,
+                clock,
+                nbrOfCallers,
+                1) { // Timer is mono-threaded.
+                @Override
+                public void shutdown() {
+                    scheduler.shutdown();
+                }
+            };
+            executorDataList.add(data);
+        }
+        if (true) {
+            final SystemTimeClock clock = new SystemTimeClock();
+            final ExecutorHardScheduler scheduler =
+                new ExecutorHardScheduler(
+                    clock,
+                    nbrOfWorkers,
+                    nbrOfWorkers);
+            final MyExecutorData data = new MyExecutorData(
+                scheduler,
+                clock,
+                nbrOfCallers,
+                nbrOfWorkers) {
+                @Override
+                public void shutdown() {
+                    scheduler.shutdown();
+                }
+            };
+            executorDataList.add(data);
+        }
+        if (true) {
+            final SystemTimeClock clock = new SystemTimeClock();
+            final HardScheduler scheduler =
+                HardScheduler.newInstance(
+                    clock,
+                    "THREAD",
+                    true,
+                    nbrOfWorkers);
+            final MyExecutorData data = new MyExecutorData(
+                scheduler,
+                clock,
+                nbrOfCallers,
+                nbrOfWorkers) {
+                @Override
+                public void shutdown() {
+                    scheduler.shutdown();
+                }
+            };
+            executorDataList.add(data);
+        }
+        if (true) {
+            final ZeroHardClock clock = new ZeroHardClock();
+            final HardExecutor executor =
+                HardExecutor.newInstance(
+                    "THREAD",
+                    true,
+                    nbrOfWorkers);
+            final MyExecutorData data = new MyExecutorData(
+                executor,
+                clock,
+                nbrOfCallers,
+                nbrOfWorkers) {
+                @Override
+                public void shutdown() {
+                    executor.shutdown();
+                }
+            };
+            executorDataList.add(data);
+        }
+        
+        return executorDataList;
+    }
+
+    /*
+     * 
+     */
     
     private static InterfaceScheduler asScheduler(Executor executor) {
         return (InterfaceScheduler) executor;

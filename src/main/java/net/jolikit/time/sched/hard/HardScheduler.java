@@ -145,14 +145,12 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     private static final boolean AZZERTIONS = false;
     
     /**
-     * True to chain signaling for workers.
-     * 
-     * Advantage of signal chaining: does not wakes up all workers if there is
-     * only one runnable to process.
-     * Disadvantage: might take more time to wake up all workers to process
-     * a burst of runnables.
+     * Helps in benches in most cases, possibly due to having workers
+     * wait less and be ready earlier for processing more work.
+     * We want to minimize overhead under highest stress,
+     * so we do that.
      */
-    private static final boolean COMMON_SIGNAL_CHAINING = true;
+    private static final boolean MUST_SIGNAL_ALL_ON_SUBMIT = true;
 
     /**
      * Same as default in PriorityQueue.
@@ -1176,7 +1174,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         if (mustSignal) {
             // Signaling eventually waiting workers, for them
             // to start processing eventual pending schedules.
-            this.signalWorkersForWork();
+            this.schedSystemTimeCondilock.signalAllInLock();
         }
     }
 
@@ -1709,18 +1707,6 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     }
 
     /**
-     * Usually called outside stateMutex, to reduce locks intertwining
-     * and stateMutex's locking time, but could be called within.
-     */
-    private void signalWorkersForWork() {
-        if (COMMON_SIGNAL_CHAINING) {
-            this.schedSystemTimeCondilock.signalInLock();
-        } else {
-            this.schedSystemTimeCondilock.signalAllInLock();
-        }
-    }
-
-    /**
      * Usually called outside stateMutex, to reduce locks interleaving
      * and stateMutex's locking time, but could be called within.
      */
@@ -1751,13 +1737,6 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             final int nbrOfProcessablesSchedules = timedSchedQueue.size() + nbrOfProcessablesAsapSchedules;
             if (nbrOfProcessablesSchedules != 0) {
                 if (mustProcessSchedules()) {
-                    if (COMMON_SIGNAL_CHAINING) {
-                        if (nbrOfProcessablesSchedules > 1) {
-                            // Signaling other worker, if any, to take care of the other
-                            // processable schedule.
-                            schedCondition.signal();
-                        }
-                    }
                     return nbrOfProcessablesAsapSchedules;
                 }
             } else {
@@ -2045,11 +2024,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                 }
             }
             if (enqueued) {
-                // Only need to signal one worker (if any is waiting),
-                // since a same waiting thread can't be notified multiple times
-                // (if not, would have to use signalAll() for cases where multiple
-                // workers might be waiting, and multiple new schedules eligibles).
-                this.schedCondition.signal();
+                if (MUST_SIGNAL_ALL_ON_SUBMIT) {
+                    this.schedCondition.signalAll();
+                } else {
+                    this.schedCondition.signal();
+                }
             } else {
                 // will cancel outside lock (unless exception while trying to enqueue,
                 // but then it will go up the call stack and notify the user that there
