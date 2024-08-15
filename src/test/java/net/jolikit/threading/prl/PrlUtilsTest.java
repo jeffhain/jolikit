@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,39 @@ public class PrlUtilsTest extends TestCase {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
+
+    public void test_computeMaxDepth_int() {
+        
+        for (int badParallelism : new int[]{Integer.MIN_VALUE, 0}) {
+            try {
+                PrlUtils.computeMaxDepth(badParallelism);
+                fail();
+            } catch (IllegalArgumentException e) {
+            }
+        }
+        
+        /*
+         * 
+         */
+
+        assertEquals(0, PrlUtils.computeMaxDepth(1));
+        //
+        assertEquals(1, PrlUtils.computeMaxDepth(2));
+        //
+        assertEquals(2, PrlUtils.computeMaxDepth(3));
+        assertEquals(2, PrlUtils.computeMaxDepth(4));
+        //
+        assertEquals(3, PrlUtils.computeMaxDepth(5));
+        assertEquals(3, PrlUtils.computeMaxDepth(8));
+        //
+        assertEquals(4, PrlUtils.computeMaxDepth(9));
+        
+        /*
+         * 
+         */
+
+        assertEquals(31, PrlUtils.computeMaxDepth(Integer.MAX_VALUE));
+    }
 
     public void test_computeMaxDepth_2int() {
         

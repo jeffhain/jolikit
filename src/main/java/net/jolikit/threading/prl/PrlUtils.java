@@ -30,6 +30,8 @@ public class PrlUtils {
     // FIELDS
     //--------------------------------------------------------------------------
     
+    private static final double LOG2_INV = 1.0 / Math.log(2.0);
+    
     /**
      * Null object pattern, but using a better prefix than "NULL".
      * 
@@ -77,9 +79,35 @@ public class PrlUtils {
     //--------------------------------------------------------------------------
     
     /**
+     * Equivalent to computeMaxDepth(parallelism, discrepancy = 0).
+     * 
+     * You might want to add about 2 to the returned max depth
+     * to balance load among workers in case of uneven splits
+     * or workers resources.
+     * 
+     * @param parallelism Must be >= 1.
+     * @return Max splitting/forking depth needed to cover
+     *         the specified parallelism.
+     */
+    public static int computeMaxDepth(int parallelism) {
+        NbrsUtils.requireSupOrEq(1, parallelism, "parallelism");
+        final double maxDepthFp = Math.log(parallelism) * LOG2_INV;
+        return (int) Math.ceil(maxDepthFp);
+    }
+    
+    /**
      * Method to compute max depth of split tree, from parallelism and a measure
      * of parallel treatments unbalance, or "discrepancy", which doesn't depend
      * on parallelism.
+     * 
+     * Warn: Discrepancy is mostly useful for pathological cases or tests.
+     * In practice, the more parallelism and tasks we have,
+     * the more tasks discrepancies average out among workers,
+     * so using even just a discrepancy of 1 could cause many
+     * unecessary splits, and instead of computing theoretical max depth
+     * corresponding to a discrepancy, it's preferable to just add 2 or so
+     * to max depth corresponding to parallelism (i.e. with a discrepancy of 0)
+     * (cf. computeMaxDepth(parallelism)).
      * 
      * Discrepancy:
      * When a splittable is split, its amount of work W is split into
@@ -93,12 +121,14 @@ public class PrlUtils {
      * 
      * @param parallelism Must be >= 1.
      * @param discrepancy Must be >= 0.
-     * @return Max depth for splitting/forking.
+     * @return Max splitting/forking depth needed to cover
+     *         the specified parallelism and balance the load
+     *         considering the specified discrepancy.
      */
     public static int computeMaxDepth(
             int parallelism,
             int discrepancy) {
-        NbrsUtils.requireSup(0, parallelism, "parallelism");
+        NbrsUtils.requireSupOrEq(1, parallelism, "parallelism");
         NbrsUtils.requireSupOrEq(0, discrepancy, "discrepancy");
         /*
          * Wl = Wr * (1 + discrepancy)
