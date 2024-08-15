@@ -2219,51 +2219,6 @@ public class HardSchedulerTest extends TestCase {
     }
     
     /*
-     * Stealing.
-     */
-    
-    public void test_stealAsapRunnable() {
-        final EnslavedControllableHardClock clock = getClockForTest();
-        
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
-        
-        for (HardScheduler scheduler : schedulerList) {
-            
-            /*
-             * No runnable to steal.
-             */
-            
-            assertNull(scheduler.stealAsapRunnable());
-            
-            /*
-             * Two to steal.
-             */
-            
-            // Making sure they don't get executed.
-            scheduler.stopProcessing();
-            
-            final MyRunnable runnable1 = new MyRunnable(clock);
-            final MyRunnable runnable2 = new MyRunnable(clock);
-            scheduler.execute(runnable1);
-            scheduler.execute(runnable2);
-            
-            assertSame(runnable1, scheduler.stealAsapRunnable());
-            assertSame(runnable2, scheduler.stealAsapRunnable());
-            assertNull(scheduler.stealAsapRunnable());
-            
-            assertEquals(0, runnable1.nbrOfRunCalls);
-            assertEquals(0, runnable2.nbrOfRunCalls);
-            
-            scheduler.shutdown();
-            
-            assertEquals(0, runnable1.nbrOfRunCalls);
-            assertEquals(0, runnable1.nbrOfOnCancelCalls);
-            assertEquals(0, runnable2.nbrOfRunCalls);
-            assertEquals(0, runnable2.nbrOfOnCancelCalls);
-        }
-    }
-
-    /*
      * General tests (not method-specific).
      */
 

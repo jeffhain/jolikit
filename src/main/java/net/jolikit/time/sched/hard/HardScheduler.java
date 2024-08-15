@@ -277,7 +277,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         public int size() {
             return this.size;
         }
-        public boolean add(MySequencedSchedule schedule) {
+        public boolean addLast(MySequencedSchedule schedule) {
             if (this.arr.length == this.size) {
                 this.growArr();
             }
@@ -288,25 +288,25 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             ++this.size;
             return true;
         }
-        public MySequencedSchedule first() {
+        public MySequencedSchedule getFirst() {
             if (this.size == 0) {
                 throw new NoSuchElementException();
             }
             return this.arr[this.beginIndex];
         }
-        public MySequencedSchedule remove() {
+        public MySequencedSchedule removeFirst() {
             if (this.size == 0) {
                 throw new NoSuchElementException();
             }
-            return remove_notEmpty();
+            return removeFirst_notEmpty();
         }
-        public MySequencedSchedule poll() {
+        public MySequencedSchedule pollFirst() {
             if (this.size == 0) {
                 return null;
             }
-            return remove_notEmpty();
+            return removeFirst_notEmpty();
         }
-        private MySequencedSchedule remove_notEmpty() {
+        private MySequencedSchedule removeFirst_notEmpty() {
             final MySequencedSchedule schedule = this.arr[this.beginIndex++];
             if (this.beginIndex == this.arr.length) {
                 this.beginIndex = 0;
@@ -1256,7 +1256,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             final int n = this.asapSchedQueue.size();
             for (int i = 0; i < n; i++) {
-                final MySequencedSchedule schedule = this.asapSchedQueue.remove();
+                final MySequencedSchedule schedule = this.asapSchedQueue.removeFirst();
                 runnables.add(schedule.getRunnable());
             }
             if (n != 0) {
@@ -1443,40 +1443,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             this.enqueueScheduleIfPossible(schedule);
         }
     }
-
-    /*
-     * Stealing.
-     */
-    
-    /**
-     * Useful to implement work stealing,
-     * typically for implementing a parallelizer
-     * on top of this scheduler.
-     * 
-     * If called during shut down,
-     * the returned runnable should be cancelled accordingly
-     * if it implements InterfaceCancellable.
-     * 
-     * @return Next ASAP runnable that was to be executed by this scheduler,
-     *         after removal from it, or null if none.
-     */
-    public Runnable stealAsapRunnable() {
-        
-        Runnable ret = null;
-        
-        final MySequencedSchedule seqSched =
-            this.pollAsapScheduleInLock();
-        if (seqSched != null) {
-            ret = seqSched.getRunnable();
-        }
-        
-        return ret;
-    }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
     /**
      * @throws IllegalStateException if this scheduler is not threadless.
      */
@@ -1542,8 +1513,10 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         this.noRunningWorkerClockTimeCondilock =
             new HardClockCondilock(clock, this.noRunningWorkerSystemTimeCondilock);
 
-        this.schedClockTimeCondilock.setMaxSystemWaitTimeNs(DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
-        this.noRunningWorkerClockTimeCondilock.setMaxSystemWaitTimeNs(DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
+        this.schedClockTimeCondilock.setMaxSystemWaitTimeNs(
+            DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
+        this.noRunningWorkerClockTimeCondilock.setMaxSystemWaitTimeNs(
+            DEFAULT_MAX_SYSTEM_WAIT_TIME_NS);
 
         /*
          * 
@@ -1660,7 +1633,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            ret = this.asapSchedQueue.poll();
+            ret = this.asapSchedQueue.pollFirst();
             if (ret != null) {
                 // In case some treatment ever waits
                 // for no more ASAP schedules.
@@ -1734,7 +1707,8 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
 
             final int nbrOfProcessablesAsapSchedules = asapSchedQueue.size();
             // Integer.MAX_VALUE+Integer.MAX_VALUE = -2, so it's OK to compare against 0.
-            final int nbrOfProcessablesSchedules = timedSchedQueue.size() + nbrOfProcessablesAsapSchedules;
+            final int nbrOfProcessablesSchedules =
+                timedSchedQueue.size() + nbrOfProcessablesAsapSchedules;
             if (nbrOfProcessablesSchedules != 0) {
                 if (mustProcessSchedules()) {
                     return nbrOfProcessablesAsapSchedules;
@@ -1772,7 +1746,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         if (nbrOfAsapToProcess > 0) {
             // Not null.
             final MySequencedSchedule firstAsapSched =
-                    this.asapSchedQueue.first();
+                    this.asapSchedQueue.getFirst();
             if (firstTimedSched != null) {
                 final boolean isTimedScheduleEligible =
                         (timeAfterWaitNs >= firstTimedSched.getTheoreticalTimeNs());
@@ -1847,7 +1821,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                     
                     if (asapSchedToProcess != null) {
                         // ASAP FIFO.
-                        final MySequencedSchedule forCheck = this.asapSchedQueue.remove();
+                        final MySequencedSchedule forCheck = this.asapSchedQueue.removeFirst();
                         if(AZZERTIONS)LangUtils.azzert(forCheck == asapSchedToProcess);
                         runnable = asapSchedToProcess.getRunnable();
                     } else {
@@ -1957,7 +1931,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             return false;
         }
         schedule.setSequenceNumber(this.sequencer++);
-        return this.asapSchedQueue.add(schedule);
+        return this.asapSchedQueue.addLast(schedule);
     }
 
     /**

@@ -1256,49 +1256,6 @@ public class HardExecutorTest extends TestCase {
     }
 
     /*
-     * Stealing.
-     */
-    
-    public void test_stealRunnable() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
-        
-        for (HardExecutor executor : executorList) {
-            
-            /*
-             * No runnable to steal.
-             */
-            
-            assertNull(executor.stealRunnable());
-            
-            /*
-             * Two to steal.
-             */
-            
-            // Making sure they don't get executed.
-            executor.stopProcessing();
-            
-            final MyRunnable runnable1 = new MyRunnable();
-            final MyRunnable runnable2 = new MyRunnable();
-            executor.execute(runnable1);
-            executor.execute(runnable2);
-            
-            assertSame(runnable1, executor.stealRunnable());
-            assertSame(runnable2, executor.stealRunnable());
-            assertNull(executor.stealRunnable());
-            
-            assertEquals(0, runnable1.nbrOfRunCalls);
-            assertEquals(0, runnable2.nbrOfRunCalls);
-            
-            executor.shutdown();
-            
-            assertEquals(0, runnable1.nbrOfRunCalls);
-            assertEquals(0, runnable1.nbrOfOnCancelCalls);
-            assertEquals(0, runnable2.nbrOfRunCalls);
-            assertEquals(0, runnable2.nbrOfOnCancelCalls);
-        }
-    }
-
-    /*
      * General tests (not method-specific).
      */
 

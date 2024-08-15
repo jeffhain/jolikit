@@ -208,7 +208,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         public int size() {
             return this.size;
         }
-        public boolean add(Runnable schedule) {
+        public boolean addLast(Runnable schedule) {
             if (this.arr.length == this.size) {
                 this.growArr();
             }
@@ -219,19 +219,19 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             ++this.size;
             return true;
         }
-        public Runnable remove() {
+        public Runnable removeFirst() {
             if (this.size == 0) {
                 throw new NoSuchElementException();
             }
-            return remove_notEmpty();
+            return removeFirst_notEmpty();
         }
-        public Runnable poll() {
+        public Runnable pollFirst() {
             if (this.size == 0) {
                 return null;
             }
-            return remove_notEmpty();
+            return removeFirst_notEmpty();
         }
-        private Runnable remove_notEmpty() {
+        private Runnable removeFirst_notEmpty() {
             final Runnable schedule = this.arr[this.beginIndex++];
             if (this.beginIndex == this.arr.length) {
                 this.beginIndex = 0;
@@ -911,7 +911,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      */
     public void cancelPendingSchedules() {
         Runnable schedule;
-        while ((schedule = this.pollScheduleInLock()) != null) {
+        while ((schedule = this.pollFirstScheduleInLock()) != null) {
             SchedUtils.call_onCancel_IfCancellable(schedule);
         }
     }
@@ -927,7 +927,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         try {
             final int n = this.schedQueue.size();
             for (int i = 0; i < n; i++) {
-                final Runnable schedule = this.schedQueue.remove();
+                final Runnable schedule = this.schedQueue.removeFirst();
                 runnables.add(schedule);
             }
             if (n != 0) {
@@ -1061,26 +1061,6 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             this.tryStartWorkerThreadsOnScheduleSubmit();
             this.enqueueRunnableIfPossible(runnable);
         }
-    }
-    
-    /*
-     * Stealing.
-     */
-    
-    /**
-     * Useful to implement work stealing,
-     * typically for implementing a parallelizer
-     * on top of this executor.
-     * 
-     * If called during shut down,
-     * the returned runnable should be cancelled accordingly
-     * if it implements InterfaceCancellable.
-     * 
-     * @return Next runnable that was to be executed by this executor,
-     *         after removal from it, or null if none.
-     */
-    public Runnable stealRunnable() {
-        return this.pollScheduleInLock();
     }
     
     //--------------------------------------------------------------------------
@@ -1223,12 +1203,12 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * 
      */
 
-    private Runnable pollScheduleInLock() {
+    private Runnable pollFirstScheduleInLock() {
         final Runnable ret;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            ret = this.schedQueue.poll();
+            ret = this.schedQueue.pollFirst();
             if (ret != null) {
                 // In case some treatment ever waits
                 // for no more schedules.
@@ -1321,7 +1301,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
                     }
                     // Here, we have schedule(s) in queue, and we are supposed to work.
                     
-                    runnable = this.schedQueue.remove();
+                    runnable = this.schedQueue.removeFirst();
                     
                     // Existing anti-synchro loop.
                     break;
@@ -1371,7 +1351,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         if (this.schedQueue.size() == this.queueCapacity) {
             return false;
         }
-        return this.schedQueue.add(schedule);
+        return this.schedQueue.addLast(schedule);
     }
 
     /**
