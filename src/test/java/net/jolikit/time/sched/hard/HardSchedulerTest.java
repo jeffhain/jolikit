@@ -1625,38 +1625,79 @@ public class HardSchedulerTest extends TestCase {
     
     public void test_workersWakeUpOnSchedules_cancel_asap() {
         final boolean mustCancelElseDrain = true;
+        final boolean mustThrowDuringDrain = false;
         final boolean mustAsapElseTimed = true;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain, mustAsapElseTimed);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
         }
     }
     
     public void test_workersWakeUpOnSchedules_cancel_timed() {
         final boolean mustCancelElseDrain = true;
+        final boolean mustThrowDuringDrain = false;
         final boolean mustAsapElseTimed = false;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain, mustAsapElseTimed);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
         }
     }
     
     public void test_workersWakeUpOnSchedules_drain_asap() {
         final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = false;
         final boolean mustAsapElseTimed = true;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain, mustAsapElseTimed);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
+        }
+    }
+    
+    public void test_workersWakeUpOnSchedules_drainWithException_asap() {
+        final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = true;
+        final boolean mustAsapElseTimed = true;
+        for (int k = 0; k < 5; k++) {
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
         }
     }
     
     public void test_workersWakeUpOnSchedules_drain_timed() {
         final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = false;
         final boolean mustAsapElseTimed = false;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain, mustAsapElseTimed);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
+        }
+    }
+    
+    public void test_workersWakeUpOnSchedules_drainWithException_timed() {
+        final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = true;
+        final boolean mustAsapElseTimed = false;
+        for (int k = 0; k < 5; k++) {
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain,
+                mustAsapElseTimed);
         }
     }
     
     public void test_workersWakeUpOnSchedulesXxx(
             boolean mustCancelElseDrain,
+            boolean mustThrowDuringDrain,
             boolean mustAsapElseTimed) {
 
         final InterfaceHardClock clock = getClockForTest();
@@ -1680,7 +1721,11 @@ public class HardSchedulerTest extends TestCase {
             }
 
             scheduler.shutdown();
-
+            
+            // Letting time for workers to be awoken by shutdown()
+            // (not to mistake it for tested awakening).
+            sleepMS(REAL_TIME_TOLERANCE_MS);
+            
             assertEquals(1, scheduler.getNbrOfPendingSchedules());
             assertEquals(1, scheduler.getNbrOfRunningWorkers());
 
@@ -1691,11 +1736,31 @@ public class HardSchedulerTest extends TestCase {
                     scheduler.cancelPendingTimedSchedules();
                 }
             } else {
-                final ArrayList<Object> runnables = new ArrayList<Object>();
-                if (mustAsapElseTimed) {
-                    scheduler.drainPendingAsapRunnablesInto(runnables);
+                if (mustThrowDuringDrain) {
+                    final ArrayList<Object> runnables = new ArrayList<Object>() {
+                        private static final long serialVersionUID = 1L;
+                        @Override
+                        public boolean add(Object toAdd) {
+                            throw new RuntimeException();
+                        }
+                    };
+                    try {
+                        if (mustAsapElseTimed) {
+                            scheduler.drainPendingAsapRunnablesInto(runnables);
+                        } else {
+                            scheduler.drainPendingTimedRunnablesInto(runnables);
+                        }
+                        fail();
+                    } catch (RuntimeException e) {
+                        // ok
+                    }
                 } else {
-                    scheduler.drainPendingTimedRunnablesInto(runnables);
+                    final ArrayList<Object> runnables = new ArrayList<Object>();
+                    if (mustAsapElseTimed) {
+                        scheduler.drainPendingAsapRunnablesInto(runnables);
+                    } else {
+                        scheduler.drainPendingTimedRunnablesInto(runnables);
+                    }
                 }
             }
             assertEquals(0, scheduler.getNbrOfPendingSchedules());

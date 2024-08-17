@@ -937,20 +937,37 @@ public class HardExecutorTest extends TestCase {
 
     public void test_workersWakeUpOnSchedules_cancel() {
         final boolean mustCancelElseDrain = true;
+        final boolean mustThrowDuringDrain = false;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain);
         }
     }
     
     public void test_workersWakeUpOnSchedules_drain() {
         final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = false;
         for (int k = 0; k < 5; k++) {
-            test_workersWakeUpOnSchedulesXxx(mustCancelElseDrain);
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain);
+        }
+    }
+    
+    public void test_workersWakeUpOnSchedules_drainWithException() {
+        final boolean mustCancelElseDrain = false;
+        final boolean mustThrowDuringDrain = true;
+        for (int k = 0; k < 5; k++) {
+            test_workersWakeUpOnSchedulesXxx(
+                mustCancelElseDrain,
+                mustThrowDuringDrain);
         }
     }
     
     public void test_workersWakeUpOnSchedulesXxx(
-            boolean mustCancelElseDrain) {
+            boolean mustCancelElseDrain,
+            boolean mustThrowDuringDrain) {
 
         final ArrayList<HardExecutor> executorList = createFifoExecutors();
 
@@ -969,14 +986,34 @@ public class HardExecutorTest extends TestCase {
 
             executor.shutdown();
 
+            // Letting time for workers to be awoken by shutdown()
+            // (not to mistake it for tested awakening).
+            sleepMS(REAL_TIME_TOLERANCE_MS);
+            
             assertEquals(1, executor.getNbrOfPendingSchedules());
             assertEquals(1, executor.getNbrOfRunningWorkers());
 
             if (mustCancelElseDrain) {
                 executor.cancelPendingSchedules();
             } else {
-                final ArrayList<Object> runnables = new ArrayList<Object>();
-                executor.drainPendingRunnablesInto(runnables);
+                if (mustThrowDuringDrain) {
+                    final ArrayList<Object> runnables = new ArrayList<Object>() {
+                        private static final long serialVersionUID = 1L;
+                        @Override
+                        public boolean add(Object toAdd) {
+                            throw new RuntimeException();
+                        }
+                    };
+                    try {
+                        executor.drainPendingRunnablesInto(runnables);
+                        fail();
+                    } catch (RuntimeException e) {
+                        // ok
+                    }
+                } else {
+                    final ArrayList<Object> runnables = new ArrayList<Object>();
+                    executor.drainPendingRunnablesInto(runnables);
+                }
             }
             assertEquals(0, executor.getNbrOfPendingSchedules());
             // Letting time for worker to die.

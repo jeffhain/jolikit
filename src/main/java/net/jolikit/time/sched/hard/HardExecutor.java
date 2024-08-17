@@ -922,18 +922,21 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *        in the order they were scheduled.
      */
     public void drainPendingRunnablesInto(Collection<? super Runnable> runnables) {
+        int n = 0;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            final int n = this.schedQueue.size();
+            n = this.schedQueue.size();
             for (int i = 0; i < n; i++) {
                 final Runnable schedule = this.schedQueue.removeFirst();
                 runnables.add(schedule);
             }
-            if (n != 0) {
-                this.schedCondition.signalAll();
-            }
         } finally {
+            if (n != 0) {
+                // Signaling in finally, in case we had an exception
+                // while adding into output collection.
+                this.signalWorkersAfterScheduleRemoval();
+            }
             schedLock.unlock();
         }
     }
@@ -1210,9 +1213,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         try {
             ret = this.schedQueue.pollFirst();
             if (ret != null) {
-                // In case some treatment ever waits
-                // for no more schedules.
-                this.schedCondition.signalAll();
+                this.signalWorkersAfterScheduleRemoval();
             }
         } finally {
             schedLock.unlock();
@@ -1236,6 +1237,15 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         }
     }
 
+    /**
+     * Must be called after schedules drain or cancelling,
+     * to wake up workers that would be waiting to be allowed
+     * to process them.
+     */
+    private void signalWorkersAfterScheduleRemoval() {
+        this.schedCondition.signalAll();
+    }
+    
     /**
      * Usually called outside stateMutex, to reduce locks interleaving
      * and stateMutex's locking time, but could be called within.

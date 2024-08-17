@@ -1251,18 +1251,21 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      *        in the order they were scheduled.
      */
     public void drainPendingAsapRunnablesInto(Collection<? super Runnable> runnables) {
+        int n = 0;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            final int n = this.asapSchedQueue.size();
+            n = this.asapSchedQueue.size();
             for (int i = 0; i < n; i++) {
                 final MySequencedSchedule schedule = this.asapSchedQueue.removeFirst();
                 runnables.add(schedule.getRunnable());
             }
-            if (n != 0) {
-                this.schedCondition.signalAll();
-            }
         } finally {
+            if (n != 0) {
+                // Signaling in finally, in case we had an exception
+                // while adding into output collection.
+                this.signalWorkersAfterScheduleRemoval();
+            }
             schedLock.unlock();
         }
     }
@@ -1272,18 +1275,21 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      *        of drained pending timed schedules.
      */
     public void drainPendingTimedRunnablesInto(Collection<? super Runnable> runnables) {
+        int n = 0;
         final Lock schedLock = this.schedLock;
         schedLock.lock();
         try {
-            final int n = this.timedSchedQueue.size();
+            n = this.timedSchedQueue.size();
             for (int i = 0; i < n; i++) {
                 final MyTimedSchedule schedule = this.timedSchedQueue.remove();
                 runnables.add(schedule.getRunnable());
             }
-            if (n != 0) {
-                this.schedCondition.signalAll();
-            }
         } finally {
+            if (n != 0) {
+                // Signaling in finally, in case we had an exception
+                // while adding into output collection.
+                this.signalWorkersAfterScheduleRemoval();
+            }
             schedLock.unlock();
         }
     }
@@ -1635,9 +1641,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             ret = this.asapSchedQueue.pollFirst();
             if (ret != null) {
-                // In case some treatment ever waits
-                // for no more ASAP schedules.
-                this.schedCondition.signalAll();
+                this.signalWorkersAfterScheduleRemoval();
             }
         } finally {
             schedLock.unlock();
@@ -1652,10 +1656,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         try {
             ret = this.timedSchedQueue.poll();
             if (ret != null) {
-                // A worker might have been waiting
-                // for the time to execute it,
-                // in which case it no longer has to.
-                this.schedCondition.signalAll();
+                this.signalWorkersAfterScheduleRemoval();
             }
         } finally {
             schedLock.unlock();
@@ -1678,7 +1679,17 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             this.workerThreadArr[i].start();
         }
     }
-
+    
+    /**
+     * Must be called after schedules drain or cancelling,
+     * to wake up workers that would be waiting to be allowed
+     * to process them, or waiting for the time to process
+     * a timed schedule.
+     */
+    private void signalWorkersAfterScheduleRemoval() {
+        this.schedCondition.signalAll();
+    }
+    
     /**
      * Usually called outside stateMutex, to reduce locks interleaving
      * and stateMutex's locking time, but could be called within.
