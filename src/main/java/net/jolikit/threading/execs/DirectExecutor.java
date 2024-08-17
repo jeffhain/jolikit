@@ -13,33 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.threading;
+package net.jolikit.threading.execs;
 
 import java.util.concurrent.Executor;
 
 /**
  * Executor that synchronously executes the specified Runnable.
  */
-public class SynchronousExecutor implements Executor {
+public class DirectExecutor implements Executor {
 
-    //--------------------------------------------------------------------------
-    // FIELDS
-    //--------------------------------------------------------------------------
-    
-    private static final SynchronousExecutor DEFAULT_INSTANCE = new SynchronousExecutor();
-    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public SynchronousExecutor() {
-    }
-    
-    /**
-     * @return A default instance.
-     */
-    public static SynchronousExecutor getDefaultInstance() {
-        return DEFAULT_INSTANCE;
+    public DirectExecutor() {
     }
     
     /**
