@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import net.jolikit.lang.DefaultExceptionHandler;
 import net.jolikit.lang.RethrowException;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.ConcUnit;
-import net.jolikit.time.sched.InterfaceCancellable;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.hard.HardScheduler;
 

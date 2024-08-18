@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,9 +28,9 @@ import java.util.concurrent.TimeUnit;
 
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.basics.CancellableUtils;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.SchedUtils;
 
 /**
  * Scheduler based on implementations of JDK's Executor interfaces.
@@ -56,7 +56,7 @@ public class ExecutorHardScheduler extends AbstractScheduler {
         @Override
         public void rejectedExecution(Runnable runnable, ThreadPoolExecutor executor) {
             try {
-                SchedUtils.call_onCancel_IfCancellable(runnable);
+                CancellableUtils.call_onCancel_IfCancellable(runnable);
             } finally {
                 final RejectedExecutionHandler handler = this.handler;
                 if (handler != null) {

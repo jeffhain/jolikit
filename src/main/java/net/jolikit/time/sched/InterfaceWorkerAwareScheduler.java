@@ -15,6 +15,8 @@
  */
 package net.jolikit.time.sched;
 
+import net.jolikit.threading.basics.InterfaceWorkerAware;
+
 /**
  * Interface for schedulers that are aware of their threads.
  */

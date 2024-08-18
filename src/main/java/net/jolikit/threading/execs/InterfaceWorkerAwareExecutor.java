@@ -13,9 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.time.sched;
+package net.jolikit.threading.execs;
 
 import java.util.concurrent.Executor;
+
+import net.jolikit.threading.basics.InterfaceWorkerAware;
 
 /**
  * Interface for executors that are aware of their threads.

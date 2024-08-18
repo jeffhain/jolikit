@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,11 +26,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.basics.WorkerThreadChecker;
 import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.soft.InterfaceSoftClock;
 import net.jolikit.time.sched.AbstractDefaultScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-import net.jolikit.time.sched.WorkerThreadChecker;
 
 /**
  * Scheduler for soft scheduling, i.e. for processing runnables

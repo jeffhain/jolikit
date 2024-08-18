@@ -25,17 +25,17 @@ import java.util.concurrent.atomic.AtomicLong;
 import net.jolikit.lang.InterfaceFactory;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
+import net.jolikit.threading.execs.FixedThreadExecutor;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
 import net.jolikit.time.clocks.hard.ZeroHardClock;
-import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 /**
- * Class to bench performances of hard executors,
- * including schedulers.
+ * Class to bench performances of (threaded) executors and schedulers.
  */
-public class HardExecutorsPerf {
+public class ExecutorsPerf {
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -261,10 +261,10 @@ public class HardExecutorsPerf {
     }
     
     public static void newRun(String[] args) {
-        new HardExecutorsPerf().run();
+        new ExecutorsPerf().run();
     }
     
-    public HardExecutorsPerf() {
+    public ExecutorsPerf() {
     }
     
     //--------------------------------------------------------------------------
@@ -272,7 +272,7 @@ public class HardExecutorsPerf {
     //--------------------------------------------------------------------------
     
     private void run() {
-        System.out.println("--- " + HardExecutorsPerf.class.getSimpleName() + "... ---");
+        System.out.println("--- " + ExecutorsPerf.class.getSimpleName() + "... ---");
         System.out.println("number of calls = " + NBR_OF_CALLS);
         
         System.out.println("t1 = time elapsed up to last executeXxx called");
@@ -280,7 +280,7 @@ public class HardExecutorsPerf {
         
         this.benchThroughput();
         
-        System.out.println("--- ..." + HardExecutorsPerf.class.getSimpleName() + " ---");
+        System.out.println("--- ..." + ExecutorsPerf.class.getSimpleName() + " ---");
     }
     
     private void benchThroughput() {
@@ -570,8 +570,8 @@ public class HardExecutorsPerf {
         }
         if (true) {
             final ZeroHardClock clock = new ZeroHardClock();
-            final HardExecutor executor =
-                HardExecutor.newInstance(
+            final FixedThreadExecutor executor =
+                FixedThreadExecutor.newInstance(
                     "THREAD",
                     true,
                     nbrOfWorkers);

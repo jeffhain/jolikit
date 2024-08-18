@@ -34,6 +34,7 @@ import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.threading.locks.MonitorCondilock;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.InterfaceClock;
@@ -42,7 +43,6 @@ import net.jolikit.time.clocks.hard.EnslavedControllableHardClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.NanoTimeClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
-import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 public class HardSchedulerTest extends TestCase {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,11 +27,11 @@ import net.jolikit.bwd.impl.utils.sched.HardClockTimeType;
 import net.jolikit.bwd.impl.utils.sched.UiThreadChecker;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.threading.basics.CancellableUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.sched.AbstractScheduler;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-import net.jolikit.time.sched.SchedUtils;
 import net.jolikit.time.sched.hard.HardScheduler;
 
 import org.lwjgl.glfw.Callbacks;
@@ -301,7 +301,7 @@ public class LwjglUiThreadScheduler extends AbstractScheduler implements Interfa
     private void runLaterImpl(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            SchedUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellable(runnable);
             return;
         }
         

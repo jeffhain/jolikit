@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.time.TimeUtils;
 
 /**

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.time.sched;
+package net.jolikit.threading.basics;
 
 /**
  * Interface for cancellation-aware runnables.
@@ -37,17 +37,15 @@ public interface InterfaceCancellable extends Runnable {
     //--------------------------------------------------------------------------
     
     /**
-     * Called when the execution (ASAP or at a scheduled time) is cancelled.
+     * Called when the execution is cancelled.
      * 
-     * Can be called from any thread (like from a thread shutting down a
-     * scheduler, or from a thread canceling a task), but it does not mandate
+     * Can be called from any thread (like from a thread shutting down an
+     * executor, or from a thread cancelling a task), but it does not mandate
      * thread safety, which depending on design can be ensured by enclosing
      * treatments if needed.
      * 
      * Might be called synchronously from within a run() call, for example
-     * if a repeating task cancels itself from one of its executions, either
-     * explicitly or due to using a soft scheduler executing runnables
-     * synchronously.
+     * if a repeating task cancels itself from one of its executions.
      */
     public void onCancel();
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,9 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import junit.framework.TestCase;
 import net.jolikit.lang.Dbg;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.soft.RootSoftClock;
-import net.jolikit.time.sched.InterfaceCancellable;
 
 public class SoftSchedulerTest extends TestCase {
     
@@ -593,6 +593,7 @@ public class SoftSchedulerTest extends TestCase {
         scheduler.getAlienExecutor().execute(checkingRunnable);
 
         scheduler.executeAfterNs(new Runnable() {
+            @Override
             public void run() {
                 scheduler.stop();
             }

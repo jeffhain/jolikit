@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net.jolikit.time.sched;
 
 import net.jolikit.lang.ExceptionsUtils;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
 
 /**
  * A runnable which provides its theoretical and actual execution times,

@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.time.sched.hard;
+package net.jolikit.threading.execs;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -29,38 +31,29 @@ import java.util.concurrent.locks.ReentrantLock;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.basics.CancellableUtils;
+import net.jolikit.threading.basics.WorkerThreadChecker;
 import net.jolikit.threading.locks.InterfaceCondilock;
 import net.jolikit.threading.locks.LockCondilock;
 import net.jolikit.threading.locks.MonitorCondilock;
-import net.jolikit.time.sched.InterfaceWorkerAwareExecutor;
-import net.jolikit.time.sched.SchedUtils;
-import net.jolikit.time.sched.WorkerThreadChecker;
 
 /**
- * Executor derived from HardScheduler,
- * only implementing Executor interface,
- * but still making use of InterfaceCancellable
- * (in lieu of rejected execution handler)
- * and of InterfaceWorkerAware.
- * The point is not to depend on InterfaceScheduler
- * and InterfaceHardClock when we don't need timed schedules,
- * and not have corresponding treatments overhead
- * (checks for eventual timed schedules, calls to clock for time,
- * wrappers around runnables to hold a sequencer for fairness,
- * etc.).
- * 
- * Calling it HardExecutor and putting in "hard" package,
- * even though it doesn't depend on InterfaceHardClock,
- * because it is conceptually still tied to the notion
- * of hard (and not soft) time and scheduling, due to having
- * a waitForNoMoreRunningWorkerSystemTimeNs() method
- * and using thread(s), and to emphasize the similarity
- * with HardScheduler.
- * 
- * As for HardScheduler, it's trivial to implement
- * an ExecutorService on top of it,
- * by extending JDK's AbstractExecutorService,
- * cf. HardExecutorService.
+ * Executor derived from HardScheduler.
+ * - Removed: timed schedules, and dependency to clock interfaces
+ *   (so always tied to system time or nano time, like
+ *   ThreadPoolExecutor).
+ * - Kept: use of InterfaceCancellable
+ *   (in lieu of RejectedExecutionException
+ *   and rejected execution handler)
+ *   and of InterfaceWorkerAware.
+ * - Added: implements ExecutorService interface
+ *   (not implemented by HardScheduler because Future
+ *   implies waits, and waits are not compatible
+ *   with soft scheduling our hard scheduling wants
+ *   to be consistent with).
+ * - Advantages: lower overhead (workers don't need to check
+ *   for timed schedules, no need to check current time,
+ *   and no need for fairness sequencer).
  * 
  * Main differences with JDK's ThreadPoolExecutor:
  * - more:
@@ -92,7 +85,9 @@ import net.jolikit.time.sched.WorkerThreadChecker;
  * to avoid "this" publication before the instance is fully constructed.
  * You can force early threads start with startWorkerThreadsIfNeeded().
  */
-public class HardExecutor implements InterfaceWorkerAwareExecutor {
+public class FixedThreadExecutor
+extends AbstractExecutorService
+implements InterfaceWorkerAwareExecutor {
     
     /*
      * locks order to respect (to avoid deadlocks):
@@ -127,7 +122,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     private static final boolean MUST_SIGNAL_ALL_ON_SUBMIT = true;
     
     private static final int DEFAULT_QUEUE_CAPACITY = Integer.MAX_VALUE;
-
+    
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
     //--------------------------------------------------------------------------
@@ -171,7 +166,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /*
      * 
      */
@@ -180,7 +175,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         @Override
         public boolean isTrue() {
             if ((nbrOfStartedWorkers.get() != workerThreadArr.length)
-                    && (getNbrOfPendingSchedules() != 0)) {
+                && (getNbrOfPendingSchedules() != 0)) {
                 // Not all workers started yet, but they are being started since there
                 // are some pending schedules: in this case, we never consider that there
                 // is no running worker, to make their lazy-start transparent.
@@ -262,7 +257,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-
+    
     private final MyNoRunningWorkerBC noRunningWorkerBooleanCondition = new MyNoRunningWorkerBC();
     
     /*
@@ -277,7 +272,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     private final Condition schedCondition = this.schedLock.newCondition();
     private final InterfaceCondilock schedSystemTimeCondilock =
         new LockCondilock(this.schedLock, this.schedCondition);
-
+    
     /*
      * noRunningWorkerMutex
      */
@@ -285,16 +280,16 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     private final Object noRunningWorkerMutex = new Object();
     private final InterfaceCondilock noRunningWorkerSystemTimeCondilock =
         new MonitorCondilock(this.noRunningWorkerMutex);
-
+    
     /*
      * 
      */
-
+    
     /**
      * True if must work during call to startAndWorkInCurrentThread().
      */
     private final boolean isThreadless;
-
+    
     /**
      * If isThreadless is true, guarded by stateMutex,
      * else not guarded since effectively immutable after instance construction.
@@ -315,7 +310,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * else not guarded since effectively immutable after instance construction.
      */
     private final MyWorkerRunnable[] workerRunnables;
-
+    
     /**
      * Number of workers that went started.
      * This number is only incremented when a worker gets running
@@ -367,7 +362,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * - NO_AND -> YES_AND (starting acceptance)
      */
     private volatile int acceptSchedulesStatus;
-
+    
     /*
      * 
      */
@@ -388,7 +383,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * - NO_AND -> YES_AND (starting processing after shutdown)
      */
     private volatile int processSchedulesStatus;
-
+    
     /*
      * 
      */
@@ -403,11 +398,42 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * Guarded by schedLock.
      */
     private final MyQueue schedQueue = new MyQueue();
-
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
+    
+    /**
+     * Complete constructor for non-threadless instances.
+     * Constructs an executor using the specified number of threads,
+     * that guarantees FIFO order for schedules only if single-threaded.
+     * 
+     * Redundant with newInstance() method with same arguments,
+     * but allows to extend this class.
+     * 
+     * @param threadNamePrefix Prefix for worker threads names.
+     *        Can be null, in which case worker threads names are not set.
+     * @param daemon Daemon flag set to each thread.
+     * @param nbrOfThreads Number of threads to use. Must be >= 1.
+     * @param queueCapacity Capacity (>=0) for schedules queue.
+     *        When full, new schedules are canceled.
+     * @param threadFactory If null, default threads are created.
+     */
+    public FixedThreadExecutor(
+        String threadNamePrefix,
+        boolean daemon,
+        int nbrOfThreads,
+        int queueCapacity,
+        ThreadFactory threadFactory) {
+        this(
+            false, // isThreadless
+            threadNamePrefix,
+            daemon,
+            nbrOfThreads,
+            queueCapacity,
+            threadFactory);
+    }
+    
     /*
      * Threadless instances.
      */
@@ -417,9 +443,9 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *         that guarantees FIFO order for schedules,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
-    public static HardExecutor newThreadlessInstance() {
+    public static FixedThreadExecutor newThreadlessInstance() {
         return newThreadlessInstance(
-                DEFAULT_QUEUE_CAPACITY);
+            DEFAULT_QUEUE_CAPACITY);
     }
     
     /**
@@ -428,21 +454,21 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * @return An executor working during call to startAndWorkInCurrentThread(),
      *         that guarantees FIFO order for schedules.
      */
-    public static HardExecutor newThreadlessInstance(
-            int queueCapacity) {
-        return new HardExecutor(
-                true, // isThreadless
-                null, // threadNamePrefix
-                false, // daemon
-                1, // nbrOfThreads
-                queueCapacity,
-                null); // threadFactory
+    public static FixedThreadExecutor newThreadlessInstance(
+        int queueCapacity) {
+        return new FixedThreadExecutor(
+            true, // isThreadless
+            null, // threadNamePrefix
+            false, // daemon
+            1, // nbrOfThreads
+            queueCapacity,
+            null); // threadFactory
     }
     
     /*
      * Single-threaded instances.
      */
-
+    
     /**
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
@@ -451,15 +477,15 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *         that guarantees FIFO order for schedules,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
-    public static HardExecutor newSingleThreadedInstance(
-            String threadNamePrefix,
-            boolean daemon) {
+    public static FixedThreadExecutor newSingleThreadedInstance(
+        String threadNamePrefix,
+        boolean daemon) {
         return newSingleThreadedInstance(
-                threadNamePrefix,
-                daemon,
-                null); // threadFactory
+            threadNamePrefix,
+            daemon,
+            null); // threadFactory
     }
-
+    
     /**
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
@@ -469,21 +495,21 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *         that guarantees FIFO order for schedules,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
-    public static HardExecutor newSingleThreadedInstance(
-            String threadNamePrefix,
-            boolean daemon,
-            ThreadFactory threadFactory) {
+    public static FixedThreadExecutor newSingleThreadedInstance(
+        String threadNamePrefix,
+        boolean daemon,
+        ThreadFactory threadFactory) {
         return newInstance(
-                threadNamePrefix,
-                daemon,
-                1, // nbrOfThreads
-                threadFactory);
+            threadNamePrefix,
+            daemon,
+            1, // nbrOfThreads
+            threadFactory);
     }
     
     /*
      * Instances using possibly multiple threads.
      */
-
+    
     /**
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
@@ -493,17 +519,17 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *         that guarantees FIFO order for schedules only if single-threaded,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
-    public static HardExecutor newInstance(
-            String threadNamePrefix,
-            boolean daemon,
-            int nbrOfThreads) {
+    public static FixedThreadExecutor newInstance(
+        String threadNamePrefix,
+        boolean daemon,
+        int nbrOfThreads) {
         return newInstance(
-                threadNamePrefix,
-                daemon,
-                nbrOfThreads,
-                null); // threadFactory
+            threadNamePrefix,
+            daemon,
+            nbrOfThreads,
+            null); // threadFactory
     }
-
+    
     /**
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
@@ -514,19 +540,19 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *         that guarantees FIFO order for schedules only if single-threaded,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
-    public static HardExecutor newInstance(
-            String threadNamePrefix,
-            boolean daemon,
-            int nbrOfThreads,
-            ThreadFactory threadFactory) {
+    public static FixedThreadExecutor newInstance(
+        String threadNamePrefix,
+        boolean daemon,
+        int nbrOfThreads,
+        ThreadFactory threadFactory) {
         return newInstance(
-                threadNamePrefix,
-                daemon,
-                nbrOfThreads,
-                DEFAULT_QUEUE_CAPACITY,
-                threadFactory);
+            threadNamePrefix,
+            daemon,
+            nbrOfThreads,
+            DEFAULT_QUEUE_CAPACITY,
+            threadFactory);
     }
-
+    
     /**
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
@@ -538,21 +564,20 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      * @return An executor using the specified number of threads,
      *         that guarantees FIFO order for schedules only if single-threaded.
      */
-    public static HardExecutor newInstance(
-            String threadNamePrefix,
-            boolean daemon,
-            int nbrOfThreads,
-            int queueCapacity,
-            ThreadFactory threadFactory) {
-        return new HardExecutor(
-                false, // isThreadless
-                threadNamePrefix,
-                daemon,
-                nbrOfThreads,
-                queueCapacity,
-                threadFactory);
+    public static FixedThreadExecutor newInstance(
+        String threadNamePrefix,
+        boolean daemon,
+        int nbrOfThreads,
+        int queueCapacity,
+        ThreadFactory threadFactory) {
+        return new FixedThreadExecutor(
+            threadNamePrefix,
+            daemon,
+            nbrOfThreads,
+            queueCapacity,
+            threadFactory);
     }
-
+    
     /*
      * 
      */
@@ -563,7 +588,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         
         sb.append("[");
         sb.append(super.toString());
-
+        
         final int acceptStatus = this.acceptSchedulesStatus;
         final int processStatus = this.processSchedulesStatus;
         
@@ -577,10 +602,10 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         sb.append(this.getNbrOfWorkingWorkers());
         sb.append(",idle:");
         sb.append(this.getNbrOfIdleWorkers());
-
+        
         sb.append(",schedules:");
         sb.append(this.getNbrOfPendingSchedules());
-
+        
         sb.append(",accepting:");
         sb.append(mustAcceptSchedules(acceptStatus));
         sb.append(",processing:");
@@ -589,7 +614,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         
         return sb.toString();
     }
-
+    
     /*
      * 
      */
@@ -607,28 +632,28 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             return this.workerThreadSet.containsKey(currentThread);
         }
     }
-
+    
     @Override
     public void checkIsWorkerThread() {
         WorkerThreadChecker.checkIsWorkerThread(this);
     }
-
+    
     @Override
     public void checkIsNotWorkerThread() {
         WorkerThreadChecker.checkIsNotWorkerThread(this);
     }
-
+    
     /*
      * getters
      */
-
+    
     /**
      * @return The number of worker threads in work method (either idle or working).
      */
     public int getNbrOfRunningWorkers() {
         return this.nbrOfRunningWorkers.get();
     }
-
+    
     /**
      * @return An estimation of the number of worker threads waiting for work.
      */
@@ -650,7 +675,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             schedLock.unlock();
         }
     }
-
+    
     /**
      * @return An estimation of the number of worker threads processing runnables,
      *         i.e. number of running workers - number of idle workers.
@@ -660,7 +685,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         // Max for safety.
         return Math.max(0, this.getNbrOfRunningWorkers() - this.getNbrOfIdleWorkers());
     }
-
+    
     /**
      * @return The number of pending schedules.
      */
@@ -673,10 +698,11 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             schedLock.unlock();
         }
     }
-
+    
     /**
      * @return True if shutdown() or shutdownNow(...) has been called, false otherwise.
      */
+    @Override
     public boolean isShutdown() {
         return isShutdown(this.processSchedulesStatus);
     }
@@ -698,10 +724,10 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      */
     public void startAndWorkInCurrentThread() {
         this.checkThreadless();
-
+        
         final Thread workerThread = Thread.currentThread();
         final MyWorkerRunnable workerRunnable;
-
+        
         synchronized (this.stateMutex) {
             final int acceptStatus = this.acceptSchedulesStatus;
             if (this.isShutdown()) {
@@ -723,7 +749,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             } else {
                 workerRunnable = this.workerRunnables[0];
             }
-
+            
             // start() is thread-safe, but doing it in this
             // synchronized block for less interleaving.
             this.start();
@@ -776,7 +802,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /**
      * Starts both schedules processing and schedules acceptance,
      * unless if shutdown, in which case only schedules processing
@@ -788,7 +814,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         // Opening the doors.
         this.startAccepting();
     }
-
+    
     /**
      * Stops both schedules acceptance and schedules processing.
      * 
@@ -802,7 +828,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         // Taking a nap.
         this.stopProcessing();
     }
-
+    
     /**
      * Starting schedules (or self re-schedules) acceptance,
      * unless if shutdown, in which case it has no effect.
@@ -821,7 +847,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /**
      * Stops schedules (or self re-schedules) acceptance:
      * new schedules are rejected (onCancel() method called).
@@ -840,7 +866,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /**
      * Tells workers to process pending schedules (if any).
      * 
@@ -874,7 +900,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             this.schedSystemTimeCondilock.signalAllInLock();
         }
     }
-
+    
     /**
      * Tells workers to get on strike after their current work (if any).
      */
@@ -888,7 +914,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /**
      * Cancels currently pending schedules, directly calling
      * onCancel() methods on corresponding cancellables.
@@ -912,10 +938,10 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     public void cancelPendingSchedules() {
         Runnable schedule;
         while ((schedule = this.pollFirstScheduleInLock()) != null) {
-            SchedUtils.call_onCancel_IfCancellable(schedule);
+            CancellableUtils.call_onCancel_IfCancellable(schedule);
         }
     }
-
+    
     /**
      * @param runnables Collection where to add runnables
      *        of drained pending schedules,
@@ -940,7 +966,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             schedLock.unlock();
         }
     }
-
+    
     /**
      * Interrupts worker threads.
      * 
@@ -971,7 +997,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             }
         }
     }
-
+    
     /**
      * This method irremediably stops schedules acceptance, and
      * makes each worker runnable return normally (i.e. die) when
@@ -987,6 +1013,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *   will remain pending forever,
      * - if there are no more pending schedules, this scheduler can be considered terminated.
      */
+    @Override
     public void shutdown() {
         final boolean actualRequest;
         synchronized (this.stateMutex) {
@@ -995,7 +1022,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             if (actualRequest) {
                 // NO, whether or not worker threads have been started already.
                 this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO;
-
+                
                 if (processStatus == PROCESS_SCHEDULES_YES) {
                     this.processSchedulesStatus = PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS;
                 } else {
@@ -1008,7 +1035,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             this.signalWorkersForDeath();
         }
     }
-
+    
     /**
      * Convenience method, implemented with other public methods:
      * calls shutdown(), then stopProcessing(), then eventually
@@ -1036,7 +1063,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         
         return runnables;
     }
-
+    
     /*
      * waits
      */
@@ -1050,14 +1077,14 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      */
     public boolean waitForNoMoreRunningWorkerSystemTimeNs(long timeoutNs) throws InterruptedException {
         return this.noRunningWorkerSystemTimeCondilock.awaitNanosWhileFalseInLock(
-                this.noRunningWorkerBooleanCondition,
-                timeoutNs);
+            this.noRunningWorkerBooleanCondition,
+            timeoutNs);
     }
     
     /*
      * scheduling
      */
-
+    
     @Override
     public void execute(Runnable runnable) {
         if (this.enqueueRunnableIfPossible(runnable)) {
@@ -1066,10 +1093,36 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         }
     }
     
+    /*
+     * Complementary methods for ExecutorService.
+     */
+    
+    /**
+     * Does not interrupt workers.
+     */
+    @Override
+    public List<Runnable> shutdownNow() {
+        // Can always interrupt workers aside if needed.
+        final boolean mustInterruptWorkingWorkers = false;
+        return this.shutdownNow(mustInterruptWorkingWorkers);
+    }
+    
+    @Override
+    public boolean isTerminated() {
+        return this.isShutdown()
+            && (this.getNbrOfRunningWorkers() == 0);
+    }
+    
+    @Override
+    public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+        final long timeoutNs = unit.toNanos(timeout);
+        return this.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
+    }
+    
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
     /**
      * @throws IllegalStateException if this scheduler is not threadless.
      */
@@ -1078,7 +1131,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             throw new IllegalStateException("this scheduler is not threadless");
         }
     }
-
+    
     /**
      * @throws IllegalStateException if this scheduler is threadless.
      */
@@ -1093,7 +1146,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
      *        user calling thread is used as worker thread, during
      *        startAndWorkInCurrentThread() method call.
      */
-    private HardExecutor(
+    private FixedThreadExecutor(
         boolean isThreadless,
         final String threadNamePrefix,
         boolean daemon,
@@ -1107,9 +1160,9 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         
         if (isThreadless) {
             final boolean instanceAdaptedForUserWorkerThread =
-                    (threadNamePrefix == null)
-                    && (nbrOfThreads == 1)
-                    && (threadFactory == null);
+                (threadNamePrefix == null)
+                && (nbrOfThreads == 1)
+                && (threadFactory == null);
             if (!instanceAdaptedForUserWorkerThread) {
                 // Must not happen (due to internal code).
                 throw new AssertionError();
@@ -1119,7 +1172,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         this.isThreadless = isThreadless;
         
         this.queueCapacity = queueCapacity;
-
+        
         /*
          * 
          */
@@ -1159,11 +1212,11 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     /*
      * 
      */
-
+    
     private static boolean mustAcceptSchedules(int acceptStatus) {
         // YES tested before, to optimize the general case.
         return (acceptStatus == ACCEPT_SCHEDULES_YES)
-        || (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED);
+            || (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED);
     }
     
     /*
@@ -1177,7 +1230,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     private static boolean mustProcessSchedules(int processStatus) {
         // YES tested before, to optimize the general case.
         return (processStatus == PROCESS_SCHEDULES_YES)
-        || (processStatus == PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS);
+            || (processStatus == PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS);
     }
     
     /*
@@ -1190,7 +1243,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     
     private static boolean isWorkersStartNeeded(int acceptStatus) {
         return (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED)
-        || (acceptStatus == ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED);
+            || (acceptStatus == ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED);
     }
     
     /*
@@ -1199,13 +1252,13 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     
     private static boolean isShutdown(int processStatus) {
         return (processStatus == PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS)
-        || (processStatus == PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS);
+            || (processStatus == PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS);
     }
     
     /*
      * 
      */
-
+    
     private Runnable pollFirstScheduleInLock() {
         final Runnable ret;
         final Lock schedLock = this.schedLock;
@@ -1220,7 +1273,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         }
         return ret;
     }
-
+    
     /*
      * 
      */
@@ -1236,7 +1289,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             this.workerThreadArr[i].start();
         }
     }
-
+    
     /**
      * Must be called after schedules drain or cancelling,
      * to wake up workers that would be waiting to be allowed
@@ -1253,7 +1306,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
     private void signalWorkersForDeath() {
         this.schedSystemTimeCondilock.signalAllInLock();
     }
-
+    
     /**
      * If more than one runnable is processable,
      * signals condition before returning,
@@ -1270,7 +1323,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
              * - After a schedule's execution.
              * - After end of a wait (for a schedule).
              */
-
+            
             final int pendingScheduleCount = schedQueue.size();
             if (pendingScheduleCount != 0) {
                 if (mustProcessSchedules()) {
@@ -1319,15 +1372,15 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
             } finally {
                 schedLock.unlock();
             }
-
+            
             /*
              * 
              */
-
+            
             runnable.run();
         } // End while.
     }
-
+    
     /*
      * 
      */
@@ -1363,7 +1416,7 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         }
         return this.schedQueue.addLast(schedule);
     }
-
+    
     /**
      * Enqueues if room and accepted, and if workers are started
      * or some calling thread be used as worker later.
@@ -1424,9 +1477,9 @@ public class HardExecutor implements InterfaceWorkerAwareExecutor {
         } finally {
             schedLock.unlock();
         }
-
+        
         if (!enqueued) {
-            SchedUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellable(runnable);
         }
         
         return false;

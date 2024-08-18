@@ -263,6 +263,7 @@ public class JlkDepsTest extends TestCase {
                     NameFilters.startsWithName("java.lang"),
                     NameFilters.startsWithName("java.util"),
                     NameFilters.startsWithName("net.jolikit.lang"),
+                    NameFilters.startsWithName("net.jolikit.threading"),
                 });
 
         depUnit.addAllowedDirectDeps(

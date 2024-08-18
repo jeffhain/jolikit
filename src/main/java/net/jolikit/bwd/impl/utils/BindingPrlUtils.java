@@ -21,10 +21,10 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jolikit.lang.DefaultThreadFactory;
+import net.jolikit.threading.execs.FixedThreadExecutor;
 import net.jolikit.threading.prl.ExecutorParallelizer;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
-import net.jolikit.time.sched.hard.HardExecutor;
 
 public class BindingPrlUtils {
     
@@ -33,13 +33,13 @@ public class BindingPrlUtils {
     //--------------------------------------------------------------------------
     
     /**
-     * Using a HardExecutor instead of a ThreadPoolExecutor,
+     * Using a FixedThreadExecutor instead of a ThreadPoolExecutor,
      * not primarily for its lower overhead,
      * but to avoid spurious ThreadPoolExecutor
      * shutdown and RejectedExecutionException throwings
      * that seem to occur under stress for some reason.
      */
-    private static final boolean MUST_USE_HARD_EXEC_FOR_PRLZR_EXECUTOR = true;
+    private static final boolean MUST_USE_FTE_FOR_PRLZR_EXECUTOR = true;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -76,11 +76,11 @@ public class BindingPrlUtils {
                 }
             };
             final Executor executor;
-            if (MUST_USE_HARD_EXEC_FOR_PRLZR_EXECUTOR) {
+            if (MUST_USE_FTE_FOR_PRLZR_EXECUTOR) {
                 // Thread name set by our thread factory.
-                final String namePrefixForHardScheduler = null;
-                executor = HardExecutor.newInstance(
-                        namePrefixForHardScheduler,
+                final String namePrefixForFte = null;
+                executor = FixedThreadExecutor.newInstance(
+                        namePrefixForFte,
                         daemon,
                         parallelism,
                         prlThreadFactory);

@@ -30,6 +30,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.threading.basics.CancellableUtils;
+import net.jolikit.threading.basics.WorkerThreadChecker;
 import net.jolikit.threading.locks.InterfaceCondilock;
 import net.jolikit.threading.locks.LockCondilock;
 import net.jolikit.threading.locks.MonitorCondilock;
@@ -40,8 +42,6 @@ import net.jolikit.time.clocks.hard.HardClockCondilock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractDefaultScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-import net.jolikit.time.sched.SchedUtils;
-import net.jolikit.time.sched.WorkerThreadChecker;
 
 /**
  * Scheduler based on a hard clock, and on possibly multiple
@@ -616,6 +616,44 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
+    /**
+     * Complete constructor for non-threadless instances.
+     * Constructs a scheduler using the specified number of threads,
+     * that guarantees FIFO order for ASAP schedules only if single-threaded.
+     * 
+     * Redundant with newInstance() method with same arguments,
+     * but allows to extend this class.
+     * 
+     * @param clock Hard clock to use.
+     * @param threadNamePrefix Prefix for worker threads names.
+     *        Can be null, in which case worker threads names are not set.
+     * @param daemon Daemon flag set to each thread.
+     * @param nbrOfThreads Number of threads to use. Must be >= 1.
+     * @param asapQueueCapacity Capacity (>=0) for ASAP schedules queue.
+     *        When full, new schedules are canceled.
+     * @param timedQueueCapacity Capacity (>=0) for timed schedules queue.
+     *        When full, new schedules are canceled.
+     * @param threadFactory If null, default threads are created.
+     */
+    public HardScheduler(
+        InterfaceHardClock clock,
+        String threadNamePrefix,
+        boolean daemon,
+        int nbrOfThreads,
+        int asapQueueCapacity,
+        int timedQueueCapacity,
+        ThreadFactory threadFactory) {
+        this(
+            false, // isThreadless
+            clock,
+            threadNamePrefix,
+            daemon,
+            nbrOfThreads,
+            asapQueueCapacity,
+            timedQueueCapacity,
+            threadFactory);
+    }
+
     /*
      * Threadless instances.
      */
@@ -781,7 +819,6 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             int timedQueueCapacity,
             ThreadFactory threadFactory) {
         return new HardScheduler(
-                false, // isThreadless
                 clock,
                 threadNamePrefix,
                 daemon,
@@ -1227,7 +1264,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public void cancelPendingAsapSchedules() {
         MySequencedSchedule schedule;
         while ((schedule = this.pollAsapScheduleInLock()) != null) {
-            SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
+            CancellableUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
     }
     
@@ -1241,7 +1278,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public void cancelPendingTimedSchedules() {
         MyTimedSchedule schedule = null;
         while ((schedule = this.pollTimedScheduleInLock()) != null) {
-            SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
+            CancellableUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
     }
     
@@ -2024,7 +2061,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         }
 
         if (!enqueued) {
-            SchedUtils.call_onCancel_IfCancellable(schedule.getRunnable());
+            CancellableUtils.call_onCancel_IfCancellable(schedule.getRunnable());
         }
         
         return false;

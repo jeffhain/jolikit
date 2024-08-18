@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,14 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.time.sched;
+package net.jolikit.threading.basics;
 
-public class SchedUtils {
+public class CancellableUtils {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
+    /**
+     * @param runnable Can be null.
+     */
     public static void call_onCancel_IfCancellable(Runnable runnable) {
         if (runnable instanceof InterfaceCancellable) {
             ((InterfaceCancellable) runnable).onCancel();
@@ -31,6 +34,6 @@ public class SchedUtils {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private SchedUtils() {
+    private CancellableUtils() {
     }
 }

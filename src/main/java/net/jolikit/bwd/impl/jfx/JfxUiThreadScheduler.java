@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import javafx.application.Platform;
 import net.jolikit.bwd.impl.utils.sched.AbstractUiThreadScheduler;
 import net.jolikit.bwd.impl.utils.sched.HardClockTimeType;
-import net.jolikit.time.sched.SchedUtils;
+import net.jolikit.threading.basics.CancellableUtils;
 import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
@@ -90,7 +90,7 @@ public class JfxUiThreadScheduler extends AbstractUiThreadScheduler {
     protected void runLater(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            SchedUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellable(runnable);
             return;
         }
         

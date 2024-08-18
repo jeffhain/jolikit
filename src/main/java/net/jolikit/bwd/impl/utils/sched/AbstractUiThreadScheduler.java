@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,13 @@ import java.util.concurrent.ThreadFactory;
 
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.threading.basics.CancellableUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
-import net.jolikit.time.sched.InterfaceCancellable;
 import net.jolikit.time.sched.InterfaceScheduler;
 import net.jolikit.time.sched.InterfaceWorkerAwareScheduler;
-import net.jolikit.time.sched.SchedUtils;
 import net.jolikit.time.sched.hard.HardScheduler;
 
 /**
@@ -74,7 +74,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
         }
         @Override
         public void onCancel() {
-            SchedUtils.call_onCancel_IfCancellable(this.runnable);
+            CancellableUtils.call_onCancel_IfCancellable(this.runnable);
         }
     }
     
@@ -98,7 +98,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
         @Override
         public void onCancel() {
             try {
-                SchedUtils.call_onCancel_IfCancellable(this.runnable);
+                CancellableUtils.call_onCancel_IfCancellable(this.runnable);
             } catch (Throwable t) {
                 exceptionHandler.uncaughtException(Thread.currentThread(), t);
             }
@@ -289,7 +289,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
             completedNormally = true;
         } finally {
             if (!completedNormally) {
-                SchedUtils.call_onCancel_IfCancellable(runnable);
+                CancellableUtils.call_onCancel_IfCancellable(runnable);
             }
         }
     }

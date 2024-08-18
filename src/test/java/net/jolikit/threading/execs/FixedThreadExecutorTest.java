@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.time.sched.hard;
+package net.jolikit.threading.execs;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
@@ -34,13 +34,13 @@ import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
+import net.jolikit.threading.basics.InterfaceCancellable;
 import net.jolikit.threading.locks.MonitorCondilock;
 import net.jolikit.time.TimeUtils;
 import net.jolikit.time.clocks.InterfaceClock;
 import net.jolikit.time.clocks.hard.SystemTimeClock;
-import net.jolikit.time.sched.InterfaceCancellable;
 
-public class HardExecutorTest extends TestCase {
+public class FixedThreadExecutorTest extends TestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -267,7 +267,7 @@ public class HardExecutorTest extends TestCase {
     //--------------------------------------------------------------------------
 
     public void test_toString() {
-        final HardExecutor executor = HardExecutor.newSingleThreadedInstance(
+        final FixedThreadExecutor executor = FixedThreadExecutor.newSingleThreadedInstance(
                 "",
                 true);
 
@@ -309,7 +309,7 @@ public class HardExecutorTest extends TestCase {
             }
         };
 
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 2,
                 threadFactory);
 
@@ -317,7 +317,7 @@ public class HardExecutorTest extends TestCase {
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
         // Starting workers, and checking.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertEquals(0, executor.getNbrOfRunningWorkers());
             executor.startWorkerThreadsIfNeeded();
         }
@@ -334,7 +334,7 @@ public class HardExecutorTest extends TestCase {
         @SuppressWarnings("unused")
         MyThrowableType throwableInOnCancel;
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             int expectedNbrOfAliveWorkers = executor.getNbrOfRunningWorkers();
 
@@ -359,13 +359,13 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfIdleWorkers() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
         // Starting workers, and checking.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertEquals(0, executor.getNbrOfIdleWorkers());
             executor.startWorkerThreadsIfNeeded();
         }
@@ -373,7 +373,7 @@ public class HardExecutorTest extends TestCase {
         // Letting time for workers to get running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             final int nbrOfWorkers = executor.getNbrOfRunningWorkers();
 
@@ -398,10 +398,10 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfWorkingWorkers() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         // Starting workers.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertEquals(0, executor.getNbrOfWorkingWorkers());
             executor.startWorkerThreadsIfNeeded();
         }
@@ -409,7 +409,7 @@ public class HardExecutorTest extends TestCase {
         // Letting time for workers to get running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             assertEquals(0, executor.getNbrOfWorkingWorkers());
 
@@ -432,9 +432,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfPendingSchedules() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             executor.stopProcessing();
 
             assertEquals(0, executor.getNbrOfPendingSchedules());
@@ -460,9 +460,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_isWorkersDeathRequested() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertFalse(executor.isShutdown());
             executor.shutdown();
             assertTrue(executor.isShutdown());
@@ -476,7 +476,7 @@ public class HardExecutorTest extends TestCase {
      */
     
     public void test_startAndWorkInCurrentThread() {
-        final HardExecutor executor = HardExecutor.newThreadlessInstance();
+        final FixedThreadExecutor executor = FixedThreadExecutor.newThreadlessInstance();
         
         final List<String> runTagList = new ArrayList<String>();
         
@@ -544,13 +544,13 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_startWorkerThreadsIfNeeded() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
         // Starting workers, and checking.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertEquals(0, executor.getNbrOfRunningWorkers());
             executor.startWorkerThreadsIfNeeded();
         }
@@ -558,7 +558,7 @@ public class HardExecutorTest extends TestCase {
         // Letting time for workers to get running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             assertNotSame(0, executor.getNbrOfRunningWorkers());
         }
         
@@ -566,9 +566,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_start() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             // stop is supposed tested:
             // we check start gets things back up.
             executor.stop();
@@ -590,9 +590,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_stop() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             executor.stop();
 
             // Checking schedules are not processed, and not accepted.
@@ -617,9 +617,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_startAccepting() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             // stop is supposed tested:
             // we check startAccepting gets accepting back up.
             executor.stop();
@@ -641,7 +641,7 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_stopAccepting() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -652,7 +652,7 @@ public class HardExecutorTest extends TestCase {
         @SuppressWarnings("unused")
         MyThrowableType throwableInOnCancel;
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             // Checking schedules are not accepted,
             // and pending schedules are processed.
 
@@ -694,9 +694,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_startProcessing() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             {
                 // stopProcessing is supposed tested:
                 // we check startProcessing gets things back up.
@@ -727,9 +727,9 @@ public class HardExecutorTest extends TestCase {
          */
 
         {
-            final ArrayList<HardExecutor> executorList = createFifoExecutors();
+            final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
             
-            for (HardExecutor executor : executorList) {
+            for (FixedThreadExecutor executor : executorList) {
                 executor.stopProcessing();
 
                 final MyRunnable runnable = new MyRunnable();
@@ -750,9 +750,9 @@ public class HardExecutorTest extends TestCase {
          */
 
         {
-            final ArrayList<HardExecutor> executorList = createFifoExecutors();
+            final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
             
-            for (HardExecutor executor : executorList) {
+            for (FixedThreadExecutor executor : executorList) {
 
                 // Runnables that wait for a bit, and enough
                 // of them for pending schedules queues to contain
@@ -783,7 +783,7 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_cancelPendingSchedules() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -794,7 +794,7 @@ public class HardExecutorTest extends TestCase {
         @SuppressWarnings("unused")
         MyThrowableType throwableInOnCancel;
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             /*
              * Canceling pending schedules right after scheduling.
@@ -879,9 +879,9 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_drainPendingRunnablesInto_ObjectVector() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             /*
              * No runnable.
@@ -969,9 +969,9 @@ public class HardExecutorTest extends TestCase {
             boolean mustCancelElseDrain,
             boolean mustThrowDuringDrain) {
 
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             executor.startWorkerThreadsIfNeeded();
             // Letting time for worker to go live.
@@ -1034,7 +1034,7 @@ public class HardExecutorTest extends TestCase {
          * the workers never die on interrupt.
          */
 
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 1,
                 null);
 
@@ -1043,14 +1043,14 @@ public class HardExecutorTest extends TestCase {
          */
 
         // Starting workers.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             executor.startWorkerThreadsIfNeeded();
         }
 
         // Letting time for workers to get running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             final int nbrOfWorkers = executor.getNbrOfRunningWorkers();
 
@@ -1065,7 +1065,7 @@ public class HardExecutorTest extends TestCase {
          * Checking interrupting working workers works.
          */
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             final MyRunnable runnable = new MyRunnable(
                     Long.MAX_VALUE);
@@ -1092,7 +1092,7 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_shutdown() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1103,7 +1103,7 @@ public class HardExecutorTest extends TestCase {
         @SuppressWarnings("unused")
         MyThrowableType throwableInOnCancel;
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             // Supposing stopProcessing works.
             executor.stopProcessing();
 
@@ -1165,11 +1165,11 @@ public class HardExecutorTest extends TestCase {
     public void test_waitForNoMoreRunningWorkerSystemTime_long() {
         final double timeSpeed = 2.0;
 
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         final long timeoutNs = TimeUtils.sToNs(1.0);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             final MyRunnable runnable = new MyRunnable();
 
@@ -1268,7 +1268,7 @@ public class HardExecutorTest extends TestCase {
      */
 
     public void test_execute_fifoOrder() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         for (Executor executor : executorList) {
             this.nextOrderNum.set(0);
@@ -1300,7 +1300,7 @@ public class HardExecutorTest extends TestCase {
      * Testing that worker threads survive exceptions.
      */
     public void test_workersSurvivalFromExceptions() {
-        final ArrayList<HardExecutor> executorList = createFifoExecutors();
+        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1312,14 +1312,14 @@ public class HardExecutorTest extends TestCase {
         MyThrowableType throwableInOnCancel;
 
         // Starting workers.
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             executor.startWorkerThreadsIfNeeded();
         }
 
         // Letting time for workers to get running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
 
             final int initialNbrOfAliveWorkers = executor.getNbrOfRunningWorkers();
 
@@ -1368,7 +1368,7 @@ public class HardExecutorTest extends TestCase {
         final int nbrOfThreads = 1;
         final int queueCapacity = 2;
 
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 nbrOfThreads,
                 queueCapacity,
                 null);
@@ -1384,7 +1384,7 @@ public class HardExecutorTest extends TestCase {
 
         MyRunnable runnableTmp;
 
-        for (HardExecutor executor : executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             executor.stopProcessing();
 
             // Filling queue.
@@ -1411,12 +1411,12 @@ public class HardExecutorTest extends TestCase {
     public void test_schedulingStress() {
         final int nbrOfThreads = 3;
 
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 nbrOfThreads);
 
         final Random random = TestUtils.newRandom123456789L();
 
-        for (final HardExecutor executor : executorList) {
+        for (final FixedThreadExecutor executor : executorList) {
 
             // Multiple runs, for smaller queues, and higher chance of messy scheduling.
             final int nbrOfRun = 50;
@@ -1478,12 +1478,12 @@ public class HardExecutorTest extends TestCase {
         // Multiple runs, for smaller queues, and higher chance of messy scheduling.
         final int nbrOfRun = 50;
 
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 nbrOfThreads);
 
         final Random random = TestUtils.newRandom123456789L();
 
-        for (final HardExecutor executor : executorList) {
+        for (final FixedThreadExecutor executor : executorList) {
 
             ExecutorService jdkExecutor = Executors.newCachedThreadPool();
             
@@ -1571,10 +1571,10 @@ public class HardExecutorTest extends TestCase {
     
     public void test_isWorkerThread_andChecks_withThreads() {
         final int nbrOfThreads = 2;
-        final ArrayList<HardExecutor> executorList = createNThreadsExecutors(
+        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
                 nbrOfThreads);
 
-        for (final HardExecutor executor : executorList) {
+        for (final FixedThreadExecutor executor : executorList) {
             
             assertFalse(executor.isWorkerThread());
             try {
@@ -1627,7 +1627,7 @@ public class HardExecutorTest extends TestCase {
     }
 
     public void test_isWorkerThread_andChecks_threadless() {
-        final HardExecutor executor = HardExecutor.newThreadlessInstance();
+        final FixedThreadExecutor executor = FixedThreadExecutor.newThreadlessInstance();
         
         assertFalse(executor.isWorkerThread());
         try {
@@ -1691,13 +1691,13 @@ public class HardExecutorTest extends TestCase {
      * 
      */
     
-    private static void shutdownNowAndWait(List<HardExecutor> executorList) {
-        for (HardExecutor executor : executorList) {
+    private static void shutdownNowAndWait(List<FixedThreadExecutor> executorList) {
+        for (FixedThreadExecutor executor : executorList) {
             shutdownNowAndWait(executor);
         }
     }
 
-    private static void shutdownNowAndWait(HardExecutor executor) {
+    private static void shutdownNowAndWait(FixedThreadExecutor executor) {
         /*
          * TODO For some enigmaticalistiquesquish reason,
          * interrupting formerly tested executor's workers,
@@ -1723,14 +1723,14 @@ public class HardExecutorTest extends TestCase {
     /**
      * These executors ensure FIFO order for schedules.
      */
-    private static ArrayList<HardExecutor> createFifoExecutors() {
+    private static ArrayList<FixedThreadExecutor> createFifoExecutors() {
         return createNThreadsExecutors(1);
     }
 
     /**
      * @param nbrOfThreads Number of threads for executors.
      */
-    private static ArrayList<HardExecutor> createNThreadsExecutors(
+    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
             int nbrOfThreads) {
         final ThreadFactory threadFactory = new MyThreadFactory();
         return createNThreadsExecutors(
@@ -1738,7 +1738,7 @@ public class HardExecutorTest extends TestCase {
                 threadFactory);
     }
 
-    private static ArrayList<HardExecutor> createNThreadsExecutors(
+    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
             int nbrOfThreads,
             final ThreadFactory threadFactory) {
         return createNThreadsExecutors(
@@ -1747,13 +1747,13 @@ public class HardExecutorTest extends TestCase {
                 threadFactory);
     }
 
-    private static ArrayList<HardExecutor> createNThreadsExecutors(
+    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
         int nbrOfThreads,
         int queueCapacity,
         final ThreadFactory threadFactory) {
         
         final boolean daemon = true;
-        final HardExecutor executor1 = HardExecutor.newInstance(
+        final FixedThreadExecutor executor1 = FixedThreadExecutor.newInstance(
             "EXECUTOR_1",
             daemon,
             nbrOfThreads,
@@ -1765,7 +1765,7 @@ public class HardExecutorTest extends TestCase {
          * but we keep current method in case we add one back in the future.
          */
 
-        final ArrayList<HardExecutor> executorList = new ArrayList<HardExecutor>();
+        final ArrayList<FixedThreadExecutor> executorList = new ArrayList<FixedThreadExecutor>();
         executorList.add(executor1);
 
         return executorList;
