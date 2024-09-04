@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -215,10 +215,11 @@ public class NbrsTestUtils {
         checkMinMax(min, max);
         final float width = max-min;
         if (width == Float.POSITIVE_INFINITY) {
+            final float mid = (max * 0.5f + min * 0.5f);
             if (this.random.nextBoolean()) {
-                return this.randomFloatUniform(min, 0.0f);
+                return this.randomFloatUniform(min, mid);
             } else {
-                return this.randomFloatUniform(0.0f, max);
+                return this.randomFloatUniform(mid, max);
             }
         } else {
             return (float)(min + width * this.random.nextDouble());
@@ -233,10 +234,11 @@ public class NbrsTestUtils {
         checkMinMax(min, max);
         final double width = max-min;
         if (width == Double.POSITIVE_INFINITY) {
+            final double mid = (max * 0.5 + min * 0.5);
             if (this.random.nextBoolean()) {
-                return this.randomDoubleUniform(min, 0.0);
+                return this.randomDoubleUniform(min, mid);
             } else {
-                return this.randomDoubleUniform(0.0, max);
+                return this.randomDoubleUniform(mid, max);
             }
         } else {
             return min + width * this.random.nextDouble();
@@ -399,10 +401,11 @@ public class NbrsTestUtils {
         checkMinMax(min, max);
         final float width = max-min;
         if (width == Float.POSITIVE_INFINITY) {
+            final float mid = (max * 0.5f + min * 0.5f);
             if (this.random.nextBoolean()) {
-                return this.randomFloatWhatever(min, 0.0f);
+                return this.randomFloatWhatever(min, mid);
             } else {
-                return this.randomFloatWhatever(0.0f, max);
+                return this.randomFloatWhatever(mid, max);
             }
         }
         final double u01 = this.random.nextDouble();
@@ -493,10 +496,11 @@ public class NbrsTestUtils {
         checkMinMax(min, max);
         final double width = max-min;
         if (width == Double.POSITIVE_INFINITY) {
+            final double mid = (max * 0.5 + min * 0.5);
             if (this.random.nextBoolean()) {
-                return this.randomDoubleWhatever(min, 0.0);
+                return this.randomDoubleWhatever(min, mid);
             } else {
-                return this.randomDoubleWhatever(0.0, max);
+                return this.randomDoubleWhatever(mid, max);
             }
         }
         final double u01 = this.random.nextDouble();

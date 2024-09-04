@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -183,15 +183,21 @@ public class JlkDepsTest extends TestCase {
          * Negative checks.
          */
         
-        // Checking that "main code" class files don't depend on Dbg,
-        // which is only meant for debug.
+        // Checking that "main code" class files don't depend
+        // on Dbg or HeisenLogger, which are only meant for debug.
+        final InterfaceNameFilter forbiddenTo =
+            NameFilters.or(
+                NameFilters.equalsName("net.jolikit.lang.Dbg"),
+                NameFilters.equalsName("net.jolikit.lang.HeisenLogger"));
         depUnit.addIllegalDirectDeps(
                 ElemType.CLASS,
-                NameFilters.startsWithName("net.jolikit"),
+                NameFilters.and(
+                    NameFilters.startsWithName("net.jolikit"),
+                    NameFilters.not(forbiddenTo)),
                 new InterfaceNameFilter[]{
-                    NameFilters.startsWithName("net.jolikit.lang.Dbg"),
+                    forbiddenTo,
                 });
-
+        
         /*
          * 
          */
