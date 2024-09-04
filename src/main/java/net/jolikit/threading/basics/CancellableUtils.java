@@ -15,6 +15,8 @@
  */
 package net.jolikit.threading.basics;
 
+import java.util.concurrent.RejectedExecutionException;
+
 public class CancellableUtils {
     
     //--------------------------------------------------------------------------
@@ -23,10 +25,26 @@ public class CancellableUtils {
 
     /**
      * @param runnable Can be null.
+     * @return True if called onCancel(), false otherwise.
      */
-    public static void call_onCancel_IfCancellable(Runnable runnable) {
+    public static boolean call_onCancel_IfCancellable(Runnable runnable) {
+        boolean ret = false;
         if (runnable instanceof InterfaceCancellable) {
             ((InterfaceCancellable) runnable).onCancel();
+            ret = true;
+        }
+        return ret;
+    }
+    
+    /**
+     * @param runnable Can be null.
+     * @throws RejectedExecutionException if the specified runnable
+     *         is not null and is not a cancellable.
+     */
+    public static void call_onCancel_IfCancellableElseThrowREE(Runnable runnable) {
+        if ((!call_onCancel_IfCancellable(runnable))
+            && (runnable != null)) {
+            throw new RejectedExecutionException();
         }
     }
     

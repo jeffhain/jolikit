@@ -249,7 +249,7 @@ public class QtjUiThreadScheduler extends AbstractScheduler implements Interface
     private void runLaterImpl(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
         
@@ -260,7 +260,7 @@ public class QtjUiThreadScheduler extends AbstractScheduler implements Interface
          */
         if ((QCoreApplication.instance() == null)
                 || (QCoreApplication.instance().nativeId() == 0L)) {
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             if (false) {
                 throw new IllegalStateException("QCoreApplication not (yet/still) ready");
             } else {

@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -31,10 +30,10 @@ import java.util.concurrent.locks.ReentrantLock;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
+import net.jolikit.lang.PostPaddedAtomicInteger;
 import net.jolikit.threading.basics.CancellableUtils;
 import net.jolikit.threading.basics.WorkerThreadChecker;
 import net.jolikit.threading.locks.InterfaceCondilock;
-import net.jolikit.threading.locks.LockCondilock;
 import net.jolikit.threading.locks.MonitorCondilock;
 
 /**
@@ -43,31 +42,42 @@ import net.jolikit.threading.locks.MonitorCondilock;
  *   (so always tied to system time or nano time, like
  *   ThreadPoolExecutor).
  * - Kept: use of InterfaceCancellable
- *   (in lieu of RejectedExecutionException
- *   and rejected execution handler)
  *   and of InterfaceWorkerAware.
- * - Added: implements ExecutorService interface
+ * - Added: implementation of ExecutorService interface
  *   (not implemented by HardScheduler because Future
  *   implies waits, and waits are not compatible
  *   with soft scheduling our hard scheduling wants
  *   to be consistent with).
- * - Advantages: lower overhead (workers don't need to check
- *   for timed schedules, no need to check current time,
- *   and no need for fairness sequencer).
+ * - Advantages: Better throughput (workers don't need to
+ *   check for timed schedules, no need to check current time,
+ *   no need for fairness sequencer).
  * 
  * Main differences with JDK's ThreadPoolExecutor:
  * - more:
- *   - Hopefully has less overhead.
- *   - Methods to start/stop schedules acceptance and processing.
- *   - schedules queue can have a max capacity,
- *     over which schedules are rejected.
+ *   - Usually better throughput (but only noticeable for tiny tasks),
+ *     especially in case of single or just a few worker threads
+ *     (using a simpler queue in these cases).
+ *   - Methods to start/stop schedules acceptance and processing
+ *     by worker threads.
+ *   - Methods to cancel or drain pending schedules.
  * - different:
  *   - Uses fixed threads instead of a thread pool.
- * 
- * This executor provides methods to:
- * - start/stop schedules acceptance,
- * - start/stop schedules processing by worker threads,
- * - cancel pending schedules.
+ *   - Threads naming and deamon flag are specified aside from
+ *     the thread factory, not to have to create or configure
+ *     a specific one for these very situational settings.
+ *   - When queue reaches max capacity, runnables are rejected
+ *     instead of applying backpressure by having execute() to block.
+ *     This allows to remove risks of deadlocks when execute()
+ *     is called by worker threads, and to be notified of the overload
+ *     and adapt accordingly.
+ *   - If the runnable implements InterfaceCancellable,
+ *     on rejection by execute() the onCancel() method is called
+ *     instead of throwing RejectedExecutionException.
+ *     This allows to use rejection as a normal and lighter mechanism
+ *     (for example instead of applying backpressure, as described above).
+ *   - Thread interrupts are means to interrupt user code being executed,
+ *     while in TPE interrupts are used for workers management
+ *     and locks are used to protect user code against them.
  * 
  * Workers runnables don't catch any throwable, so worker threads might die
  * on the first exception thrown by a runnable, but workers runnables
@@ -77,13 +87,11 @@ import net.jolikit.threading.locks.MonitorCondilock;
  * an exception can be done easily, using a thread factory that properly
  * wraps worker's runnables with runnables containing proper try/catch
  * and loop.
- * After returning normally, a worker's runnable is not supposed to be called again
- * (by whatever runnable a thread factory could wrap around it), or workers death
- * would not be possible.
+ * After completing normally, a worker's runnable is not supposed to be
+ * called again (by whatever runnable a thread factory could wrap around it),
+ * else workers normal completion would not be possible.
  * 
- * Threads are lazily started, as well as listening to clocks modifications,
- * to avoid "this" publication before the instance is fully constructed.
- * You can force early threads start with startWorkerThreadsIfNeeded().
+ * Threads are started lazily or by call to startWorkerThreadsIfNeeded().
  */
 public class FixedThreadExecutor
 extends AbstractExecutorService
@@ -92,36 +100,23 @@ implements InterfaceWorkerAwareExecutor {
     /*
      * locks order to respect (to avoid deadlocks):
      * - "A > B" <=> "can lock B in A, but not A in B"
-     * - stateMutex > noRunningWorkerMutex > schedLock
+     * - stateMutex > noRunningWorkerMutex > putLock >= takeLock
      * 
-     * All these locks can be acquired by user thread when calling
+     * All of these locks can be acquired by user thread when calling
      * public methods of this class.
-     * 
-     * (Eventually) locking treatments done in each lock (must respect locks order):
-     * - noRunningWorkerMutex:
-     *   - schedLock (to retrieve the number of pending schedules)
-     */
-    
-    /*
-     * NB: Not designed for being backed by an Executor,
-     * but could maybe be added (would allow to make schedulers
-     * based on executors based on schedulers etc., and check
-     * it would still work, even though with more overhead).
      */
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    /**
-     * Helps in benches in most cases, possibly due to having workers
-     * wait less and be ready earlier for processing more work.
-     * We want to minimize overhead under highest stress,
-     * so we do that.
-     */
-    private static final boolean MUST_SIGNAL_ALL_ON_SUBMIT = true;
-    
     private static final int DEFAULT_QUEUE_CAPACITY = Integer.MAX_VALUE;
+    
+    /**
+     * Above a few workers, benches get slower with basic queue in case of
+     * single publisher, and much slower as worker count increases.
+     */
+    private static final int DEFAULT_MAX_WORKER_COUNT_FOR_BASIC_QUEUE = 4;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -161,7 +156,7 @@ implements InterfaceWorkerAwareExecutor {
                 this.done = true;
             } finally {
                 if (nbrOfRunningWorkers.decrementAndGet() == 0) {
-                    noRunningWorkerSystemTimeCondilock.signalAllInLock();
+                    noRunningWorkerCondilock.signalAllInLock();
                 }
             }
         }
@@ -190,67 +185,193 @@ implements InterfaceWorkerAwareExecutor {
      */
     
     /**
-     * Little queue for use instead of a LinkedList,
-     * not so much for speed than for lower memory footprint,
-     * in particular in case of schedules bursts
-     * (but once it grows, it doesn't shrink).
+     * Linked queue node class.
      */
-    private static class MyQueue {
-        private Runnable[] arr = new Runnable[2];
-        private int beginIndex = 0;
-        private int endIndex = -1;
+    private static class MyNode {
+        Runnable item;
+        /**
+         * Next node if any, null if last node
+         * (including when empty, i.e. head = last).
+         */
+        MyNode next;
+        MyNode(Runnable x) {
+            this.item = x;
+        }
+    }
+    
+    /**
+     * Derived from LinkedBlockingQueue,
+     * with locks acquiring moved out of it,
+     * and no notFull usage (using offer, not blocking put).
+     * 
+     * The extended AtomicInteger holds the size for
+     * concurrent (dual lock) implementation
+     * (avoiding a separate object to reduce risk of cache miss).
+     */
+    private static abstract class MyAbstractQueue extends PostPaddedAtomicInteger {
+        private static final long serialVersionUID = 1L;
+        final int capacity;
+        /**
+         * Used on take.
+         */
+        private MyNode head;
+        /**
+         * Used on put.
+         */
+        private MyNode last;
+        private boolean queueEmptyBeforeLastAdd = false;
+        private boolean queueNotEmptyAfterLastRemove = false;
+        public MyAbstractQueue(int capacity) {
+            this.capacity = capacity;
+            this.last = this.head = new MyNode(null);
+        }
+        /*
+         * Methods usable in putLock or in takeLock
+         * (i.e. in the lock if they are the same,
+         * else typically callable concurrently).
+         */
+        public abstract int size();
+        /*
+         * Methods to be used in putLock.
+         */
+        /**
+         * @return True if could enqueue (i.f. was not full).
+         */
+        public abstract boolean offerLast(MyNode node);
+        final void addLast_structure(MyNode node) {
+            // assert last.next == null;
+            this.last = this.last.next = node;
+        }
+        /**
+         * Allows to know whether signaling of takeLock must be done,
+         * since it's not done by the queue.
+         * 
+         * @return True if the queue was empty just before the last add,
+         *         false otherwise.
+         */
+        public final boolean wasEmptyBeforeLastAdd() {
+            return this.queueEmptyBeforeLastAdd;
+        }
+        /**
+         * To be called on add.
+         */
+        final void setWasEmptyBeforeLastAdd(boolean val) {
+            this.queueEmptyBeforeLastAdd = val;
+        }
+        /*
+         * Methods to be used in takeLock.
+         */
+        public abstract Runnable pollFirst();
+        final Runnable removeFirst_structure() {
+            // assert head.item == null;
+            /*
+             * Removing head node, and first node
+             * gets to be used as new head.
+             */
+            MyNode h = this.head;
+            MyNode first = h.next;
+            h.next = h; // help GC
+            this.head = first;
+            Runnable x = first.item;
+            first.item = null;
+            return x;
+        }
+        /**
+         * Allows to know whether signaling of takeLock must be done,
+         * since it's not done by the queue.
+         * 
+         * @return True if the queue was not empty just after the last removal,
+         *         false otherwise.
+         */
+        public final boolean wasNotEmptyAfterLastRemove() {
+            return this.queueNotEmptyAfterLastRemove;
+        }
+        /**
+         * To be called on removal.
+         */
+        final void setWasNotEmptyAfterLastRemove(boolean val) {
+            this.queueNotEmptyAfterLastRemove = val;
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Implementation guarded by a single lock.
+     */
+    private static class MyBasicQueue extends MyAbstractQueue {
+        private static final long serialVersionUID = 1L;
         private int size = 0;
+        public MyBasicQueue(int capacity) {
+            super(capacity);
+        }
+        @Override
         public int size() {
             return this.size;
         }
-        public boolean addLast(Runnable schedule) {
-            if (this.arr.length == this.size) {
-                this.growArr();
+        @Override
+        public boolean offerLast(MyNode node) {
+            int c = -1;
+            if (this.size < this.capacity) {
+                this.addLast_structure(node);
+                c = this.size++;
+                this.setWasEmptyBeforeLastAdd(c == 0);
             }
-            if (++this.endIndex == this.arr.length) {
-                this.endIndex = 0;
-            }
-            this.arr[this.endIndex] = schedule;
-            ++this.size;
-            return true;
+            return c >= 0;
         }
-        public Runnable removeFirst() {
-            if (this.size == 0) {
-                throw new NoSuchElementException();
-            }
-            return removeFirst_notEmpty();
-        }
+        @Override
         public Runnable pollFirst() {
-            if (this.size == 0) {
-                return null;
+            Runnable ret = null;
+            if (this.size > 0) {
+                ret = this.removeFirst_structure();
+                final int oldSize = this.size--;
+                this.setWasNotEmptyAfterLastRemove(oldSize > 1);
             }
-            return removeFirst_notEmpty();
+            return ret;
         }
-        private Runnable removeFirst_notEmpty() {
-            final Runnable schedule = this.arr[this.beginIndex++];
-            if (this.beginIndex == this.arr.length) {
-                this.beginIndex = 0;
-            }
-            if (--this.size == 0) {
-                this.beginIndex = 0;
-                this.endIndex = -1;
-            }
-            return schedule;
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Implementation guarded by a putLock and a takeLock,
+     * with concurrently readable size.
+     */
+    private static class MyDualLockQueue extends MyAbstractQueue {
+        private static final long serialVersionUID = 1L;
+        public MyDualLockQueue(int capacity) {
+            super(capacity);
         }
-        private void growArr() {
-            final int newCapacity = LangUtils.increasedArrayLength(
-                this.arr.length, this.arr.length + 1);
-            final Runnable[] newArr = new Runnable[newCapacity];
-            if (this.beginIndex <= this.endIndex) {
-                System.arraycopy(this.arr, this.beginIndex, newArr, 0, this.size);
-            } else {
-                final int beginSize = this.arr.length - this.beginIndex;
-                System.arraycopy(this.arr, this.beginIndex, newArr, 0, beginSize);
-                System.arraycopy(this.arr, 0, newArr, beginSize, this.endIndex + 1);
+        @Override
+        public int size() {
+            final AtomicInteger sizeAto = this;
+            return sizeAto.get();
+        }
+        @Override
+        public boolean offerLast(MyNode node) {
+            final AtomicInteger sizeAto = this;
+            int oldSize = -1;
+            if (sizeAto.get() < this.capacity) {
+                this.addLast_structure(node);
+                oldSize = sizeAto.getAndIncrement();
+                this.setWasEmptyBeforeLastAdd(oldSize == 0);
             }
-            this.arr = newArr;
-            this.beginIndex = 0;
-            this.endIndex = this.size - 1;
+            return (oldSize >= 0);
+        }
+        @Override
+        public Runnable pollFirst() {
+            final AtomicInteger sizeAto = this;
+            Runnable ret = null;
+            if (sizeAto.get() > 0) {
+                ret = this.removeFirst_structure();
+                final int oldSize = sizeAto.getAndDecrement();
+                this.setWasNotEmptyAfterLastRemove(oldSize > 1);
+            }
+            return ret;
         }
     }
     
@@ -258,27 +379,35 @@ implements InterfaceWorkerAwareExecutor {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final MyNoRunningWorkerBC noRunningWorkerBooleanCondition = new MyNoRunningWorkerBC();
+    private final MyNoRunningWorkerBC noRunningWorkerBooleanCondition =
+        new MyNoRunningWorkerBC();
     
     /*
-     * schedLock
+     * takeLock
      */
     
     /**
-     * Lock waited on for scheduling.
-     * Guards some runnables collections.
+     * Lock waited on by workers.
      */
-    private final ReentrantLock schedLock = new ReentrantLock();
-    private final Condition schedCondition = this.schedLock.newCondition();
-    private final InterfaceCondilock schedSystemTimeCondilock =
-        new LockCondilock(this.schedLock, this.schedCondition);
+    private final ReentrantLock takeLock = new ReentrantLock();
+    private final Condition takeCondition = this.takeLock.newCondition();
+    
+    /*
+     * putLock
+     */
+    
+    /**
+     * Lock acquired by publishers.
+     * Might be identical to takeLock.
+     */
+    private final ReentrantLock putLock;
     
     /*
      * noRunningWorkerMutex
      */
     
     private final Object noRunningWorkerMutex = new Object();
-    private final InterfaceCondilock noRunningWorkerSystemTimeCondilock =
+    private final InterfaceCondilock noRunningWorkerCondilock =
         new MonitorCondilock(this.noRunningWorkerMutex);
     
     /*
@@ -361,7 +490,8 @@ implements InterfaceWorkerAwareExecutor {
      * - NO -> YES (starting acceptance)
      * - NO_AND -> YES_AND (starting acceptance)
      */
-    private volatile int acceptSchedulesStatus;
+    private final AtomicInteger acceptSchedulesStatus =
+        new PostPaddedAtomicInteger();
     
     /*
      * 
@@ -382,22 +512,18 @@ implements InterfaceWorkerAwareExecutor {
      * - NO -> YES (starting processing) or NO_AND (starting processing after shutdown)
      * - NO_AND -> YES_AND (starting processing after shutdown)
      */
-    private volatile int processSchedulesStatus;
+    private final AtomicInteger processSchedulesStatus =
+        new PostPaddedAtomicInteger();
     
     /*
      * 
      */
     
     /**
-     * Capacity of queue for the user, whatever the current
-     * inner capacity of its implementation, which might eventually grow.
+     * Guarded by takeLock and possibly putLock
+     * depending on the implementation.
      */
-    private final int queueCapacity;
-    
-    /**
-     * Guarded by schedLock.
-     */
-    private final MyQueue schedQueue = new MyQueue();
+    private final MyAbstractQueue schedQueue;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -405,18 +531,22 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * Complete constructor for non-threadless instances.
-     * Constructs an executor using the specified number of threads,
+     * Constructs an executor using the specified number of worker threads,
      * that guarantees FIFO order for schedules only if single-threaded.
      * 
-     * Redundant with newInstance() method with same arguments,
-     * but allows to extend this class.
+     * Allows to extend this class, and to use non-default
+     * worker count thresholds for queues types.
      * 
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
      * @param daemon Daemon flag set to each thread.
-     * @param nbrOfThreads Number of threads to use. Must be >= 1.
-     * @param queueCapacity Capacity (>=0) for schedules queue.
-     *        When full, new schedules are canceled.
+     * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
+     * @param queueCapacity Capacity for schedules queue.
+     *        Must be >= 0. When full, new schedules are rejected.
+     * @param maxWorkerCountForBasicQueue Must be >= 0.
+     *        When worker count is strictly superior to this value,
+     *        a queue more suited to high number of workers is used.
+     *        Default for newXxx() construction methods is 4.
      * @param threadFactory If null, default threads are created.
      */
     public FixedThreadExecutor(
@@ -424,6 +554,7 @@ implements InterfaceWorkerAwareExecutor {
         boolean daemon,
         int nbrOfThreads,
         int queueCapacity,
+        int maxWorkerCountForBasicQueue,
         ThreadFactory threadFactory) {
         this(
             false, // isThreadless
@@ -431,7 +562,36 @@ implements InterfaceWorkerAwareExecutor {
             daemon,
             nbrOfThreads,
             queueCapacity,
+            maxWorkerCountForBasicQueue,
             threadFactory);
+    }
+    
+    /**
+     * Complete constructor for threadless instances.
+     * Guarantees FIFO order for schedules,
+     * since only caller thread is used for work.
+     * 
+     * Allows to extend this class, and to use non-default
+     * worker count thresholds for queues types.
+     * 
+     * @param queueCapacity Capacity for schedules queue.
+     *        Must be >= 0. When full, new schedules are rejected.
+     * @param maxWorkerCountForBasicQueue Must be >= 0.
+     *        When worker count is strictly superior to this value,
+     *        a queue more suited to high number of workers is used.
+     *        Default for newXxx() construction methods is 4.
+     */
+    public FixedThreadExecutor(
+        int queueCapacity,
+        int maxWorkerCountForBasicQueue) {
+        this(
+            true, // isThreadless
+            null, // threadNamePrefix
+            false, // daemon
+            1, // nbrOfThreads
+            queueCapacity,
+            maxWorkerCountForBasicQueue,
+            null); // threadFactory
     }
     
     /*
@@ -450,19 +610,15 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param queueCapacity Capacity (>=0) for schedules queue.
-     *        When full, new schedules are canceled.
+     *        When full, new schedules are rejected.
      * @return An executor working during call to startAndWorkInCurrentThread(),
      *         that guarantees FIFO order for schedules.
      */
     public static FixedThreadExecutor newThreadlessInstance(
         int queueCapacity) {
         return new FixedThreadExecutor(
-            true, // isThreadless
-            null, // threadNamePrefix
-            false, // daemon
-            1, // nbrOfThreads
             queueCapacity,
-            null); // threadFactory
+            DEFAULT_MAX_WORKER_COUNT_FOR_BASIC_QUEUE);
     }
     
     /*
@@ -514,8 +670,8 @@ implements InterfaceWorkerAwareExecutor {
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
      * @param daemon Daemon flag set to each thread.
-     * @param nbrOfThreads Number of threads to use. Must be >= 1.
-     * @return An executor using the specified number of threads,
+     * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
+     * @return An executor using the specified number of worker threads,
      *         that guarantees FIFO order for schedules only if single-threaded,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
@@ -534,9 +690,9 @@ implements InterfaceWorkerAwareExecutor {
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
      * @param daemon Daemon flag set to each thread.
-     * @param nbrOfThreads Number of threads to use. Must be >= 1.
+     * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param threadFactory If null, default threads are created.
-     * @return An executor using the specified number of threads,
+     * @return An executor using the specified number of worker threads,
      *         that guarantees FIFO order for schedules only if single-threaded,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
@@ -557,11 +713,11 @@ implements InterfaceWorkerAwareExecutor {
      * @param threadNamePrefix Prefix for worker threads names.
      *        Can be null, in which case worker threads names are not set.
      * @param daemon Daemon flag set to each thread.
-     * @param nbrOfThreads Number of threads to use. Must be >= 1.
+     * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param queueCapacity Capacity (>=0) for schedules queue.
-     *        When full, new schedules are canceled.
+     *        When full, new schedules are rejected.
      * @param threadFactory If null, default threads are created.
-     * @return An executor using the specified number of threads,
+     * @return An executor using the specified number of worker threads,
      *         that guarantees FIFO order for schedules only if single-threaded.
      */
     public static FixedThreadExecutor newInstance(
@@ -575,6 +731,7 @@ implements InterfaceWorkerAwareExecutor {
             daemon,
             nbrOfThreads,
             queueCapacity,
+            DEFAULT_MAX_WORKER_COUNT_FOR_BASIC_QUEUE,
             threadFactory);
     }
     
@@ -589,8 +746,8 @@ implements InterfaceWorkerAwareExecutor {
         sb.append("[");
         sb.append(super.toString());
         
-        final int acceptStatus = this.acceptSchedulesStatus;
-        final int processStatus = this.processSchedulesStatus;
+        final int acceptStatus = this.getAcceptSchedulesStatus();
+        final int processStatus = this.getProcessSchedulesStatus();
         
         if (isShutdown(processStatus)) {
             sb.append(",shutdown");
@@ -627,7 +784,7 @@ implements InterfaceWorkerAwareExecutor {
                 return this.workerThreadSet.containsKey(currentThread);
             }
         } else {
-            // Effectively immutable after scheduler's construction,
+            // Effectively immutable after executor's construction,
             // so no need to synchronize or such.
             return this.workerThreadSet.containsKey(currentThread);
         }
@@ -648,6 +805,14 @@ implements InterfaceWorkerAwareExecutor {
      */
     
     /**
+     * @return The number of worker threads specified to the constructor,
+     *         and 1 for threadless instances.
+     */
+    public int getNbrOfWorkers() {
+        return this.workerThreadArr.length;
+    }
+    
+    /**
      * @return The number of worker threads in work method (either idle or working).
      */
     public int getNbrOfRunningWorkers() {
@@ -659,20 +824,20 @@ implements InterfaceWorkerAwareExecutor {
      */
     public int getNbrOfIdleWorkers() {
         /*
-         * We could count threads queued to acquire schedLock but don't,
+         * We could count threads queued to acquire takeLock but don't,
          * because:
-         * - schedLock can also be locked by user threads, which would include
+         * - takeLock can also be locked by user threads, which would include
          *   them in the count,
-         * - schedLock should not take much time to acquire, since no
+         * - takeLock should not take much time to acquire, since no
          *   significant treatments are done within it; so we can lag a bit
          *   and count corresponding workers as still being working.
          */
-        final ReentrantLock schedLock = this.schedLock;
-        schedLock.lock();
+        final ReentrantLock takeLock = this.takeLock;
+        takeLock.lock();
         try {
-            return schedLock.getWaitQueueLength(this.schedCondition);
+            return takeLock.getWaitQueueLength(this.takeCondition);
         } finally {
-            schedLock.unlock();
+            takeLock.unlock();
         }
     }
     
@@ -690,12 +855,12 @@ implements InterfaceWorkerAwareExecutor {
      * @return The number of pending schedules.
      */
     public int getNbrOfPendingSchedules() {
-        final Lock schedLock = this.schedLock;
-        schedLock.lock();
+        final Lock takeLock = this.takeLock;
+        takeLock.lock();
         try {
             return this.schedQueue.size();
         } finally {
-            schedLock.unlock();
+            takeLock.unlock();
         }
     }
     
@@ -704,7 +869,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     @Override
     public boolean isShutdown() {
-        return isShutdown(this.processSchedulesStatus);
+        return isShutdown(this.getProcessSchedulesStatus());
     }
     
     /*
@@ -720,7 +885,7 @@ implements InterfaceWorkerAwareExecutor {
      * which will each time ensure an inner call to start() (as for first call),
      * in case stop() or similar methods have been called in the mean time.
      * 
-     * @throws IllegalStateException if this scheduler is not threadless.
+     * @throws IllegalStateException if this executor is not threadless.
      */
     public void startAndWorkInCurrentThread() {
         this.checkThreadless();
@@ -729,16 +894,16 @@ implements InterfaceWorkerAwareExecutor {
         final MyWorkerRunnable workerRunnable;
         
         synchronized (this.stateMutex) {
-            final int acceptStatus = this.acceptSchedulesStatus;
+            final int acceptStatus = this.getAcceptSchedulesStatus();
             if (this.isShutdown()) {
                 return;
             }
             
             if (isWorkersStartNeeded(acceptStatus)) {
                 if (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED) {
-                    this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES;
+                    this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES);
                 } else if (acceptStatus == ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED) {
-                    this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO;
+                    this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_NO);
                 }
                 
                 this.workerThreadArr[0] = workerThread;
@@ -758,7 +923,7 @@ implements InterfaceWorkerAwareExecutor {
         try {
             /*
              * Working, uninterruptibly (we assume interrupts are
-             * only addressed to user code, not to scheduler code).
+             * only addressed to user code, not to executor code).
              */
             workerRunnable.run();
         } finally {
@@ -775,7 +940,7 @@ implements InterfaceWorkerAwareExecutor {
      * @return True if worker threads were started by this call,
      *         false if they were already started (whether or not
      *         they died later) or must be the user calling thread.
-     * @throws IllegalStateException if this scheduler is threadless.
+     * @throws IllegalStateException if this executor is threadless.
      */
     public boolean startWorkerThreadsIfNeeded() {
         this.checkNotThreadless();
@@ -784,15 +949,15 @@ implements InterfaceWorkerAwareExecutor {
             if (this.isShutdown()) {
                 return false;
             }
-            final int acceptStatus = this.acceptSchedulesStatus;
+            final int acceptStatus = this.getAcceptSchedulesStatus();
             if (!isWorkersStartNeeded(acceptStatus)) {
                 // Worker threads already started.
                 return false;
             }
             if (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES);
             } else if (acceptStatus == ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_NO);
             }
             if (this.isThreadless) {
                 return false;
@@ -839,11 +1004,11 @@ implements InterfaceWorkerAwareExecutor {
                 // Need not to start acceptance.
                 return;
             }
-            final int acceptStatus = this.acceptSchedulesStatus;
+            final int acceptStatus = this.getAcceptSchedulesStatus();
             if (acceptStatus == ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED);
             } else if (acceptStatus == ACCEPT_SCHEDULES_NO) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES);
             }
         }
     }
@@ -858,11 +1023,11 @@ implements InterfaceWorkerAwareExecutor {
                 // Acceptance already stopped.
                 return;
             }
-            final int acceptStatus = this.acceptSchedulesStatus;
+            final int acceptStatus = this.getAcceptSchedulesStatus();
             if (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_NO_AND_WORKERS_START_NEEDED);
             } else if (acceptStatus == ACCEPT_SCHEDULES_YES) {
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_NO);
             }
         }
     }
@@ -878,12 +1043,12 @@ implements InterfaceWorkerAwareExecutor {
         boolean mustSignal = false;
         synchronized (this.stateMutex) {
             final boolean wasStopped;
-            final int processStatus = this.processSchedulesStatus;
+            final int processStatus = this.getProcessSchedulesStatus();
             if (processStatus == PROCESS_SCHEDULES_NO) {
-                this.processSchedulesStatus = PROCESS_SCHEDULES_YES;
+                this.setProcessSchedulesStatus(PROCESS_SCHEDULES_YES);
                 wasStopped = true;
             } else if (processStatus == PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS) {
-                this.processSchedulesStatus = PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS;
+                this.setProcessSchedulesStatus(PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS);
                 wasStopped = true;
             } else {
                 // YES or YES_AND already
@@ -897,7 +1062,7 @@ implements InterfaceWorkerAwareExecutor {
         if (mustSignal) {
             // Signaling eventually waiting workers, for them
             // to start processing eventual pending schedules.
-            this.schedSystemTimeCondilock.signalAllInLock();
+            this.signalAllWorkersInTakeLock();
         }
     }
     
@@ -906,11 +1071,11 @@ implements InterfaceWorkerAwareExecutor {
      */
     public void stopProcessing() {
         synchronized (this.stateMutex) {
-            final int processStatus = this.processSchedulesStatus;
+            final int processStatus = this.getProcessSchedulesStatus();
             if (processStatus == PROCESS_SCHEDULES_YES) {
-                this.processSchedulesStatus = PROCESS_SCHEDULES_NO;
+                this.setProcessSchedulesStatus(PROCESS_SCHEDULES_NO);
             } else if (processStatus == PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS) {
-                this.processSchedulesStatus = PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS;
+                this.setProcessSchedulesStatus(PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS);
             }
         }
     }
@@ -937,7 +1102,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public void cancelPendingSchedules() {
         Runnable schedule;
-        while ((schedule = this.pollFirstScheduleInLock()) != null) {
+        while ((schedule = this.pollFirstScheduleInTakeLock()) != null) {
             CancellableUtils.call_onCancel_IfCancellable(schedule);
         }
     }
@@ -948,30 +1113,32 @@ implements InterfaceWorkerAwareExecutor {
      *        in the order they were scheduled.
      */
     public void drainPendingRunnablesInto(Collection<? super Runnable> runnables) {
-        int n = 0;
-        final Lock schedLock = this.schedLock;
-        schedLock.lock();
+        boolean gotSome = false;
+        final Lock takeLock = this.takeLock;
+        takeLock.lock();
         try {
-            n = this.schedQueue.size();
-            for (int i = 0; i < n; i++) {
-                final Runnable schedule = this.schedQueue.removeFirst();
+            while (true) {
+                final Runnable schedule =
+                    this.schedQueue.pollFirst();
+                if (schedule == null) {
+                    break;
+                }
+                gotSome = true;
                 runnables.add(schedule);
             }
         } finally {
-            if (n != 0) {
+            if (gotSome) {
                 // Signaling in finally, in case we had an exception
                 // while adding into output collection.
-                this.signalWorkersAfterScheduleRemoval();
+                this.signalAllWorkersAfterSchedulesRemoval();
             }
-            schedLock.unlock();
+            takeLock.unlock();
         }
     }
     
     /**
-     * Interrupts worker threads.
-     * 
-     * This method can be called in attempt to interrupt, if any,
-     * current processings of runnables by worker threads.
+     * Interrupts worker threads if any, for the purpose of interrupting
+     * user treatments (this executor only using uninterruptible waits).
      * 
      * If using calling thread as worker thread, and user call
      * has not been done already, does nothing.
@@ -1000,7 +1167,7 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * This method irremediably stops schedules acceptance, and
-     * makes each worker runnable return normally (i.e. die) when
+     * makes each worker runnable complete normally when
      * it has no more schedule to process.
      * 
      * After call to this method, and in the purpose of quickening workers death,
@@ -1011,28 +1178,51 @@ implements InterfaceWorkerAwareExecutor {
      * If shutdown, and there are no more running workers:
      * - you might wait to cancel or drain remaining pending schedules, or they
      *   will remain pending forever,
-     * - if there are no more pending schedules, this scheduler can be considered terminated.
+     * - if there are no more pending schedules,
+     *   this executor can be considered terminated.
      */
     @Override
     public void shutdown() {
         final boolean actualRequest;
         synchronized (this.stateMutex) {
-            final int processStatus = this.processSchedulesStatus;
+            final int processStatus = this.getProcessSchedulesStatus();
             actualRequest = !isShutdown(processStatus);
             if (actualRequest) {
-                // NO, whether or not worker threads have been started already.
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_NO;
-                
-                if (processStatus == PROCESS_SCHEDULES_YES) {
-                    this.processSchedulesStatus = PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS;
-                } else {
-                    this.processSchedulesStatus = PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS;
+                /*
+                 * Changing accept status in putLock,
+                 * to avoid concurrency with execute()'s
+                 * "if (accept) { enqueue(); }" logic,
+                 * which could lead to enqueuing a runnable
+                 * after all workers died (it could then
+                 * still be drained, but would not have been
+                 * properly rejected or cancelled on submit,
+                 * nor drained by a shutdownNow() call).
+                 * NB: It is not mandatory to do that if putLock
+                 * and takeLock are the same, because then
+                 * workers are not doing any concurrent bookkeeping
+                 * and shutdownNow()'s drain would be waiting
+                 * for the lock to be released by execute(),
+                 * but we still take it in this case for consistency.
+                 */
+                this.putLock.lock();
+                try {
+                    // NO, whether or not worker threads have been started already.
+                    this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_NO);
+                    
+                    if (processStatus == PROCESS_SCHEDULES_YES) {
+                        this.setProcessSchedulesStatus(PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS);
+                    } else {
+                        this.setProcessSchedulesStatus(PROCESS_SCHEDULES_NO_AND_DIE_AFTERWARDS);
+                    }
+                } finally {
+                    this.putLock.unlock();
                 }
             }
         }
         if (actualRequest) {
-            // Signaling eventually waiting workers, for them to start dying if needed.
-            this.signalWorkersForDeath();
+            // Signaling eventually waiting workers,
+            // for them to start dying if needed.
+            this.signalAllWorkersInTakeLock();
         }
     }
     
@@ -1042,12 +1232,12 @@ implements InterfaceWorkerAwareExecutor {
      * interruptWorkers(), and then methods to drain pending schedules.
      */
     public List<Runnable> shutdownNow(boolean mustInterruptWorkingWorkers) {
-        // Never more accepting, and dying when idle and not waiting for a timed schedule's time.
+        // Never more accepting, and dying when idle.
         this.shutdown();
         // No more processing (we will drain pending schedules).
         this.stopProcessing();
         if (mustInterruptWorkingWorkers) {
-            // Poking eventual working worker.
+            // Poking eventual working workers.
             this.interruptWorkers();
         }
         
@@ -1069,14 +1259,16 @@ implements InterfaceWorkerAwareExecutor {
      */
     
     /**
-     * Waits for no more worker to be running, or for the specified timeout (in system time) to elapse.
+     * Waits for no more worker to be running,
+     * or for the specified timeout to elapse.
      * 
      * @param timeoutNs Timeout, in system time, in nanoseconds.
-     * @return True if there was no more running worker before the timeout elapsed, false otherwise.
+     * @return True if there was no more running worker before
+     *         the timeout elapsed, false otherwise.
      * @throws InterruptedException if the wait gets interrupted.
      */
-    public boolean waitForNoMoreRunningWorkerSystemTimeNs(long timeoutNs) throws InterruptedException {
-        return this.noRunningWorkerSystemTimeCondilock.awaitNanosWhileFalseInLock(
+    public boolean waitForNoMoreRunningWorker(long timeoutNs) throws InterruptedException {
+        return this.noRunningWorkerCondilock.awaitNanosWhileFalseInLock(
             this.noRunningWorkerBooleanCondition,
             timeoutNs);
     }
@@ -1087,9 +1279,15 @@ implements InterfaceWorkerAwareExecutor {
     
     @Override
     public void execute(Runnable runnable) {
-        if (this.enqueueRunnableIfPossible(runnable)) {
+        
+        LangUtils.requireNonNull(runnable);
+        
+        // Optimistically allocated outside putLock.
+        final MyNode node = new MyNode(runnable);
+        
+        if (this.enqueueRunnableIfPossible(node)) {
             this.tryStartWorkerThreadsOnScheduleSubmit();
-            this.enqueueRunnableIfPossible(runnable);
+            this.enqueueRunnableIfPossible(node);
         }
     }
     
@@ -1116,7 +1314,7 @@ implements InterfaceWorkerAwareExecutor {
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
         final long timeoutNs = unit.toNanos(timeout);
-        return this.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
+        return this.waitForNoMoreRunningWorker(timeoutNs);
     }
     
     //--------------------------------------------------------------------------
@@ -1124,22 +1322,30 @@ implements InterfaceWorkerAwareExecutor {
     //--------------------------------------------------------------------------
     
     /**
-     * @throws IllegalStateException if this scheduler is not threadless.
+     * @throws IllegalStateException if this executor is not threadless.
      */
     private void checkThreadless() {
         if (!this.isThreadless) {
-            throw new IllegalStateException("this scheduler is not threadless");
+            throw new IllegalStateException("this executor is not threadless");
         }
     }
     
     /**
-     * @throws IllegalStateException if this scheduler is threadless.
+     * @throws IllegalStateException if this executor is threadless.
      */
     private void checkNotThreadless() {
         if (this.isThreadless) {
-            throw new IllegalStateException("this scheduler is threadless");
+            throw new IllegalStateException("this executor is threadless");
         }
     }
+    
+    private boolean isTakeLock(Lock lock) {
+        return (lock == this.takeLock);
+    }
+    
+    /*
+     * 
+     */
     
     /**
      * @param isThreadless If true, no worker thread is created, and
@@ -1152,11 +1358,17 @@ implements InterfaceWorkerAwareExecutor {
         boolean daemon,
         int nbrOfThreads,
         int queueCapacity,
+        int maxWorkerCountForBasicQueue,
         final ThreadFactory threadFactory) {
         
         NbrsUtils.requireSupOrEq(1, nbrOfThreads, "nbrOfThreads");
         
         NbrsUtils.requireSup(0, queueCapacity, "queueCapacity");
+        
+        NbrsUtils.requireSupOrEq(
+            0,
+            maxWorkerCountForBasicQueue,
+            "maxWorkerCountForBasicQueue");
         
         if (isThreadless) {
             final boolean instanceAdaptedForUserWorkerThread =
@@ -1171,7 +1383,19 @@ implements InterfaceWorkerAwareExecutor {
         
         this.isThreadless = isThreadless;
         
-        this.queueCapacity = queueCapacity;
+        /*
+         * 
+         */
+        
+        final boolean mustUseBasicQueue =
+            (nbrOfThreads <= maxWorkerCountForBasicQueue);
+        if (mustUseBasicQueue) {
+            this.putLock = this.takeLock;
+            this.schedQueue = new MyBasicQueue(queueCapacity);
+        } else {
+            this.putLock = new ReentrantLock();
+            this.schedQueue = new MyDualLockQueue(queueCapacity);
+        }
         
         /*
          * 
@@ -1204,17 +1428,25 @@ implements InterfaceWorkerAwareExecutor {
             }
         }
         
-        this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED;
+        this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED);
         
-        this.processSchedulesStatus = PROCESS_SCHEDULES_YES;
+        this.setProcessSchedulesStatus(PROCESS_SCHEDULES_YES);
     }
     
     /*
      * 
      */
     
+    private int getAcceptSchedulesStatus() {
+        return this.acceptSchedulesStatus.get();
+    }
+    
+    private void setAcceptSchedulesStatus(int status) {
+        this.acceptSchedulesStatus.set(status);
+    }
+    
     private static boolean mustAcceptSchedules(int acceptStatus) {
-        // YES tested before, to optimize the general case.
+        // YES tested before, to optimize for the general case.
         return (acceptStatus == ACCEPT_SCHEDULES_YES)
             || (acceptStatus == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED);
     }
@@ -1223,12 +1455,16 @@ implements InterfaceWorkerAwareExecutor {
      * 
      */
     
-    private boolean mustProcessSchedules() {
-        return mustProcessSchedules(this.processSchedulesStatus);
+    private int getProcessSchedulesStatus() {
+        return this.processSchedulesStatus.get();
+    }
+    
+    private void setProcessSchedulesStatus(int status) {
+        this.processSchedulesStatus.set(status);
     }
     
     private static boolean mustProcessSchedules(int processStatus) {
-        // YES tested before, to optimize the general case.
+        // YES tested before, to optimize for the general case.
         return (processStatus == PROCESS_SCHEDULES_YES)
             || (processStatus == PROCESS_SCHEDULES_YES_AND_DIE_AFTERWARDS);
     }
@@ -1238,7 +1474,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     
     private boolean isWorkersStartNeeded() {
-        return isWorkersStartNeeded(this.acceptSchedulesStatus);
+        return isWorkersStartNeeded(this.getAcceptSchedulesStatus());
     }
     
     private static boolean isWorkersStartNeeded(int acceptStatus) {
@@ -1259,17 +1495,23 @@ implements InterfaceWorkerAwareExecutor {
      * 
      */
     
-    private Runnable pollFirstScheduleInLock() {
+    private Runnable pollFirstScheduleInTakeLock() {
         final Runnable ret;
-        final Lock schedLock = this.schedLock;
-        schedLock.lock();
+        final Lock takeLock = this.takeLock;
+        takeLock.lock();
         try {
             ret = this.schedQueue.pollFirst();
-            if (ret != null) {
-                this.signalWorkersAfterScheduleRemoval();
+            /*
+             * Only need to signal if became empty,
+             * in case workers were waiting to be allowed to process
+             * remaining schedules to complete after a shutdown.
+             */
+            if ((ret != null)
+                && (!this.schedQueue.wasNotEmptyAfterLastRemove())) {
+                this.signalAllWorkersAfterSchedulesRemoval();
             }
         } finally {
-            schedLock.unlock();
+            takeLock.unlock();
         }
         return ret;
     }
@@ -1293,92 +1535,113 @@ implements InterfaceWorkerAwareExecutor {
     /**
      * Must be called after schedules drain or cancelling,
      * to wake up workers that would be waiting to be allowed
-     * to process them.
+     * to process them before completing after a shutdown.
      */
-    private void signalWorkersAfterScheduleRemoval() {
-        this.schedCondition.signalAll();
+    private void signalAllWorkersAfterSchedulesRemoval() {
+        this.takeCondition.signalAll();
     }
     
     /**
-     * Usually called outside stateMutex, to reduce locks interleaving
+     * Usually called outside stateMutex, to reduce locks nesting
      * and stateMutex's locking time, but could be called within.
      */
-    private void signalWorkersForDeath() {
-        this.schedSystemTimeCondilock.signalAllInLock();
-    }
-    
-    /**
-     * If more than one runnable is processable,
-     * signals condition before returning,
-     * to eventually wake up a waiting worker.
-     * 
-     * @return True if there are pending schedules that might be processed by the worker,
-     *         or false if the worker shall die.
-     */
-    private boolean waitForWorkOrDeath_schedLocked() {
-        while (true) {
-            /*
-             * Passing here either:
-             * - On initial call.
-             * - After a schedule's execution.
-             * - After end of a wait (for a schedule).
-             */
-            
-            final int pendingScheduleCount = schedQueue.size();
-            if (pendingScheduleCount != 0) {
-                if (mustProcessSchedules()) {
-                    return true;
-                }
-            } else {
-                if (isShutdown()) {
-                    // Here current worker starts to die.
-                    return false;
-                }
-            }
-            
-            try {
-                // Waiting for a runnable,
-                // or for being supposed to work,
-                // or for death.
-                schedCondition.await();
-            } catch (InterruptedException e) {
-                // Quiet.
-            }
+    private void signalAllWorkersInTakeLock() {
+        this.takeLock.lock();
+        try {
+            this.takeCondition.signalAll();
+        } finally {
+            this.takeLock.unlock();
         }
     }
     
     private void workerRun() {
-        final Lock schedLock = this.schedLock;
         while (true) {
-            Runnable runnable;
-            
-            schedLock.lock();
-            try {
-                // Loop to avoid getting out-and-in synchronization
-                // when we are done waiting for a schedule's time.
-                while (true) {
-                    final boolean gotWorkElseMustDie =
-                        waitForWorkOrDeath_schedLocked();
-                    if (!gotWorkElseMustDie) {
-                        return;
-                    }
-                    // Here, we have schedule(s) in queue, and we are supposed to work.
-                    
-                    runnable = this.schedQueue.removeFirst();
-                    
-                    // Existing anti-synchro loop.
-                    break;
-                } // End while.
-            } finally {
-                schedLock.unlock();
+            final Runnable runnable = this.waitForRunnableOrDeath();
+            if (runnable == null) {
+                // Here current worker starts to die.
+                break;
             }
             
-            /*
-             * 
-             */
-            
             runnable.run();
-        } // End while.
+        }
+    }
+    
+    private Runnable waitForRunnableOrDeath() {
+        
+        Runnable runnable = null;
+        
+        final ReentrantLock takeLock = this.takeLock;
+        takeLock.lock();
+        try {
+            while (true) {
+                /*
+                 * Passing here either:
+                 * - On initial call.
+                 * - After a schedule's execution.
+                 * - After end of a wait (for a schedule).
+                 */
+                
+                final int processStatus = this.processSchedulesStatus.get();
+                
+                boolean queueFoundEmpty = false;
+                if (mustProcessSchedules(processStatus)) {
+                    runnable = this.schedQueue.pollFirst();
+                    if (runnable != null) {
+                        if (this.schedQueue.wasNotEmptyAfterLastRemove()) {
+                            /*
+                             * Signaling even if there is no other worker:
+                             * doesn't seem to hurt, and could avoid issue
+                             * if having something else waiting on it.
+                             */
+                            this.takeCondition.signal();
+                        }
+                        // Will run it.
+                        break;
+                    } else {
+                        queueFoundEmpty = true;
+                    }
+                } else {
+                    queueFoundEmpty = (this.schedQueue.size() == 0);
+                }
+                
+                if (queueFoundEmpty) {
+                    if (isShutdown(processStatus)) {
+                        // Here current worker starts to die.
+                        break;
+                    } else {
+                        // Will wait for more schedules.
+                    }
+                } else {
+                    // Will wait for more schedules.
+                }
+                
+                /*
+                 * Waiting for a runnable,
+                 * or for being supposed to work,
+                 * or for death.
+                 * 
+                 * NB: Instead here we could call awaitUninterruptibly(),
+                 * to prevent idle workers to be pointlessly awoken
+                 * when user calls interruptWorkers(),
+                 * and then Thread.interrupted() to protect new runnables
+                 * against old interrupts,
+                 * but we prefer to call a single method and
+                 * get interrupt status cleared immediately if not useful.
+                 */
+                try {
+                    this.takeCondition.await();
+                } catch (@SuppressWarnings("unused") InterruptedException e) {
+                    /*
+                     * Not restoring interrupt status,
+                     * else next runnable to process would get interrupted.
+                     */
+                }
+            }
+        } finally {
+            takeLock.unlock();
+        }
+        
+        return runnable;
     }
     
     /*
@@ -1393,12 +1656,12 @@ implements InterfaceWorkerAwareExecutor {
         synchronized (this.stateMutex) {
             // If shutdown, accept status is NO,
             // so no need to check for shutdown.
-            final int acceptStatusInMutex = this.acceptSchedulesStatus;
+            final int acceptStatusInMutex = this.getAcceptSchedulesStatus();
             if (acceptStatusInMutex == ACCEPT_SCHEDULES_YES_AND_WORKERS_START_NEEDED) {
                 // Starting even if processing is stopped (not to have
                 // to eventually start thread when starting processing).
                 this.startWorkerThreads_stateLocked();
-                this.acceptSchedulesStatus = ACCEPT_SCHEDULES_YES;
+                this.setAcceptSchedulesStatus(ACCEPT_SCHEDULES_YES);
             }
         }
     }
@@ -1408,41 +1671,29 @@ implements InterfaceWorkerAwareExecutor {
      */
     
     /**
-     * @return True if runnable could be enqueued, false otherwise.
-     */
-    private boolean enqueueRunnableIfRoom_schedLocked(Runnable schedule) {
-        if (this.schedQueue.size() == this.queueCapacity) {
-            return false;
-        }
-        return this.schedQueue.addLast(schedule);
-    }
-    
-    /**
      * Enqueues if room and accepted, and if workers are started
      * or some calling thread be used as worker later.
      * Cancels the schedule if could not enqueue due to no room
      * or not being accepted.
      * 
-     * @param runnable runnable.
+     * @param node Node holding the runnable.
      * @return True if need workers start for retry, false otherwise.
      */
-    private boolean enqueueRunnableIfPossible(Runnable runnable) {
+    private boolean enqueueRunnableIfPossible(MyNode node) {
         
+        boolean enqueuedAndWasEmpty = false;
         boolean enqueued = false;
-        final Lock schedLock = this.schedLock;
-        schedLock.lock();
+        
+        final Lock putLock = this.putLock;
+        final boolean mustSignalInPutLock =
+            this.isTakeLock(putLock);
+        putLock.lock();
         try {
             /*
-             * Need to test schedules acceptance within schedLock while enqueuing,
-             * else we could have the following:
-             * - Some user or worker thread is in the process of submitting a schedule,
-             *   but is not yet in schedLock.
-             * - Some thread calls shutdownNow(...).
-             * - The previous thread finally enqueues its schedule,
-             *   and some worker thread will wait forever for schedules processing
-             *   to be started so that it can process it.
+             * Need to check accept status in putLock,
+             * cf. comment in shutdown().
              */
-            final int acceptStatus = this.acceptSchedulesStatus;
+            final int acceptStatus = this.getAcceptSchedulesStatus();
             final boolean mustTryToEnqueue;
             if (acceptStatus == ACCEPT_SCHEDULES_YES) {
                 // General case first.
@@ -1461,25 +1712,36 @@ implements InterfaceWorkerAwareExecutor {
                 }
             }
             if (mustTryToEnqueue) {
-                enqueued = this.enqueueRunnableIfRoom_schedLocked(runnable);
-            }
-            if (enqueued) {
-                if (MUST_SIGNAL_ALL_ON_SUBMIT) {
-                    this.schedCondition.signalAll();
-                } else {
-                    this.schedCondition.signal();
+                enqueued = this.schedQueue.offerLast(node);
+                if (enqueued) {
+                    enqueuedAndWasEmpty = this.schedQueue.wasEmptyBeforeLastAdd();
+                    if (enqueuedAndWasEmpty
+                        && mustSignalInPutLock) {
+                        this.takeCondition.signal();
+                    }
                 }
-            } else {
-                // will cancel outside lock (unless exception while trying to enqueue,
-                // but then it will go up the call stack and notify the user that there
-                // was a problem)
             }
         } finally {
-            schedLock.unlock();
+            putLock.unlock();
         }
         
-        if (!enqueued) {
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+        /*
+         * 
+         */
+        
+        if (enqueuedAndWasEmpty) {
+            if (!mustSignalInPutLock) {
+                this.takeLock.lock();
+                try {
+                    this.takeCondition.signal();
+                } finally {
+                    this.takeLock.unlock();
+                }
+            }
+        } else {
+            if (!enqueued) {
+                CancellableUtils.call_onCancel_IfCancellableElseThrowREE(node.item);
+            }
         }
         
         return false;

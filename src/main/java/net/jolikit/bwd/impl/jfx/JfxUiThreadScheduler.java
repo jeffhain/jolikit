@@ -90,7 +90,7 @@ public class JfxUiThreadScheduler extends AbstractUiThreadScheduler {
     protected void runLater(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
         

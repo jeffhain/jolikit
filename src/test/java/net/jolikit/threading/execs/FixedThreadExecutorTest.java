@@ -24,12 +24,14 @@ import java.util.Random;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import junit.framework.TestCase;
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
@@ -46,7 +48,11 @@ public class FixedThreadExecutorTest extends TestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
+    private static final boolean DEBUG = false;
+    
     private static final long REAL_TIME_TOLERANCE_MS = 200L;
+    
+    private static final int DEFAULT_MULTI_WORKER_COUNT = 3;
     
     /**
      * For execution times measurement,
@@ -126,6 +132,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     private class MyRunnable implements InterfaceCancellable {
+        private final long id = nextRunnableId.getAndIncrement();
         private final Object reportMutex = new Object();
         /**
          * Report for last run call.
@@ -168,6 +175,10 @@ public class FixedThreadExecutorTest extends TestCase {
             this.throwableInOnCancel = throwableInOnCancel;
         }
         @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + "-" + this.id;
+        }
+        @Override
         public void run() {
             final long runCallTimeNs = CLOCK.getTimeNs();
 
@@ -177,7 +188,7 @@ public class FixedThreadExecutorTest extends TestCase {
                 if (this.sleepTimeMsInRun > 0) {
                     try {
                         Thread.sleep(this.sleepTimeMsInRun);
-                    } catch (InterruptedException e) {
+                    } catch (@SuppressWarnings("unused") InterruptedException e) {
                         this.runInterrupted = true;
                     }
                 }
@@ -202,7 +213,7 @@ public class FixedThreadExecutorTest extends TestCase {
                 if (this.sleepTimeMsInOnCancel > 0) {
                     try {
                         Thread.sleep(this.sleepTimeMsInOnCancel);
-                    } catch (InterruptedException e) {
+                    } catch (@SuppressWarnings("unused") InterruptedException e) {
                         this.onCancelInterrupted = true;
                     }
                 }
@@ -232,6 +243,11 @@ public class FixedThreadExecutorTest extends TestCase {
             if (this.report == null) {
                 synchronized (this.reportMutex) {
                     while (this.report == null) {
+                        if (DEBUG) {
+                            Dbg.log(
+                                this,
+                                " : waitAndGetReport : waiting...");
+                        }
                         try {
                             this.reportMutex.wait();
                         } catch (InterruptedException e) {
@@ -256,30 +272,186 @@ public class FixedThreadExecutorTest extends TestCase {
     //--------------------------------------------------------------------------
 
     private static final long REAL_TIME_TOLERANCE_NS = REAL_TIME_TOLERANCE_MS * 1000L * 1000L;
-    private static final double REAL_TIME_TOLERANCE_S = REAL_TIME_TOLERANCE_MS * 1e-3;
-
-    private final Random random = TestUtils.newRandom123456789L();
+    
+    /**
+     * For debug.
+     */
+    private final AtomicLong nextRunnableId = new AtomicLong();
     
     private final AtomicLong nextOrderNum = new AtomicLong();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
-    public void test_toString() {
-        final FixedThreadExecutor executor = FixedThreadExecutor.newSingleThreadedInstance(
-                "",
-                true);
-
-        assertNotNull(executor.toString());
+    
+    public void test_constructor_threaded() {
+        final String threadNamePrefix = null;
+        final boolean daemon = true;
+        @SuppressWarnings("unused")
+        int nbrOfThreads;
+        @SuppressWarnings("unused")
+        int queueCapacity;
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicQueue;
+        final ThreadFactory threadFactory = null;
         
-        shutdownNowAndWait(executor);
+        @SuppressWarnings("unused")
+        Object o;
+
+        // good
+        {
+            o = new FixedThreadExecutor(
+                threadNamePrefix,
+                daemon,
+                nbrOfThreads = 1,
+                queueCapacity = 1,
+                maxWorkerCountForBasicQueue = 0,
+                threadFactory);
+        }
+        
+        // bad nbrOfThreads
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new FixedThreadExecutor(
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = bad,
+                    queueCapacity = 1,
+                    maxWorkerCountForBasicQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad queueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new FixedThreadExecutor(
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    queueCapacity = bad,
+                    maxWorkerCountForBasicQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad maxWorkerCountForBasicQueue
+        for (int bad : new int[] {Integer.MIN_VALUE, -1}) {
+            try {
+                o = new FixedThreadExecutor(
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    queueCapacity = 1,
+                    maxWorkerCountForBasicQueue = bad,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+    }
+    
+    public void test_constructor_threadless() {
+        @SuppressWarnings("unused")
+        int queueCapacity;
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicQueue;
+        
+        @SuppressWarnings("unused")
+        Object o;
+
+        // good
+        {
+            o = new FixedThreadExecutor(
+                queueCapacity = 1,
+                maxWorkerCountForBasicQueue = 0);
+        }
+        
+        // bad queueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new FixedThreadExecutor(
+                    queueCapacity = bad,
+                    maxWorkerCountForBasicQueue = 0);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad maxWorkerCountForBasicQueue
+        for (int bad : new int[] {Integer.MIN_VALUE, -1}) {
+            try {
+                o = new FixedThreadExecutor(
+                    queueCapacity = 1,
+                    maxWorkerCountForBasicQueue = bad);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_toString() {
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
+        executorList.addAll(newThreadlessExecutors());
+
+        for (FixedThreadExecutor executor : executorList) {
+            assertNotNull(executor.toString());
+            
+            shutdownNowAndWait(executor);
+        }
     }
 
     /*
      * Getters.
      */
 
+    public void test_getNbrOfWorkers() {
+        
+        {
+            final List<FixedThreadExecutor> executorList = newThreadlessExecutors();
+            
+            for (FixedThreadExecutor executor : executorList) {
+                assertEquals(1, executor.getNbrOfWorkers());
+                
+                shutdownNowAndWait(executor);
+            }
+        }
+        
+        {
+            final List<FixedThreadExecutor> executorList = newFifoExecutors();
+
+            for (FixedThreadExecutor executor : executorList) {
+                assertEquals(1, executor.getNbrOfWorkers());
+                
+                shutdownNowAndWait(executor);
+            }
+        }
+        
+        {
+            final int nbrOfWorkers = DEFAULT_MULTI_WORKER_COUNT;
+            final List<FixedThreadExecutor> executorList = newExecutors(nbrOfWorkers);
+
+            for (FixedThreadExecutor executor : executorList) {
+                assertEquals(nbrOfWorkers, executor.getNbrOfWorkers());
+                
+                shutdownNowAndWait(executor);
+            }
+        }
+    }
+    
     public void test_getNbrOfRunningWorkers() {
         /*
          * Executors with 2 threads each.
@@ -309,8 +481,9 @@ public class FixedThreadExecutorTest extends TestCase {
             }
         };
 
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
+        final List<FixedThreadExecutor> executorList = newExecutors(
                 2,
+                Integer.MAX_VALUE,
                 threadFactory);
 
         // Letting time for workers to get NOT running.
@@ -359,7 +532,8 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfIdleWorkers() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newExecutors(
+            DEFAULT_MULTI_WORKER_COUNT);
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -398,7 +572,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfWorkingWorkers() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         // Starting workers.
         for (FixedThreadExecutor executor : executorList) {
@@ -432,7 +606,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_getNbrOfPendingSchedules() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             executor.stopProcessing();
@@ -460,7 +634,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_isWorkersDeathRequested() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             assertFalse(executor.isShutdown());
@@ -501,7 +675,7 @@ public class FixedThreadExecutorTest extends TestCase {
         try {
             executor.startAndWorkInCurrentThread();
             fail();
-        } catch (MyRuntimeException e) {
+        } catch (@SuppressWarnings("unused") MyRuntimeException e) {
             // ok
         }
         
@@ -544,7 +718,8 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_startWorkerThreadsIfNeeded() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newExecutors(
+            DEFAULT_MULTI_WORKER_COUNT);
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -566,7 +741,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_start() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             // stop is supposed tested:
@@ -590,7 +765,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_stop() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             executor.stop();
@@ -617,7 +792,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_startAccepting() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             // stop is supposed tested:
@@ -641,7 +816,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_stopAccepting() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -684,6 +859,23 @@ public class FixedThreadExecutorTest extends TestCase {
                 assertTrue(runnable.onCancelCalled());
             }
 
+            {
+                final MyRunnable runnable = new MyRunnable();
+                final Runnable notCancellable = new Runnable() {
+                    @Override
+                    public void run() {
+                        runnable.run();
+                    }
+                };
+                try {
+                    executor.execute(notCancellable);
+                    fail();
+                } catch (@SuppressWarnings("unused") RejectedExecutionException e) {
+                    // ok
+                }
+                assertFalse(runnable.runCalled());
+            }
+
             // Checking schedules were really not accepted,
             // i.e. didn't make it into pending schedules.
             // Supposes getNbrOfPendingSchedules() method work.
@@ -694,7 +886,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_startProcessing() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
             {
@@ -727,7 +919,7 @@ public class FixedThreadExecutorTest extends TestCase {
          */
 
         {
-            final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+            final List<FixedThreadExecutor> executorList = newFifoExecutors();
             
             for (FixedThreadExecutor executor : executorList) {
                 executor.stopProcessing();
@@ -750,7 +942,7 @@ public class FixedThreadExecutorTest extends TestCase {
          */
 
         {
-            final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+            final List<FixedThreadExecutor> executorList = newFifoExecutors();
             
             for (FixedThreadExecutor executor : executorList) {
 
@@ -783,7 +975,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_cancelPendingSchedules() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -847,7 +1039,7 @@ public class FixedThreadExecutorTest extends TestCase {
                 try {
                     executor.cancelPendingSchedules();
                     fail();
-                } catch (Exception e) {
+                } catch (@SuppressWarnings("unused") Exception e) {
                     // ok
                 }
 
@@ -865,7 +1057,7 @@ public class FixedThreadExecutorTest extends TestCase {
                 while (true) {
                     try {
                         executor.cancelPendingSchedules();
-                    } catch (Exception e) {
+                    } catch (@SuppressWarnings("unused") Exception e) {
                         // quiet
                     }
                     if (executor.getNbrOfPendingSchedules() == 0) {
@@ -879,7 +1071,7 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_drainPendingRunnablesInto_ObjectVector() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
 
@@ -964,12 +1156,12 @@ public class FixedThreadExecutorTest extends TestCase {
                 mustThrowDuringDrain);
         }
     }
-    
+
     public void test_workersWakeUpOnSchedulesXxx(
             boolean mustCancelElseDrain,
             boolean mustThrowDuringDrain) {
 
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (FixedThreadExecutor executor : executorList) {
 
@@ -1007,7 +1199,7 @@ public class FixedThreadExecutorTest extends TestCase {
                     try {
                         executor.drainPendingRunnablesInto(runnables);
                         fail();
-                    } catch (RuntimeException e) {
+                    } catch (@SuppressWarnings("unused") RuntimeException e) {
                         // ok
                     }
                 } else {
@@ -1034,9 +1226,7 @@ public class FixedThreadExecutorTest extends TestCase {
          * the workers never die on interrupt.
          */
 
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
-                1,
-                null);
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         /*
          * Checking interrupting idle workers doesn't hurt.
@@ -1092,7 +1282,8 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_shutdown() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newExecutors(
+            DEFAULT_MULTI_WORKER_COUNT);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1162,10 +1353,8 @@ public class FixedThreadExecutorTest extends TestCase {
      * Waits.
      */
 
-    public void test_waitForNoMoreRunningWorkerSystemTime_long() {
-        final double timeSpeed = 2.0;
-
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+    public void test_waitForNoMoreRunningWorker_long() {
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         final long timeoutNs = TimeUtils.sToNs(1.0);
 
@@ -1180,9 +1369,6 @@ public class FixedThreadExecutorTest extends TestCase {
             // No need to wait for workers to get running, since
             // they are not considered as "no more running" if they
             // have not all been started yet.
-            if (false) {
-                sleepMS(REAL_TIME_TOLERANCE_MS);
-            }
 
             /*
              * Waiting timeout.
@@ -1191,8 +1377,8 @@ public class FixedThreadExecutorTest extends TestCase {
             long a = System.nanoTime();
             boolean doneBeforeTimeout = false;
             try {
-                doneBeforeTimeout = executor.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
-            } catch (InterruptedException e) {
+                doneBeforeTimeout = executor.waitForNoMoreRunningWorker(timeoutNs);
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             long b = System.nanoTime();
@@ -1214,10 +1400,10 @@ public class FixedThreadExecutorTest extends TestCase {
             }).start();
 
             try {
-                doneBeforeTimeout = executor.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
+                doneBeforeTimeout = executor.waitForNoMoreRunningWorker(timeoutNs);
                 // Wait must throw InterruptedException.
                 fail();
-            } catch (InterruptedException e) {
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 // quiet
             }
 
@@ -1230,8 +1416,8 @@ public class FixedThreadExecutorTest extends TestCase {
 
             a = System.nanoTime();
             try {
-                doneBeforeTimeout = executor.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
-            } catch (InterruptedException e) {
+                doneBeforeTimeout = executor.waitForNoMoreRunningWorker(timeoutNs);
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             b = System.nanoTime();
@@ -1251,8 +1437,8 @@ public class FixedThreadExecutorTest extends TestCase {
 
             a = System.nanoTime();
             try {
-                doneBeforeTimeout = executor.waitForNoMoreRunningWorkerSystemTimeNs(timeoutNs);
-            } catch (InterruptedException e) {
+                doneBeforeTimeout = executor.waitForNoMoreRunningWorker(timeoutNs);
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             b = System.nanoTime();
@@ -1267,15 +1453,28 @@ public class FixedThreadExecutorTest extends TestCase {
      * Scheduling.
      */
 
+    public void test_execute_null() {
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
+        
+        for (Executor executor : executorList) {
+            try {
+                executor.execute(null);
+                fail();
+            } catch (@SuppressWarnings("unused") NullPointerException e) {
+                // ok
+            }
+        }
+    }
+    
     public void test_execute_fifoOrder() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         for (Executor executor : executorList) {
             this.nextOrderNum.set(0);
 
             final ArrayList<MyRunnable> runnableList = new ArrayList<MyRunnable>();
 
-            final int nbrOfRunnables = 100000;
+            final int nbrOfRunnables = 100 * 1000;
 
             for (int i = 0; i < nbrOfRunnables; i++) {
                 final MyRunnable runnable = new MyRunnable();
@@ -1300,7 +1499,7 @@ public class FixedThreadExecutorTest extends TestCase {
      * Testing that worker threads survive exceptions.
      */
     public void test_workersSurvivalFromExceptions() {
-        final ArrayList<FixedThreadExecutor> executorList = createFifoExecutors();
+        final List<FixedThreadExecutor> executorList = newFifoExecutors();
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1365,11 +1564,11 @@ public class FixedThreadExecutorTest extends TestCase {
     }
 
     public void test_queueCapacity() {
-        final int nbrOfThreads = 1;
         final int queueCapacity = 2;
 
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
-                nbrOfThreads,
+        final List<FixedThreadExecutor> executorList =
+            newExecutors(
+                DEFAULT_MULTI_WORKER_COUNT,
                 queueCapacity,
                 null);
 
@@ -1409,9 +1608,9 @@ public class FixedThreadExecutorTest extends TestCase {
      * Testing no schedule is lost when stressing scheduling and processing start and stop.
      */
     public void test_schedulingStress() {
-        final int nbrOfThreads = 3;
+        final int nbrOfThreads = DEFAULT_MULTI_WORKER_COUNT;
 
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
+        final List<FixedThreadExecutor> executorList = newExecutors(
                 nbrOfThreads);
 
         final Random random = TestUtils.newRandom123456789L();
@@ -1473,12 +1672,12 @@ public class FixedThreadExecutorTest extends TestCase {
      * Calls all methods concurrently, no exception should be thrown.
      */
     public void test_allConcurrentCalls() {
-        final int nbrOfThreads = 3;
+        final int nbrOfThreads = DEFAULT_MULTI_WORKER_COUNT;
         final int nbrOfCallsPerThread = 100;
         // Multiple runs, for smaller queues, and higher chance of messy scheduling.
         final int nbrOfRun = 50;
 
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
+        final List<FixedThreadExecutor> executorList = newExecutors(
                 nbrOfThreads);
 
         final Random random = TestUtils.newRandom123456789L();
@@ -1571,7 +1770,7 @@ public class FixedThreadExecutorTest extends TestCase {
     
     public void test_isWorkerThread_andChecks_withThreads() {
         final int nbrOfThreads = 2;
-        final ArrayList<FixedThreadExecutor> executorList = createNThreadsExecutors(
+        final List<FixedThreadExecutor> executorList = newExecutors(
                 nbrOfThreads);
 
         for (final FixedThreadExecutor executor : executorList) {
@@ -1580,7 +1779,7 @@ public class FixedThreadExecutorTest extends TestCase {
             try {
                 executor.checkIsWorkerThread();
                 fail();
-            } catch (ConcurrentModificationException e) {
+            } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
                 // ok
             }
             executor.checkIsNotWorkerThread();
@@ -1599,13 +1798,13 @@ public class FixedThreadExecutorTest extends TestCase {
                     try {
                         executor.checkIsWorkerThread();
                         // ok
-                    } catch (Throwable t) {
+                    } catch (@SuppressWarnings("unused") Throwable e) {
                         res.set(2); // bad value
                     }
                     try {
                         executor.checkIsNotWorkerThread();
                         res.set(3); // bad value
-                    } catch (IllegalStateException e) {
+                    } catch (@SuppressWarnings("unused") IllegalStateException e) {
                         // ok
                     }
                     
@@ -1633,7 +1832,7 @@ public class FixedThreadExecutorTest extends TestCase {
         try {
             executor.checkIsWorkerThread();
             fail();
-        } catch (ConcurrentModificationException e) {
+        } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
             // ok
         }
         executor.checkIsNotWorkerThread();
@@ -1651,7 +1850,7 @@ public class FixedThreadExecutorTest extends TestCase {
                 try {
                     executor.checkIsNotWorkerThread();
                     fail();
-                } catch (IllegalStateException e) {
+                } catch (@SuppressWarnings("unused") IllegalStateException e) {
                     // ok
                 }
             }
@@ -1675,7 +1874,7 @@ public class FixedThreadExecutorTest extends TestCase {
         try {
             executor.checkIsWorkerThread();
             fail();
-        } catch (ConcurrentModificationException e) {
+        } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
             // ok
         }
         executor.checkIsNotWorkerThread();
@@ -1710,7 +1909,7 @@ public class FixedThreadExecutorTest extends TestCase {
         final boolean mustInterruptWorkingWorkers = false;
         executor.shutdownNow(mustInterruptWorkingWorkers);
         try {
-            executor.waitForNoMoreRunningWorkerSystemTimeNs(Long.MAX_VALUE);
+            executor.waitForNoMoreRunningWorker(Long.MAX_VALUE);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -1719,58 +1918,94 @@ public class FixedThreadExecutorTest extends TestCase {
     /*
      * 
      */
-
+    
     /**
-     * These executors ensure FIFO order for schedules.
+     * Executors with a single worker,
+     * to ensure FIFO order for schedules.
      */
-    private static ArrayList<FixedThreadExecutor> createFifoExecutors() {
-        return createNThreadsExecutors(1);
+    private static List<FixedThreadExecutor> newFifoExecutors() {
+        return newExecutors(1);
     }
 
-    /**
-     * @param nbrOfThreads Number of threads for executors.
-     */
-    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
+    private static List<FixedThreadExecutor> newExecutors(
             int nbrOfThreads) {
         final ThreadFactory threadFactory = new MyThreadFactory();
-        return createNThreadsExecutors(
-                nbrOfThreads,
-                threadFactory);
-    }
-
-    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
-            int nbrOfThreads,
-            final ThreadFactory threadFactory) {
-        return createNThreadsExecutors(
+        return newExecutors(
                 nbrOfThreads,
                 Integer.MAX_VALUE,
                 threadFactory);
     }
 
-    private static ArrayList<FixedThreadExecutor> createNThreadsExecutors(
+    private static List<FixedThreadExecutor> newExecutors(
         int nbrOfThreads,
         int queueCapacity,
-        final ThreadFactory threadFactory) {
+        ThreadFactory threadFactory) {
         
         final boolean daemon = true;
-        final FixedThreadExecutor executor1 = FixedThreadExecutor.newInstance(
-            "EXECUTOR_1",
-            daemon,
-            nbrOfThreads,
-            queueCapacity,
-            threadFactory);
-        /*
-         * NB: After features simplifications,
-         * we no (longer) have another breed of JLK executor to create,
-         * but we keep current method in case we add one back in the future.
-         */
-
-        final ArrayList<FixedThreadExecutor> executorList = new ArrayList<FixedThreadExecutor>();
-        executorList.add(executor1);
-
+        
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicQueue;
+        
+        final List<FixedThreadExecutor> executorList = new ArrayList<FixedThreadExecutor>();
+        
+        // Executor with basic queue.
+        executorList.add(
+            new FixedThreadExecutor(
+                "FTE_BAS",
+                daemon,
+                nbrOfThreads,
+                queueCapacity,
+                (maxWorkerCountForBasicQueue = Integer.MAX_VALUE),
+                threadFactory));
+        
+        // Executor with advanced queue.
+        executorList.add(
+            new FixedThreadExecutor(
+                "FTE_ADV",
+                daemon,
+                nbrOfThreads,
+                queueCapacity,
+                (maxWorkerCountForBasicQueue = 0),
+                threadFactory));
+        
         return executorList;
     }
 
+    /*
+     * 
+     */
+    
+    private static List<FixedThreadExecutor> newThreadlessExecutors() {
+        return newThreadlessExecutors(Integer.MAX_VALUE);
+    }
+    
+    private static List<FixedThreadExecutor> newThreadlessExecutors(
+        int queueCapacity) {
+        
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicQueue;
+        
+        final List<FixedThreadExecutor> executorList = new ArrayList<FixedThreadExecutor>();
+        
+        // Executor with basic queue.
+        executorList.add(
+            new FixedThreadExecutor(
+                queueCapacity,
+                (maxWorkerCountForBasicQueue = Integer.MAX_VALUE)));
+        
+        // Executor with advanced queue.
+        executorList.add(
+            new FixedThreadExecutor(
+                queueCapacity,
+                (maxWorkerCountForBasicQueue = 0)));
+        
+        return executorList;
+    }
+    
+    /*
+     * 
+     */
+    
     private static void sleepMS(long ms) {
         Unchecked.sleepMs(ms);
     }

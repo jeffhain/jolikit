@@ -15,10 +15,10 @@
  */
 package net.jolikit.time.sched;
 
-import net.jolikit.threading.basics.InterfaceWorkerAware;
+import net.jolikit.threading.execs.InterfaceWorkerAwareExecutor;
 
 /**
  * Interface for schedulers that are aware of their threads.
  */
-public interface InterfaceWorkerAwareScheduler extends InterfaceScheduler, InterfaceWorkerAware {
+public interface InterfaceWorkerAwareScheduler extends InterfaceScheduler, InterfaceWorkerAwareExecutor {
 }

@@ -34,19 +34,67 @@ public abstract class AbstractDefaultScheduler extends AbstractScheduler {
      * to prevent ASAP schedules from being executed.
      */
     protected static class MySequencedSchedule {
-        final Runnable runnable;
+        Runnable runnable;
         long sequenceNumber;
+        public MySequencedSchedule() {
+        }
         public MySequencedSchedule(Runnable runnable) {
             this.runnable = runnable;
         }
+        /*
+         * 
+         */
         public Runnable getRunnable() {
             return this.runnable;
+        }
+        public void setRunnable(Runnable runnable) {
+            this.runnable = runnable;
         }
         public long getSequenceNumber() {
             return this.sequenceNumber;
         }
         public void setSequenceNumber(long sequenceNumber) {
             this.sequenceNumber = sequenceNumber;
+        }
+        /*
+         * 
+         */
+        /**
+         * Useful in case of pooling or other reuse patterns.
+         * 
+         * Nullifies runnable and sets sequence number to zero.
+         */
+        public void clear() {
+            this.runnable = null;
+            this.sequenceNumber = 0;
+        }
+        /**
+         * Can be used instead of getRunnable(),
+         * to help GC when schedule will be
+         * garbaged or reused later.
+         * 
+         * @return Returns the runnable (possibly null)
+         *         and nullifies the reference to it.
+         */
+        public Runnable removeRunnable() {
+            final Runnable ret = this.runnable;
+            this.runnable = null; // help GC
+            return ret;
+        }
+        /**
+         * Moves this instance's runnable and sequence number
+         * into the specified instance, and clears this instance.
+         * 
+         * Useful when this schedule is extended for use
+         * as node in a data structure where data might
+         * need to migrate between nodes.
+         * 
+         * @param other Must not be this, else data are lost.
+         */
+        public void drainDataInto(MySequencedSchedule other) {
+            other.runnable = this.runnable;
+            other.sequenceNumber = this.sequenceNumber;
+            this.clear();
         }
     }
 

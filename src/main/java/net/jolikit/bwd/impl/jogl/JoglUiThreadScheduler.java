@@ -264,7 +264,7 @@ public class JoglUiThreadScheduler extends AbstractUiThreadScheduler {
     protected void runLater(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
         
@@ -278,7 +278,7 @@ public class JoglUiThreadScheduler extends AbstractUiThreadScheduler {
             /*
              * Can happen on shutdown.
              */
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
         }
     }
 }

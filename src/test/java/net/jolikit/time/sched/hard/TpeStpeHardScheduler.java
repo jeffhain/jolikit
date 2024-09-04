@@ -33,9 +33,9 @@ import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.sched.AbstractScheduler;
 
 /**
- * Scheduler based on implementations of JDK's Executor interfaces.
+ * Scheduler based on ThreadPoolExecutor and ScheduledThreadPoolExecutor.
  */
-public class ExecutorHardScheduler extends AbstractScheduler {
+public class TpeStpeHardScheduler extends AbstractScheduler {
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -82,11 +82,12 @@ public class ExecutorHardScheduler extends AbstractScheduler {
     //--------------------------------------------------------------------------
 
     /**
-     * Creates a scheduler based on JDK's executors implementations:
+     * Creates a scheduler based on ThreadPoolExecutor and
+     * ScheduledThreadPoolExecutor:
      * does not take clock's modification into account, and only works
      * for clocks with time speed of 1.
      */
-    public ExecutorHardScheduler(
+    public TpeStpeHardScheduler(
             final InterfaceHardClock clock,
             int nbrOfThreadsForAsapSchedules,
             int nbrOfThreadsForTimedSchedules) {
@@ -98,11 +99,12 @@ public class ExecutorHardScheduler extends AbstractScheduler {
     }
 
     /**
-     * Creates a scheduler based on JDK's executors implementations:
+     * Creates a scheduler based on ThreadPoolExecutor and
+     * ScheduledThreadPoolExecutor:
      * does not take clock's modification into account, and only works
      * for clocks with time speed of 1.
      */
-    public ExecutorHardScheduler(
+    public TpeStpeHardScheduler(
             final InterfaceHardClock clock,
             int nbrOfThreadsForAsapSchedules,
             int nbrOfThreadsForTimedSchedules,
@@ -126,7 +128,7 @@ public class ExecutorHardScheduler extends AbstractScheduler {
      * @param handler Rejected execution handler, set into both
      *        specified executors. Must not be null.
      */
-    public ExecutorHardScheduler(
+    public TpeStpeHardScheduler(
             final InterfaceHardClock clock,
             final ThreadPoolExecutor asapSchedulesExecutor,
             final ScheduledThreadPoolExecutor timedSchedulesExecutor,

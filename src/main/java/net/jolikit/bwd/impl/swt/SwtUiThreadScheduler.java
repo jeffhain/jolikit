@@ -261,7 +261,7 @@ public class SwtUiThreadScheduler extends AbstractScheduler implements Interface
     private void runLaterImpl(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
         /*
@@ -275,7 +275,7 @@ public class SwtUiThreadScheduler extends AbstractScheduler implements Interface
          * where the cancellation comes from.
          */
         if (this.display.isDisposed()) {
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
 

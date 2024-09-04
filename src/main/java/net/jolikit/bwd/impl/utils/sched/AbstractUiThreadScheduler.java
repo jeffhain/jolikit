@@ -16,6 +16,7 @@
 package net.jolikit.bwd.impl.utils.sched;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 
 import net.jolikit.lang.DefaultThreadFactory;
@@ -275,21 +276,30 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
     //--------------------------------------------------------------------------
 
     /**
-     * Calls onCancel() if runLater(Runnable) threw and the
-     * specified Runnable implements InterfaceCancellable.
+     * If runLater(Runnable) threw, if it's a RejectedExecutionException
+     * it's re-thrown, else calls onCancel() or throws REE depending on whether
+     * the specified runnable is a cancellable.
      */
     private void wrapAndCallRunLater(
             final Runnable runnable,
             Long theoreticalTimeNsIfAny) {
         final Runnable runnableWrapper = new MyRunnableWrapper(runnable);
         
+        RejectedExecutionException ree = null;
         boolean completedNormally = false;
         try {
             this.runLater(runnableWrapper);
             completedNormally = true;
+        } catch (RejectedExecutionException e) {
+            ree = e;
+            throw e;
         } finally {
             if (!completedNormally) {
-                CancellableUtils.call_onCancel_IfCancellable(runnable);
+                if (ree != null) {
+                    // Rejection already taken care of.
+                } else {
+                    CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
+                }
             }
         }
     }

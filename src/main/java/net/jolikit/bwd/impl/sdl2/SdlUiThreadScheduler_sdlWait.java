@@ -370,7 +370,7 @@ public class SdlUiThreadScheduler_sdlWait extends AbstractScheduler implements I
     private void runLaterImpl(Runnable runnable) {
         if (this.timingScheduler.isShutdown()) {
             // Shutting down.
-            CancellableUtils.call_onCancel_IfCancellable(runnable);
+            CancellableUtils.call_onCancel_IfCancellableElseThrowREE(runnable);
             return;
         }
         

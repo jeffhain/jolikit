@@ -24,12 +24,14 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import junit.framework.TestCase;
+import net.jolikit.lang.Dbg;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
 import net.jolikit.lang.Unchecked;
@@ -42,7 +44,6 @@ import net.jolikit.time.clocks.InterfaceClockModificationListener;
 import net.jolikit.time.clocks.hard.EnslavedControllableHardClock;
 import net.jolikit.time.clocks.hard.InterfaceHardClock;
 import net.jolikit.time.clocks.hard.NanoTimeClock;
-import net.jolikit.time.clocks.hard.SystemTimeClock;
 import net.jolikit.time.sched.InterfaceScheduler;
 
 public class HardSchedulerTest extends TestCase {
@@ -51,7 +52,11 @@ public class HardSchedulerTest extends TestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
+    private static final boolean DEBUG = false;
+    
     private static final long REAL_TIME_TOLERANCE_MS = 200L;
+    
+    private static final int DEFAULT_MULTI_WORKER_COUNT = 3;
     
     //--------------------------------------------------------------------------
     // PRIVATE CLASSES
@@ -125,6 +130,7 @@ public class HardSchedulerTest extends TestCase {
     }
 
     private class MyRunnable implements InterfaceCancellable {
+        private final long id = nextRunnableId.getAndIncrement();
         private final Object reportMutex = new Object();
         private final InterfaceClock clock;
         /**
@@ -174,6 +180,10 @@ public class HardSchedulerTest extends TestCase {
             this.throwableInOnCancel = throwableInOnCancel;
         }
         @Override
+        public String toString() {
+            return this.getClass().getSimpleName() + "-" + this.id;
+        }
+        @Override
         public void run() {
             final long runCallTimeNs = this.clock.getTimeNs();
 
@@ -183,7 +193,7 @@ public class HardSchedulerTest extends TestCase {
                 if (this.sleepTimeMsInRun > 0) {
                     try {
                         Thread.sleep(this.sleepTimeMsInRun);
-                    } catch (InterruptedException e) {
+                    } catch (@SuppressWarnings("unused") InterruptedException e) {
                         this.runInterrupted = true;
                     }
                 }
@@ -208,7 +218,7 @@ public class HardSchedulerTest extends TestCase {
                 if (this.sleepTimeMsInOnCancel > 0) {
                     try {
                         Thread.sleep(this.sleepTimeMsInOnCancel);
-                    } catch (InterruptedException e) {
+                    } catch (@SuppressWarnings("unused") InterruptedException e) {
                         this.onCancelInterrupted = true;
                     }
                 }
@@ -238,6 +248,11 @@ public class HardSchedulerTest extends TestCase {
             if (this.report == null) {
                 synchronized (this.reportMutex) {
                     while (this.report == null) {
+                        if (DEBUG) {
+                            Dbg.log(
+                                this,
+                                " : waitAndGetReport : waiting...");
+                        }
                         try {
                             this.reportMutex.wait();
                         } catch (InterruptedException e) {
@@ -281,6 +296,11 @@ public class HardSchedulerTest extends TestCase {
     private static final long REAL_TIME_TOLERANCE_NS = REAL_TIME_TOLERANCE_MS * 1000L * 1000L;
     private static final double REAL_TIME_TOLERANCE_S = REAL_TIME_TOLERANCE_MS * 1e-3;
 
+    /**
+     * For debug.
+     */
+    private final AtomicLong nextRunnableId = new AtomicLong();
+    
     private final Random random = TestUtils.newRandom123456789L();
     
     private final AtomicLong nextOrderNum = new AtomicLong();
@@ -289,15 +309,221 @@ public class HardSchedulerTest extends TestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public void test_toString() {
-        final HardScheduler scheduler = HardScheduler.newSingleThreadedInstance(
-                new SystemTimeClock(),
-                "",
-                true);
-
-        assertNotNull(scheduler.toString());
+    public void test_constructor_threaded() {
+        final InterfaceHardClock clock = getClockForTest();
+        final String threadNamePrefix = null;
+        final boolean daemon = true;
+        @SuppressWarnings("unused")
+        int nbrOfThreads;
+        @SuppressWarnings("unused")
+        int asapQueueCapacity;
+        @SuppressWarnings("unused")
+        int timedQueueCapacity;
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicAsapQueue;
+        final ThreadFactory threadFactory = null;
         
-        shutdownNowAndWait(scheduler);
+        @SuppressWarnings("unused")
+        Object o;
+
+        // good
+        {
+            o = new HardScheduler(
+                clock,
+                threadNamePrefix,
+                daemon,
+                nbrOfThreads = 1,
+                asapQueueCapacity = 1,
+                timedQueueCapacity = 1,
+                maxWorkerCountForBasicAsapQueue = 0,
+                threadFactory);
+        }
+        
+        // bad clock
+        {
+            try {
+                o = new HardScheduler(
+                    null,
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") NullPointerException e) {
+                // ok
+            }
+        }
+        
+        // bad nbrOfThreads
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = bad,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad asapQueueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    asapQueueCapacity = bad,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad timedQueueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = bad,
+                    maxWorkerCountForBasicAsapQueue = 0,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad maxWorkerCountForBasicAsapQueue
+        for (int bad : new int[] {Integer.MIN_VALUE, -1}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    threadNamePrefix,
+                    daemon,
+                    nbrOfThreads = 1,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = bad,
+                    threadFactory);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+    }
+    
+    public void test_constructor_threadless() {
+        final InterfaceHardClock clock = getClockForTest();
+        @SuppressWarnings("unused")
+        int nbrOfThreads;
+        @SuppressWarnings("unused")
+        int asapQueueCapacity;
+        @SuppressWarnings("unused")
+        int timedQueueCapacity;
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicAsapQueue;
+        
+        @SuppressWarnings("unused")
+        Object o;
+
+        // good
+        {
+            o = new HardScheduler(
+                clock,
+                asapQueueCapacity = 1,
+                timedQueueCapacity = 1,
+                maxWorkerCountForBasicAsapQueue = 0);
+        }
+        
+        // bad clock
+        {
+            try {
+                o = new HardScheduler(
+                    null,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = 0);
+                fail();
+            } catch (@SuppressWarnings("unused") NullPointerException e) {
+                // ok
+            }
+        }
+        
+        // bad asapQueueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    asapQueueCapacity = bad,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = 0);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad timedQueueCapacity
+        for (int bad : new int[] {Integer.MIN_VALUE, -1, 0}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = bad,
+                    maxWorkerCountForBasicAsapQueue = 0);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+        
+        // bad maxWorkerCountForBasicAsapQueue
+        for (int bad : new int[] {Integer.MIN_VALUE, -1}) {
+            try {
+                o = new HardScheduler(
+                    clock,
+                    asapQueueCapacity = 1,
+                    timedQueueCapacity = 1,
+                    maxWorkerCountForBasicAsapQueue = bad);
+                fail();
+            } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
+                // ok
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    public void test_toString() {
+        final InterfaceHardClock clock = getClockForTest();
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
+        schedulerList.addAll(newThreadlessSchedulers(clock));
+        
+        for (HardScheduler scheduler : schedulerList) {
+            assertNotNull(scheduler.toString());
+            
+            shutdownNowAndWait(scheduler);
+        }
     }
 
     /*
@@ -323,7 +549,7 @@ public class HardSchedulerTest extends TestCase {
                 return backingClock.getTimeSpeed();
             }
         };
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
 
@@ -364,7 +590,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getClock() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             assertEquals(clock, scheduler.getClock());
@@ -373,6 +599,41 @@ public class HardSchedulerTest extends TestCase {
         shutdownNowAndWait(schedulerList);
     }
 
+    public void test_getNbrOfWorkers() {
+        final InterfaceHardClock clock = getClockForTest();
+        
+        {
+            final List<HardScheduler> schedulerList = newThreadlessSchedulers(clock);
+            
+            for (HardScheduler scheduler : schedulerList) {
+                assertEquals(1, scheduler.getNbrOfWorkers());
+                
+                shutdownNowAndWait(scheduler);
+            }
+        }
+        
+        {
+            final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
+
+            for (HardScheduler scheduler : schedulerList) {
+                assertEquals(1, scheduler.getNbrOfWorkers());
+                
+                shutdownNowAndWait(scheduler);
+            }
+        }
+        
+        {
+            final int nbrOfWorkers = DEFAULT_MULTI_WORKER_COUNT;
+            final List<HardScheduler> schedulerList = newSchedulers(clock, nbrOfWorkers);
+
+            for (HardScheduler scheduler : schedulerList) {
+                assertEquals(nbrOfWorkers, scheduler.getNbrOfWorkers());
+                
+                shutdownNowAndWait(scheduler);
+            }
+        }
+    }
+    
     public void test_getNbrOfRunningWorkers() {
         final InterfaceHardClock clock = getClockForTest();
 
@@ -404,9 +665,11 @@ public class HardSchedulerTest extends TestCase {
             }
         };
 
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
                 2,
+                Integer.MAX_VALUE,
+                Integer.MAX_VALUE,
                 threadFactory);
 
         // Letting time for workers to get NOT running.
@@ -474,7 +737,9 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getNbrOfIdleWorkers() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newSchedulers(
+            clock,
+            DEFAULT_MULTI_WORKER_COUNT);
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -530,7 +795,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getNbrOfWorkingWorkers() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         // Starting workers.
         for (HardScheduler scheduler : schedulerList) {
@@ -581,7 +846,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getNbrOfPendingSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             scheduler.stopProcessing();
@@ -610,7 +875,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getNbrOfPendingAsapSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             scheduler.stopProcessing();
@@ -643,7 +908,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_getNbrOfPendingTimedSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             scheduler.stopProcessing();
@@ -676,7 +941,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_isWorkersDeathRequested() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             assertFalse(scheduler.isShutdown());
@@ -725,7 +990,7 @@ public class HardSchedulerTest extends TestCase {
         try {
             scheduler.startAndWorkInCurrentThread();
             fail();
-        } catch (MyRuntimeException e) {
+        } catch (@SuppressWarnings("unused") MyRuntimeException e) {
             // ok
         }
         
@@ -769,7 +1034,9 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_startWorkerThreadsIfNeeded() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newSchedulers(
+            clock,
+            DEFAULT_MULTI_WORKER_COUNT);
 
         // Letting time for workers to get NOT running.
         sleepMS(REAL_TIME_TOLERANCE_MS);
@@ -792,7 +1059,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_start() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             // stop is supposed tested:
@@ -825,7 +1092,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_stop() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             scheduler.stop();
@@ -863,7 +1130,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_startAccepting() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             // stop is supposed tested:
@@ -898,7 +1165,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_stopAccepting() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -958,6 +1225,40 @@ public class HardSchedulerTest extends TestCase {
                 assertTrue(runnable.onCancelCalled());
             }
 
+            {
+                final MyRunnable runnable = new MyRunnable(clock);
+                final Runnable notCancellable = new Runnable() {
+                    @Override
+                    public void run() {
+                        runnable.run();
+                    }
+                };
+                try {
+                    scheduler.execute(notCancellable);
+                    fail();
+                } catch (@SuppressWarnings("unused") RejectedExecutionException e) {
+                    // ok
+                }
+                assertFalse(runnable.runCalled());
+            }
+
+            {
+                final MyRunnable runnable = new MyRunnable(clock);
+                final Runnable notCancellable = new Runnable() {
+                    @Override
+                    public void run() {
+                        runnable.run();
+                    }
+                };
+                try {
+                    scheduler.executeAtNs(notCancellable, clock.getTimeNs());
+                    fail();
+                } catch (@SuppressWarnings("unused") RejectedExecutionException e) {
+                    // ok
+                }
+                assertFalse(runnable.runCalled());
+            }
+
             // Checking schedules were really not accepted,
             // i.e. didn't make it into pending schedules.
             // Supposes getNbrOfXXX methods work.
@@ -975,7 +1276,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_startProcessing() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
             {
@@ -1030,7 +1331,7 @@ public class HardSchedulerTest extends TestCase {
          */
 
         {
-            final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+            final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
             
             for (HardScheduler scheduler : schedulerList) {
                 scheduler.stopProcessing();
@@ -1059,7 +1360,7 @@ public class HardSchedulerTest extends TestCase {
          */
 
         {
-            final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+            final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
             
             for (HardScheduler scheduler : schedulerList) {
 
@@ -1101,7 +1402,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_cancelPendingSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1190,7 +1491,7 @@ public class HardSchedulerTest extends TestCase {
                 try {
                     scheduler.cancelPendingSchedules();
                     fail();
-                } catch (Exception e) {
+                } catch (@SuppressWarnings("unused") Exception e) {
                     // ok
                 }
 
@@ -1211,7 +1512,7 @@ public class HardSchedulerTest extends TestCase {
                 while (true) {
                     try {
                         scheduler.cancelPendingSchedules();
-                    } catch (Exception e) {
+                    } catch (@SuppressWarnings("unused") Exception e) {
                         // quiet
                     }
                     if (scheduler.getNbrOfPendingSchedules() == 0) {
@@ -1226,7 +1527,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_cancelPendingAsapSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1313,7 +1614,7 @@ public class HardSchedulerTest extends TestCase {
                 try {
                     scheduler.cancelPendingAsapSchedules();
                     fail();
-                } catch (Exception e) {
+                } catch (@SuppressWarnings("unused") Exception e) {
                     // ok
                 }
 
@@ -1331,7 +1632,7 @@ public class HardSchedulerTest extends TestCase {
                 while (true) {
                     try {
                         scheduler.cancelPendingAsapSchedules();
-                    } catch (Exception e) {
+                    } catch (@SuppressWarnings("unused") Exception e) {
                         // quiet
                     }
                     if (scheduler.getNbrOfPendingAsapSchedules() == 0) {
@@ -1359,7 +1660,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_cancelPendingTimedSchedules() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -1446,7 +1747,7 @@ public class HardSchedulerTest extends TestCase {
                 try {
                     scheduler.cancelPendingTimedSchedules();
                     fail();
-                } catch (Exception e) {
+                } catch (@SuppressWarnings("unused") Exception e) {
                     // ok
                 }
 
@@ -1465,7 +1766,7 @@ public class HardSchedulerTest extends TestCase {
                 while (true) {
                     try {
                         scheduler.cancelPendingTimedSchedules();
-                    } catch (Exception e) {
+                    } catch (@SuppressWarnings("unused") Exception e) {
                         // quiet
                     }
                     if (scheduler.getNbrOfPendingTimedSchedules() == 0) {
@@ -1493,7 +1794,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_drainPendingAsapRunnablesInto_ObjectVector() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
 
@@ -1559,7 +1860,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_drainPendingTimedRunnablesInto_ObjectVector() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
 
@@ -1701,7 +2002,7 @@ public class HardSchedulerTest extends TestCase {
             boolean mustAsapElseTimed) {
 
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (HardScheduler scheduler : schedulerList) {
 
@@ -1751,7 +2052,7 @@ public class HardSchedulerTest extends TestCase {
                             scheduler.drainPendingTimedRunnablesInto(runnables);
                         }
                         fail();
-                    } catch (RuntimeException e) {
+                    } catch (@SuppressWarnings("unused") RuntimeException e) {
                         // ok
                     }
                 } else {
@@ -1784,10 +2085,9 @@ public class HardSchedulerTest extends TestCase {
          * the workers never die on interrupt.
          */
 
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
-                2,
-                null);
+                2);
 
         /*
          * Checking interrupting idle workers doesn't hurt.
@@ -1906,7 +2206,7 @@ public class HardSchedulerTest extends TestCase {
 
     public void test_shutdown() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -2003,7 +2303,7 @@ public class HardSchedulerTest extends TestCase {
         final EnslavedControllableHardClock clock = getClockForTest();
         clock.setTimeSpeed(timeSpeed);
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         final long timeoutNs = TimeUtils.sToNs(1.0);
         final long systemTimeoutNs;
@@ -2026,9 +2326,6 @@ public class HardSchedulerTest extends TestCase {
             // No need to wait for workers to get running, since
             // they are not considered as "no more running" if they
             // have not all been started yet.
-            if (false) {
-                sleepMS(REAL_TIME_TOLERANCE_MS);
-            }
 
             /*
              * Waiting timeout.
@@ -2042,7 +2339,7 @@ public class HardSchedulerTest extends TestCase {
                 } else {
                     doneBeforeTimeout = scheduler.waitForNoMoreRunningWorkerClockTimeNs(timeoutNs);
                 }
-            } catch (InterruptedException e) {
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             long b = System.nanoTime();
@@ -2071,7 +2368,7 @@ public class HardSchedulerTest extends TestCase {
                 }
                 // Wait must throw InterruptedException.
                 fail();
-            } catch (InterruptedException e) {
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 // quiet
             }
 
@@ -2089,7 +2386,7 @@ public class HardSchedulerTest extends TestCase {
                 } else {
                     doneBeforeTimeout = scheduler.waitForNoMoreRunningWorkerClockTimeNs(timeoutNs);
                 }
-            } catch (InterruptedException e) {
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             b = System.nanoTime();
@@ -2116,7 +2413,7 @@ public class HardSchedulerTest extends TestCase {
                 } else {
                     doneBeforeTimeout = scheduler.waitForNoMoreRunningWorkerClockTimeNs(timeoutNs);
                 }
-            } catch (InterruptedException e) {
+            } catch (@SuppressWarnings("unused") InterruptedException e) {
                 fail();
             }
             b = System.nanoTime();
@@ -2131,10 +2428,24 @@ public class HardSchedulerTest extends TestCase {
      * Scheduling.
      */
 
+    public void test_execute_null() {
+        final InterfaceHardClock clock = getClockForTest();
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
+        
+        for (HardScheduler scheduler : schedulerList) {
+            try {
+                scheduler.execute(null);
+                fail();
+            } catch (@SuppressWarnings("unused") NullPointerException e) {
+                // ok
+            }
+        }
+    }
+    
     public void test_execute_fifoOrder() {
         final EnslavedControllableHardClock clock = getClockForTest();
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
             this.nextOrderNum.set(0);
@@ -2173,12 +2484,12 @@ public class HardSchedulerTest extends TestCase {
         final long nowNs = 123456789L;
         clock.setTimeNs(nowNs);
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
             this.nextOrderNum.set(0);
 
-            final int nbrOfRunnables = 100000;
+            final int nbrOfRunnables = 100 * 1000;
 
             final ArrayList<MyRunnable> runnableList = new ArrayList<MyRunnable>();
 
@@ -2208,13 +2519,13 @@ public class HardSchedulerTest extends TestCase {
      */
     public void test_executeAt_ordering() {
         final EnslavedControllableHardClock clock = getClockForTest();
-        clock.setTimeSpeed(0.0);
-        final long nowNs = 123456789L;
-        clock.setTimeNs(nowNs);
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
-        for (InterfaceScheduler scheduler : schedulerList) {
+        for (HardScheduler scheduler : schedulerList) {
+            clock.setTimeSpeed(0.0);
+            final long nowNs = 1000L * 1000L * 1000L;
+            clock.setTimeNs(nowNs);
             this.nextOrderNum.set(0);
 
             /*
@@ -2294,7 +2605,7 @@ public class HardSchedulerTest extends TestCase {
     public void test_modifiableClock_timeModified() {
         final EnslavedControllableHardClock clock = getClockForTest();
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
             clock.setTimeSpeed(0.0);
@@ -2367,7 +2678,7 @@ public class HardSchedulerTest extends TestCase {
 
         final EnslavedControllableHardClock clock = getClockForTest();
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
             clock.setTimeSpeed(0.0);
@@ -2424,7 +2735,7 @@ public class HardSchedulerTest extends TestCase {
         clock.setTimeSpeed(0.0);
         clock.setTimeNs(0L);
 
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         for (InterfaceScheduler scheduler : schedulerList) {
             // Stopping scheduler while we setup schedules.
@@ -2467,7 +2778,7 @@ public class HardSchedulerTest extends TestCase {
      */
     public void test_workersSurvivalFromExceptions() {
         final InterfaceHardClock clock = getClockForTest();
-        final ArrayList<HardScheduler> schedulerList = createFifoSchedulers(clock);
+        final List<HardScheduler> schedulerList = newFifoSchedulers(clock);
 
         @SuppressWarnings("unused")
         long sleepTimeMsInRun;
@@ -2605,7 +2916,7 @@ public class HardSchedulerTest extends TestCase {
         // Removed after wait.
         try {
             scheduler.waitForNoMoreRunningWorkerSystemTimeNs(REAL_TIME_TOLERANCE_NS);
-        } catch (InterruptedException ignore) {
+        } catch (@SuppressWarnings("unused") InterruptedException ignore) {
         }
         assertEquals(0, clock.listeners.size());
 
@@ -2618,7 +2929,7 @@ public class HardSchedulerTest extends TestCase {
         // Not removed after wait, since worker threads are still running.
         try {
             scheduler.waitForNoMoreRunningWorkerSystemTimeNs(REAL_TIME_TOLERANCE_NS);
-        } catch (InterruptedException ignore) {
+        } catch (@SuppressWarnings("unused") InterruptedException ignore) {
         }
         assertEquals(1, clock.listeners.size());
 
@@ -2638,7 +2949,7 @@ public class HardSchedulerTest extends TestCase {
         final int asapQueueCapacity = 2;
         final int timedQueueCapacity = 3;
 
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
                 nbrOfThreads,
                 asapQueueCapacity,
@@ -2698,9 +3009,9 @@ public class HardSchedulerTest extends TestCase {
     public void test_schedulingStress() {
         final InterfaceHardClock clock = getClockForTest();
 
-        final int nbrOfThreads = 3;
+        final int nbrOfThreads = DEFAULT_MULTI_WORKER_COUNT;
 
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
                 nbrOfThreads);
 
@@ -2770,12 +3081,12 @@ public class HardSchedulerTest extends TestCase {
     public void test_allConcurrentCalls() {
         final InterfaceHardClock clock = getClockForTest();
 
-        final int nbrOfThreads = 3;
+        final int nbrOfThreads = DEFAULT_MULTI_WORKER_COUNT;
         final int nbrOfCallsPerThread = 100;
         // Multiple runs, for smaller queues, and higher chance of messy scheduling.
         final int nbrOfRun = 50;
 
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
                 nbrOfThreads);
 
@@ -2891,7 +3202,7 @@ public class HardSchedulerTest extends TestCase {
     public void test_isWorkerThread_andChecks_withThreads() {
         final InterfaceHardClock clock = getClockForTest();
         final int nbrOfThreads = 2;
-        final ArrayList<HardScheduler> schedulerList = createNThreadsSchedulers(
+        final List<HardScheduler> schedulerList = newSchedulers(
                 clock,
                 nbrOfThreads);
 
@@ -2901,7 +3212,7 @@ public class HardSchedulerTest extends TestCase {
             try {
                 scheduler.checkIsWorkerThread();
                 fail();
-            } catch (ConcurrentModificationException e) {
+            } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
                 // ok
             }
             scheduler.checkIsNotWorkerThread();
@@ -2921,13 +3232,13 @@ public class HardSchedulerTest extends TestCase {
                         try {
                             scheduler.checkIsWorkerThread();
                             // ok
-                        } catch (Throwable t) {
+                        } catch (@SuppressWarnings("unused") Throwable t) {
                             res.set(2); // bad value
                         }
                         try {
                             scheduler.checkIsNotWorkerThread();
                             res.set(3); // bad value
-                        } catch (IllegalStateException e) {
+                        } catch (@SuppressWarnings("unused") IllegalStateException e) {
                             // ok
                         }
 
@@ -2961,7 +3272,7 @@ public class HardSchedulerTest extends TestCase {
         try {
             scheduler.checkIsWorkerThread();
             fail();
-        } catch (ConcurrentModificationException e) {
+        } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
             // ok
         }
         scheduler.checkIsNotWorkerThread();
@@ -2979,7 +3290,7 @@ public class HardSchedulerTest extends TestCase {
                 try {
                     scheduler.checkIsNotWorkerThread();
                     fail();
-                } catch (IllegalStateException e) {
+                } catch (@SuppressWarnings("unused") IllegalStateException e) {
                     // ok
                 }
             }
@@ -3012,7 +3323,7 @@ public class HardSchedulerTest extends TestCase {
         try {
             scheduler.checkIsWorkerThread();
             fail();
-        } catch (ConcurrentModificationException e) {
+        } catch (@SuppressWarnings("unused") ConcurrentModificationException e) {
             // ok
         }
         scheduler.checkIsNotWorkerThread();
@@ -3070,34 +3381,21 @@ public class HardSchedulerTest extends TestCase {
      */
 
     /**
-     * These schedulers ensure FIFO order for ASAP schedules
-     * and for timed schedules for a same time.
+     * Schedulers with a single worker,
+     * to ensure FIFO order for schedules.
      */
-    private static ArrayList<HardScheduler> createFifoSchedulers(
+    private static List<HardScheduler> newFifoSchedulers(
             final InterfaceHardClock clock) {
-        return createNThreadsSchedulers(
+        return newSchedulers(
                 clock,
                 1);
     }
 
-    /**
-     * @param nbrOfThreads Number of threads for schedulers.
-     */
-    private static ArrayList<HardScheduler> createNThreadsSchedulers(
+    private static List<HardScheduler> newSchedulers(
             final InterfaceHardClock clock,
             int nbrOfThreads) {
         final ThreadFactory threadFactory = new MyThreadFactory();
-        return createNThreadsSchedulers(
-                clock,
-                nbrOfThreads,
-                threadFactory);
-    }
-
-    private static ArrayList<HardScheduler> createNThreadsSchedulers(
-            final InterfaceHardClock clock,
-            int nbrOfThreads,
-            final ThreadFactory threadFactory) {
-        return createNThreadsSchedulers(
+        return newSchedulers(
                 clock,
                 nbrOfThreads,
                 Integer.MAX_VALUE,
@@ -3105,33 +3403,92 @@ public class HardSchedulerTest extends TestCase {
                 threadFactory);
     }
 
-    private static ArrayList<HardScheduler> createNThreadsSchedulers(
+    private static List<HardScheduler> newSchedulers(
             final InterfaceHardClock clock,
             int nbrOfThreads,
             int asapQueueCapacity,
             int timedQueueCapacity,
             final ThreadFactory threadFactory) {
+        
         final boolean daemon = true;
-        final HardScheduler scheduler1 = HardScheduler.newInstance(
+        
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicAsapQueue;
+        
+        final List<HardScheduler> schedulerList = new ArrayList<HardScheduler>();
+        
+        // Scheduler with basic queue.
+        schedulerList.add(
+            new HardScheduler(
                 clock,
-                "SCHEDULER_1",
+                "HS_BAS",
                 daemon,
                 nbrOfThreads,
                 asapQueueCapacity,
                 timedQueueCapacity,
-                threadFactory);
-        /*
-         * NB: After features simplifications,
-         * we no (longer) have another breed of hard scheduler to create,
-         * but we keep current method in case we add one back in the future.
-         */
+                (maxWorkerCountForBasicAsapQueue = Integer.MAX_VALUE),
+                threadFactory));
+        
+        // Scheduler with advanced queue.
+        schedulerList.add(
+            new HardScheduler(
+                clock,
+                "HS_ADV",
+                daemon,
+                nbrOfThreads,
+                asapQueueCapacity,
+                timedQueueCapacity,
+                (maxWorkerCountForBasicAsapQueue = 0),
+                threadFactory));
+        
+        return schedulerList;
+    }
+    
+    /*
+     * 
+     */
 
-        final ArrayList<HardScheduler> schedulerList = new ArrayList<HardScheduler>();
-        schedulerList.add(scheduler1);
-
+    private static List<HardScheduler> newThreadlessSchedulers(
+        final InterfaceHardClock clock) {
+        return newThreadlessSchedulers(
+            clock,
+            Integer.MAX_VALUE,
+            Integer.MAX_VALUE);
+    }
+    
+    private static List<HardScheduler> newThreadlessSchedulers(
+            final InterfaceHardClock clock,
+            int asapQueueCapacity,
+            int timedQueueCapacity) {
+        
+        @SuppressWarnings("unused")
+        int maxWorkerCountForBasicAsapQueue;
+        
+        final List<HardScheduler> schedulerList = new ArrayList<HardScheduler>();
+        
+        // Scheduler with basic queue.
+        schedulerList.add(
+            new HardScheduler(
+                clock,
+                asapQueueCapacity,
+                timedQueueCapacity,
+                (maxWorkerCountForBasicAsapQueue = Integer.MAX_VALUE)));
+        
+        // Scheduler with advanced queue.
+        schedulerList.add(
+            new HardScheduler(
+                clock,
+                asapQueueCapacity,
+                timedQueueCapacity,
+                (maxWorkerCountForBasicAsapQueue = 0)));
+        
         return schedulerList;
     }
 
+    /*
+     * 
+     */
+    
     private static void sleepMS(long ms) {
         Unchecked.sleepMs(ms);
     }

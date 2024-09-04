@@ -579,7 +579,7 @@ public class SoftScheduler extends AbstractDefaultScheduler implements Interface
                     throw new AssertionError(forCheck + " != " + schedule);
                 }
 
-                final Runnable runnable = schedule.getRunnable();
+                final Runnable runnable = schedule.removeRunnable();
                 runRunnable(runnable);
             } while (((schedule = this.currentSchedules.peek()) != null)
                     && (schedule.getTheoreticalTimeNs() == nowNs));
