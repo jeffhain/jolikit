@@ -20,6 +20,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import net.jolikit.lang.RethrowException;
+import net.jolikit.threading.basics.InterfaceCancellable;
 
 /**
  * Implements splittables parallelization, sharing a queue
@@ -43,24 +44,34 @@ class ExecPrlzrSp {
             this.shotHandler = shotHandler;
             this.depth = depth;
         }
+        /**
+         * Called from shot handler's runTasksFromQueue().
+         */
         @Override
         public void run() {
             final MyShotHandler shotHandler = this.shotHandler;
             try {
-                if (!shotHandler.didATaskCatchAThrowable()) {
-                    /*
-                     * Forking.
-                     */
-                    this.forkAsNeeded();
-                    /*
-                     * Running.
-                     */
-                    this.sp.run();
-                }
-            } catch (Throwable t) {
-                shotHandler.onThrowable(t);
+                this.forkRun();
             } finally {
-                shotHandler.onTaskCompletion();
+                shotHandler.onEnqueuedTaskCompletion();
+            }
+        }
+        public void forkRun() {
+            /*
+             * Forking.
+             */
+            try {
+                this.forkAsNeeded();
+            } catch (Throwable e) {
+                this.shotHandler.onThrowable(e);
+            }
+            /*
+             * Running.
+             */
+            try {
+                this.sp.run();
+            } catch (Throwable e) {
+                this.shotHandler.onThrowable(e);
             }
         }
         private void forkAsNeeded() {
@@ -84,50 +95,64 @@ class ExecPrlzrSp {
     /**
      * Info specific to a call to parallelizer.execute(Runnable).
      * 
-     * The extended AtomicInteger holds the number of tasks started, and is
-     * notified when it reaches 0.
-     * If the backing executor fails to start a task (other than due to
-     * shutdownNow() or equivalent), it should throw, so we should still
-     * not wait for it indefinitely, and if we do so we can still be
-     * interrupted.
-     * 
-     * Used as mutex for wait/notify, for both exceptional and normal
-     * completion.
+     * The extended AtomicInteger holds the number of tasks enqueued,
+     * and is notified when it reaches 0, for call to executePrl()
+     * to complete only once all enqueued tasks from this shot
+     * have been dequeued, even in case of exceptions,
+     * because we don't want them to linger in the queue and be
+     * executed and throw into UEH during subsequent parallelizations,
+     * which could be confusing.
      */
-    private static class MyShotHandler extends AtomicInteger implements Runnable {
+    private static class MyShotHandler extends AtomicInteger implements InterfaceCancellable {
         private static final long serialVersionUID = 1L;
         final ExecPrlzrSp owner;
         final int maxDepth;
         /**
          * Write guarded by synchronization on this.
          */
-        private volatile Throwable firstThrown;
+        private volatile Throwable firstDetected;
         public MyShotHandler(
             ExecPrlzrSp owner,
             int maxDepth) {
             this.owner = owner;
             this.maxDepth = maxDepth;
         }
-        private synchronized void setIfFirst(Throwable throwable) {
-            if (this.firstThrown == null) {
-                this.firstThrown = throwable;
+        /**
+         * @param throwable
+         * @return True if was first detected.
+         */
+        private synchronized boolean setIfFirst(Throwable throwable) {
+            boolean didSet = false;
+            if (this.firstDetected == null) {
+                this.firstDetected = throwable;
+                didSet = true;
             }
+            return didSet;
         }
         public void onThrowable(Throwable throwable) {
-            this.setIfFirst(throwable);
-            
-            final UncaughtExceptionHandler handler = owner.exceptionHandler;
-            if (handler != null) {
-                handler.uncaughtException(Thread.currentThread(), throwable);
+            final boolean didSet = this.setIfFirst(throwable);
+            if (didSet) {
+                /*
+                 * Will be rethrown by executePrl().
+                 */
+            } else {
+                final UncaughtExceptionHandler handler = owner.exceptionHandler;
+                if (handler != null) {
+                    try {
+                        handler.uncaughtException(Thread.currentThread(), throwable);
+                    } catch (@SuppressWarnings("unused") Throwable e) {
+                        // ignored (as if null handler)
+                    }
+                }
             }
         }
         public void enqueueTask(MySpTask task) {
             this.incrementAndGet();
-            final ExecPrlzrLifo<Runnable> queueAndMutex = this.owner.queueAndMutex;
+            
+            final ExecPrlzrLifo<Runnable> queueAndMutex =
+                this.owner.queueAndMutex;
             synchronized (queueAndMutex) {
                 queueAndMutex.addLast(task);
-                // To wake up the thread in execute(Runnable) method that would
-                // be waiting for some task (or completion of its shot).
                 queueAndMutex.notifyAll();
             }
         }
@@ -138,16 +163,27 @@ class ExecPrlzrSp {
              * all available parallelism. At worse, some executions of handler
              * will abort early when finding out that the shot completed.
              * 
-             * Can eventually throw RejectedExecutionException,
-             * which our tasks will catch and treat as any other issue
-             * (throwable) thrown during execution.
+             * If the executor applies backpressure on queue full,
+             * the parallelizer might block, that's why use of
+             * such executors is discouraged.
+             * If the executor throws RejectedExecutionException,
+             * our tasks will catch it and treat it as any other issue
+             * (throwable) thrown during execution, so in this case
+             * the parallelization will complete exceptionally.
+             * If the executor recognizes InterfaceCancellable
+             * and rejects the task by calling onCancel(),
+             * due to queue full, shutdown, or else,
+             * we will just do nothing in onCancel() method
+             * and will just not benefit from the attempted parallelism
+             * (at worse, remaining tasks will be taken care of
+             * by calling thread).
              */
             this.owner.executor.execute(this);
         }
         /**
-         * Must be called on task completion (normal or not).
+         * Must be called on enqueued task completion (normal or not).
          */
-        public void onTaskCompletion() {
+        public void onEnqueuedTaskCompletion() {
             if (this.decrementAndGet() == 0) {
                 this.onShotCompletion();
             }
@@ -160,28 +196,31 @@ class ExecPrlzrSp {
             final ExecPrlzrLifo<Runnable> queueAndMutex =
                 this.owner.queueAndMutex;
             synchronized (queueAndMutex) {
-                // To wake up the thread in execute(Runnable) method that would
-                // be waiting for completion of this shot (or some task).
                 queueAndMutex.notifyAll();
             }
         }
         /**
-         * To decide whether a task must be executed, or completed right away.
+         * Completion means all enqueued tasks have been ran:
+         * - to avoid risk of indefinte queue growth in case
+         *   of systematic exceptions,
+         * - to avoid having to check for thrown exception
+         *   before doing work, which would add an overhead
+         *   we don't want for the normal completion cases,
+         * - to avoid task exceptions to be fed to UEH during
+         *   subsequent parallelizations, which could be
+         *   confusing to the user,
+         * - in case user wants to do best effort work
+         *   even in case of exceptions.
          * 
-         * @return True if a task did catch a Throwable during its
-         *         {[fork,] run[, merge]} work.
-         */
-        public boolean didATaskCatchAThrowable() {
-            return (this.firstThrown != null);
-        }
-        /**
-         * @return True if all tasks of this shot completed (normally or not).
+         * @return True if all enqueued tasks of this shot
+         *         have been ran and completed (normally or not).
          */
         public boolean shotCompleted() {
             return (this.get() == 0);
         }
         /**
-         * Forks/run/merge any task until this shot completes.
+         * Runs tasks from queue until queue is found empty.
+         * Called from executor.
          */
         @Override
         public void run() {
@@ -193,22 +232,31 @@ class ExecPrlzrSp {
              * case they could be used by other treatments as well.
              */
             final boolean untilShotCompletion = false;
-            this.forkRunMergeAnyTask(untilShotCompletion);
+            this.runTasksFromQueue(untilShotCompletion);
+        }
+        @Override
+        public void onCancel() {
+            /*
+             * Doing nothing here. At worse remaining tasks
+             * will be taken care of by calling thread.
+             */
         }
         /**
-         * @param untilShotCompletion If true waits for shot completion
-         *        before completing.
+         * @param untilShotCompletion If true keeps running tasks
+         *        until shot completion, else completes as soon as queue
+         *        is found empty.
          */
-        public void forkRunMergeAnyTask(boolean untilShotCompletion) {
-            if (this.shotCompleted()) {
-                return;
-            }
-            
+        public void runTasksFromQueue(boolean untilShotCompletion) {
             final ExecPrlzrSp owner = this.owner;
             final ExecPrlzrLifo<Runnable> queueAndMutex =
                 owner.queueAndMutex;
             
-            while (true) {
+            /*
+             * Shot might be completed when entering this method,
+             * and might also be completed due to completion
+             * of tasks not ran in current thread.
+             */
+            while (!this.shotCompleted()) {
                 final Runnable task;
                 synchronized (queueAndMutex) {
                     if (untilShotCompletion) {
@@ -219,7 +267,7 @@ class ExecPrlzrSp {
                             && (!this.shotCompleted())) {
                             try {
                                 queueAndMutex.wait();
-                            } catch (InterruptedException e) {
+                            } catch (@SuppressWarnings("unused") InterruptedException e) {
                                 /*
                                  * We don't want our wait to be interrupted,
                                  * but if current thread got interrupted,
@@ -254,12 +302,6 @@ class ExecPrlzrSp {
                  * Does one fork/run(/merge) pass, and then completes the task.
                  */
                 task.run();
-                
-                if (this.shotCompleted()) {
-                    // Our shot completed (not necessarily due to the completion
-                    // of the task we just ran).
-                    break;
-                }
             }
         }
     }
@@ -308,7 +350,13 @@ class ExecPrlzrSp {
                 shotHandler,
                 0); // depth
         
-        shotHandler.enqueueTask(task);
+        /*
+         * Forking and running root task in user thread,
+         * to minimize need for worker threads
+         * and corresponding context switches.
+         */
+        
+        task.forkRun();
         
         /*
          * Parallel execution happens here.
@@ -319,15 +367,15 @@ class ExecPrlzrSp {
          */
         
         final boolean untilShotCompletion = true;
-        shotHandler.forkRunMergeAnyTask(untilShotCompletion);
+        shotHandler.runTasksFromQueue(untilShotCompletion);
         
         /*
          * 
          */
         
-        final Throwable thrown = shotHandler.firstThrown;
-        if (thrown != null) {
-            throw new RethrowException(thrown);
+        final Throwable firstDetected = shotHandler.firstDetected;
+        if (firstDetected != null) {
+            throw new RethrowException(firstDetected);
         }
     }
 }

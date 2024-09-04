@@ -35,6 +35,11 @@ public class SequentialParallelizerForTests extends SequentialParallelizer imple
     }
     
     @Override
+    public boolean executorRejectsWithOnCancelIfCancellable() {
+        throw new UnsupportedOperationException();
+    }
+    
+    @Override
     public void shutdownAndWait() {
     }
 }

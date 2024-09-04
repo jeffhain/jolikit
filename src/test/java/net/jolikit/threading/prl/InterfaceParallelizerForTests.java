@@ -35,6 +35,12 @@ interface InterfaceParallelizerForTests extends InterfaceParallelizer {
     public boolean isReentrant();
     
     /**
+     * @return True if executor rejects cancellables by calling onCancel(),
+     *         false if it always rejected using RejectedExecutionException. 
+     */
+    public boolean executorRejectsWithOnCancelIfCancellable();
+    
+    /**
      * Shuts down the parallelizer and its backing resources.
      * Must complete only once the shutdown terminated.
      */

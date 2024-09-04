@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,14 @@ package net.jolikit.threading.prl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
+import net.jolikit.lang.DefaultExceptionHandler;
+import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.test.utils.TestUtils;
+import net.jolikit.threading.execs.FixedThreadExecutor;
 
 /**
  * Basic benches for parallelizers.
@@ -29,7 +35,10 @@ public class ParallelizersPerf {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final int FIBO_MIN_SEQ_N = 15;
+    /**
+     * Small enough to show eventual differences between parallelizers.
+     */
+    private static final int FIBO_MIN_SEQ_N = 10;
     private static final int FIBO_MIN_N = 25;
     private static final int FIBO_MAX_N = FIBO_MIN_N;
 
@@ -40,7 +49,20 @@ public class ParallelizersPerf {
     private static final int NBR_OF_RUNS = 4;
     
     private static final int NBR_OF_CALLS = 1000;
-
+    
+    private static final int MIN_PARALLELISM = 32;
+    
+    private static final int MAX_PARALLELISM =
+        2 * Runtime.getRuntime().availableProcessors();
+    
+    /*
+     * 
+     */
+    
+    private static final boolean MUST_BENCH_EP_WITH_TPE = true;
+    
+    private static final boolean MUST_BENCH_EP_WITH_FTE = true;
+    
     /*
      * 
      */
@@ -53,14 +75,39 @@ public class ParallelizersPerf {
         
         list.add(new SequentialParallelizerForTests());
         
-        for (int[] prlDiscrArr : new int[][]{
-                {2, 0},
-                {2, 3},
-                {4, 0},
-                {4, 3}}) {
-            final int parallelism = prlDiscrArr[0];
-            final int discrepancy = prlDiscrArr[1];
-            list.add(new ExecutorParallelizerForTests(parallelism, discrepancy));
+        for (int parallelism = MIN_PARALLELISM; parallelism <= MAX_PARALLELISM; parallelism *= 2) {
+            for (int discrepancy = 0; discrepancy <= 2; discrepancy++) {
+                if (MUST_BENCH_EP_WITH_TPE) {
+                    // No need to swallow since TPE maintains parallelism.
+                    final boolean mustSwallow = false;
+                    final ThreadFactory threadFactory =
+                        new DefaultThreadFactory(
+                            null,
+                            new DefaultExceptionHandler(mustSwallow));
+                    final Executor executor =
+                        Executors.newFixedThreadPool(
+                            parallelism,
+                            threadFactory);
+                    list.add(new ExecutorParallelizerForTests(
+                        executor,
+                        parallelism,
+                        discrepancy,
+                        null));
+                }
+                if (MUST_BENCH_EP_WITH_FTE) {
+                    final Executor executor =
+                        FixedThreadExecutor.newInstance(
+                            "HeEpTest",
+                            true,
+                            parallelism,
+                            new DefaultThreadFactory());
+                    list.add(new ExecutorParallelizerForTests(
+                        executor,
+                        parallelism,
+                        discrepancy,
+                        null));
+                }
+            }
         }
         
         return list;
@@ -127,6 +174,7 @@ public class ParallelizersPerf {
     //--------------------------------------------------------------------------
     
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + ParallelizersPerf.class.getSimpleName() + "... ---");
         
         for (int n = FIBO_MIN_N; n <= FIBO_MAX_N; n++) {
@@ -136,7 +184,9 @@ public class ParallelizersPerf {
             bench_fibo(n);
         }
         
-        System.out.println("--- ..." + ParallelizersPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + ParallelizersPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
 
     private static void bench_fibo(int n) {

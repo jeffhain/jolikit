@@ -16,19 +16,20 @@
 package net.jolikit.threading.prl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
-import net.jolikit.lang.DefaultThreadFactory;
-import net.jolikit.lang.Unchecked;
+import net.jolikit.threading.execs.FixedThreadExecutor;
 
 public class ExecutorParallelizerForTests extends ExecutorParallelizer implements InterfaceParallelizerForTests {
 
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-
+    
+    private final Executor executor;
+    
     private final int discrepancy;
     
     //--------------------------------------------------------------------------
@@ -36,31 +37,28 @@ public class ExecutorParallelizerForTests extends ExecutorParallelizer implement
     //--------------------------------------------------------------------------
     
     public ExecutorParallelizerForTests(
-            int executorParallelism,
-            int discrepancy) {
-        this(
-                executorParallelism,
-                discrepancy,
-                new DefaultThreadFactory(),
-                null); // exceptionHandler
-    }
-    
-    public ExecutorParallelizerForTests(
-            int executorParallelism,
-            int discrepancy,
-            ThreadFactory threadFactory,
-            UncaughtExceptionHandler exceptionHandler) {
+        Executor executor,
+        int executorParallelism,
+        int discrepancy,
+        UncaughtExceptionHandler exceptionHandler) {
         super(
-                Executors.newFixedThreadPool(executorParallelism, threadFactory),
-                executorParallelism,
-                PrlUtils.computeMaxDepth(executorParallelism, discrepancy),
-                exceptionHandler);
+            executor,
+            executorParallelism,
+            PrlUtils.computeMaxDepth(executorParallelism, discrepancy),
+            exceptionHandler);
+        this.executor = executor;
         this.discrepancy = discrepancy;
     }
     
     @Override
     public String getSpeDescr() {
-        return "[discrepancy = " + this.discrepancy + " (-> maxDepth = " + this.getMaxDepth() + ")]";
+        return "["
+            + this.executor.getClass().getSimpleName()
+            + ",discr = "
+            + this.discrepancy
+            + " (-> maxDepth = "
+            + this.getMaxDepth()
+            + ")]";
     }
     
     @Override
@@ -69,8 +67,28 @@ public class ExecutorParallelizerForTests extends ExecutorParallelizer implement
     }
     
     @Override
+    public boolean executorRejectsWithOnCancelIfCancellable() {
+        return (this.executor instanceof FixedThreadExecutor);
+    }
+    
+    @Override
     public void shutdownAndWait() {
-        final ExecutorService executor = (ExecutorService) this.getExecutor();
-        Unchecked.shutdownAndAwaitTermination(executor);
+        if (this.executor instanceof ThreadPoolExecutor) {
+            final ThreadPoolExecutor executor = (ThreadPoolExecutor) this.executor;
+            executor.shutdown();
+            try {
+                executor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            final FixedThreadExecutor executor = (FixedThreadExecutor) this.executor;
+            executor.shutdown();
+            try {
+                executor.waitForNoMoreRunningWorker(Long.MAX_VALUE);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

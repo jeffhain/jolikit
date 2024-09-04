@@ -17,10 +17,10 @@ package net.jolikit.threading.prl;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import net.jolikit.lang.RethrowException;
+import net.jolikit.threading.basics.InterfaceCancellable;
 
 /**
  * Implements splitmergables parallelization, sharing a queue
@@ -51,76 +51,84 @@ class ExecPrlzrSpm {
             this.depth = depth;
             this.parent = parent;
         }
+        /**
+         * Called from shot handler's runTasksFromQueue().
+         */
         @Override
         public void run() {
-            runTask(this, this.shotHandler);
+            this.forkRunMerge();
         }
         /**
-         * Using a static method, to make it clearer that we are not tied to
-         * this specific node (at least after fork).
+         * Does not throw.
          */
-        public static void runTask(
-            MySpmTask currentNode,
-            MyShotHandler shotHandler) {
+        public void forkRunMerge() {
+            final MyShotHandler shotHandler = this.shotHandler;
+            MySpmTask currentTask = this;
+            /*
+             * Forking.
+             */
             try {
-                if (!shotHandler.didATaskCatchAThrowable()) {
+                while ((currentTask.depth < shotHandler.maxDepth)
+                    && currentTask.spm.worthToSplit()) {
+                    
+                    final int childrenDepth = currentTask.depth + 1;
                     /*
-                     * Forking.
+                     * Unlike with splittable,
+                     * we can't reuse a same task for
+                     * the new state of spm after split,
+                     * because we need to keep track
+                     * of parent tasks for merging.
                      */
-                    currentNode = forkAsNeeded(
-                        currentNode,
-                        shotHandler);
+                    final MySpmTask left = new MySpmTask(
+                        currentTask.spm,
+                        shotHandler,
+                        childrenDepth,
+                        currentTask);
+                    final MySpmTask right = new MySpmTask(
+                        currentTask.spm.split(),
+                        shotHandler,
+                        childrenDepth,
+                        currentTask);
+                    
                     /*
-                     * Running.
+                     * Doing this after split, to consider
+                     * that there was no split if split threw.
+                     * We can do this before enqueuing,
+                     * since even in case of rejected execution
+                     * right task will at least be processed
+                     * by user thread.
                      */
-                    currentNode.spm.run();
-                    /*
-                     * Merging.
-                     */
-                    mergeAsNeeded(currentNode);
+                    currentTask = left;
+                    
+                    shotHandler.enqueueTaskAndExecuteHandler(right);
                 }
-            } catch (Throwable t) {
-                shotHandler.onThrowable(t);
-            } finally {
-                shotHandler.onTaskCompletion();
+            } catch (Throwable e) {
+                shotHandler.onThrowable(e);
             }
-        }
-        /**
-         * @return New current node.
-         */
-        private static MySpmTask forkAsNeeded(
-            MySpmTask currentNode,
-            MyShotHandler shotHandler) {
-            while ((currentNode.depth < shotHandler.maxDepth)
-                && currentNode.spm.worthToSplit()) {
-                final int childrenDepth = currentNode.depth+1;
-                final MySpmTask left = new MySpmTask(
-                    currentNode.spm,
-                    shotHandler,
-                    childrenDepth,
-                    currentNode);
-                final MySpmTask right = new MySpmTask(
-                    currentNode.spm.split(),
-                    shotHandler,
-                    childrenDepth,
-                    currentNode);
-                
-                shotHandler.enqueueTaskAndExecuteHandler(right);
-                
-                currentNode = left;
+            /*
+             * Running.
+             */
+            try {
+                currentTask.spm.run();
+            } catch (Throwable e) {
+                shotHandler.onThrowable(e);
             }
-            return currentNode;
+            /*
+             * Merging.
+             */
+            mergeAsNeeded(currentTask);
         }
-        private static void mergeAsNeeded(MySpmTask currentNode) {
-            final InterfaceSplitmergable currentSpm = currentNode.spm;
-            MySpmTask parent = currentNode.parent;
+        private static void mergeAsNeeded(MySpmTask currentTask) {
+            final InterfaceSplitmergable currentSpm = currentTask.spm;
+            
+            MySpmTask parent = currentTask.parent;
             while (parent != null) {
                 InterfaceSplitmergable peer = parent.get();
                 if (peer == null) {
                     // CAS ensures visibility on peer for merges.
                     if (parent.compareAndSet(null, currentSpm)) {
                         // Peer will take care of merging.
-                        break;
+                        return;
                     } else {
                         // Peer just CASed itself:
                         // we need to take care of merging.
@@ -132,17 +140,20 @@ class ExecPrlzrSpm {
                 }
                 // We always merge into the SPM we ran,
                 // even if it is a split from peer.
-                currentSpm.merge(currentSpm, peer);
-                currentNode = parent;
+                try {
+                    currentSpm.merge(currentSpm, peer);
+                } catch (Throwable e) {
+                    currentTask.shotHandler.onThrowable(e);
+                }
+                currentTask = parent;
                 parent = parent.parent;
             }
-            if (currentNode.parent == null) {
-                // Root node: setting the SPM that holds the result.
-                // Lazy set is fine since we decrementAndGet a counter
-                // on task completion, which has (among other things)
-                // volatile write semantics (AFAIK).
-                currentNode.lazySet(currentSpm);
-            }
+            
+            /*
+             * Here parent is null: current task is root task,
+             * so currentSpm holds the result and we are done.
+             */
+            currentTask.shotHandler.onMergeCompletion(currentSpm);
         }
     }
     
@@ -153,51 +164,57 @@ class ExecPrlzrSpm {
     /**
      * Info specific to a call to parallelizer.execute(Runnable).
      * 
-     * The extended AtomicInteger holds the number of tasks started, and is
-     * notified when it reaches 0.
-     * If the backing executor fails to start a task (other than due to
-     * shutdownNow() or equivalent), it should throw, so we should still
-     * not wait for it indefinitely, and if we do so we can still be
-     * interrupted.
-     * 
-     * Used as mutex for wait/notify, for both exceptional and normal
-     * completion.
+     * Extended AtomicReference holds reference to result holding SPM
+     * (i.e. the holder of the final merge, if any).
      */
-    private static class MyShotHandler extends AtomicInteger implements Runnable {
+    private static class MyShotHandler
+    extends AtomicReference<InterfaceSplitmergable>
+    implements InterfaceCancellable {
         private static final long serialVersionUID = 1L;
         final ExecPrlzrSpm owner;
         final int maxDepth;
         /**
          * Write guarded by synchronization on this.
          */
-        private volatile Throwable firstThrown;
+        private volatile Throwable firstDetected;
         public MyShotHandler(
             ExecPrlzrSpm owner,
             int maxDepth) {
             this.owner = owner;
             this.maxDepth = maxDepth;
         }
-        private synchronized void setIfFirst(Throwable throwable) {
-            if (this.firstThrown == null) {
-                this.firstThrown = throwable;
+        /**
+         * @param throwable
+         * @return True if was first detected.
+         */
+        private synchronized boolean setIfFirst(Throwable throwable) {
+            boolean didSet = false;
+            if (this.firstDetected == null) {
+                this.firstDetected = throwable;
+                didSet = true;
             }
+            return didSet;
         }
         public void onThrowable(Throwable throwable) {
-            this.setIfFirst(throwable);
-            
-            final UncaughtExceptionHandler handler = owner.exceptionHandler;
-            if (handler != null) {
-                handler.uncaughtException(Thread.currentThread(), throwable);
+            final boolean didSet = this.setIfFirst(throwable);
+            if (didSet) {
+                // Will be rethrown by executePrl().
+            } else {
+                final UncaughtExceptionHandler handler = owner.exceptionHandler;
+                if (handler != null) {
+                    try {
+                        handler.uncaughtException(Thread.currentThread(), throwable);
+                    } catch (@SuppressWarnings("unused") Throwable e) {
+                        // ignored (as if null handler)
+                    }
+                }
             }
         }
         public void enqueueTask(MySpmTask task) {
-            this.incrementAndGet();
             final ExecPrlzrLifo<Runnable> queueAndMutex =
                 this.owner.queueAndMutex;
             synchronized (queueAndMutex) {
                 queueAndMutex.addLast(task);
-                // To wake up the thread in execute(Runnable) method that would
-                // be waiting for some task (or completion of its shot).
                 queueAndMutex.notifyAll();
             }
         }
@@ -208,50 +225,59 @@ class ExecPrlzrSpm {
              * all available parallelism. At worse, some executions of handler
              * will abort early when finding out that the shot completed.
              * 
-             * Can eventually throw RejectedExecutionException,
-             * which our tasks will catch and treat as any other issue
-             * (throwable) thrown during execution.
+             * If the executor applies backpressure on queue full,
+             * the parallelizer might block, that's why use of
+             * such executors is discouraged.
+             * If the executor throws RejectedExecutionException,
+             * our tasks will catch it and treat it as any other issue
+             * (throwable) thrown during execution, so in this case
+             * the parallelization will complete exceptionally.
+             * If the executor recognizes InterfaceCancellable
+             * and rejects the task by calling onCancel(),
+             * due to queue full, shutdown, or else,
+             * we will just do nothing in onCancel() method
+             * and will just not benefit from the attempted parallelism
+             * (at worse, remaining tasks will be taken care of
+             * by calling thread).
              */
             this.owner.executor.execute(this);
         }
-        /**
-         * Must be called on task completion (normal or not).
-         */
-        public void onTaskCompletion() {
-            if (this.decrementAndGet() == 0) {
-                this.onShotCompletion();
-            }
+        private void onMergeCompletion(InterfaceSplitmergable mergedRootSpm) {
+            // Lazy set is fine since we use synchronized afterwards.
+            this.lazySet(mergedRootSpm);
+            this.notifyAllQueueInLock();
         }
-        /**
-         * Must be called on completion of this shot, i.e. on completion of all
-         * of its tasks.
-         */
-        private void onShotCompletion() {
+        private void notifyAllQueueInLock() {
             final ExecPrlzrLifo<Runnable> queueAndMutex =
                 this.owner.queueAndMutex;
             synchronized (queueAndMutex) {
-                // To wake up the thread in execute(Runnable) method that would
-                // be waiting for completion of this shot (or some task).
                 queueAndMutex.notifyAll();
             }
         }
         /**
-         * To decide whether a task must be executed, or completed right away.
+         * Completion means all enqueued tasks have been ran
+         * (and merged up to root task and into shot handler):
+         * - to avoid risk of indefinte queue growth in case
+         *   of systematic exceptions,
+         * - to avoid having to check for thrown exception
+         *   before doing work, which would add an overhead
+         *   we don't want for the normal completion cases,
+         * - to avoid task exceptions to be fed to UEH during
+         *   subsequent parallelizations, which could be
+         *   confusing to the user,
+         * - in case user wants to do best effort work
+         *   even in case of exceptions.
          * 
-         * @return True if a task did catch a Throwable during its
-         *         {[fork,] run[, merge]} work.
+         * @return True if all enqueued tasks of this shot
+         *         have been ran and completed (normally or not).
          */
-        public boolean didATaskCatchAThrowable() {
-            return (this.firstThrown != null);
+        public boolean isShotCompleted() {
+            final InterfaceSplitmergable resultSpm = this.get();
+            return (resultSpm != null);
         }
         /**
-         * @return True if all tasks of this shot completed (normally or not).
-         */
-        public boolean shotCompleted() {
-            return (this.get() == 0);
-        }
-        /**
-         * Forks/run/merge any task until this shot completes.
+         * Runs tasks from queue until queue is found empty.
+         * Called from executor.
          */
         @Override
         public void run() {
@@ -263,22 +289,31 @@ class ExecPrlzrSpm {
              * case they could be used by other treatments as well.
              */
             final boolean untilShotCompletion = false;
-            this.forkRunMergeAnyTask(untilShotCompletion);
+            this.runTasksFromQueue(untilShotCompletion);
+        }
+        @Override
+        public void onCancel() {
+            /*
+             * Doing nothing here. At worse remaining tasks
+             * will be taken care of by calling thread.
+             */
         }
         /**
-         * @param untilShotCompletion If true waits for shot completion
-         *        before completing.
+         * @param untilShotCompletion If true keeps running tasks
+         *        until shot completion, else completes as soon as queue
+         *        is found empty.
          */
-        public void forkRunMergeAnyTask(boolean untilShotCompletion) {
-            if (this.shotCompleted()) {
-                return;
-            }
-            
+        public void runTasksFromQueue(boolean untilShotCompletion) {
             final ExecPrlzrSpm owner = this.owner;
             final ExecPrlzrLifo<Runnable> queueAndMutex =
                 owner.queueAndMutex;
             
-            while (true) {
+            /*
+             * Shot might be completed when entering this method,
+             * and might also be completed due to completion
+             * of tasks not ran in current thread.
+             */
+            while (!this.isShotCompleted()) {
                 final Runnable task;
                 synchronized (queueAndMutex) {
                     if (untilShotCompletion) {
@@ -286,10 +321,10 @@ class ExecPrlzrSpm {
                         // If queue is empty, waiting for more tasks
                         // or for shot completion.
                         while ((queueAndMutex.size() == 0)
-                            && (!this.shotCompleted())) {
+                            && (!this.isShotCompleted())) {
                             try {
                                 queueAndMutex.wait();
-                            } catch (InterruptedException e) {
+                            } catch (@SuppressWarnings("unused") InterruptedException e) {
                                 /*
                                  * We don't want our wait to be interrupted,
                                  * but if current thread got interrupted,
@@ -306,7 +341,7 @@ class ExecPrlzrSpm {
                     
                     if (queueAndMutex.size() == 0) {
                         /*
-                         * If untilShotCompletion is true, that means that
+                         * If isShotCompleted() is true, that means that
                          * either we did not wait, or stopped waiting because
                          * shot completed, so we're done.
                          * If it is false, then we're done as well because we
@@ -324,12 +359,6 @@ class ExecPrlzrSpm {
                  * Does one fork/run(/merge) pass, and then completes the task.
                  */
                 task.run();
-                
-                if (this.shotCompleted()) {
-                    // Our shot completed (not necessarily due to the completion
-                    // of the task we just ran).
-                    break;
-                }
             }
         }
     }
@@ -366,6 +395,9 @@ class ExecPrlzrSpm {
         this.exceptionHandler = exceptionHandler;
     }
     
+    /**
+     * Must only be called if the specified splitmergable is worth to split.
+     */
     public void executePrl(InterfaceSplitmergable splitmergable) {
         
         final MyShotHandler shotHandler =
@@ -373,14 +405,20 @@ class ExecPrlzrSpm {
                 this,
                 this.maxDepth);
         
-        final MySpmTask task =
+        final MySpmTask rootTask =
             new MySpmTask(
                 splitmergable,
                 shotHandler,
                 0, // depth
                 null); // parent
         
-        shotHandler.enqueueTask(task);
+        /*
+         * Running root task in user thread,
+         * to minimize need for worker threads
+         * and corresponding context switches.
+         */
+        
+        rootTask.forkRunMerge();
         
         /*
          * Parallel execution happens here.
@@ -391,20 +429,28 @@ class ExecPrlzrSpm {
          */
         
         final boolean untilShotCompletion = true;
-        shotHandler.forkRunMergeAnyTask(untilShotCompletion);
+        shotHandler.runTasksFromQueue(untilShotCompletion);
         
         /*
          * 
          */
         
-        final Throwable thrown = shotHandler.firstThrown;
-        if (thrown != null) {
-            throw new RethrowException(thrown);
+        final InterfaceSplitmergable resultHolder = shotHandler.get();
+        if (resultHolder != splitmergable) {
+            try {
+                splitmergable.merge(resultHolder, null);
+            } catch (Throwable e) {
+                shotHandler.onThrowable(e);
+            }
         }
         
-        final InterfaceSplitmergable resultHolder = task.get();
-        if (resultHolder != splitmergable) {
-            splitmergable.merge(resultHolder, null);
+        /*
+         * 
+         */
+        
+        final Throwable firstDetected = shotHandler.firstDetected;
+        if (firstDetected != null) {
+            throw new RethrowException(firstDetected);
         }
     }
 }
