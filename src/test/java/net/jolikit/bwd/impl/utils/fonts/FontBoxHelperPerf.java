@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -57,12 +57,15 @@ public class FontBoxHelperPerf {
     //--------------------------------------------------------------------------
     
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + FontBoxHelperPerf.class.getSimpleName() + "... ---");
         System.out.println("number of calls = " + NBR_OF_CALLS);
         
         bench_getDisplayableCodePointSet_int(BwdTestResources.TEST_FONT_UNIFONT_8_0_01_TTF);
         
-        System.out.println("--- ..." + FontBoxHelperPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + FontBoxHelperPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
     
     /*

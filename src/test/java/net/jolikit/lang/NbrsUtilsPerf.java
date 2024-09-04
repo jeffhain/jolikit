@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_byte() {
             super("byte");
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((byte)bits).length();
         }
@@ -103,7 +103,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_short() {
             super("short");
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((short)bits).length();
         }
@@ -113,7 +113,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_int() {
             super("int");
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits(bits).length();
         }
@@ -123,7 +123,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_long() {
             super("long");
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((long)bits).length();
         }
@@ -137,7 +137,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_byte_2int_2boolean(int first, int lastExcl, boolean bigEndian, boolean padding) {
             super("byte",first, lastExcl, bigEndian, padding);
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((byte)bits,first,lastExcl,bigEndian,padding).length();
         }
@@ -147,7 +147,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_short_2int_2boolean(int first, int lastExcl, boolean bigEndian, boolean padding) {
             super("short",first, lastExcl, bigEndian, padding);
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((short)bits,first,lastExcl,bigEndian,padding).length();
         }
@@ -157,7 +157,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_int_2int_2boolean(int first, int lastExcl, boolean bigEndian, boolean padding) {
             super("int",first, lastExcl, bigEndian, padding);
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits(bits,first,lastExcl,bigEndian,padding).length();
         }
@@ -167,7 +167,7 @@ public class NbrsUtilsPerf {
         public MyTslp_toStringBits_long_2int_2boolean(int first, int lastExcl, boolean bigEndian, boolean padding) {
             super("long",first, lastExcl, bigEndian, padding);
         }
-        //@Override
+        @Override
         public int toStringLength(int bits) {
             return NbrsUtils.toStringBits((long)bits,first,lastExcl,bigEndian,padding).length();
         }
@@ -194,6 +194,7 @@ public class NbrsUtilsPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + NbrsUtilsPerf.class.getSimpleName() + "... ---");
         System.out.println("number of calls = " + NBR_OF_CALLS);
         
@@ -241,7 +242,9 @@ public class NbrsUtilsPerf {
 
         bench_toStringNoCSN_double();
 
-        System.out.println("--- ..." + NbrsUtilsPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + NbrsUtilsPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
     
     /*

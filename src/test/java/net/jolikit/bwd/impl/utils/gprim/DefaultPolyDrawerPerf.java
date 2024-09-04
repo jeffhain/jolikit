@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.test.utils.TestUtils;
 
 /**
  * Benches DefaultPolyDrawer.
@@ -93,6 +94,7 @@ public class DefaultPolyDrawerPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + DefaultPolyDrawerPerf.class.getSimpleName() + "... ---");
         
         final MyClippedPointDrawer clippedPointDrawer = new MyClippedPointDrawer();
@@ -120,6 +122,8 @@ public class DefaultPolyDrawerPerf {
             System.out.println("antiOptim");
         }
 
-        System.out.println("--- ..." + DefaultPolyDrawerPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + DefaultPolyDrawerPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
 }

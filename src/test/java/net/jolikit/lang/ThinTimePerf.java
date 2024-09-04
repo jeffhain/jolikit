@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,6 +55,7 @@ public class ThinTimePerf {
     //--------------------------------------------------------------------------
     
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + ThinTimePerf.class.getSimpleName() + "... ---");
         System.out.println("number of calls = " + NBR_OF_CALLS);
         
@@ -62,7 +63,9 @@ public class ThinTimePerf {
         
         test_throughput();
         
-        System.out.println("--- ..." + ThinTimePerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + ThinTimePerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
 
     private static void test_granularity() {

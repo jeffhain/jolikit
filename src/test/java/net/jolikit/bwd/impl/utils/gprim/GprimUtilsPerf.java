@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ public class GprimUtilsPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + GprimUtilsPerf.class.getSimpleName() + "... ---");
         
         bench_mustXxxOvalOrArc_draw_belowThreshold();
@@ -58,7 +59,9 @@ public class GprimUtilsPerf {
         
         bench_mustXxxOvalOrArc_fill_aboveThreshold();
         
-        System.out.println("--- ..." + GprimUtilsPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + GprimUtilsPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
     
     /*

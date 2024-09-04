@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -184,6 +184,7 @@ public class HeisenLoggerPerf {
     
     private void run(String[] args) {
         // XXX
+        final long a = System.nanoTime();
         System.out.println("--- " + HeisenLoggerPerf.class.getSimpleName() + "... ---");
         System.out.println("number of logs = " + NBR_OF_LOGS);
 
@@ -200,9 +201,6 @@ public class HeisenLoggerPerf {
         final long nbrOfLogsTotal = NBR_OF_LOGS;
         final int maxNbrOfLogsPerBatch = MAX_NBR_OF_LOGS_PER_BATCH;
         final int nbrOfRuns = NBR_OF_RUNS;
-
-        long a;
-        long b;
 
         final ArrayList<String> results = new ArrayList<String>();
 
@@ -222,7 +220,7 @@ public class HeisenLoggerPerf {
                 for (int k = 0; k < nbrOfRuns; k++) {
                     final ExecutorService executor = Executors.newCachedThreadPool();
 
-                    a = System.nanoTime();
+                    final long aa = System.nanoTime();
                     String runnableName = null;
                     for (int n=0;n<nbrOfThreads;n++) {
                         final Runnable runnable;
@@ -245,8 +243,9 @@ public class HeisenLoggerPerf {
 
                     printStream.flush();
 
-                    b = System.nanoTime();
-                    final String result = header + runnableName + " took " + TestUtils.nsToSRounded(b-a) + " s";
+                    final long bb = System.nanoTime();
+                    final String result = header + runnableName
+                        + " took " + TestUtils.nsToSRounded(bb-aa) + " s";
                     if (resultsLast) {
                         results.add(result);
                     } else {
@@ -263,6 +262,8 @@ public class HeisenLoggerPerf {
             }
         }
 
-        System.out.println("--- ..." + HeisenLoggerPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + HeisenLoggerPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
 }

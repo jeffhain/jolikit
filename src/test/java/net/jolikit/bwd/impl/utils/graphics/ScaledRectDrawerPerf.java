@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -130,6 +130,7 @@ public class ScaledRectDrawerPerf {
     //--------------------------------------------------------------------------
 
     private void run(String[] args) {
+        final long a = System.nanoTime();
         System.out.println("--- " + ScaledRectDrawerPerf.class.getSimpleName() + "... ---");
         System.out.println("MIN_AREA_COST_FOR_SPLIT_CLOSEST = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_CLOSEST);
         System.out.println("MIN_AREA_COST_FOR_SPLIT_SAMPLING = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_SAMPLING);
@@ -234,7 +235,9 @@ public class ScaledRectDrawerPerf {
             bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
         }
         
-        System.out.println("--- ..." + ScaledRectDrawerPerf.class.getSimpleName() + " ---");
+        final long b = System.nanoTime();
+        System.out.println("--- ..." + ScaledRectDrawerPerf.class.getSimpleName()
+            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
     }
     
     private void bench_drawRectScaled(
