@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -389,8 +389,7 @@ public class ScaledRectDrawer {
         final MyAlgoType algoType = computeAlgoType(
             mustUseSamplingElseClosest,
             sr,
-            dr,
-            drc);
+            dr);
         
         final int startY = drc.y();
         final int endY = drc.yMax();
@@ -456,8 +455,7 @@ public class ScaledRectDrawer {
     private static MyAlgoType computeAlgoType(
         boolean mustUseSamplingElseClosest,
         GRect sr,
-        GRect dr,
-        GRect drc) {
+        GRect dr) {
         
         final MyAlgoType ret;
         if ((!mustUseSamplingElseClosest)
@@ -823,6 +821,7 @@ public class ScaledRectDrawer {
         final int dj0 = drc.y() - dr.y();
         final int djcStart = startY - drc.y();
         final int djcEnd = djcStart + (endY - startY);
+        // Loop on srcY and inside on srcX (memory-friendly).
         for (int djc = djcStart; djc <= djcEnd; djc++) {
             final int dj = dj0 + djc;
             final double relSrcYMin = dj * yFactor;
@@ -865,74 +864,80 @@ public class ScaledRectDrawer {
                 }
                 //
                 tmpArgbSum.clear();
-                if (leftXRatio > PIXEL_RATIO_EPSILON) {
-                    if (topYRatio > PIXEL_RATIO_EPSILON) {
+                if (topYRatio > PIXEL_RATIO_EPSILON) {
+                    // Top side.
+                    final int srcY = sy + relSrcYMinCeil - 1;
+                    if (leftXRatio > PIXEL_RATIO_EPSILON) {
+                        // Top-left corner.
                         final double ratio = leftXRatio * topYRatio;
                         final int srcX = sx + relSrcXMinCeil - 1;
-                        final int srcY = sy + relSrcYMinCeil - 1;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }
                     {
-                        final double ratio = leftXRatio;
-                        for (int kj = relSrcYMinCeil; kj < relSrcYMaxFloor; kj++) {
-                            final int srcX = sx + relSrcXMinCeil - 1;
-                            final int srcY = sy + kj;
+                        // Top side central.
+                        final double ratio = topYRatio;
+                        for (int ki = relSrcXMinCeil; ki < relSrcXMaxFloor; ki++) {
+                            final int srcX = sx + ki;
                             final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                             tmpArgbSum.addPixelContrib(srcColor32, ratio);
                         }
                     }
-                    if (bottomYRatio > PIXEL_RATIO_EPSILON) {
-                        final double ratio = leftXRatio * bottomYRatio;
-                        final int srcX = sx + relSrcXMinCeil - 1;
-                        final int srcY = sy + relSrcYMaxFloor;
+                    if (rightXRatio > PIXEL_RATIO_EPSILON) {
+                        // Top-right corner.
+                        final double ratio = rightXRatio * topYRatio;
+                        final int srcX = sx + relSrcXMaxFloor;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }
                 }
-                for (int ki = relSrcXMinCeil; ki < relSrcXMaxFloor; ki++) {
-                    if (topYRatio > PIXEL_RATIO_EPSILON) {
-                        final double ratio = topYRatio;
-                        final int srcX = sx + ki;
-                        final int srcY = sy + relSrcYMinCeil - 1;
+                // Horizontal central.
+                for (int kj = relSrcYMinCeil; kj < relSrcYMaxFloor; kj++) {
+                    final int srcY = sy + kj;
+                    if (leftXRatio > PIXEL_RATIO_EPSILON) {
+                        final double ratio = leftXRatio;
+                        final int srcX = sx + relSrcXMinCeil - 1;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }
-                    for (int kj = relSrcYMinCeil; kj < relSrcYMaxFloor; kj++) {
+                    // This is where we spend the most time
+                    // for big downscalings: taking care for this loop
+                    // be over x and not y.
+                    for (int ki = relSrcXMinCeil; ki < relSrcXMaxFloor; ki++) {
                         final int srcX = sx + ki;
-                        final int srcY = sy + kj;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addFullPixelContrib(srcColor32);
                     }
-                    if (bottomYRatio > PIXEL_RATIO_EPSILON) {
-                        final double ratio = bottomYRatio;
-                        final int srcX = sx + ki;
-                        final int srcY = sy + relSrcYMaxFloor;
+                    if (rightXRatio > PIXEL_RATIO_EPSILON) {
+                        final double ratio = rightXRatio;
+                        final int srcX = sx + relSrcXMaxFloor;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }
                 }
-                if (rightXRatio > PIXEL_RATIO_EPSILON) {
-                    if (topYRatio > PIXEL_RATIO_EPSILON) {
-                        final double ratio = rightXRatio * topYRatio;
-                        final int srcX = sx + relSrcXMaxFloor;
-                        final int srcY = sy + relSrcYMinCeil - 1;
+                if (bottomYRatio > PIXEL_RATIO_EPSILON) {
+                    // Bottom side.
+                    final int srcY = sy + relSrcYMaxFloor;
+                    if (leftXRatio > PIXEL_RATIO_EPSILON) {
+                        // Bottom-left corner.
+                        final double ratio = leftXRatio * bottomYRatio;
+                        final int srcX = sx + relSrcXMinCeil - 1;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }
                     {
-                        final double ratio = rightXRatio;
-                        for (int kj = relSrcYMinCeil; kj < relSrcYMaxFloor; kj++) {
-                            final int srcX = sx + relSrcXMaxFloor;
-                            final int srcY = sy + kj;
+                        // Bottom side central.
+                        final double ratio = bottomYRatio;
+                        for (int ki = relSrcXMinCeil; ki < relSrcXMaxFloor; ki++) {
+                            final int srcX = sx + ki;
                             final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                             tmpArgbSum.addPixelContrib(srcColor32, ratio);
                         }
                     }
-                    if (bottomYRatio > PIXEL_RATIO_EPSILON) {
+                    if (rightXRatio > PIXEL_RATIO_EPSILON) {
+                        // Bottom-right corner.
                         final double ratio = rightXRatio * bottomYRatio;
                         final int srcX = sx + relSrcXMaxFloor;
-                        final int srcY = sy + relSrcYMaxFloor;
                         final int srcColor32 = srcPixels.getColor32At(srcX, srcY);
                         tmpArgbSum.addPixelContrib(srcColor32, ratio);
                     }

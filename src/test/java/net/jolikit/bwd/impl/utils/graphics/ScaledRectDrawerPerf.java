@@ -30,7 +30,7 @@ public class ScaledRectDrawerPerf {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final int NBR_OF_RUNS = 4;
+    private static final int NBR_OF_RUNS = 2;
     
     /**
      * Enough to have a good gain, not more because CPUs
@@ -136,11 +136,11 @@ public class ScaledRectDrawerPerf {
         System.out.println("MIN_AREA_COST_FOR_SPLIT_SAMPLING = " + ScaledRectDrawer.MIN_AREA_COST_FOR_SPLIT_SAMPLING);
         
         /*
-         * scale = 1
+         * scale = 0.1
          */
         
         for (int[] argArr : new int[][]{
-            {1000, 1000, 10},
+            {1000, 100, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -148,13 +148,13 @@ public class ScaledRectDrawerPerf {
             final int nbrOfCalls = argArr[2];
             bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
         }
-
+        
         /*
-         * scale = 2
+         * scale = 0.33
          */
         
         for (int[] argArr : new int[][]{
-            {500, 1000, 10},
+            {1000, 330, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -162,13 +162,13 @@ public class ScaledRectDrawerPerf {
             final int nbrOfCalls = argArr[2];
             bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
         }
-
+        
         /*
          * scale = 0.5
          */
         
         for (int[] argArr : new int[][]{
-            {2000, 1000, 10},
+            {1000, 500, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -178,11 +178,25 @@ public class ScaledRectDrawerPerf {
         }
 
         /*
-         * scale = 1.5
+         * scale = 1
          */
         
         for (int[] argArr : new int[][]{
-            {667, 1000, 10},
+            {1000, 1000, 100},
+        }) {
+            System.out.println();
+            final int srcSpans = argArr[0];
+            final int dstSpans = argArr[1];
+            final int nbrOfCalls = argArr[2];
+            bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
+        }
+        
+        /*
+         * scale = 2
+         */
+        
+        for (int[] argArr : new int[][]{
+            {500, 1000, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -192,11 +206,11 @@ public class ScaledRectDrawerPerf {
         }
 
         /*
-         * scale = 1/1.5
+         * scale ~= 3.333
          */
         
         for (int[] argArr : new int[][]{
-            {1500, 1000, 10},
+            {300, 1000, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -206,11 +220,11 @@ public class ScaledRectDrawerPerf {
         }
 
         /*
-         * scale = 3.333
+         * scale ~= 9.9
          */
         
         for (int[] argArr : new int[][]{
-            {300, 1000, 10},
+            {101, 1000, 100},
         }) {
             System.out.println();
             final int srcSpans = argArr[0];
@@ -219,22 +233,6 @@ public class ScaledRectDrawerPerf {
             bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
         }
 
-        /*
-         * scale = 1/3.1
-         */
-        
-        for (int[] argArr : new int[][]{
-            {31, 10, 100000},
-            {310, 100, 1000},
-            {3100, 1000, 10},
-        }) {
-            System.out.println();
-            final int srcSpans = argArr[0];
-            final int dstSpans = argArr[1];
-            final int nbrOfCalls = argArr[2];
-            bench_drawRectScaled(srcSpans, dstSpans, nbrOfCalls);
-        }
-        
         final long b = System.nanoTime();
         System.out.println("--- ..." + ScaledRectDrawerPerf.class.getSimpleName()
             + ", " + TestUtils.nsToSRounded(b-a) + " s ---");

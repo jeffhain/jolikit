@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +85,7 @@ import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageClippingCliBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageClippingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ClientAndImageScalingBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i05_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i1_BwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i24_BwdTestCase;
@@ -249,6 +250,7 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              * Images general.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
+                new ClientAndImageScalingBwdTestCase(),
                 new ImageScaling_s1_i05_BwdTestCase(),
                 new ImageScaling_s1_i1_BwdTestCase(),
                 new ImageScaling_s1_i24_BwdTestCase(),
