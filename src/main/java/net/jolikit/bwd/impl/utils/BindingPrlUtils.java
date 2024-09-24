@@ -33,9 +33,8 @@ public class BindingPrlUtils {
     //--------------------------------------------------------------------------
     
     /**
-     * Using a FixedThreadExecutor instead of a ThreadPoolExecutor,
-     * not primarily for its lower overhead,
-     * but to avoid spurious ThreadPoolExecutor
+     * Using a FixedThreadExecutor, as advised for ExecutorParallelizer,
+     * and also to avoid spurious ThreadPoolExecutor
      * shutdown and RejectedExecutionException throwings
      * that seem to occur under stress for some reason.
      */

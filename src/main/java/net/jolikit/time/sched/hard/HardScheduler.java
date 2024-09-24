@@ -782,8 +782,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
      * 
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param asapQueueCapacity Capacity (>=0) for ASAP schedules queue.
      *        When full, new schedules are rejected.
@@ -798,7 +801,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public HardScheduler(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int asapQueueCapacity,
         int timedQueueCapacity,
@@ -842,7 +845,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
             true, // isThreadless
             clock,
             null, // threadNamePrefix
-            false, // daemon
+            null, // daemon
             1, // nbrOfThreads
             asapQueueCapacity,
             timedQueueCapacity,
@@ -894,8 +897,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @return A single-threaded scheduler,
      *         that guarantees FIFO order for ASAP schedules,
      *         and uses Integer.MAX_VALUE for queues capacities.
@@ -903,7 +909,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public static HardScheduler newSingleThreadedInstance(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon) {
+        Boolean daemon) {
         return newSingleThreadedInstance(
             clock,
             threadNamePrefix,
@@ -914,8 +920,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param threadFactory If null, default threads are created.
      * @return A single-threaded scheduler,
      *         that guarantees FIFO order for ASAP schedules,
@@ -924,7 +933,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public static HardScheduler newSingleThreadedInstance(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         ThreadFactory threadFactory) {
         return newInstance(
             clock,
@@ -941,8 +950,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @return A scheduler using the specified number of worker threads,
      *         that guarantees FIFO order for ASAP schedules only if single-threaded,
@@ -951,7 +963,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public static HardScheduler newInstance(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads) {
         return newInstance(
             clock,
@@ -964,8 +976,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param threadFactory If null, default threads are created.
      * @return A scheduler using the specified number of worker threads,
@@ -975,7 +990,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public static HardScheduler newInstance(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         ThreadFactory threadFactory) {
         return newInstance(
@@ -991,8 +1006,11 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     /**
      * @param clock Hard clock to use.
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param asapQueueCapacity Capacity (>=0) for ASAP schedules queue.
      *        When full, new schedules are rejected.
@@ -1005,7 +1023,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
     public static HardScheduler newInstance(
         InterfaceHardClock clock,
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int asapQueueCapacity,
         int timedQueueCapacity,
@@ -1778,7 +1796,7 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
         boolean isThreadless,
         final InterfaceHardClock clock,
         final String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int asapQueueCapacity,
         int timedQueueCapacity,
@@ -1861,7 +1879,9 @@ public class HardScheduler extends AbstractDefaultScheduler implements Interface
                 } else {
                     thread = new Thread(runnable);
                 }
-                thread.setDaemon(daemon);
+                if (daemon != null) {
+                    thread.setDaemon(daemon);
+                }
                 if (threadNamePrefix != null) {
                     final int threadNum = i+1;
                     thread.setName(threadNamePrefix + "-" + threadNum);

@@ -31,9 +31,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import junit.framework.TestCase;
+import net.jolikit.lang.BooleanWrapper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.DefaultThreadFactory;
 import net.jolikit.lang.InterfaceBooleanCondition;
+import net.jolikit.lang.ObjectWrapper;
 import net.jolikit.lang.Unchecked;
 import net.jolikit.test.utils.TestUtils;
 import net.jolikit.threading.basics.InterfaceCancellable;
@@ -312,7 +314,7 @@ public class HardSchedulerTest extends TestCase {
     public void test_constructor_threaded() {
         final InterfaceHardClock clock = getClockForTest();
         final String threadNamePrefix = null;
-        final boolean daemon = true;
+        final Boolean daemon = null;
         @SuppressWarnings("unused")
         int nbrOfThreads;
         @SuppressWarnings("unused")
@@ -426,6 +428,88 @@ public class HardSchedulerTest extends TestCase {
                 fail();
             } catch (@SuppressWarnings("unused") IllegalArgumentException e) {
                 // ok
+            }
+        }
+    }
+    
+    public void test_constructor_threaded_prefixAndDaemon() {
+        final InterfaceHardClock clock = getClockForTest();
+        final int nbrOfThreads = 1;
+        final int asapQueueCapacity = 1;
+        final int timedQueueCapacity = 1;
+        final int maxWorkerCountForBasicAsapQueue = 1;
+
+        for (String tfPrefix : new String[] {null, "tfPrefix"}) {
+            for (Boolean tfDaemon : new Boolean[] {null, false, true}) {
+                final ThreadFactory tf =
+                    new ThreadFactory() {
+                    
+                    @Override
+                    public Thread newThread(Runnable runnable) {
+                        final Thread thread = new Thread(runnable);
+                        if (tfPrefix != null) {
+                            thread.setName(tfPrefix);
+                        }
+                        if (tfDaemon != null) {
+                            thread.setDaemon(tfDaemon);
+                        }
+                        return thread;
+                    }
+                };
+                for (String ctorPrefix : new String[] {null, "ctorPrefix"}) {
+                    for (Boolean ctorDaemon : new Boolean[] {null, false, true}) {
+                        final HardScheduler scheduler =
+                            new HardScheduler(
+                                clock,
+                                ctorPrefix,
+                                ctorDaemon,
+                                nbrOfThreads,
+                                asapQueueCapacity,
+                                timedQueueCapacity,
+                                maxWorkerCountForBasicAsapQueue,
+                                tf);
+                        
+                        final ObjectWrapper<String> actualNameW = new ObjectWrapper<>();
+                        final BooleanWrapper actualDaemonW = new BooleanWrapper();
+                        final Runnable runnable =
+                            new Runnable() {
+                            
+                                @Override
+                                public void run() {
+                                    actualNameW.value = Thread.currentThread().getName();
+                                    actualDaemonW.value = Thread.currentThread().isDaemon();
+                                }
+                            };
+                        scheduler.execute(runnable);
+                        //
+                        scheduler.shutdown();
+                        try {
+                            scheduler.waitForNoMoreRunningWorkerSystemTimeNs(Long.MAX_VALUE);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                        final String actualName = actualNameW.value;
+                        final boolean actualDaemon = actualDaemonW.value;
+                        
+                        if (ctorPrefix != null) {
+                            assertTrue(actualName.startsWith(ctorPrefix));
+                        } else if (tfPrefix != null) {
+                            assertTrue(actualName.startsWith(tfPrefix));
+                        } else {
+                            // The default.
+                            assertTrue(actualName.startsWith("Thread-"));
+                        }
+                        
+                        if (ctorDaemon != null) {
+                            assertEquals(ctorDaemon.booleanValue(), actualDaemon);
+                        } else if (tfDaemon != null) {
+                            assertEquals(tfDaemon.booleanValue(), actualDaemon);
+                        } else {
+                            // The default.
+                            assertFalse(actualDaemon);
+                        }
+                    }
+                }
             }
         }
     }

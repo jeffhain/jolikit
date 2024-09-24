@@ -538,8 +538,11 @@ implements InterfaceWorkerAwareExecutor {
      * worker count thresholds for queues types.
      * 
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param queueCapacity Capacity for schedules queue.
      *        Must be >= 0. When full, new schedules are rejected.
@@ -551,7 +554,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public FixedThreadExecutor(
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int queueCapacity,
         int maxWorkerCountForBasicQueue,
@@ -587,7 +590,7 @@ implements InterfaceWorkerAwareExecutor {
         this(
             true, // isThreadless
             null, // threadNamePrefix
-            false, // daemon
+            null, // daemon
             1, // nbrOfThreads
             queueCapacity,
             maxWorkerCountForBasicQueue,
@@ -627,15 +630,18 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @return A single-threaded executor,
      *         that guarantees FIFO order for schedules,
      *         and uses Integer.MAX_VALUE for queue capacity.
      */
     public static FixedThreadExecutor newSingleThreadedInstance(
         String threadNamePrefix,
-        boolean daemon) {
+        Boolean daemon) {
         return newSingleThreadedInstance(
             threadNamePrefix,
             daemon,
@@ -644,8 +650,11 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param threadFactory If null, default threads are created.
      * @return A single-threaded executor,
      *         that guarantees FIFO order for schedules,
@@ -653,7 +662,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public static FixedThreadExecutor newSingleThreadedInstance(
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         ThreadFactory threadFactory) {
         return newInstance(
             threadNamePrefix,
@@ -668,8 +677,11 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @return An executor using the specified number of worker threads,
      *         that guarantees FIFO order for schedules only if single-threaded,
@@ -677,7 +689,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public static FixedThreadExecutor newInstance(
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads) {
         return newInstance(
             threadNamePrefix,
@@ -688,8 +700,11 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param threadFactory If null, default threads are created.
      * @return An executor using the specified number of worker threads,
@@ -698,7 +713,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public static FixedThreadExecutor newInstance(
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         ThreadFactory threadFactory) {
         return newInstance(
@@ -711,8 +726,11 @@ implements InterfaceWorkerAwareExecutor {
     
     /**
      * @param threadNamePrefix Prefix for worker threads names.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param daemon Daemon flag set to each thread.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads Number of worker threads to use. Must be >= 1.
      * @param queueCapacity Capacity (>=0) for schedules queue.
      *        When full, new schedules are rejected.
@@ -722,7 +740,7 @@ implements InterfaceWorkerAwareExecutor {
      */
     public static FixedThreadExecutor newInstance(
         String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int queueCapacity,
         ThreadFactory threadFactory) {
@@ -1355,7 +1373,7 @@ implements InterfaceWorkerAwareExecutor {
     private FixedThreadExecutor(
         boolean isThreadless,
         final String threadNamePrefix,
-        boolean daemon,
+        Boolean daemon,
         int nbrOfThreads,
         int queueCapacity,
         int maxWorkerCountForBasicQueue,
@@ -1416,7 +1434,9 @@ implements InterfaceWorkerAwareExecutor {
                 } else {
                     thread = new Thread(runnable);
                 }
-                thread.setDaemon(daemon);
+                if (daemon != null) {
+                    thread.setDaemon(daemon);
+                }
                 if (threadNamePrefix != null) {
                     final int threadNum = i+1;
                     thread.setName(threadNamePrefix + "-" + threadNum);

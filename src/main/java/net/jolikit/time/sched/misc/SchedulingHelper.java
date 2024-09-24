@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -345,18 +345,22 @@ public class SchedulingHelper {
      * 
      * @param threadNamePrefix In case of hard scheduling,
      *        prefix for worker threads names, else not used.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads In case of hard scheduling, the number of threads
      *        to use, else not used. Must be >= 1.
      * @return A scheduler using the clock returned by getClock(),
      *         Integer.MAX_VALUE as queues capacity, and, in case of
-     *         hard scheduling, non-daemon threads.
+     *         hard scheduling, threads with daemon flag as out of
+     *         thread factory.
      */
     public InterfaceScheduler getScheduler(
             String threadNamePrefix,
             int nbrOfThreads) {
+        final Boolean daemon = null;
         return getScheduler(
                 threadNamePrefix,
+                daemon,
                 nbrOfThreads,
                 Integer.MAX_VALUE,
                 Integer.MAX_VALUE);
@@ -367,18 +371,23 @@ public class SchedulingHelper {
      * 
      * @param threadNamePrefix In case of hard scheduling,
      *        prefix for worker threads names, else not used.
-     *        Can be null, in which case worker threads names are not set.
+     *        Can be null, in which case the name eventually set
+     *        by thread factory is preserved.
+     * @param daemon Daemon In case of hard scheduling,
+     *        flag set to each thread, else not used.
+     *        Can be null, in which case the value eventually set
+     *        by thread factory is preserved.
      * @param nbrOfThreads In case of hard scheduling, the number of threads
      *        to use, else not used. Must be >= 1.
      * @param asapQueueCapacity Capacity (>=0) for ASAP schedules queue.
      *        When full, new schedules are canceled.
      * @param timedQueueCapacity Capacity (>=0) for timed schedules queue.
      *        When full, new schedules are canceled.
-     * @return A scheduler using the clock returned by getClock(),
-     *         and, in case of hard scheduling, non-daemon threads.
+     * @return A scheduler using the clock returned by getClock().
      */
     public InterfaceScheduler getScheduler(
             String threadNamePrefix,
+            Boolean daemon,
             int nbrOfThreads,
             int asapQueueCapacity,
             int timedQueueCapacity) {
@@ -388,7 +397,7 @@ public class SchedulingHelper {
             return HardScheduler.newInstance(
                     this.hardClock,
                     threadNamePrefix,
-                    false, // daemon
+                    daemon,
                     nbrOfThreads,
                     asapQueueCapacity,
                     timedQueueCapacity,
