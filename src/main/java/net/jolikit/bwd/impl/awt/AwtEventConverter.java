@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,6 +49,16 @@ public class AwtEventConverter extends AbstractEventConverter {
     
     private static final boolean DEBUG = false;
 
+    /**
+     * TODO awt On Windows (at least), isMetaDown() seems
+     * to only work on right-click,
+     * so we set/unset it on Windows key press/release,
+     * to have same behavior as in JavaFX
+     * in both key and mouse events.
+     */
+    private static final boolean MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS =
+        OsUtils.isWindows();
+    
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -121,7 +131,24 @@ public class AwtEventConverter extends AbstractEventConverter {
             commonState.setControlDown(inputEvent.isControlDown());
             commonState.setAltDown(inputEvent.isAltDown());
             commonState.setAltGraphDown(inputEvent.isAltGraphDown());
-            commonState.setMetaDown(inputEvent.isMetaDown());
+            if (!MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS) {
+                commonState.setMetaDown(inputEvent.isMetaDown());
+            }
+        }
+        
+        if (backingEvent instanceof KeyEvent) {
+            final KeyEvent keyEvent = (KeyEvent) backingEvent;
+            
+            if (MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS) {
+                if (keyEvent.getKeyCode() == KeyEvent.VK_WINDOWS) {
+                    final int eventId = keyEvent.getID();
+                    if (eventId == KeyEvent.KEY_PRESSED) {
+                        commonState.setMetaDown(true);
+                    } else if (eventId == KeyEvent.KEY_RELEASED) {
+                        commonState.setMetaDown(false);
+                    }
+                }
+            }
         }
         
         if (backingEvent instanceof MouseEvent) {
@@ -184,7 +211,7 @@ public class AwtEventConverter extends AbstractEventConverter {
         final KeyEvent keyEvent = (KeyEvent) backingEvent;
         // TODO awt Limited to BMP.
         final char keyChar = keyEvent.getKeyChar();
-        return (int) keyChar;
+        return keyChar;
     }
 
     /*
@@ -342,7 +369,7 @@ public class AwtEventConverter extends AbstractEventConverter {
                 int xInClientInOs = mouseEvent.getX();
                 int yInClientInOs = mouseEvent.getY();
                 
-                final AWTEvent awtEvent = (AWTEvent) mouseEvent;
+                final AWTEvent awtEvent = mouseEvent;
                 final Object source = awtEvent.getSource();
                 if (source instanceof Window) {
                     /*

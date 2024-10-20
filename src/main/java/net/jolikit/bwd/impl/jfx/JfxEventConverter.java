@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -216,9 +216,9 @@ public class JfxEventConverter extends AbstractEventConverter {
     protected int getWheelXRoll(Object backingEvent) {
         final ScrollEvent scrollEvent = (ScrollEvent) backingEvent;
         
-        final boolean from1DWheel = computeIsFrom1DDevice(scrollEvent);
+        final boolean isFrom1DWheel = computeIsFrom1DDevice(scrollEvent);
         final int xRoll;
-        if (from1DWheel) {
+        if (isFrom1DWheel) {
             xRoll = 0;
         } else {
             xRoll = computeBwdRollAmount(scrollEvent.getDeltaX());
@@ -230,7 +230,22 @@ public class JfxEventConverter extends AbstractEventConverter {
     protected int getWheelYRoll(Object backingEvent) {
         final ScrollEvent scrollEvent = (ScrollEvent) backingEvent;
         
-        final int yRoll = computeBwdRollAmount(scrollEvent.getDeltaY());
+        final boolean isFrom1DWheel = computeIsFrom1DDevice(scrollEvent);
+        
+        final double deltaY = scrollEvent.getDeltaY();
+        
+        final double deltaYToUse;
+        if (isFrom1DWheel
+            && (deltaY == 0.0)) {
+            // Fine if delta X is zero as well,
+            // else Y roll must have been switched
+            // onto delta X by JavaFX.
+            deltaYToUse = scrollEvent.getDeltaX();
+        } else {
+            deltaYToUse = deltaY;
+        }
+        
+        final int yRoll = computeBwdRollAmount(deltaYToUse);
         return yRoll;
     }
 
@@ -240,11 +255,15 @@ public class JfxEventConverter extends AbstractEventConverter {
 
     private static boolean computeIsFrom1DDevice(ScrollEvent event) {
         /*
-         * TODO jfx Best effort.
-         * Glitchy side effect: if the device is 2D, and deltaX is zero,
-         * and shift is down, the delta will be put in X instead of Y.
+         * TODO jfx If the device is 1D, and shift is down,
+         * delta stiches from Y to X, not allowing to handle
+         * shift+roll properly as we can do with other libraries.
+         * To work that around, if either deltaX or deltaY
+         * is exactly zero, we assume the device is 1D,
+         * and consider the roll is on Y.
          */
-        return (event.getDeltaX() == 0.0);
+        return (event.getDeltaX() == 0.0)
+            || (event.getDeltaY() == 0.0);
     }
     
     private static int computeBwdRollAmount(double delta) {

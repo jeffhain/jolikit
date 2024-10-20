@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import net.jolikit.bwd.impl.sdl2.jlib.SDL_KeyboardEvent;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_Keysym;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseButtonEvent;
 import net.jolikit.bwd.impl.sdl2.jlib.SDL_MouseWheelEvent;
+import net.jolikit.bwd.impl.sdl2.jlib.SdlEventType;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlJnaLib;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlKeycode;
 import net.jolikit.bwd.impl.sdl2.jlib.SdlKeymod;
@@ -48,6 +49,12 @@ public class SdlEventConverter extends AbstractEventConverter {
     //--------------------------------------------------------------------------
     
     private static final boolean DEBUG = false;
+    
+    /**
+     * TODO sdl keysym doesn't seem to work,
+     * so we set/unset keys down on keys press/release.
+     */
+    private static final boolean MUST_SET_DOWNS_FROM_KEY_EVENTS = true;
     
     /**
      * TODO sdl On Mac, can have backing mouse position in client
@@ -154,11 +161,44 @@ public class SdlEventConverter extends AbstractEventConverter {
         if (backingEvent instanceof SDL_KeyboardEvent) {
             final SDL_KeyboardEvent event = (SDL_KeyboardEvent) backingEvent;
             
-            final SDL_Keysym keysym = event.keysym;
-            commonState.setShiftDown(computeIsShiftDown(keysym));
-            commonState.setControlDown(computeIsControlDown(keysym));
-            commonState.setAltDown(computeIsAltDown(keysym));
-            commonState.setMetaDown(computeIsMetaDown(keysym));
+            if (MUST_SET_DOWNS_FROM_KEY_EVENTS) {
+                final SdlKeycode backingKey = getBackingKey(event.keysym);
+                if ((backingKey != null)
+                    && (backingKey.ordinal() >= SdlKeycode.SDLK_LCTRL.ordinal())
+                    && (backingKey.ordinal() <= SdlKeycode.SDLK_RGUI.ordinal())) {
+                    
+                    final boolean isUpEvent =
+                        (event.type == SdlEventType.SDL_KEYUP.intValue());
+                    final boolean isDownEvent =
+                        (event.type == SdlEventType.SDL_KEYDOWN.intValue());
+                    if (isUpEvent
+                        || isDownEvent) {
+                        
+                        if ((backingKey == SdlKeycode.SDLK_LSHIFT)
+                            || (backingKey == SdlKeycode.SDLK_RSHIFT)) {
+                            commonState.setShiftDown(isDownEvent);
+                            
+                        } else if ((backingKey == SdlKeycode.SDLK_LCTRL)
+                            || (backingKey == SdlKeycode.SDLK_RCTRL)) {
+                            commonState.setControlDown(isDownEvent);
+                            
+                        } else if ((backingKey == SdlKeycode.SDLK_LALT)
+                            || (backingKey == SdlKeycode.SDLK_RALT)) {
+                            commonState.setAltDown(isDownEvent);
+                            
+                        } else if ((backingKey == SdlKeycode.SDLK_LGUI)
+                            || (backingKey == SdlKeycode.SDLK_RGUI)) {
+                            commonState.setMetaDown(isDownEvent);
+                        }
+                    }
+                }
+            } else {
+                final SDL_Keysym keysym = event.keysym;
+                commonState.setShiftDown(computeIsShiftDown(keysym));
+                commonState.setControlDown(computeIsControlDown(keysym));
+                commonState.setAltDown(computeIsAltDown(keysym));
+                commonState.setMetaDown(computeIsMetaDown(keysym));
+            }
         }
     }
     

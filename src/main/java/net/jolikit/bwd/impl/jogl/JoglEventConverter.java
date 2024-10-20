@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
+import net.jolikit.lang.OsUtils;
 
 /**
  * For key events: KeyEvent
@@ -48,6 +49,16 @@ public class JoglEventConverter extends AbstractEventConverter {
     //--------------------------------------------------------------------------
 
     private static final boolean DEBUG = false;
+    
+    /**
+     * TODO jogl On Windows (at least), isMetaDown() seems
+     * always false,
+     * so we set/unset it on Windows key press/release,
+     * to have same behavior as in JavaFX
+     * in both key and mouse events.
+     */
+    private static final boolean MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS =
+        OsUtils.isWindows();
     
     //--------------------------------------------------------------------------
     // FIELDS
@@ -88,7 +99,24 @@ public class JoglEventConverter extends AbstractEventConverter {
             commonState.setControlDown(inputEvent.isControlDown());
             commonState.setAltDown(inputEvent.isAltDown());
             commonState.setAltGraphDown(inputEvent.isAltGraphDown());
-            commonState.setMetaDown(inputEvent.isMetaDown());
+            if (!MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS) {
+                commonState.setMetaDown(inputEvent.isMetaDown());
+            }
+        }
+        
+        if (backingEvent instanceof KeyEvent) {
+            final KeyEvent keyEvent = (KeyEvent) backingEvent;
+            
+            if (MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS) {
+                if (keyEvent.getKeySymbol() == KeyEvent.VK_WINDOWS) {
+                    final int eventType = keyEvent.getEventType();
+                    if (eventType == KeyEvent.EVENT_KEY_PRESSED) {
+                        commonState.setMetaDown(true);
+                    } else if (eventType == KeyEvent.EVENT_KEY_RELEASED) {
+                        commonState.setMetaDown(false);
+                    }
+                }
+            }
         }
 
         if (backingEvent instanceof MouseEvent) {
@@ -194,7 +222,7 @@ public class JoglEventConverter extends AbstractEventConverter {
          * TODO jogl Limited to BMP.
          */
         final char keyChar = keyEvent.getKeyChar();
-        return (int) keyChar;
+        return keyChar;
     }
     
     /*
@@ -256,7 +284,7 @@ public class JoglEventConverter extends AbstractEventConverter {
          * (*) that's the opposite on some OSes.
          */
         final double sign = -1.0;
-        return (int) BindingCoordsUtils.roundToInt(sign * rotation * scale);
+        return BindingCoordsUtils.roundToInt(sign * rotation * scale);
     }
     
     private static boolean isMouseButtonEvent(MouseEvent event) {

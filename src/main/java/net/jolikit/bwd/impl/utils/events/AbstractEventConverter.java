@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.InterfaceBwdHostImpl;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.lang.LangUtils;
-import net.jolikit.lang.NbrsUtils;
 
 /**
  * Abstract class to make it easier to create BWD events from corresponding

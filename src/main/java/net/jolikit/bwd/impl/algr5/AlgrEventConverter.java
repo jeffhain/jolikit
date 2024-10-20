@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,15 @@ public class AlgrEventConverter extends AbstractEventConverter {
 
     private static final boolean DEBUG = false;
     
+    /**
+     * TODO algr ALLEGRO_KEYBOARD_EVENT modifiers seem to only work
+     * for KEY_CHAR events, not for KEY_DOWN and KEY_UP events,
+     * so for these we need to read keyboard state.
+     * For simplicity and consistency, we just read down keys from
+     * keyboard state all the time, whatever the event type.
+     */
+    private static final boolean MUST_COMPUTE_KEY_DOWN_FROM_KEYBOARD_STATE = true;
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -98,20 +107,10 @@ public class AlgrEventConverter extends AbstractEventConverter {
             commonState.setSecondaryButtonDown((mouseState.buttons & AlgrJnaLib.ALGR_SECONDARY_MOUSE_BUTTON_MASK) != 0);
         }
         
-        /*
-         * TODO algr ALLEGRO_KEYBOARD_EVENT modifiers seem to only work
-         * for KEY_CHAR events, not for KEY_DOWN and KEY_UP events,
-         * so for these we need to read keyboard state.
-         * For simplicity and consistency, we just read down keys from
-         * keyboard state all the time, whatever the event type.
-         */
-        
-        final boolean mustComputeKeyDownFromKeyboardStateAndForAllEvents = true;
-        
         {
             final boolean mustComputeKeyDown;
             final boolean mustUseKeyboardStateForKeyDownComputation;
-            if (mustComputeKeyDownFromKeyboardStateAndForAllEvents) {
+            if (MUST_COMPUTE_KEY_DOWN_FROM_KEYBOARD_STATE) {
                 mustComputeKeyDown = true;
                 mustUseKeyboardStateForKeyDownComputation = true;
             } else {
@@ -144,8 +143,12 @@ public class AlgrEventConverter extends AbstractEventConverter {
                             LIB.al_key_down(keyboardState, AlgrKey.ALT.intValue()));
                     commonState.setAltGraphDown(
                             LIB.al_key_down(keyboardState, AlgrKey.ALTGR.intValue()));
+                    // fix: was using MENU key (which is mapped to BWD META key,
+                    // but would not yield the same behavior as for other bindings
+                    // and libraries, which consider META down when Windows key is down).
                     commonState.setMetaDown(
-                            LIB.al_key_down(keyboardState, AlgrKey.MENU.intValue()));
+                            LIB.al_key_down(keyboardState, AlgrKey.LWIN.intValue())
+                            || LIB.al_key_down(keyboardState, AlgrKey.RWIN.intValue()));
                 } else {
                     final ALLEGRO_KEYBOARD_EVENT event = (ALLEGRO_KEYBOARD_EVENT) backingEvent;
                     final int modifiers = event.modifiers;

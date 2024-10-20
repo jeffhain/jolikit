@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.events.AbstractEventConverter;
 import net.jolikit.bwd.impl.utils.events.CmnInputConvState;
 import net.jolikit.lang.Dbg;
+import net.jolikit.lang.OsUtils;
 
 /**
  * For key events: QKeyEvent
@@ -57,6 +58,16 @@ public class QtjEventConverter extends AbstractEventConverter {
     //--------------------------------------------------------------------------
 
     private static final boolean DEBUG = false;
+    
+    /**
+     * TODO qtj On Windows (at least), isMetaDown() seems
+     * always false on Windows key press (but not in mouse events),
+     * so we set/unset it on Windows key press/release,
+     * to have same behavior as in JavaFX
+     * in both key and mouse events.
+     */
+    private static final boolean MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS =
+        OsUtils.isWindows();
     
     /**
      * TODO qtj At some point, when dragging window, we had trouble with
@@ -155,7 +166,23 @@ public class QtjEventConverter extends AbstractEventConverter {
             if (!this.mustSynthesizeAltGraph) {
                 commonState.setAltDown(modifiers.isSet(KeyboardModifier.AltModifier));
             }
-            commonState.setMetaDown(modifiers.isSet(KeyboardModifier.MetaModifier));
+            if (MUST_SET_META_DOWN_FROM_WINDOWS_KEY_EVENTS) {
+                final Key backingKey = this.getBackingKey(keyEvent);
+                /*
+                 * TODO qtj As indicated in QtjKeyConverter,
+                 * Qt generates Key.Key_Meta events for Windows key.
+                 */
+                if (backingKey == Key.Key_Meta) {
+                    final QEvent.Type eventType = keyEvent.type();
+                    if (eventType == QEvent.Type.KeyPress) {
+                        commonState.setMetaDown(true);
+                    } else if (eventType == QEvent.Type.KeyRelease) {
+                        commonState.setMetaDown(false);
+                    }
+                }
+            } else {
+                commonState.setMetaDown(modifiers.isSet(KeyboardModifier.MetaModifier));
+            }
         }
         
         if (backingEvent instanceof QMouseEvent) {
