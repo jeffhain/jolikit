@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -843,7 +843,45 @@ public class GRectTest extends TestCase {
             assertEquals(expected, actual);
         }
     }
-
+    
+    /*
+     * 
+     */
+    
+    public void test_clampX_int() {
+        for (GRect rect : RECT_LIST) {
+            for (int x : SCALAR_ARR) {
+                final int expected;
+                if (rect.xSpan() == 0) {
+                    expected = rect.x();
+                } else {
+                    expected =
+                        NbrsUtils.asInt(
+                            NbrsUtils.toRange(rect.x(), rect.xMaxLong(), x));
+                }
+                final int actual = rect.clampX(x);
+                assertEquals(expected, actual);
+            }
+        }
+    }
+    
+    public void test_clampY_int() {
+        for (GRect rect : RECT_LIST) {
+            for (int y : SCALAR_ARR) {
+                final int expected;
+                if (rect.ySpan() == 0) {
+                    expected = rect.y();
+                } else {
+                    expected =
+                        NbrsUtils.asInt(
+                            NbrsUtils.toRange(rect.y(), rect.yMaxLong(), y));
+                }
+                final int actual = rect.clampY(y);
+                assertEquals(expected, actual);
+            }
+        }
+    }
+    
     /*
      * 
      */

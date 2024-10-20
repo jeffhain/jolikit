@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -531,14 +531,14 @@ public final class GRect implements Comparable<GRect> {
      * @return The max x, as long, without overflow.
      */
     public long xMaxLong() {
-        return this.x + (long) this.xSpan - 1;
+        return this.x + (long) (this.xSpan - 1);
     }
     
     /**
      * @return The max y, as long, without overflow.
      */
     public long yMaxLong() {
-        return this.y + (long) this.ySpan - 1;
+        return this.y + (long) (this.ySpan - 1);
     }
     
     /*
@@ -577,7 +577,49 @@ public final class GRect implements Comparable<GRect> {
     public long areaLong() {
         return this.xSpan * (long) this.ySpan;
     }
-
+    
+    /*
+     * 
+     */
+    
+    /**
+     * If X span is empty, return x().
+     * 
+     * @return The specified x clamped into [x(),min(Integer.MAX_VALUE,xMaxLong())].
+     */
+    public int clampX(int x) {
+        if ((x <= this.x)
+            || (this.xSpan == 0)) {
+            x = this.x;
+        } else {
+            final long xMaxLong = this.xMaxLong();
+            if (x > xMaxLong) {
+                // Means xMaxLong is in int range.
+                x = (int) xMaxLong;
+            }
+        }
+        return x;
+    }
+    
+    /**
+     * If Y span is empty, return y().
+     * 
+     * @return The specified y clamped into [y(),min(Integer.MAX_VALUE,yMaxLong())].
+     */
+    public int clampY(int y) {
+        if ((y <= this.y)
+            || (this.ySpan == 0)) {
+            y = this.y;
+        } else {
+            final long yMaxLong = this.yMaxLong();
+            if (y > yMaxLong) {
+                // Means yMaxLong is in int range
+                y = (int) yMaxLong;
+            }
+        }
+        return y;
+    }
+    
     /*
      * Computations.
      */
@@ -1169,7 +1211,7 @@ public final class GRect implements Comparable<GRect> {
                 posMaxExclLong(pos1, span1),
                 posMaxExclLong(pos2, span2));
         final long bbSpanLong = (bbPosMaxExclLong - bbPos);
-        if (bbSpanLong > (long) Integer.MAX_VALUE) {
+        if (bbSpanLong > Integer.MAX_VALUE) {
             throw new ArithmeticException("int overflow: " + bbSpanLong);
         }
         final int bbSpan = (int) bbSpanLong;
