@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,6 +79,7 @@ public class AwtBoundBwdMain extends DefaultMainLaunchInfo implements InterfaceB
         final AwtBwdBindingConfig bindingConfig = new AwtBwdBindingConfig();
         
         BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+        BwdBindingLaunchUtils.setInternalParallelism(testCaseHome, bindingConfig);
 
         final AwtBwdBinding binding = new AwtBwdBinding(bindingConfig);
         

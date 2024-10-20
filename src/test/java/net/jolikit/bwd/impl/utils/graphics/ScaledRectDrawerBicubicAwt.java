@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,31 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.test.cases.visualtests;
+package net.jolikit.bwd.impl.utils.graphics;
 
-import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
+import java.awt.RenderingHints;
 
-public class ImageScaling_s2_i05_BwdTestCase extends ImageScaling_s1_i05_BwdTestCase {
+/**
+ * For tests against ScaledRectDrawerBicubic.
+ */
+public class ScaledRectDrawerBicubicAwt extends AbstractScaledRectDrawerAwt {
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
-    public ImageScaling_s2_i05_BwdTestCase() {
+    
+    public ScaledRectDrawerBicubicAwt() {
+        super(RenderingHints.VALUE_INTERPOLATION_BICUBIC);
     }
 
-    public ImageScaling_s2_i05_BwdTestCase(InterfaceBwdBinding binding) {
-        super(binding);
-    }
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
     
     @Override
-    public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new ImageScaling_s2_i05_BwdTestCase(binding);
-    }
-    
-    @Override
-    public Integer getScaleElseNull() {
-        return 2;
+    protected int getAreaThresholdForSplit() {
+        return ScaledRectAlgoBicubic.AREA_THRESHOLD_FOR_SPLIT;
     }
 }

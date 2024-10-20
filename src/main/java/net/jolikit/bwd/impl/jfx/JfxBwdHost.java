@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ import net.jolikit.bwd.api.events.BwdKeyEventPr;
 import net.jolikit.bwd.api.events.BwdKeyEventT;
 import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.events.BwdWheelEvent;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -1020,6 +1021,9 @@ public class JfxBwdHost extends AbstractBwdHost {
             scaleHelper.spanBdToOs(
                 bufferSpansInBd.y());
         
+        // NEAREST is best since scale is an integer.
+        final BwdScalingType scalingType = BwdScalingType.NEAREST;
+        
         if (this.currentPainting_mustUseIntArrG) {
             this.imgDrawingUtilsForHost.drawIntArrBufferOnGc(
                 bufferPosInCliInOs.x(),
@@ -1035,7 +1039,8 @@ public class JfxBwdHost extends AbstractBwdHost {
                 bufferSpansInBd.y(),
                 //
                 this.getBinding().getInternalParallelizer(),
-                this.getAccurateClientScaling(),
+                scalingType,
+                this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
                 //
                 gc);
         } else {
@@ -1058,7 +1063,8 @@ public class JfxBwdHost extends AbstractBwdHost {
                     bufferSpansInBd.y(),
                     //
                     this.getBinding().getInternalParallelizer(),
-                    this.getAccurateClientScaling(),
+                    scalingType,
+                    this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
                     //
                     gc);
             }

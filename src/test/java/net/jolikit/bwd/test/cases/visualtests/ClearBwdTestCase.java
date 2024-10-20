@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Jeff Hain
+ * Copyright 2020-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.List;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -40,6 +41,11 @@ public class ClearBwdTestCase extends AbstractBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    
     private static final BwdColor TEXT_BG_COLOR = BwdColor.WHITE;
     private static final BwdColor TEXT_FG_COLOR = BwdColor.BLACK;
     
@@ -102,6 +108,7 @@ public class ClearBwdTestCase extends AbstractBwdTestCase {
          * - The eventual transparency of image clearing.
          */
         
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
         // Only covering cells.
         g.drawImage(
                 GRect.valueOf(0, 0, INITIAL_WIDTH, INITIAL_HEIGHT),

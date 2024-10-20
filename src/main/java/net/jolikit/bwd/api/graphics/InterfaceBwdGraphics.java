@@ -1065,23 +1065,35 @@ public interface InterfaceBwdGraphics {
     
     /**
      * The default value for this parameter (i.e. its value after
-     * call to init() or reset()) is false, not to hurt performances
-     * (possibly a lot) for users that don't care much about accuracy,
-     * or worse don't like the slight blurriness that can come with it.
+     * call to init() or reset()) is BICUBIC,
+     * because in case of slight upscaling, it gives best looking
+     * fonts (more rounded and less pixelated than with BILINEAR)
+     * and best looking natural pictures (less pixelated),
+     * which are two common uses where look matters a lot.
+     * If BICUBIC downsides show up (performances, blurry pixel art, etc.),
+     * user can always set a different value with this method.
+     * BICUBIC (or at least bicubic looking) is also the default
+     * scaling algorithm for JavaFX (but for AWT it's NEAREST).
      * 
      * If this binding does not support multiple image scaling algorithms,
      * this method must just do the state check.
      * 
-     * See also setAccurateClientScaling() in host API.
+     * Design: Not providing a way to define advanced scaling strategies
+     * (like BILINEAR if area shrinks and BICUBIC if it grows,
+     * or first BILINEAR for half the scaling and then BICUBIC,
+     * etc.) as that could easily lead to very slow scaling,
+     * can always be implemented in user code using intermediary
+     * writable images, and should not be a too common use case,
+     * which allows to keep this API simple.
      * 
-     * @param accurate True if image scaling should use an accurate
-     *        (but possibly slow) algorithm, rather than a fast
-     *        (but typically less accurate) one.
+     * @param scalingType Scaling type to use if supported,
+     *        else the most similar (best effort).
+     * @throws NullPointerException if the specified scaling type is null.
      * @throws IllegalStateException if init() has not been called
      *         or if finish() has been called.
      */
-    public void setAccurateImageScaling(boolean accurate);
-
+    public void setImageScalingType(BwdScalingType scalingType);
+    
     /**
      * @param x Destination x, in user coordinates.
      * @param y Destination y, in user coordinates.

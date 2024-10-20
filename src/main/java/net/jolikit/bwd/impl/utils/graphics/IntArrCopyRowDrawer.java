@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
+import net.jolikit.bwd.api.graphics.GRotation;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -26,6 +28,8 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
+    
+    private GTransform transformArrToUser;
     
     /**
      * Never null.
@@ -43,23 +47,31 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
      * To be configured before use.
      */
     public IntArrCopyRowDrawer() {
-        this.configure_final(LangUtils.EMPTY_INT_ARR, 0);
+        this.configure_final(
+            GTransform.IDENTITY,
+            LangUtils.EMPTY_INT_ARR,
+            0);
     }
 
     /**
+     * @param transformArrToUser Transform from the specified array,
+     *        into coordinates of drawRow() user. Must not be null.
      * @param color32Arr Must not be null.
      */
     public void configure(
-            int[] color32Arr,
-            int scanlineStride) {
+        GTransform transformArrToUser,
+        int[] color32Arr,
+        int scanlineStride) {
         this.configure_final(
+            transformArrToUser,
             color32Arr,
             scanlineStride);
     }
     
     @Override
     public String toString() {
-        return "[color32Arr.length = " + this.color32Arr.length
+        return "[transformArrToUser = " + this.transformArrToUser
+            + ", color32Arr.length = " + this.color32Arr.length
             + ", scanlineStride = " + this.scanlineStride
             + "]";
     }
@@ -76,13 +88,33 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
         int dstY,
         int length) {
         
-        final int dstIndex = dstY * this.scanlineStride + dstX;
-        System.arraycopy(
-            rowArr,
-            rowOffset,
-            this.color32Arr,
-            dstIndex,
-            length);
+        final GTransform transformArrToUser = this.transformArrToUser;
+        if (transformArrToUser.rotation() == GRotation.ROT_0) {
+            final int dstIndex =
+                (dstY + transformArrToUser.frame2YIn1()) * this.scanlineStride
+                + (dstX + transformArrToUser.frame2XIn1());
+            System.arraycopy(
+                rowArr,
+                rowOffset,
+                this.color32Arr,
+                dstIndex,
+                length);
+        } else {
+            final GRotation rotation = this.transformArrToUser.rotation();
+            // Optimization not to have to use transform for each pixel.
+            final int xStepInArr = rotation.cos();
+            final int yStepInArr = rotation.sin();
+            
+            int xInArr = this.transformArrToUser.xIn1(dstX, dstY);
+            int yInArr = this.transformArrToUser.yIn1(dstX, dstY);
+            for (int i = 0; i < length; i++) {
+                final int color32 = rowArr[rowOffset + i];
+                final int dstIndex = yInArr * this.scanlineStride + xInArr;
+                this.color32Arr[dstIndex] = color32;
+                xInArr += xStepInArr;
+                yInArr += yStepInArr;
+            }
+        }
     }
     
     //--------------------------------------------------------------------------
@@ -90,11 +122,14 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
     //--------------------------------------------------------------------------
     
     /**
+     * @param transformArrToUser Must not be null.
      * @param color32Arr Must not be null.
      */
     private final void configure_final(
-            int[] color32Arr,
-            int scanlineStride) {
+        GTransform transformArrToUser,
+        int[] color32Arr,
+        int scanlineStride) {
+        this.transformArrToUser = LangUtils.requireNonNull(transformArrToUser);
         this.color32Arr = LangUtils.requireNonNull(color32Arr);
         this.scanlineStride = scanlineStride;
     }

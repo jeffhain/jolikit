@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -581,9 +581,7 @@ public class OvalOrArc_asPoly {
         final double rxd = temps.rxd;
         final double ryd = temps.ryd;
 
-        temps.computeBaseWaypoints(
-                clip,
-                oval);
+        temps.computeBaseWaypoints();
 
         if (DEBUG) {
             for (int i = 0; i < temps.baseWaypointCount; i++) {
@@ -1034,9 +1032,7 @@ public class OvalOrArc_asPoly {
      * Base waypoints.
      */
 
-    private void computeBaseWaypoints(
-            GRect clip,
-            GRect oval) {
+    private void computeBaseWaypoints() {
 
         if (DEBUG) {
             Dbg.log("computeBaseWaypoints()");

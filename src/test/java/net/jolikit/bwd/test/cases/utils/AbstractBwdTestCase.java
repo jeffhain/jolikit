@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,10 +140,19 @@ InterfaceBwdTestCaseHome, InterfaceBwdTestCase {
      * This default implementation returns null.
      * 
      * Note that tests use a sequential parallelizer if the binding
-     * doesn't support parallelism for their test cases.
+     * doesn't support parallelism for their test cases,
+     * whatever the value returned by this method.
      */
     @Override
     public Integer getParallelizerParallelismElseNull() {
+        return null;
+    }
+    
+    /**
+     * This default implementation returns null.
+     */
+    @Override
+    public Integer getInternalParallelismElseNull() {
         return null;
     }
     

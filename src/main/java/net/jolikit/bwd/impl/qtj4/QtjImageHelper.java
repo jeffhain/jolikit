@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.PixelFormatConverter;
-import net.jolikit.lang.NbrsUtils;
 
 /**
  * Only allows color setting into images that have no color table.
@@ -60,11 +59,10 @@ public class QtjImageHelper {
     private final PixelFormatConverter converter;
     
     /*
-     * For fast access to width/height.
+     * 
      */
     
-    private final int width;
-    private final int height;
+    private final GRect rect;
     
     /**
      * Non-null if a non-empty color table, which all image pixels are
@@ -97,8 +95,7 @@ public class QtjImageHelper {
         
         final int w = image.width();
         final int h = image.height();
-        this.width = w;
-        this.height = h;
+        this.rect = GRect.valueOf(0, 0, w, h);
         
         // Need to call that last, since uses other fields.
         this.xxxArgb32ByColorIndex = this.computeXxxArgb32ByColorIndex(image);
@@ -119,12 +116,8 @@ public class QtjImageHelper {
         return this.image;
     }
     
-    public int getWidth() {
-        return this.width;
-    }
-    
-    public int getHeight() {
-        return this.height;
+    public GRect getRect() {
+        return this.rect;
     }
     
     /*
@@ -219,11 +212,8 @@ public class QtjImageHelper {
      * This allows to avoid overflows in case of huge positions.
      */
     public void ensureSnapshotDirtyOver(int x, int y) {
-        /*
-         * toRange(...) only works for non-zero spans.
-         */
-        x = NbrsUtils.toRange(0, this.width - 1, x);
-        y = NbrsUtils.toRange(0, this.height - 1, y);
+        x = this.rect.clampX(x);
+        y = this.rect.clampY(y);
         this.snapshotDirtyBox = this.snapshotDirtyBox.unionBoundingBox(x, y);
     }
 
@@ -336,7 +326,7 @@ public class QtjImageHelper {
     public int getSnapshotPremulArgb32At(int x, int y) {
         this.ensureSnapshotUpToDateOver(x, y);
         
-        final int index = y * this.width + x;
+        final int index = y * this.rect.xSpan() + x;
         return this.snapshotPremulArgb32Arr[index];
     }
 
@@ -351,8 +341,9 @@ public class QtjImageHelper {
     }
 
     /**
-     * @return Snapshot array, after having ensured that
-     *         it was up to date over the specified rectangle.
+     * @return Snapshot array (containing the whole image),
+     *         after having ensured that it was up to date
+     *         over the specified rectangle.
      */
     public int[] getSnapshotPremulArgb32Arr(int x, int y, int xSpan, int ySpan) {
         this.ensureSnapshotUpToDateOver(x, y, xSpan, ySpan);
@@ -360,7 +351,7 @@ public class QtjImageHelper {
     }
     
     public int getSnapshotScanlineStride() {
-        return this.width;
+        return this.rect.xSpan();
     }
     
     /*
@@ -510,7 +501,7 @@ public class QtjImageHelper {
     
     private void updateSnapshotOver(GRect rect) {
         if (this.snapshotPremulArgb32Arr == null) {
-            this.snapshotPremulArgb32Arr = new int[this.width * this.height];
+            this.snapshotPremulArgb32Arr = new int[this.rect.area()];
             // First dirty box covers the whole image,
             // so all of the array will be properly initialized.
         }
@@ -524,7 +515,7 @@ public class QtjImageHelper {
             rect.xSpan(),
             rect.ySpan(),
             this.snapshotPremulArgb32Arr,
-            this.width);
+            this.getSnapshotScanlineStride());
     }
     
     /*

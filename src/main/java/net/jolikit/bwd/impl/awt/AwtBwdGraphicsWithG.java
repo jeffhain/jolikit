@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -360,6 +360,15 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     
     private int xShiftInUser;
     private int yShiftInUser;
+    
+    /**
+     * Transform from BufferedImage coordinates to user coordinates
+     * (compared to getTransform(), includes eventual delta
+     * due to rootBoxTopLeft).
+     * Allows not to have to add rootBoxTopLeft delta
+     * for each pixel drawing.
+     */
+    private GTransform transformBiToUser;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -759,18 +768,17 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         // For usability and coordinates check.
         super.getArgb32At(x, y);
         
-        final GTransform transform = this.getTransform();
-        final int xInBase = transform.xIn1(x, y);
-        final int yInBase = transform.yIn1(x, y);
-
+        // fix: was just using getTransform() instead.
+        final GTransform transformBiToUser = this.transformBiToUser;
+        final int xInBi = transformBiToUser.xIn1(x, y);
+        final int yInBi = transformBiToUser.yIn1(x, y);
+        
         final int argb32;
         if (MUST_USE_REDEF_FOR_GET_ARGB32_AT) {
-            argb32 = this.bufferedImageHelper.getArgb32At(
-                    xInBase,
-                    yInBase);
+            argb32 = this.bufferedImageHelper.getArgb32At(xInBi, yInBi);
         } else {
             final BufferedImage bufferedImage = this.bufferedImageHelper.getImage();
-            argb32 = bufferedImage.getRGB(xInBase, yInBase);
+            argb32 = bufferedImage.getRGB(xInBi, yInBi);
         }
         return argb32;
     }
@@ -890,6 +898,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         this.imgDrawingUtils.drawBufferedImageOnG(
             this.xShiftInUser,
             this.yShiftInUser,
+            this.getRootBoxTopLeft(),
             this.getTransform(),
             this.getClipInUser(),
             //
@@ -900,7 +909,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             sx, sy, sxSpan, sySpan,
             //
             this.getBinding().getInternalParallelizer(),
-            this.getAccurateImageScaling(),
+            this.getImageScalingType(),
+            this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
             //
             this.bufferedImageHelper,
             this.g);
@@ -969,6 +979,10 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         
         this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
         this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
+        
+        this.transformBiToUser = BindingCoordsUtils.computeTransformBoxToUser(
+            rootBoxTopLeft,
+            transform);
     }
     
     /*
@@ -981,14 +995,16 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     }
 
     private void drawPoint_raw_bih_inClip(int x, int y) {
-        final GTransform transform = this.getTransform();
-        final int xInBase = transform.xIn1(x, y);
-        final int yInBase = transform.yIn1(x, y);
+        // fix: was just using getTransform() instead.
+        final GTransform transformBiToUser = this.transformBiToUser;
+        final int xInBi = transformBiToUser.xIn1(x, y);
+        final int yInBi = transformBiToUser.yIn1(x, y);
+        
         final int premulArgb32 = this.getPremulArgb32();
         this.bufferedImageHelper.drawPointAt(
-                xInBase,
-                yInBase,
-                premulArgb32);
+            xInBi,
+            yInBi,
+            premulArgb32);
     }
     
     /*

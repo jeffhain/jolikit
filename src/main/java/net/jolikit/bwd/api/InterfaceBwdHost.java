@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -539,24 +539,6 @@ public interface InterfaceBwdHost {
     /*
      * Painting.
      */
-    
-    /**
-     * Should be callable from any thread
-     * (for consistency with other host painting methods).
-     * 
-     * The default value for this parameter is false.
-     * 
-     * If this binding does not support multiple client scaling algorithms,
-     * this method must do nothing (and not throw).
-     * 
-     * See also setAccurateImageScaling() in graphics API.
-     * 
-     * @param accurate True if eventual client scaling (due to backing library
-     *        using a different resolution than BWD) should use an accurate
-     *        (but possibly slow) algorithm, rather than a fast (but typically
-     *        less accurate) one.
-     */
-    public void setAccurateClientScaling(boolean accurate);
     
     /**
      * Should be callable from any thread.

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -77,8 +77,23 @@ public class SwingBoundBwdMain extends DefaultMainLaunchInfo implements Interfac
                 testCaseHomeProvider);
 
         final SwingBwdBindingConfig bindingConfig = new SwingBwdBindingConfig();
-        
+        /*
+         * TODO test Can turn these true for tests, to have:
+         * - AWT binding use AwtBwdGraphicsWithIntArr
+         *   and our redefined scalings (the defaults).
+         * - Swing binding test AwtBwdGraphicsWithG
+         *   and eventually also AWT's scalings.
+         */
+        if (false) {
+            bindingConfig.setMustUseIntArrayGraphicsForClients(false);
+            bindingConfig.setMustUseIntArrayGraphicsForWritableImages(false);
+            if (false) {
+                bindingConfig.setMustUseBackingImageScalingIfApplicable(true);
+            }
+        }
+
         BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+        BwdBindingLaunchUtils.setInternalParallelism(testCaseHome, bindingConfig);
 
         final SwingBwdBinding binding = new SwingBwdBinding(bindingConfig);
         

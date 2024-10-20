@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -42,27 +43,24 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
     //--------------------------------------------------------------------------
     
     /**
-     * Image spans : 960x540
+     * Image spans : 800x600
      */
-    private static final String IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_PNG;
-    private static final String ALPHA_IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG;
+    private static final String IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_PNG;
+    private static final String ALPHA_IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_PNG;
 
     private static final int NBR_OF_CALLS = 100;
     
-    private static final int DST_W = 300;
-    private static final int DST_H = 170;
+    private static final int DST_W = 140;
+    private static final int DST_H = 140;
 
-    private static final int CELL_W = 310;
-    private static final int CELL_H = 200;
+    private static final int CELL_W = DST_W + 10 + 100;
+    private static final int CELL_H = DST_H + 30 + 20;
 
     /**
-     * 1 (not scaled: should be quick)
-     * 2 (exact growth: should be quick (closest algo))
-     * 0.5 (should be quick with closest algo, slower with sampling algo)
-     * 0.3 and 3.1 (not exact: should use sampling algo)
+     * 1: not scaled: should be quick
      */
     private static final double[] SCALE_ARR = new double[] {
-        0.32, 0.5, 1.0, 2.0, 3.1,
+        0.24, 0.33, 0.66, 1.0, 2.0, 3.3, 4.1,
     };
 
     private static final int INITIAL_WIDTH = CELL_W * SCALE_ARR.length;
@@ -100,14 +98,14 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
 
-    protected abstract boolean getAccurateImageScaling();
+    protected abstract BwdScalingType getImageScalingType();
     
     @Override
     protected List<GRect> paintClientImpl(
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
-        g.setAccurateImageScaling(this.getAccurateImageScaling());
+        g.setImageScalingType(this.getImageScalingType());
         
         final GRect box = g.getBox();
         
@@ -149,14 +147,14 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
             g.setFont(defaultFont);
             {
                 final String comment =
-                    "duration since last painting ended = "
+                    "duration since last painting ended: "
                             + TestUtils.nsToSRounded(nanosBetweenPaintings) + " s";
                 g.drawText(tmpX, tmpY, comment);
                 tmpY += textH;
             }
             {
                 final String comment =
-                    NBR_OF_CALLS + " draw calls for each case";
+                    NBR_OF_CALLS + " draw calls for each case and its time measurement";
                 g.drawText(tmpX, tmpY, comment);
                 tmpY += textH;
             }
@@ -232,7 +230,7 @@ public abstract class AbstractBenchDrawImageBwdTestCase extends AbstractBwdTestC
                 final String comment =
                         (hasAlpha ? "alpha" : "opaque")
                         + ", scale = " + scale
-                        + ", took " + TestUtils.nsToSRounded(dtNs) + " s";
+                        + ", " + TestUtils.nsToSRounded(dtNs) + " s";
                 g.setColor(BwdColor.BLACK);
                 g.drawText(tmpX, tmpY, comment);
                 

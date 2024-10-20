@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import java.util.List;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
@@ -35,6 +36,11 @@ public class ImageClippingCliBwdTestCase extends AbstractBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+
     private static final String IMG_FILE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG;
     
     private static final int INITIAL_WIDTH = 650;
@@ -81,6 +87,8 @@ public class ImageClippingCliBwdTestCase extends AbstractBwdTestCase {
         
         final GRect box = g.getBox();
 
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
+        
         InterfaceBwdImage image = this.image;
         if (image == null) {
             image = binding.newImage(IMG_FILE_PATH);

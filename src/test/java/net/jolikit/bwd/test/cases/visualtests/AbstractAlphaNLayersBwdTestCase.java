@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -40,6 +41,15 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+    
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    
+    /*
+     * 
+     */
     
     private static final double WINDOW_ALPHA_FP = 0.5;
     
@@ -311,6 +321,7 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
         }
         @Override
         public void drawItem(InterfaceBwdGraphics g, int itemX, int itemY) {
+            g.setImageScalingType(IMAGE_SCALING_TYPE);
             g.drawImage(itemX, itemY, ITEM_X_SPAN, ITEM_Y_SPAN, this.image);
         }
     }

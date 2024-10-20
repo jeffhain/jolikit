@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
  * things are consistent, for example without X or Y flattening
  * of displayed text.
  */
-public class HostCoordsHugeBwdTestCase extends HostCoordsRegularBwdTestCase {
+public class HostCoordsHugeBwdTestCase extends HostCoordsScale1BwdTestCase {
 
     //--------------------------------------------------------------------------
     // FIELDS

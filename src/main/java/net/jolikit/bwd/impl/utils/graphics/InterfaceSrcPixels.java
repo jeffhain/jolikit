@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,14 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
+import net.jolikit.bwd.api.graphics.GRect;
+
 /**
  * Interface to read pixels.
  */
 public interface InterfaceSrcPixels {
+    
+    public GRect getRect();
     
     public int getWidth();
     

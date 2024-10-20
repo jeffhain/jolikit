@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.events.BwdMouseEvent;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -64,6 +65,12 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
 
     private static final boolean DEBUG = false;
+    
+    /**
+     * NEAREST because we don't bench scaling algorithms here,
+     * just FPS with sprites and/or transparency.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.NEAREST;
     
     private static final String BG_IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_PNG;
     private static final String BG_ALPHA_IMAGE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG;
@@ -260,6 +267,8 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             InterfaceBwdGraphics g,
             GRect dirtyRect) {
         
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
+        
         final ArrayList<GRect> paintedRectList = new ArrayList<GRect>();
         
         final GRect box = g.getBox();
@@ -307,8 +316,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
             
             this.drawBackground_afterSpritesKineUpdate(
                     g,
-                    mustPaintAll,
-                    paintedRectList);
+                    mustPaintAll);
         }
         g.setTransform(oldTransform);
         
@@ -317,7 +325,6 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
          */
         
         drawSprites(
-                this.random,
                 g,
                 paintCount,
                 this.spriteInfoList,
@@ -473,8 +480,7 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
 
     private void drawBackground_afterSpritesKineUpdate(
             InterfaceBwdGraphics g,
-            boolean mustPaintAll,
-            List<GRect> paintedRectList) {
+            boolean mustPaintAll) {
         if (mustPaintAll) {
             // All background already drawn.
             return;
@@ -556,7 +562,6 @@ public abstract class AbstractBenchPacMiceBwdTestCase extends AbstractBwdTestCas
     }
 
     private void drawSprites(
-            Random random,
             InterfaceBwdGraphics g,
             int paintCount,
             List<MySpriteInfo> spriteInfoList,

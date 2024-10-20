@@ -48,10 +48,17 @@ public class BwdTestResources {
 
     /*
      * Images.
+     * 
+     * time_square image from imgscalr library,
+     * less dark and with more features than cat_and_mice image.
      */
     
     public static final String TEST_IMG_FILE_PATH_CAT_AND_MICE_PNG = TEST_IMAGES_DIR_PATH + "/cat_and_mice.png";
     public static final String TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/cat_and_mice_alpha.png";
+    
+    public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_PNG = TEST_IMAGES_DIR_PATH + "/time_square.png";
+    public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/time_square_alpha.png";
+    public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_LINES_PNG = TEST_IMAGES_DIR_PATH + "/time_square_alpha_lines.png";
     
     public static final String TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG = TEST_IMAGES_DIR_PATH + "/mouse_head.png";
     public static final String TEST_IMG_FILE_PATH_MOUSE_HEAD_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/mouse_head_alpha.png";

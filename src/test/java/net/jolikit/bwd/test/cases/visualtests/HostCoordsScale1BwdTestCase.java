@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,9 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
  * To test that window and client bounds and coordinates,
  * and drawings in client coordinates,
  * and mouse coordinates in client,
- * are consistent.
+ * are consistent, without client scaling.
  */
-public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
+public class HostCoordsScale1BwdTestCase extends AbstractBwdTestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -68,16 +68,16 @@ public class HostCoordsRegularBwdTestCase extends AbstractBwdTestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public HostCoordsRegularBwdTestCase() {
+    public HostCoordsScale1BwdTestCase() {
     }
 
-    public HostCoordsRegularBwdTestCase(InterfaceBwdBinding binding) {
+    public HostCoordsScale1BwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new HostCoordsRegularBwdTestCase(binding);
+        return new HostCoordsScale1BwdTestCase(binding);
     }
     
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private GTransform transformArrToRow;
+    private GTransform transformArrToUser;
     
     /**
      * Never null.
@@ -47,27 +47,30 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
      * To be configured before use.
      */
     public IntArrSrcOverRowDrawer() {
-        this.configure_final(GTransform.IDENTITY, LangUtils.EMPTY_INT_ARR, 0);
+        this.configure_final(
+            GTransform.IDENTITY,
+            LangUtils.EMPTY_INT_ARR,
+            0);
     }
 
     /**
-     * @param transformArrToRow  Transform from the specified array,
-     *        into coordinates user by row. Must not be null.
+     * @param transformArrToUser Transform from the specified array,
+     *        into coordinates of drawRow() user. Must not be null.
      * @param premulArgb32Arr Must not be null.
      */
     public void configure(
-        GTransform transformArrToRow,
+        GTransform transformArrToUser,
         int[] premulArgb32Arr,
         int scanlineStride) {
         this.configure_final(
-            transformArrToRow,
+            transformArrToUser,
             premulArgb32Arr,
             scanlineStride);
     }
     
     @Override
     public String toString() {
-        return "[transformArrToRow = " + this.transformArrToRow
+        return "[transformArrToUser = " + this.transformArrToUser
             + ", premulArgb32Arr.length = " + this.premulArgb32Arr.length
             + ", scanlineStride = " + this.scanlineStride
             + "]";
@@ -85,13 +88,13 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
         int dstY,
         int length) {
         
-        final GRotation rotation = this.transformArrToRow.rotation();
+        final GRotation rotation = this.transformArrToUser.rotation();
         // Optimization not to have to use transform for each pixel.
         final int xStepInArr = rotation.cos();
         final int yStepInArr = rotation.sin();
         
-        int xInArr = this.transformArrToRow.xIn1(dstX, dstY);
-        int yInArr = this.transformArrToRow.yIn1(dstX, dstY);
+        int xInArr = this.transformArrToUser.xIn1(dstX, dstY);
+        int yInArr = this.transformArrToUser.yIn1(dstX, dstY);
         for (int i = 0; i < length; i++) {
             final int srcPremulArgb32 = rowArr[rowOffset + i];
             final int dstIndex = yInArr * this.scanlineStride + xInArr;
@@ -106,14 +109,14 @@ public class IntArrSrcOverRowDrawer implements InterfaceRowDrawer {
     //--------------------------------------------------------------------------
     
     /**
-     * @param transformArrToRow Must not be null.
+     * @param transformArrToUser Must not be null.
      * @param premulArgb32Arr Must not be null.
      */
     private final void configure_final(
-        GTransform transformArrToRow,
+        GTransform transformArrToUser,
         int[] premulArgb32Arr,
         int scanlineStride) {
-        this.transformArrToRow = LangUtils.requireNonNull(transformArrToRow);
+        this.transformArrToUser = LangUtils.requireNonNull(transformArrToUser);
         this.premulArgb32Arr = LangUtils.requireNonNull(premulArgb32Arr);
         this.scanlineStride = scanlineStride;
     }

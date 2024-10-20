@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@ import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
+import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.lang.LangUtils;
 
@@ -88,7 +89,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                     mustUseOpaqueColor,
                     mustSetColor);
         }
-    };
+    }
     
     /*
      * 
@@ -104,6 +105,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             Object imageDataAccessor) {
             this.image = image;
             this.imageDataAccessor = imageDataAccessor;
+        }
+        @Override
+        public GRect getRect() {
+            return this.image.getRect();
         }
         @Override
         public int getWidth() {
@@ -125,7 +130,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         public int getColor32At(int x, int y) {
             return getImageColor32(this.image, this.imageDataAccessor, x, y);
         }
-    };
+    }
 
     private class MyRowDrawer implements  InterfaceRowDrawer {
         public MyRowDrawer() {
@@ -137,23 +142,14 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             int dstX,
             int dstY,
             int length) {
-            
-            final GRotation rotation = transformArrToUser.rotation();
-            // Optimization not to have to use transform for each pixel.
-            final int xStepInArr = rotation.cos();
-            final int yStepInArr = rotation.sin();
-            
-            int xInArr = transformArrToUser.xIn1(dstX, dstY);
-            int yInArr = transformArrToUser.yIn1(dstX, dstY);
-            for (int i = 0; i < length; i++) {
-                final int color32 = rowArr[rowOffset + i];
-                final int dstIndex = toPixelArrIndexFromArr(xInArr, yInArr);
-                blendColor32(dstIndex, color32);
-                xInArr += xStepInArr;
-                yInArr += yStepInArr;
-            }
+            drawRowImpl(
+                rowArr,
+                rowOffset,
+                dstX,
+                dstY,
+                length);
         }
-    };
+    }
 
     //--------------------------------------------------------------------------
     // FIELDS
@@ -164,8 +160,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     private final boolean isImageGraphics;
     
     /**
-     * Pixels corresponding to the base area, which top-left corner is (0,0).
-     * index = y * xSpan + x.
+     * Pixels corresponding to the base area,
+     * which top-left corner is rootBoxTopLeft.
+     * index = (y - rootBoxTopLeft.y()) * pixelArrScanlineStride
+     *         + (x - rootBoxTopLeft.x()).
      * Can be larger than needed, to allow for reusing a same array.
      * 
      * Can use any color format.
@@ -188,7 +186,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     
     /**
      * Transform between array coordinates (frame 1)
-     * (in which (0,0) corresponds to pixelArr[0])
+     * (in which rootBoxTopLeft corresponds to pixelArr[0])
      * and user coordinates (frame 2).
      */
     private GTransform transformArrToUser;
@@ -598,11 +596,14 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             final MyImgSrcPixels srcPixels = this.tmpImgSrcPixels;
             srcPixels.configure(image, imageDataAccessor);
             
-            ScaledRectDrawer.drawRectScaled(
+            ScaledRectDrawing.drawScaledRect(
                 this.getBinding().getInternalParallelizer(),
-                this.getAccurateImageScaling(),
+                this.getImageScalingType(),
+                this.getArrayColorHelper(),
+                //
                 srcPixels,
                 srcRectInImg,
+                //
                 dstRectInUser,
                 clipInUser,
                 this.rowDrawer);
@@ -616,11 +617,20 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
      */
     
     /**
+     * @return The helper for array color.
+     */
+    protected abstract InterfaceColorTypeHelper getArrayColorHelper();
+    
+    /**
      * @param argb32 A 32 bits ARGB color.
      * @return The same color in the format to use in the array of pixels.
      */
     protected abstract int getArrayColor32FromArgb32(int argb32);
     
+    /**
+     * @param A color in the format to use in the array of pixels.
+     * @return The same color in 32 bits ARGB format.
+     */
     protected abstract int getArgb32FromArrayColor32(int color32);
     
     /**
@@ -734,17 +744,36 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
+    private void drawRowImpl(
+        int[] rowArr,
+        int rowOffset,
+        int dstX,
+        int dstY,
+        int length) {
+        
+        final GRotation rotation = this.transformArrToUser.rotation();
+        // Optimization not to have to use transform for each pixel.
+        final int xStepInArr = rotation.cos();
+        final int yStepInArr = rotation.sin();
+        
+        int xInArr = this.transformArrToUser.xIn1(dstX, dstY);
+        int yInArr = this.transformArrToUser.yIn1(dstX, dstY);
+        for (int i = 0; i < length; i++) {
+            final int color32 = rowArr[rowOffset + i];
+            final int dstIndex = this.toPixelArrIndexFromArr(xInArr, yInArr);
+            this.blendColor32(dstIndex, color32);
+            xInArr += xStepInArr;
+            yInArr += yStepInArr;
+        }
+    }
+
     private void updateTransformArrToUser() {
         final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         final GTransform transform = this.getTransform_final();
-        if (rootBoxTopLeft.equalsPoint(0, 0)) {
-            this.transformArrToUser = transform;
-        } else {
-            this.transformArrToUser = GTransform.valueOf(
-                transform.rotation(),
-                transform.frame2XIn1() - rootBoxTopLeft.x(),
-                transform.frame2YIn1() - rootBoxTopLeft.y());
-        }
+        this.transformArrToUser =
+            BindingCoordsUtils.computeTransformBoxToUser(
+                rootBoxTopLeft,
+                transform);
     }
 
     private int toPixelArrIndexFromBase(int xInBase, int yInBase) {

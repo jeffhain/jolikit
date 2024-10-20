@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.sun.jna.Pointer;
 
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.algr5.jlib.ALLEGRO_LOCKED_REGION;
@@ -31,7 +32,8 @@ import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
 import net.jolikit.bwd.impl.utils.graphics.InterfaceRowDrawer;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawing;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
@@ -188,7 +190,6 @@ public class AlgrPaintUtils {
         Pointer display,
         PixelCoordsConverter pixelCoordsConverter,
         InterfaceParallelizer parallelizer,
-        boolean accurateClientScaling,
         PrintStream issueStream) {
 
         final int[] bufferArr = bufferInBd.getPixelArr();
@@ -310,22 +311,27 @@ public class AlgrPaintUtils {
                      * exactly as I want, which is consistently with default images scaling
                      * algorithms.
                      */
-                    final MyRowDrawer rowDrawer = this.tmpRowDrawer;
-                    rowDrawer.configure(
+                    // NEAREST is best since scale is an integer.
+                    final BwdScalingType scalingType = BwdScalingType.NEAREST;
+                    final MyRowDrawer dstRowDrawer = this.tmpRowDrawer;
+                    dstRowDrawer.configure(
                         region,
                         clipInRegion,
                         dataPtr);
                     final GRect srcRect = prInBuffInBd;
                     final GRect dstRect = rectInRegion;
                     final GRect dstClip = clipInRegion;
-                    ScaledRectDrawer.drawRectScaled(
+                    ScaledRectDrawing.drawScaledRect(
                         parallelizer,
-                        accurateClientScaling,
+                        scalingType,
+                        PremulArgbHelper.getInstance(),
+                        //
                         inputPixels,
                         srcRect,
+                        //
                         dstRect,
                         dstClip,
-                        rowDrawer);
+                        dstRowDrawer);
                 } finally {
                     if (mustJustLockPaintedRectRegion) {
                         LIB.al_unlock_bitmap(windowBitmap);

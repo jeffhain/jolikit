@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.graphics.DirectBuffers;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
+import net.jolikit.bwd.impl.utils.graphics.InterfaceColorTypeHelper;
+import net.jolikit.bwd.impl.utils.graphics.PremulNativeRgbaHelper;
 import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 
@@ -234,6 +236,10 @@ public class JoglPaintHelper {
      * 
      */
     
+    public static InterfaceColorTypeHelper getArrayColorHelper() {
+        return PremulNativeRgbaHelper.getInstance();
+    }
+
     public static int getArrayColor32FromArgb32(int argb32) {
         return BindingColorUtils.toPremulNativeRgba32FromArgb32(argb32);
     }

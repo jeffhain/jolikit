@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +18,15 @@ package net.jolikit.bwd.impl.jfx;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.Image;
 import javafx.scene.image.WritableImage;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.impl.utils.graphics.IntArrCopyRowDrawer;
+import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
 import net.jolikit.bwd.impl.utils.graphics.IntArrayGraphicBuffer;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawing;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
@@ -31,20 +34,6 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
  */
 public class JfxImgDrawingUtils {
     
-    //--------------------------------------------------------------------------
-    // CONFIGURATION
-    //--------------------------------------------------------------------------
-    
-    /**
-     * TODO jfx If we have growth, JavaFX treatments cause blurry result,
-     * so we don't want to use them.
-     * Cf. https://stackoverflow.com/questions/44445072/how-to-disable-linear-filtering-on-canvas-in-javafx
-     * Fixed in JavaFX 12+ (JDK-8204060), with GraphicsContext.setImageSmoothing(boolean)
-     * (true by default, need to use false to avoid blurriness on growth),
-     * but our binding is for JavaFX8 so we can't use it yet.
-     */
-    private static final boolean MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH = true;
-
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -89,20 +78,29 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean accurateImageScaling,
+        BwdScalingType scalingType,
+        boolean mustUseBackingImageScalingIfApplicable,
         //
         GraphicsContext gc) {
         
-        final boolean mustUseRedefinedScaling =
-            (accurateImageScaling
-                && (!ScaledRectDrawer.isExactWithClosest(
-                    sxSpan, sySpan,
-                    dxSpan, dySpan)))
-            || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
-                && ((dxSpan > sxSpan)
-                    || (dySpan > sySpan)));
-        if (mustUseRedefinedScaling) {
-            
+        final boolean mustUseJfxScaling =
+            computeMustUseJfxScaling(
+                sxSpan,
+                sySpan,
+                dxSpan,
+                dySpan,
+                scalingType,
+                mustUseBackingImageScalingIfApplicable);
+        if (mustUseJfxScaling) {
+            drawBackingImagePartScaledOver(
+                dx, dy, dxSpan, dySpan,
+                //
+                image,
+                //
+                sx, sy, sxSpan, sySpan,
+                //
+                gc);
+        } else {
             /*
              * Scaling into a scaled buffer.
              * 
@@ -131,20 +129,27 @@ public class JfxImgDrawingUtils {
             
             final int minDstLength = dxSpan * dySpan;
             final int[] scaledBufferArr = this.tmpIntArr2.getArr(minDstLength);
-            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
-            rowDrawer.configure(scaledBufferArr, dxSpan);
+            final IntArrCopyRowDrawer dstRowDrawer = this.tmpRowDrawer;
+            dstRowDrawer.configure(
+                GTransform.IDENTITY,
+                scaledBufferArr,
+                dxSpan);
             
             final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
             final GRect dstRect = GRect.valueOf(0, 0, dxSpan, dySpan);
             final GRect dstClip = dstRect;
-            ScaledRectDrawer.drawRectScaled(
+            
+            ScaledRectDrawing.drawScaledRect(
                 parallelizer,
-                accurateImageScaling,
+                scalingType,
+                PremulArgbHelper.getInstance(),
+                //
                 srcPixels,
                 srcRect,
+                //
                 dstRect,
                 dstClip,
-                rowDrawer);
+                dstRowDrawer);
             
             /*
              * Copying the scaled buffer into a scaled image.
@@ -169,15 +174,6 @@ public class JfxImgDrawingUtils {
             drawBackingImageAt(
                 dx, dy,
                 scaledImage,
-                gc);
-        } else {
-            drawBackingImagePartScaledOver(
-                dx, dy, dxSpan, dySpan,
-                //
-                image,
-                //
-                sx, sy, sxSpan, sySpan,
-                //
                 gc);
         }
     }
@@ -202,73 +198,20 @@ public class JfxImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean accurateImageScaling,
+        BwdScalingType scalingType,
+        boolean mustUseBackingImageScalingIfApplicable,
         //
         GraphicsContext gc) {
         
-        final boolean mustUseRedefinedScaling =
-            (accurateImageScaling
-                && (!ScaledRectDrawer.isExactWithClosest(
-                    sxSpan, sySpan,
-                    dxSpan, dySpan)))
-            || (MUST_USE_REDEFINED_SCALING_IF_GOT_SOME_GROWTH
-                && ((dxSpan > sxSpan)
-                    || (dySpan > sySpan)));
-        if (mustUseRedefinedScaling) {
-            
-            /*
-             * Scaling into a scaled buffer.
-             */
-            
-            final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
-            srcPixels.configure(
-                buffer.getWidth(),
-                buffer.getHeight(),
-                buffer.getPixelArr(),
-                buffer.getScanlineStride());
-            
-            final int minDstLength = dxSpan * dySpan;
-            final int[] scaledBufferArr = this.tmpIntArr1.getArr(minDstLength);
-            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
-            rowDrawer.configure(scaledBufferArr, dxSpan);
-            
-            final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
-            final GRect dstRect = GRect.valueOf(0, 0, dxSpan, dySpan);
-            final GRect dstClip = dstRect;
-            ScaledRectDrawer.drawRectScaled(
-                parallelizer,
-                accurateImageScaling,
-                srcPixels,
-                srcRect,
-                dstRect,
-                dstClip,
-                rowDrawer);
-            
-            /*
-             * Copying the scaled buffer into a scaled image.
-             */
-            
-            final WritableImage scaledImage =
-                this.getTmpImage(dxSpan, dySpan);
-
-            final int scaledBufferOffset = 0;
-            final int scaledBufferScanlineStride = dxSpan;
-            scaledImage.getPixelWriter().setPixels(
-                0, 0, dxSpan, dySpan,
-                JfxPaintUtils.FORMAT_INT_ARGB_PRE,
-                scaledBufferArr,
-                scaledBufferOffset,
-                scaledBufferScanlineStride);
-
-            /*
-             * Drawing the scaled image.
-             */
-            
-            drawBackingImageAt(
-                dx, dy,
-                scaledImage,
-                gc);
-        } else {
+        final boolean mustUseJfxScaling =
+            computeMustUseJfxScaling(
+                sxSpan,
+                sySpan,
+                dxSpan,
+                dySpan,
+                scalingType,
+                mustUseBackingImageScalingIfApplicable);
+        if (mustUseJfxScaling) {
             /*
              * Drawing the buffer into an image.
              */
@@ -297,12 +240,98 @@ public class JfxImgDrawingUtils {
                 sx, sy, sxSpan, sySpan,
                 //
                 gc);
+        } else {
+            /*
+             * Scaling into a scaled buffer.
+             */
+            
+            final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
+            srcPixels.configure(
+                buffer.getWidth(),
+                buffer.getHeight(),
+                buffer.getPixelArr(),
+                buffer.getScanlineStride());
+            
+            final int minDstLength = dxSpan * dySpan;
+            final int[] scaledBufferArr = this.tmpIntArr1.getArr(minDstLength);
+            final IntArrCopyRowDrawer dstRowDrawer = this.tmpRowDrawer;
+            dstRowDrawer.configure(
+                GTransform.IDENTITY,
+                scaledBufferArr,
+                dxSpan);
+            
+            final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
+            final GRect dstRect = GRect.valueOf(0, 0, dxSpan, dySpan);
+            final GRect dstClip = dstRect;
+            
+            ScaledRectDrawing.drawScaledRect(
+                parallelizer,
+                scalingType,
+                PremulArgbHelper.getInstance(),
+                //
+                srcPixels,
+                srcRect,
+                //
+                dstRect,
+                dstClip,
+                dstRowDrawer);
+            
+            /*
+             * Copying the scaled buffer into a scaled image.
+             */
+            
+            final WritableImage scaledImage =
+                this.getTmpImage(dxSpan, dySpan);
+
+            final int scaledBufferOffset = 0;
+            final int scaledBufferScanlineStride = dxSpan;
+            scaledImage.getPixelWriter().setPixels(
+                0, 0, dxSpan, dySpan,
+                JfxPaintUtils.FORMAT_INT_ARGB_PRE,
+                scaledBufferArr,
+                scaledBufferOffset,
+                scaledBufferScanlineStride);
+
+            /*
+             * Drawing the scaled image.
+             */
+            
+            drawBackingImageAt(
+                dx, dy,
+                scaledImage,
+                gc);
         }
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
+    
+    private static boolean computeMustUseJfxScaling(
+        int sxSpan,
+        int sySpan,
+        int dxSpan,
+        int dySpan,
+        BwdScalingType scalingType,
+        boolean mustUseBackingImageScalingIfApplicable) {
+        /**
+         * TODO jfx JavaFX uses bicubic(-ish) scaling by default,.
+         * Cf. https://stackoverflow.com/questions/44445072/how-to-disable-linear-filtering-on-canvas-in-javafx
+         * From JavaFX 12+ (JDK-8204060), GraphicsContext.setImageSmoothing(boolean)
+         * allows to change this default scaling in some way,
+         * but our binding is for JavaFX8 so we can't use it yet.
+         * 
+         * As a result we can only use backing scaling in case of BICUBIC.
+         * 
+         * JavaFX BICUBIC appears to be faster (asynchonous so measured
+         * by FPS on resizing), but does not seem to use all covered pixels
+         * on downscaling, so we only use it if there is not too much shrinking.
+         */
+        return mustUseBackingImageScalingIfApplicable
+            && (scalingType == BwdScalingType.BICUBIC)
+            && (dxSpan >= (sxSpan >> 1))
+            && (dySpan >= (sySpan >> 1));
+    }
     
     private WritableImage getTmpImage(int width, int height) {
         final WritableImage ret;

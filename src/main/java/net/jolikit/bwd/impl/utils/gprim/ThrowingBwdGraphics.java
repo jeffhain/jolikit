@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.gprim;
 
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -308,7 +309,7 @@ public class ThrowingBwdGraphics implements InterfaceBwdGraphics {
     }
     
     @Override
-    public void setAccurateImageScaling(boolean accurate) {
+    public void setImageScalingType(BwdScalingType scalingType) {
         throw new UnsupportedOperationException();
     }
 

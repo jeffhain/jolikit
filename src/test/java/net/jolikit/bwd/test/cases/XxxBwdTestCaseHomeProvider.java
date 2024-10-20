@@ -37,8 +37,9 @@ import net.jolikit.bwd.test.cases.unittests.HostUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageAccurateBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageFastBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBicubicBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBilinearBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageNearestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchNewChildGBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchPacMiceOpaqBgOpaqFgBwdTestCase;
@@ -80,21 +81,23 @@ import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostBoundsSetGetScaledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostCoordsHugeBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.HostCoordsRegularBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostCoordsScale1BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.HostCoordsScale4BwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.HostDefaultBoundsBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageClippingCliBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageClippingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ImageFormatsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ClientAndImageScalingBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i05_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i1_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s1_i24_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s2_i05_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s2_i1_BwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.ImageScaling_s2_i24_BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnCliScale1BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnCliScale2BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnCliScale2ClipBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnCliScale2ClipWinAlphaBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnWiScale2ClipBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.ImageScalingOnWiScale2ClipWinAlphaBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.MandelbrotBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGraphicsBwdTestCase;
-import net.jolikit.bwd.test.cases.visualtests.PixelReadFromImageBwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGScale1BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromGScale4BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromIScale1BwdTestCase;
+import net.jolikit.bwd.test.cases.visualtests.PixelReadFromIScale4BwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ScalingCliBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.ScalingWiBwdTestCase;
 import net.jolikit.bwd.test.cases.visualtests.TextAlphaBwdTestCase;
@@ -149,7 +152,8 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new HostBoundsGripsBwdTestCase(),
                     new HostBoundsSetGetBwdTestCase(),
                     new HostBoundsSetGetScaledBwdTestCase(),
-                    new HostCoordsRegularBwdTestCase(),
+                    new HostCoordsScale1BwdTestCase(),
+                    new HostCoordsScale4BwdTestCase(),
                     new HostCoordsHugeBwdTestCase(),
             });
 
@@ -169,8 +173,10 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new DrawOrderingBwdTestCase(),
                     new ClippingBwdTestCase(),
-                    new PixelReadFromGraphicsBwdTestCase(),
-                    new PixelReadFromImageBwdTestCase(),
+                    new PixelReadFromGScale1BwdTestCase(),
+                    new PixelReadFromGScale4BwdTestCase(),
+                    new PixelReadFromIScale1BwdTestCase(),
+                    new PixelReadFromIScale4BwdTestCase(),
             });
 
             /*
@@ -250,13 +256,12 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              * Images general.
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
-                new ClientAndImageScalingBwdTestCase(),
-                new ImageScaling_s1_i05_BwdTestCase(),
-                new ImageScaling_s1_i1_BwdTestCase(),
-                new ImageScaling_s1_i24_BwdTestCase(),
-                new ImageScaling_s2_i05_BwdTestCase(),
-                new ImageScaling_s2_i1_BwdTestCase(),
-                new ImageScaling_s2_i24_BwdTestCase(),
+                new ImageScalingOnCliScale1BwdTestCase(),
+                new ImageScalingOnCliScale2BwdTestCase(),
+                new ImageScalingOnCliScale2ClipBwdTestCase(),
+                new ImageScalingOnCliScale2ClipWinAlphaBwdTestCase(),
+                new ImageScalingOnWiScale2ClipBwdTestCase(),
+                new ImageScalingOnWiScale2ClipWinAlphaBwdTestCase(),
             });
         }
         {
@@ -295,8 +300,9 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new BenchDrawTextBwdTestCase(),
-                    new BenchDrawImageFastBwdTestCase(),
-                    new BenchDrawImageAccurateBwdTestCase(),
+                    new BenchDrawImageNearestBwdTestCase(),
+                    new BenchDrawImageBilinearBwdTestCase(),
+                    new BenchDrawImageBicubicBwdTestCase(),
             });
 
             /*

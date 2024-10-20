@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Jeff Hain
+ * Copyright 2020-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -63,6 +64,11 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
+    /**
+     * NEAREST because we don't bench scaling algorithms here.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.NEAREST;
+    
     /**
      * Normally 0.
      * Handy to start at a specific test.
@@ -467,6 +473,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
              * Setting various pixel values, using images.
              * Taking care to cover the whole box with the image.
              */
+            g.setImageScalingType(IMAGE_SCALING_TYPE);
             if (this.current_withAlpha) {
                 final int prevArgb32 = g.getArgb32();
                 

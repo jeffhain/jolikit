@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 /**
  * To test image's getArgb32At(x,y) method.
  */
-public class PixelReadFromImageBwdTestCase extends AbstractBwdTestCase {
+public class PixelReadFromIScale1BwdTestCase extends AbstractBwdTestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -53,16 +53,16 @@ public class PixelReadFromImageBwdTestCase extends AbstractBwdTestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public PixelReadFromImageBwdTestCase() {
+    public PixelReadFromIScale1BwdTestCase() {
     }
     
-    public PixelReadFromImageBwdTestCase(InterfaceBwdBinding binding) {
+    public PixelReadFromIScale1BwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new PixelReadFromImageBwdTestCase(binding);
+        return new PixelReadFromIScale1BwdTestCase(binding);
     }
     
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
@@ -54,6 +55,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     private static final BwdColor DEFAULT_COLOR = BwdColor.BLACK;
     private static final int DEFAULT_ARGB_32 = DEFAULT_COLOR.toArgb32();
+    
+    /**
+     * BICUBIC as per spec.
+     */
+    private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE =
+        BwdScalingType.BICUBIC;
     
     private static final int SMALL_ARRAY_LIST_CAPACITY = 1;
     
@@ -152,12 +159,12 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     /**
-     * For this flag, not providing a way to set a corresponding
+     * For this setting, not providing a way to set a corresponding
      * "backing" state: drawImage() methods implementations must
-     * simply read and apply the flag at call time, if they have
+     * simply read and apply the setting at call time, if they have
      * multiple algorithms to choose from.
      */
-    private boolean accurateImageScaling;
+    private BwdScalingType imageScalingType = DEFAULT_IMAGE_SCALING_TYPE;
     
     /*
      * 
@@ -205,8 +212,6 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.clipInUser = initialClip;
         
         this.font = defaultFont;
-        
-        this.accurateImageScaling = false;
     }
     
     @Override
@@ -372,7 +377,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
          * Images.
          */
         
-        this.accurateImageScaling = false;
+        this.imageScalingType = DEFAULT_IMAGE_SCALING_TYPE;
 
         /*
          * Backing state.
@@ -877,10 +882,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      */
     
     @Override
-    public void setAccurateImageScaling(boolean accurate) {
+    public void setImageScalingType(BwdScalingType scalingType) {
         this.checkUsable();
         
-        this.accurateImageScaling = accurate;
+        this.imageScalingType = LangUtils.requireNonNull(scalingType);
     }
     
     @Override
@@ -1420,12 +1425,11 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     /**
      * For use in drawImageImpl().
      * 
-     * @return Whether drawImageImpl() must use accurate or fast
-     *         image scaling algorithms, if there are multiple ones
-     *         to choose from.
+     * @return The scaling type to use (or best effort)
+     *         in drawImageImpl().
      */
-    protected final boolean getAccurateImageScaling() {
-        return this.accurateImageScaling;
+    protected final BwdScalingType getImageScalingType() {
+        return this.imageScalingType;
     }
     
     /**

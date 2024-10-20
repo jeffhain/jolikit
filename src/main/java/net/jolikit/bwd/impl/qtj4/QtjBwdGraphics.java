@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -937,7 +937,7 @@ public class QtjBwdGraphics extends AbstractBwdGraphics {
             sx, sy, sxSpan, sySpan,
             //
             this.getBinding().getInternalParallelizer(),
-            this.getAccurateImageScaling(),
+            this.getImageScalingType(),
             //
             painter);
         

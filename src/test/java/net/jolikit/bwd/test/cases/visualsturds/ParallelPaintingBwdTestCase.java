@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -54,6 +55,11 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
     private static final boolean DEBUG = false;
 
     private static final int TARGET_PARALLELISM = 4;
+    
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
     
     /**
      * To make sure our font is not identical to default font,
@@ -283,6 +289,7 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
                         rightArea.xSpan(),
                         rightArea.ySpan());
 
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
         g.drawImage(rightArea, wi);
 
         // Memory leak (writable images referenced by the binding
@@ -544,6 +551,7 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
          */
         
         final GRect imageRect = box.withBordersDeltas(0, ovalRect.ySpan(), 0, 0);
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
         g.drawImage(imageRect, this.image);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 /**
  * To test graphic's getArgb32At(x,y) method.
  */
-public class PixelReadFromGraphicsBwdTestCase extends AbstractBwdTestCase {
+public class PixelReadFromGScale1BwdTestCase extends AbstractBwdTestCase {
 
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -54,16 +54,16 @@ public class PixelReadFromGraphicsBwdTestCase extends AbstractBwdTestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public PixelReadFromGraphicsBwdTestCase() {
+    public PixelReadFromGScale1BwdTestCase() {
     }
     
-    public PixelReadFromGraphicsBwdTestCase(InterfaceBwdBinding binding) {
+    public PixelReadFromGScale1BwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new PixelReadFromGraphicsBwdTestCase(binding);
+        return new PixelReadFromGScale1BwdTestCase(binding);
     }
     
     @Override

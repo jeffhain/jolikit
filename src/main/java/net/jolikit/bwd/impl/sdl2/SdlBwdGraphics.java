@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,8 @@ import net.jolikit.bwd.impl.utils.basics.BindingError;
 import net.jolikit.bwd.impl.utils.fonts.BindingTextUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.bwd.impl.utils.graphics.InterfaceColorTypeHelper;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
@@ -259,6 +261,11 @@ public class SdlBwdGraphics extends AbstractIntArrayBwdGraphics {
     /*
      * 
      */
+
+    @Override
+    protected InterfaceColorTypeHelper getArrayColorHelper() {
+        return PremulArgbHelper.getInstance();
+    }
 
     @Override
     protected int getArrayColor32FromArgb32(int argb32) {

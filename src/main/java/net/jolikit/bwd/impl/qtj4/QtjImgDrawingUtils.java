@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,13 +19,16 @@ import com.trolltech.qt.gui.QImage;
 import com.trolltech.qt.gui.QPainter;
 import com.trolltech.qt.gui.QTransform;
 
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
 import net.jolikit.bwd.impl.utils.graphics.IntArrCopyRowDrawer;
+import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawing;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
@@ -73,19 +76,58 @@ public class QtjImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean accurateImageScaling,
+        BwdScalingType scalingType,
         //
         QPainter painter) {
         
         final QImage image = imageHelper.getImage();
         
-        final boolean mustUseRedefinedScaling =
-            accurateImageScaling
-            && (!ScaledRectDrawer.isExactWithClosest(
-                sxSpan, sySpan,
-                dxSpan, dySpan));
-        if (mustUseRedefinedScaling) {
-            
+        final boolean mustUseQtjScaling =
+            computeMustUseQtjScaling(
+                sxSpan,
+                sySpan,
+                dxSpan,
+                dySpan,
+                scalingType);
+        if (mustUseQtjScaling) {
+            final int drawX;
+            final int drawY;
+            final boolean scaling = (dxSpan != sxSpan) || (dySpan != sySpan);
+            if (scaling) {
+                final GPoint drawPos = setTransformAndGetDrawPosWhenScaling(
+                    xShiftInUser,
+                    yShiftInUser,
+                    tmpBackingTransform,
+                    //
+                    dx, dy, dxSpan, dySpan,
+                    //
+                    sxSpan, sySpan,
+                    //
+                    painter);
+                
+                drawX = drawPos.x();
+                drawY = drawPos.y();
+            } else {
+                drawX = dx + xShiftInUser;
+                drawY = dy + yShiftInUser;
+            }
+            try {
+                this.drawBackingImageOnPainter_painterAlgo(
+                    scaling,
+                    drawX,
+                    drawY,
+                    //
+                    image,
+                    //
+                    sx, sy, sxSpan, sySpan,
+                    //
+                    painter);
+            } finally {
+                if (scaling) {
+                    painter.setTransform(backingTransform);
+                }
+            }
+        } else {
             /*
              * Scaling into a scaled buffer.
              * 
@@ -94,32 +136,42 @@ public class QtjImgDrawingUtils {
              * for the common case of alpha-premultiplied images,
              * and we need perfs badly with QImage slowness.
              */
-            final int[] srcArgbArr = imageHelper.getSnapshotPremulArgb32Arr(
+            final int[] imgArgbArr = imageHelper.getSnapshotPremulArgb32Arr(
                 sx, sy, sxSpan, sySpan);
-            final int srcScanlineStride = imageHelper.getSnapshotScanlineStride();
+            final int imgScanlineStride = imageHelper.getSnapshotScanlineStride();
+            final GRect imgRect = imageHelper.getRect();
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
             srcPixels.configure(
-                sxSpan,
-                sySpan,
-                srcArgbArr,
-                srcScanlineStride);
+                imgRect,
+                imgArgbArr,
+                imgScanlineStride);
             
+            // Scaling output is the scaled image,
+            // transform is applied later,
+            // when drawing it with QPainter. 
             final int minDstLength = dxSpan * dySpan;
             final int[] scaledBufferArr = this.tmpIntArr.getArr(minDstLength);
-            final IntArrCopyRowDrawer rowDrawer = this.tmpRowDrawer;
-            rowDrawer.configure(scaledBufferArr, dxSpan);
+            final IntArrCopyRowDrawer dstRowDrawer = this.tmpRowDrawer;
+            dstRowDrawer.configure(
+                GTransform.IDENTITY,
+                scaledBufferArr,
+                dxSpan);
             
             final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
             final GRect dstRect = GRect.valueOf(0, 0, dxSpan, dySpan);
             final GRect dstClip = dstRect;
-            ScaledRectDrawer.drawRectScaled(
+            
+            ScaledRectDrawing.drawScaledRect(
                 parallelizer,
-                accurateImageScaling,
+                scalingType,
+                PremulArgbHelper.getInstance(),
+                //
                 srcPixels,
                 srcRect,
+                //
                 dstRect,
                 dstClip,
-                rowDrawer);
+                dstRowDrawer);
             
             /*
              * Copying the scaled buffer into a scaled image.
@@ -145,48 +197,6 @@ public class QtjImgDrawingUtils {
             painter.drawImage(drawX, drawY, scaledImage);
             
             scaledImage.dispose();
-        } else {
-            final int drawX;
-            final int drawY;
-            final boolean scaling = (dxSpan != sxSpan) || (dySpan != sySpan);
-            if (scaling) {
-                final GPoint drawPos = setTransformAndGetDrawPosWhenScaling(
-                    xShiftInUser,
-                    yShiftInUser,
-                    tmpBackingTransform,
-                    //
-                    dx, dy, dxSpan, dySpan,
-                    //
-                    image,
-                    //
-                    sxSpan, sySpan,
-                    //
-                    painter);
-                
-                drawX = drawPos.x();
-                drawY = drawPos.y();
-            } else {
-                drawX = dx + xShiftInUser;
-                drawY = dy + yShiftInUser;
-            }
-            try {
-                this.drawBackingImageOnPainter_painterAlgo(
-                    scaling,
-                    drawX,
-                    drawY,
-                    //
-                    dx, dy, dxSpan, dySpan,
-                    //
-                    image,
-                    //
-                    sx, sy, sxSpan, sySpan,
-                    //
-                    painter);
-            } finally {
-                if (scaling) {
-                    painter.setTransform(backingTransform);
-                }
-            }
         }
     }
     
@@ -194,15 +204,33 @@ public class QtjImgDrawingUtils {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
+    private static boolean computeMustUseQtjScaling(
+        int sxSpan,
+        int sySpan,
+        int dxSpan,
+        int dySpan,
+        BwdScalingType scalingType) {
+        /*
+         * QTJ drawImage() use NEAREST.
+         * 
+         * We can only use QTJ's NEAREST if there is no scaling,
+         * else the result is shifted a bit for some reason,
+         * and if no scaling we always use it, for speed
+         * (so no need for binging configuration flag).
+         */
+        return (scalingType == BwdScalingType.NEAREST)
+            && (dxSpan == sxSpan)
+            && (dySpan == sySpan);
+    }
+
+    /**
+     * Destination rectangle not specified,
+     * instead it must be included in painter's transform.
+     */
     private void drawBackingImageOnPainter_painterAlgo(
         boolean scaling,
         int drawX,
         int drawY,
-        //
-        int dx,
-        int dy,
-        int dxSpan,
-        int dySpan,
         //
         QImage image,
         //
@@ -251,8 +279,6 @@ public class QtjImgDrawingUtils {
         int dy,
         int dxSpan,
         int dySpan,
-        //
-        QImage image,
         //
         int sxSpan,
         int sySpan,

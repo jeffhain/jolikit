@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -320,6 +320,29 @@ public class BaseBwdBindingConfig {
      * earth-shaking event for the whole GUI.
      */
     private ScaleHelper scaleHelper = new ScaleHelper();
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Backing library image scalings might not be pixel-identical
+     * to our redefined image scalings, but they might have
+     * better performances (possibly even when not parallelized).
+     * If this flag is true, the binding is invited to use them
+     * if the performance gain is worth the eventual degradation
+     * in accuracy.
+     * 
+     * False by default, because sometimes that might imply
+     * to use much faster but fancy scalings.
+     * 
+     * Can be overwritten with true in specific bindings config
+     * constructors, if related scalings are of good quality.
+     * NB: Might not need to set it to true for some use of
+     * backing library scalings, since some bindings might
+     * delegate to them systematically in some cases.
+     */
+    private boolean mustUseBackingImageScalingIfApplicable = false;
     
     /*
      * 
@@ -799,6 +822,18 @@ public class BaseBwdBindingConfig {
     /*
      * 
      */
+    
+    public boolean getMustUseBackingImageScalingIfApplicable() {
+        return this.mustUseBackingImageScalingIfApplicable;
+    }
+    
+    public void setMustUseBackingImageScalingIfApplicable(boolean mustUseBackingImageScalingIfApplicable) {
+        this.setMustUseBackingImageScalingIfApplicable_final(mustUseBackingImageScalingIfApplicable);
+    }
+    
+    /*
+     * 
+     */
 
     public double getKeyRepetitionTriggerDelayS() {
         return this.keyRepetitionTriggerDelayS;
@@ -1147,6 +1182,14 @@ public class BaseBwdBindingConfig {
         this.scaleHelper.setScale(scale);
     }
     
+    /*
+     * 
+     */
+    
+    protected void setMustUseBackingImageScalingIfApplicable_final(boolean mustUseBackingImageScalingIfApplicable) {
+        this.mustUseBackingImageScalingIfApplicable = mustUseBackingImageScalingIfApplicable;
+    }
+
     /*
      * 
      */

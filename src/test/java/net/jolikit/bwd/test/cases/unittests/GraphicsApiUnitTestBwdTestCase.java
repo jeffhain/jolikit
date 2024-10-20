@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,6 +28,7 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.Argb3264;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
@@ -753,14 +754,12 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
                 /*
                  * 
                  */
-                try {
-                    childG.setAccurateImageScaling(false);
-                    fail();
-                } catch (IllegalStateException ok) {}
-                try {
-                    childG.setAccurateImageScaling(true);
-                    fail();
-                } catch (IllegalStateException ok) {}
+                for (BwdScalingType scalingType : BwdScalingType.values()) {
+                    try {
+                        childG.setImageScalingType(scalingType);
+                        fail();
+                    } catch (IllegalStateException ok) {}
+                }
                 try {
                     childG.drawImage(0, 0, image);
                     fail();
@@ -1759,8 +1758,9 @@ public class GraphicsApiUnitTestBwdTestCase extends AbstractUnitTestBwdTestCase 
              * 
              */
 
-            g.setAccurateImageScaling(false);
-            g.setAccurateImageScaling(true);
+            for (BwdScalingType scalingType : BwdScalingType.values()) {
+                g.setImageScalingType(scalingType);
+            }
             
             final int bxm = g.getBox().xMax();
             final int bym = g.getBox().yMax();

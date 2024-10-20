@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -627,7 +627,8 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private final MyClientWindowEventWrapper clientWindowEventWrapper = new MyClientWindowEventWrapper();
+    private final MyClientWindowEventWrapper clientWindowEventWrapper =
+        new MyClientWindowEventWrapper();
 
     private final BaseBwdBindingConfig bindingConfig;
 
@@ -708,12 +709,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      * 
      */
     
-    private volatile boolean accurateClientScaling;
-    
-    /*
-     * 
-     */
-
     private final Object dirtyRectBbMutex = new Object();
 
     /**
@@ -1074,11 +1069,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
     /*
      * 
      */
-    
-    @Override
-    public void setAccurateClientScaling(boolean accurate) {
-        this.accurateClientScaling = accurate;
-    }
     
     @Override
     public void makeDirty(GRect dirtyRect) {
@@ -1922,21 +1912,6 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      * 
      */
     
-    /**
-     * For use in paintBackingClient().
-     * 
-     * @return Whether paintBackingClient() must use accurate or fast
-     *         client scaling algorithms, if there are multiple ones
-     *         to choose from.
-     */
-    protected final boolean getAccurateClientScaling() {
-        return this.accurateClientScaling;
-    }
-
-    /*
-     * 
-     */
-
     /**
      * Don't override that, override corresponding xxxImpl methods instead.
      */

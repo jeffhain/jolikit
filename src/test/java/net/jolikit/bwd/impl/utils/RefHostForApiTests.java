@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -486,11 +486,6 @@ public class RefHostForApiTests implements InterfaceBwdHost {
             boolean mustFixRight,
             boolean mustFixBottom,
             boolean mustRestoreBoundsIfNotExact) {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setAccurateClientScaling(boolean accurate) {
         throw new UnsupportedOperationException();
     }
 

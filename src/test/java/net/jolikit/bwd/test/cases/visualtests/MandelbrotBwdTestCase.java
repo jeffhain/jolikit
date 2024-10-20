@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Jeff Hain
+ * Copyright 2020-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import net.jolikit.bwd.api.events.BwdWheelEvent;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
@@ -67,6 +68,11 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+    
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
 
     /**
      * Dividing by two, to avoid taking the machine too much on its knees
@@ -756,6 +762,8 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
             return null;
         }
 
+        g.setImageScalingType(IMAGE_SCALING_TYPE);
+        
         // Useful in case some client bounds change is missed.
         this.updateTargetSpans(
                 clientBounds.xSpan(),

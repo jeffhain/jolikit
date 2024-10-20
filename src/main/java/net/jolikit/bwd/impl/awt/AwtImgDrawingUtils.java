@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,16 +16,22 @@
 package net.jolikit.bwd.impl.awt;
 
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.awt.image.ImageObserver;
 
+import net.jolikit.bwd.api.graphics.BwdScalingType;
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
+import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.IntArrHolder;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcOverRowDrawer;
 import net.jolikit.bwd.impl.utils.graphics.IntArrSrcPixels;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawer;
+import net.jolikit.bwd.impl.utils.graphics.InterfaceColorTypeHelper;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawing;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
@@ -60,6 +66,7 @@ public class AwtImgDrawingUtils {
     /**
      * @param xShiftInUser Only used when drawing through graphics.
      * @param yShiftInUser Only used when drawing through graphics.
+     * @param rootBoxTopLeft Base coordinates of buffered image top-left pixel.
      * @param transform Transform from base to user.
      * @param dstImageHelper Helper for the image backing the specified graphics.
      *        Must be backed by an alpha-premultipled ARGB32 array.
@@ -69,6 +76,7 @@ public class AwtImgDrawingUtils {
     public void drawBufferedImageOnG(
         int xShiftInUser,
         int yShiftInUser,
+        GPoint rootBoxTopLeft,
         GTransform transform,
         GRect clipInUser,
         //
@@ -85,21 +93,84 @@ public class AwtImgDrawingUtils {
         int sySpan,
         //
         InterfaceParallelizer parallelizer,
-        boolean accurateImageScaling,
+        BwdScalingType scalingType,
+        boolean mustUseBackingImageScalingIfApplicable,
         //
         BufferedImageHelper dstImageHelper,
         Graphics2D g) {
         
-        final boolean mustUseRedefinedScaling =
-            accurateImageScaling
-            && (!ScaledRectDrawer.isExactWithClosest(
-                sxSpan, sySpan,
-                dxSpan, dySpan));
-        if (mustUseRedefinedScaling) {
+        final boolean mustUseAwtScaling =
+            computeMustUseAwtScaling(
+                mustUseBackingImageScalingIfApplicable);
+        if (mustUseAwtScaling) {
+            final int _x = dx + xShiftInUser;
+            final int _y = dy + yShiftInUser;
+            
+            final Object renderingHint;
+            if (scalingType == BwdScalingType.NEAREST) {
+                renderingHint = RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR;
+                
+            } else if (scalingType == BwdScalingType.BILINEAR) {
+                renderingHint = RenderingHints.VALUE_INTERPOLATION_BILINEAR;
+                
+            } else if (scalingType == BwdScalingType.BICUBIC) {
+                renderingHint = RenderingHints.VALUE_INTERPOLATION_BICUBIC;
+                
+            } else {
+                throw new IllegalArgumentException();
+            }
+            
+            g.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                renderingHint);
+            
+            /*
+             * Using simplest applicable method,
+             * in case it would help perfs.
+             */
+            
+            final ImageObserver observer = null;
+            
+            final boolean onlyUsingPartOfSrcImg =
+                (sx != 0)
+                || (sy != 0)
+                || (sxSpan != srcImage.getWidth())
+                || (sySpan != srcImage.getHeight());
+            if (onlyUsingPartOfSrcImg) {
+                g.drawImage(
+                    srcImage,
+                    _x, // dx1
+                    _y, // dy1
+                    _x + dxSpan, // dx2 (exclusive)
+                    _y + dySpan, // dy2 (exclusive)
+                    sx, // sx1
+                    sy, // sy1
+                    sx + sxSpan, // sx2 (exclusive)
+                    sy + sySpan, // sy2 (exclusive)
+                    observer);
+            } else {
+                final boolean gotScaling =
+                    (dxSpan != sxSpan)
+                    || (dySpan != sySpan);
+                if (gotScaling) {
+                    g.drawImage(srcImage, _x, _y, dxSpan, dySpan, observer);
+                } else {
+                    g.drawImage(srcImage, _x, _y, observer);
+                }
+            }
+            
+            // Restoring the default (null would throw).
+            g.setRenderingHint(
+                RenderingHints.KEY_INTERPOLATION,
+                RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        } else {
+            final InterfaceColorTypeHelper colorTypeHelper =
+                PremulArgbHelper.getInstance();
+            final boolean premul = colorTypeHelper.isPremul();
+            
             final BufferedImage dstImage = dstImageHelper.getImage();
             {
                 final boolean withAlpha = true;
-                final boolean premul = true;
                 BufferedImageHelper.requireCompatible(
                     dstImage,
                     withAlpha,
@@ -116,7 +187,7 @@ public class AwtImgDrawingUtils {
                 srcPremulArgb32Arr,
                 sxSpan,
                 BihPixelFormat.ARGB32,
-                true);
+                premul);
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
             srcPixels.configure(
                 sxSpan,
@@ -128,60 +199,80 @@ public class AwtImgDrawingUtils {
             final GRect dstRectInUser = GRect.valueOf(dx, dy, dxSpan, dySpan);
             final GRect dstClipInUser = clipInUser;
             
-            final IntArrSrcOverRowDrawer rowDrawer = this.tmpRowDrawer;
+            final IntArrSrcOverRowDrawer dstRowDrawer = this.tmpRowDrawer;
+            // fix: was just using transform instead.
+            final GTransform transformBiToUser =
+                BindingCoordsUtils.computeTransformBoxToUser(
+                    rootBoxTopLeft,
+                    transform);
             final int[] dstPremulArgb32Arr =
                 BufferedImageHelper.getIntPixelArr(dstImage);
-            rowDrawer.configure(
-                transform,
+            dstRowDrawer.configure(
+                transformBiToUser,
                 dstPremulArgb32Arr,
                 dstImage.getWidth());
             
-            ScaledRectDrawer.drawRectScaled(
+            ScaledRectDrawing.drawScaledRect(
                 parallelizer,
-                accurateImageScaling,
+                scalingType,
+                colorTypeHelper,
+                //
                 srcPixels,
                 srcRectInImg,
+                //
                 dstRectInUser,
                 dstClipInUser,
-                rowDrawer);
-        } else {
-            final int _x = dx + xShiftInUser;
-            final int _y = dy + yShiftInUser;
-            
-            final ImageObserver observer = null;
-            
-            /*
-             * Using simplest applicable method,
-             * in case it would help perfs.
-             */
-            
-            final boolean drawingPart =
-                (sx != 0)
-                || (sy != 0)
-                || (sxSpan != srcImage.getWidth())
-                || (sySpan != srcImage.getHeight());
-            if (drawingPart) {
-                g.drawImage(
-                    srcImage,
-                    _x, // dx1
-                    _y, // dy1
-                    _x + dxSpan, // dx2 (exclusive)
-                    _y + dySpan, // dy2 (exclusive)
-                    sx, // sx1
-                    sy, // sy1
-                    sx + sxSpan, // sx2 (exclusive)
-                    sy + sySpan, // sy2 (exclusive)
-                    observer);
-            } else {
-                final boolean scaling =
-                    (dxSpan != sxSpan)
-                    || (dySpan != sySpan);
-                if (scaling) {
-                    g.drawImage(srcImage, _x, _y, dxSpan, dySpan, observer);
-                } else {
-                    g.drawImage(srcImage, _x, _y, observer);
-                }
-            }
+                dstRowDrawer);
         }
+    }
+    
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    private static boolean computeMustUseAwtScaling(
+        boolean mustUseBackingImageScalingIfApplicable) {
+        
+        /*
+         * Regarding correctness only (compared to our redefined algorithms):
+         * - RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+         *   could be used in case of exact scaling.
+         * - RenderingHints.VALUE_INTERPOLATION_BILINEAR
+         *   would not fit our needs, for it is much closer to
+         *   RenderingHints.VALUE_INTERPOLATION_BICUBIC
+         *   than to what we mean by bilinear.
+         * - RenderingHints.VALUE_INTERPOLATION_BICUBIC
+         *   would be accurate enough if not too much shrinking
+         *   (else it seems to ignore some pixels).
+         * 
+         * Regarding speed, our BufferedImageHelper.getPixelsInto()
+         * is not parallelized and can spend much time in
+         * sun.java2d.SunGraphics2D.drawImage()
+         * -(...)-> sun.java2d.loops.MaskBlit$General.MaskBlit
+         * when having transparency,
+         * so even though our drawScaledRect() is usually fast with parallelism
+         * and our redefined scaling algorithms, and AWT scalings
+         * are not always equivalent, we might want to allow for
+         * delegating to AWT scalings when configured in the binding.
+         * Also, by default mustUseIntArrayGraphicsForXxx is true,
+         * so we don't even pass here, so it would not break
+         * default behavior.
+         * 
+         * What we do: allowing delegation to:
+         * - AWT's nearest (much faster than not doing it if transparency),
+         * - AWT's bilinear (same, and even though it's closer to a bicubic algo
+         *   and skips pixels on big downscaling),
+         * - AWT's bicubic (a tad faster, and even though it skips pixels
+         *   on big downscaling).
+         * 
+         * That way, user has choice to:
+         * - use our redefined algorithms in an efficient way
+         *   with mustUseIntArrayGraphicsForXxx = true (the default),
+         * - use AWT's algorithms in an efficient way
+         *   with mustUseIntArrayGraphicsForXxx = false
+         *   and mustUseBackingImageScalingIfApplicable = true.
+         */
+        
+        return mustUseBackingImageScalingIfApplicable;
     }
 }

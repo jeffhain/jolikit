@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,35 +13,37 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.test.cases.visualbenches;
+package net.jolikit.bwd.test.cases.visualtests;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 
-public class BenchDrawImageAccurateBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
+public class ImageScalingOnCliScale2BwdTestCase extends ImageScalingOnCliScale1BwdTestCase {
+
+    //--------------------------------------------------------------------------
+    // CONFIGURATION
+    //--------------------------------------------------------------------------
+    
+    private static final int SCALE = 2;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public BenchDrawImageAccurateBwdTestCase() {
+    public ImageScalingOnCliScale2BwdTestCase() {
     }
 
-    public BenchDrawImageAccurateBwdTestCase(InterfaceBwdBinding binding) {
+    public ImageScalingOnCliScale2BwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new BenchDrawImageAccurateBwdTestCase(binding);
+        return new ImageScalingOnCliScale2BwdTestCase(binding);
     }
-
-    //--------------------------------------------------------------------------
-    // PROTECTED METHODS
-    //--------------------------------------------------------------------------
-
+    
     @Override
-    protected boolean getAccurateImageScaling() {
-        return true;
+    public Integer getScaleElseNull() {
+        return SCALE;
     }
 }

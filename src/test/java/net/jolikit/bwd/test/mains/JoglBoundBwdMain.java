@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,6 +108,7 @@ public class JoglBoundBwdMain implements InterfaceBindingMainLaunchInfo {
             bindingConfig.setScreenBoundsType(ScreenBoundsType.CONFIGURED);
             
             BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+            BwdBindingLaunchUtils.setInternalParallelism(testCaseHome, bindingConfig);
         }
 
         final JoglBwdBinding binding = new JoglBwdBinding(bindingConfig);

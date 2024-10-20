@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.lang.LangUtils;
 
 /**
@@ -26,9 +27,7 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private int width;
-    
-    private int height;
+    private GRect rect;
     
     /**
      * Never null.
@@ -46,41 +45,64 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      * To be configured before use.
      */
     public IntArrSrcPixels() {
-        this.configure_final(0, 0, LangUtils.EMPTY_INT_ARR, 0);
+        this.configure_final(
+            GRect.DEFAULT_EMPTY,
+            LangUtils.EMPTY_INT_ARR,
+            0);
     }
 
     /**
      * @param color32Arr Must not be null.
      */
     public void configure(
-            int width,
-            int height,
-            int[] color32Arr,
-            int scanlineStride) {
+        int width,
+        int height,
+        int[] color32Arr,
+        int scanlineStride) {
         this.configure_final(
-            width,
-            height,
+            GRect.valueOf(0, 0, width, height),
             color32Arr,
             scanlineStride);
     }
 
+    /**
+     * @param color32Arr Must not be null.
+     */
+    public void configure(
+        GRect rect,
+        int[] color32Arr,
+        int scanlineStride) {
+        this.configure_final(
+            rect,
+            color32Arr,
+            scanlineStride);
+    }
+
+    public void setRect(GRect rect) {
+        this.rect = rect;
+    }
+
     @Override
     public String toString() {
-        return "[width = " + this.width
-            + ", height = " + this.height
+        return "[rect = " + this.rect
             + ", color32Arr.length = " + this.color32Arr.length
             + ", scanlineStride = " + this.scanlineStride
             + "]";
     }
     
     @Override
+    public GRect getRect() {
+        return this.rect;
+    }
+    
+    @Override
     public int getWidth() {
-        return this.width;
+        return this.rect.xSpan();
     }
     
     @Override
     public int getHeight() {
-        return this.height;
+        return this.rect.ySpan();
     }
     
     @Override
@@ -101,7 +123,9 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      */
     @Override
     public int getColor32At(int x, int y) {
-        final int index = y * this.scanlineStride + x;
+        final int index =
+            (y - this.rect.y()) * this.scanlineStride
+            + (x - this.rect.x());
         return this.color32Arr[index];
     }
     
@@ -109,7 +133,9 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      * Does no check (optimized for speed).
      */
     public void setColor32At(int x, int y, int color32) {
-        final int index = y * this.scanlineStride + x;
+        final int index =
+            (y - this.rect.y()) * this.scanlineStride
+            + (x - this.rect.x());
         this.color32Arr[index] = color32;
     }
     
@@ -121,12 +147,10 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      * @param color32Arr Must not be null.
      */
     private final void configure_final(
-            int width,
-            int height,
-            int[] color32Arr,
-            int scanlineStride) {
-        this.width = width;
-        this.height = height;
+        GRect rect,
+        int[] color32Arr,
+        int scanlineStride) {
+        this.rect = rect;
         this.color32Arr = LangUtils.requireNonNull(color32Arr);
         this.scanlineStride = scanlineStride;
     }

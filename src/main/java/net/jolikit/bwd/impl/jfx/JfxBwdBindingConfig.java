@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,10 +126,16 @@ public class JfxBwdBindingConfig extends BaseBwdBindingConfig {
          */
         this.setMustFixBoundsDuringDrag_final(false);
         
+        /**
+         * True because we only delegate to good quality scalings.
+         */
+        this.setMustUseBackingImageScalingIfApplicable_final(true);
+        
         /*
          * TODO jfx On Windows, deiconification can damage window position
          * (maybe only for dialogs?).
-         * Ex.: "H5D2U7 : expected client bounds [880, 778, 150, 50], but got = [0, 1372, 150, 50]"
+         * Ex.: "H5D2U7 : expected client bounds [880, 778, 150, 50],
+         * but got = [0, 1372, 150, 50]"
          */
         this.setMustRestoreBoundsOnShowDeicoDemax_final(OsUtils.isWindows());
     }

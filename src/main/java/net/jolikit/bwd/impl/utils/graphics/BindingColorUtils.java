@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -219,11 +219,19 @@ public class BindingColorUtils {
         }
     }
 
-    public static int toPremulNativeRgba32(int nativeRgba32) {
+    public static int toPremulNativeRgba32(int nonPremulNativeRgba32) {
         if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
-            return toPremulAxyz32(nativeRgba32);
+            return toPremulAxyz32(nonPremulNativeRgba32);
         } else {
-            return toPremulXyza32(nativeRgba32);
+            return toPremulXyza32(nonPremulNativeRgba32);
+        }
+    }
+
+    public static int toNonPremulNativeRgba32(int premulNativeRgba32) {
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            return toNonPremulAxyz32(premulNativeRgba32);
+        } else {
+            return toNonPremulXyza32(premulNativeRgba32);
         }
     }
 
@@ -531,6 +539,25 @@ public class BindingColorUtils {
         }
 
         return blendPremulXyza32_srcOver_heavy(srcPremulXyza32, srcAlpha8, dstPremulXyza32);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * cf. SAT in src/java.desktop/share/native/libawt/java2d/loops/TransformHelper.c
+     * 
+     * @param val A value.
+     * @param max A value >= 0.
+     * @return Val taken back into in [0,max].
+     */
+    public static int saturate(int val, int max) {
+        val &= ~(val >> 31);  /* negatives become 0 */
+        val -= max;           /* only overflows are now positive */
+        val &= (val >> 31);   /* positives become 0 */
+        val += max;           /* range is now [0 -> max] */
+        return val;
     }
 
     //--------------------------------------------------------------------------

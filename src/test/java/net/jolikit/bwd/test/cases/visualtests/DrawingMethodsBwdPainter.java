@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,15 @@ import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontHome;
 import net.jolikit.bwd.api.graphics.Argb64;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
+import net.jolikit.bwd.impl.utils.AbstractBwdBinding;
+import net.jolikit.bwd.impl.utils.BaseBwdBindingConfig;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.BwdTestUtils;
 import net.jolikit.lang.LangUtils;
@@ -43,6 +46,11 @@ public class DrawingMethodsBwdPainter {
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
+    
+    /**
+     * BILINEAR to see image pixels accurately.
+     */
+    private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
     
     private static GTransform[] LOCAL_TRANSFORM_BY_QUADRANT = new GTransform[]{
         GTransform.valueOf(GRotation.ROT_0, 0, 0),
@@ -65,8 +73,8 @@ public class DrawingMethodsBwdPainter {
      * 
      */
     
-    private static final int NBR_OF_COLUMNS = 8;
-    private static final int NBR_OF_ROWS = 8;
+    private static final int NBR_OF_ROWS = 6;
+    private static final int NBR_OF_COLUMNS = 12;
     private static final int NBR_OF_CELLS = NBR_OF_ROWS * NBR_OF_COLUMNS;
     
     /**
@@ -85,8 +93,8 @@ public class DrawingMethodsBwdPainter {
     private static final int AREA_X_SPAN = NBR_OF_COLUMNS * (CELL_INNER_SPAN + 1) + 1;
     private static final int AREA_Y_SPAN = NBR_OF_ROWS * (CELL_INNER_SPAN + 1) + 1;
     
-    private static final int INITIAL_WIDTH = DrawingMethodsBwdPainter.AREA_X_SPAN + 28;
-    private static final int INITIAL_HEIGHT = DrawingMethodsBwdPainter.AREA_Y_SPAN + 60;
+    private static final int INITIAL_WIDTH = DrawingMethodsBwdPainter.AREA_X_SPAN;
+    private static final int INITIAL_HEIGHT = DrawingMethodsBwdPainter.AREA_Y_SPAN;
     public static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
     /*
@@ -108,6 +116,7 @@ public class DrawingMethodsBwdPainter {
     private InterfaceBwdImage image_filled_grey;
     private InterfaceBwdImage image_struct_grey;
     private InterfaceBwdImage image_struct_color;
+    private InterfaceBwdImage image_struct_color_alpha;
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -118,6 +127,7 @@ public class DrawingMethodsBwdPainter {
         this.image_filled_grey = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_FILLED_GREY_PNG);
         this.image_struct_grey = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_STRUCT_GREY_PNG);
         this.image_struct_color = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_STRUCT_COLOR_PNG);
+        this.image_struct_color_alpha = binding.newImage(BwdTestResources.TEST_IMG_FILE_PATH_STRUCT_COLOR_ALPHA_PNG);
     }
     
     public void paint(InterfaceBwdGraphics g) {
@@ -266,6 +276,29 @@ public class DrawingMethodsBwdPainter {
         drawImagesColoredXor(g, cellIndex++);
         drawImagesColoredXor_adjusted_1(g, cellIndex++);
         drawImagesColoredXor_adjusted_2(g, cellIndex++);
+        
+        final AbstractBwdBinding bindingImpl =
+            (AbstractBwdBinding) this.binding;
+        final BaseBwdBindingConfig bindingConfig = bindingImpl.getBindingConfig();
+        
+        final boolean oldBackingScalingFlag =
+            bindingConfig.getMustUseBackingImageScalingIfApplicable();
+        
+        for (BwdScalingType scalingType : BwdScalingType.valueList()) {
+            for (boolean withAlpha : new boolean[] {false, true}) {
+                for (boolean useBackingScalingIfApplicable : new boolean[] {false, true}) {
+                    bindingConfig.setMustUseBackingImageScalingIfApplicable(
+                        useBackingScalingIfApplicable);
+                    drawImagesColoredXor_adjusted_3_scalingAndOpacity(
+                        g,
+                        scalingType,
+                        withAlpha,
+                        cellIndex++);
+                }
+            }
+        }
+        
+        bindingConfig.setMustUseBackingImageScalingIfApplicable(oldBackingScalingFlag);
     }
     
     //--------------------------------------------------------------------------
@@ -1331,11 +1364,11 @@ public class DrawingMethodsBwdPainter {
         final int y0 = cellCenterY(g, cellIndex);
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            drawImage(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
+            drawImage_basic(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
         }
     }
     
-    private  void drawImage(
+    private void drawImage_basic(
             InterfaceBwdGraphics g,
             int x, int y,
             InterfaceBwdImage image,
@@ -1366,6 +1399,7 @@ public class DrawingMethodsBwdPainter {
     
     private void drawImage_adjusted_1(InterfaceBwdGraphics g, int x, int y, int xSpan, int ySpan, InterfaceBwdImage image, GTransform transform) {
         g.setTransform(transform);
+        g.setImageScalingType(DEFAULT_IMAGE_SCALING_TYPE);
         g.drawImage(
                 x, y, xSpan, ySpan,
                 image);
@@ -1406,6 +1440,7 @@ public class DrawingMethodsBwdPainter {
         }
         
         g.setTransform(transform);
+        g.setImageScalingType(DEFAULT_IMAGE_SCALING_TYPE);
         g.drawImage(
                 x,
                 y,
@@ -1415,6 +1450,39 @@ public class DrawingMethodsBwdPainter {
                 0, // sx
                 10, // sy
                 21, // sxSpan
+                11); // sySpan
+    }
+
+    /*
+     * 
+     */
+    
+    private void drawImage_adjusted_3(
+            InterfaceBwdGraphics g,
+            int x, int y, int xSpan, int ySpan,
+            InterfaceBwdImage image,
+            GTransform transform,
+            BwdScalingType scalingType) {
+        final int sxSpan = image.getWidth();
+        if (sxSpan <= 0) {
+            return;
+        }
+        final int sySpan = image.getHeight();
+        if (sySpan <= 0) {
+            return;
+        }
+        
+        g.setTransform(transform);
+        g.setImageScalingType(scalingType);
+        g.drawImage(
+                x,
+                y,
+                xSpan,
+                ySpan,
+                image,
+                5, // sx
+                5, // sy
+                11, // sxSpan
                 11); // sySpan
     }
     
@@ -1427,20 +1495,18 @@ public class DrawingMethodsBwdPainter {
         
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
-        final int xSpan = CELL_HALF_INNER_SPAN;
-        final int ySpan = CELL_QUARTER_INNER_SPAN;
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            drawImageColoredLinesReworked(g, LOCAL_OFFSET, LOCAL_OFFSET, xSpan, ySpan, transform);
+            drawImageColoredLinesReworked(g, LOCAL_OFFSET, LOCAL_OFFSET, transform);
         }
     }
     
-    private void drawImageColoredLinesReworked(InterfaceBwdGraphics g, int x, int y, int xSpan, int ySpan, GTransform transform) {
+    private void drawImageColoredLinesReworked(InterfaceBwdGraphics g, int x, int y, GTransform transform) {
         g.setTransform(transform);
 
         final InterfaceBwdImage image = this.image_struct_color;
 
-        drawImage(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
+        drawImage_basic(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
         
         g.flipColors(x, y, image.getWidth(), image.getHeight());
     }
@@ -1458,7 +1524,7 @@ public class DrawingMethodsBwdPainter {
         final int y0 = cellCenterY(g, cellIndex);
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            drawImage(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
+            drawImage_basic(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
         }
     }
     
@@ -1497,6 +1563,42 @@ public class DrawingMethodsBwdPainter {
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
             drawImage_adjusted_2(g, LOCAL_OFFSET, LOCAL_OFFSET, xSpan, ySpan, image, transform);
+        }
+    }
+
+    /*
+     * 
+     */
+    
+    private void drawImagesColoredXor_adjusted_3_scalingAndOpacity(
+        InterfaceBwdGraphics g,
+        BwdScalingType scalingType,
+        boolean withAlpha,
+        int cellIndex) {
+        setFgColor(g);
+        
+        final InterfaceBwdImage image;
+        if (withAlpha) {
+            image = this.image_struct_color_alpha;
+        } else {
+            image = this.image_struct_color;
+        }
+
+        final int x0 = cellCenterX(g, cellIndex);
+        final int y0 = cellCenterY(g, cellIndex);
+        final int xSpan = CELL_HALF_INNER_SPAN;
+        final int ySpan = CELL_HALF_INNER_SPAN;
+        
+        for (GTransform transform : getQuadrantTransforms(x0, y0)) {
+            drawImage_adjusted_3(
+                g,
+                LOCAL_OFFSET,
+                LOCAL_OFFSET,
+                xSpan,
+                ySpan,
+                image,
+                transform,
+                scalingType);
         }
     }
 

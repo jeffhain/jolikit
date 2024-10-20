@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,33 @@ public class ScaledRectUtils {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
+
+    /**
+     * If any destination span is zero, returns true.
+     * If any source span is zero, returns false (undefined can't be exact).
+     * 
+     * @return True if NEAREST algorithm is exact for the specified
+     *         scale change.
+     */
+    public static boolean isNearestExact(
+        int sxSpan,
+        int sySpan,
+        int dxSpan,
+        int dySpan) {
+        final boolean ret;
+        if ((dxSpan == 0)
+            || (dySpan == 0)) {
+            ret = true;
+        } else if ((sxSpan == 0)
+            || (sySpan == 0)) {
+            ret = false;
+        } else {
+            // True if no scale change or pixel-aligned growth. 
+            ret = (dxSpan % sxSpan == 0)
+                && (dySpan % sySpan == 0);
+        }
+        return ret;
+    }
 
     /**
      * The shrinking is applied such as ensuring that the removed parts are
@@ -116,6 +143,34 @@ public class ScaledRectUtils {
     }
     
     //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    static boolean isWorthToSplit(
+        double dstLineCost,
+        int dstYStart,
+        int dstYEnd,
+        double minAreaCostForSplit) {
+        final int dstLineCount = (dstYEnd - dstYStart + 1);
+        final boolean ret;
+        if (dstLineCount <= 1) {
+            ret = false;
+        } else {
+            final double areaCost = dstLineCount * dstLineCost;
+            ret = (areaCost >= minAreaCostForSplit);  
+        }
+        return ret;
+    }
+    
+    static double computeDstLineCost(
+        GRect srcRect,
+        GRect dstRect,
+        GRect dstRectClipped) {
+        final double dstPixelCost = computeDstPixelCost(srcRect, dstRect);
+        return dstRectClipped.xSpan() * dstPixelCost;
+    }
+    
+    //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
@@ -175,5 +230,23 @@ public class ScaledRectUtils {
         }
         
         return (((long) newPeerPos) << 32 | newPeerSpan);
+    }
+    
+    /*
+     * 
+     */
+    
+    private static double computeDstPixelCost(
+        GRect srcRect,
+        GRect dstRect) {
+        final long srcArea = srcRect.areaLong();
+        final long dstArea = dstRect.areaLong();
+        final double ret;
+        if (srcArea <= dstArea) {
+            ret = 1.0;
+        } else {
+            ret = (srcArea / (double) dstArea);
+        }
+        return ret;
     }
 }

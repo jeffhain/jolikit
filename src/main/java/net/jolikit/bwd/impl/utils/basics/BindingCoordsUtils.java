@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@ package net.jolikit.bwd.impl.utils.basics;
 import java.util.ArrayList;
 import java.util.List;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.lang.NbrsUtils;
 
 public class BindingCoordsUtils {
@@ -53,11 +55,37 @@ public class BindingCoordsUtils {
      * 
      */
     
+    /**
+     * @param rootBoxTopLeft Base coordinates of box top-left pixel.
+     * @param transformBaseToUser Transform from base coordinates to user coordinates.
+     * @return Transform from box coordinates to user coordinates.
+     */
+    public static GTransform computeTransformBoxToUser(
+        GPoint rootBoxTopLeft,
+        GTransform transformBaseToUser) {
+        final GTransform ret;
+        if (rootBoxTopLeft.equalsPoint(0, 0)) {
+            // Passing here when client (pixels) scale is 1.
+            ret = transformBaseToUser;
+        } else {
+            // Passing here when client (pixels) scale is >= 2.
+            ret = GTransform.valueOf(
+                transformBaseToUser.rotation(),
+                transformBaseToUser.frame2XIn1() - rootBoxTopLeft.x(),
+                transformBaseToUser.frame2YIn1() - rootBoxTopLeft.y());
+        }
+        return ret;
+    }
+    
+    /*
+     * 
+     */
+    
     public static GRect computeInsets(GRect clientBounds, GRect windowBounds) {
         if (clientBounds.equals(windowBounds)) {
             return GRect.DEFAULT_EMPTY;
         }
-        // Using Math.max(...) not to throw in case of bad inputs.
+        // Using max(0,_) not to throw in case of bad inputs.
         return GRect.valueOf(
                 Math.max(0, clientBounds.x() - windowBounds.x()),
                 Math.max(0, clientBounds.y() - windowBounds.y()),
@@ -69,7 +97,7 @@ public class BindingCoordsUtils {
         if (insets.equals(GRect.DEFAULT_EMPTY)) {
             return windowBounds;
         }
-        // Using Math.max(...) not to throw in case of bad inputs.
+        // Using max(0,_) not to throw in case of bad inputs.
         return GRect.valueOf(
                 windowBounds.x() + insets.x(),
                 windowBounds.y() + insets.y(),
@@ -81,7 +109,7 @@ public class BindingCoordsUtils {
         if (insets.equals(GRect.DEFAULT_EMPTY)) {
             return clientBounds;
         }
-        // Using Math.max(...) not to throw in case of bad inputs.
+        // Using max(0,_) not to throw in case of bad inputs.
         return GRect.valueOf(
                 clientBounds.x() - insets.x(),
                 clientBounds.y() - insets.y(),

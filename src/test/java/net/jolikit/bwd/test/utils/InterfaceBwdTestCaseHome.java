@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +32,19 @@ public interface InterfaceBwdTestCaseHome {
      */
     
     /**
-     * @return Parallelizer's parallelism to use,
+     * @return Parallelism to use for InterfaceBwdBinding.getParallelizer()
+     *         (usable by user, for example to draw on multiple graphics
+     *         if isParallelPaintingSupported() is true),
      *         or null to use binding's config default.
      */
     public Integer getParallelizerParallelismElseNull();
+    
+    /**
+     * @return Parallelism to use for InterfaceBwdBindingImpl.getInternalParallelizer()
+     *         (only usable by binding internals, such as for image scaling),
+     *         or null to use binding's config default.
+     */
+    public Integer getInternalParallelismElseNull();
     
     /*
      * Stuffs for configuring the binding, after its creation.

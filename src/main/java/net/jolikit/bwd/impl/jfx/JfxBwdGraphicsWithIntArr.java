@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,6 +34,8 @@ import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractIntArrayBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
+import net.jolikit.bwd.impl.utils.graphics.InterfaceColorTypeHelper;
+import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.ObjectWrapper;
 
@@ -419,6 +421,11 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      */
 
     @Override
+    protected InterfaceColorTypeHelper getArrayColorHelper() {
+        return PremulArgbHelper.getInstance();
+    }
+
+    @Override
     protected int getArrayColor32FromArgb32(int argb32) {
         return BindingColorUtils.toPremulAxyz32(argb32);
     }
@@ -628,17 +635,17 @@ public class JfxBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             Object imageDataAccessor,
             int xInImage,
             int yInImage) {
+        final int premulArgb32;
         if (imageDataAccessor instanceof int[]) {
             final int[] premulArgb32Arr = (int[]) imageDataAccessor;
             final int index = yInImage * image.getWidth() + xInImage;
-            final int premulArgb32 = premulArgb32Arr[index];
-            return premulArgb32;
+            premulArgb32 = premulArgb32Arr[index];
         } else {
             final Image backingImage = (Image) imageDataAccessor;
             final int argb32 = backingImage.getPixelReader().getArgb(xInImage, yInImage);
-            final int premulArgb32 = BindingColorUtils.toPremulAxyz32(argb32);
-            return premulArgb32;
+            premulArgb32 = BindingColorUtils.toPremulAxyz32(argb32);
         }
+        return premulArgb32;
     }
     
     /*

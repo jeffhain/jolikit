@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -108,8 +108,15 @@ public class JfxBoundBwdMain {
                 public void run() {
                     final JfxBwdBindingConfig bindingConfig = new JfxBwdBindingConfig(
                             BwdTestUtils.getDecorationInsets());
+                    /*
+                     * TODO test Can turn this true for tests.
+                     */
+                    if (false) {
+                        bindingConfig.setMustUseIntArrayGraphicsForClients(true);
+                    }
                     
                     BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+                    BwdBindingLaunchUtils.setInternalParallelism(testCaseHome, bindingConfig);
 
                     /*
                      * XXX jfx Can have an IllegalStateException (using JDK 8u25)

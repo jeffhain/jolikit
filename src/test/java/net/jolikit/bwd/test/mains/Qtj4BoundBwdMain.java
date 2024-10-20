@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,6 +95,7 @@ public class Qtj4BoundBwdMain implements InterfaceBindingMainLaunchInfo {
         final QtjBwdBindingConfig bindingConfig = new QtjBwdBindingConfig();
         
         BwdBindingLaunchUtils.setParallelizerParallelism(testCaseHome, bindingConfig);
+        BwdBindingLaunchUtils.setInternalParallelism(testCaseHome, bindingConfig);
 
         final QtjBwdBinding binding = new QtjBwdBinding(
                 bindingConfig,
