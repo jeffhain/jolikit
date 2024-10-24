@@ -259,11 +259,14 @@ public class AwtImgDrawingUtils {
          * default behavior.
          * 
          * What we do: allowing delegation to:
-         * - AWT's nearest (much faster than not doing it if transparency),
-         * - AWT's bilinear (same, and even though it's closer to a bicubic algo
-         *   and skips pixels on big downscaling),
-         * - AWT's bicubic (a tad faster, and even though it skips pixels
-         *   on big downscaling).
+         * - AWT's nearest (if no parallelism, might be faster than
+         *   (AwtBwdGraphicsWithG + our algo)),
+         * - AWT's bilinear (if no parallelism, faster than
+         *   (AwtBwdGraphicsWithG + our algo), and even though it's closer
+         *   to a bicubic algo and skips pixels on big downscaling),
+         * - AWT's bicubic (if no parallelism, faster than
+         *   (AwtBwdGraphicsWithG + our algo), especially if transparency,
+         *   and even though it skips pixels on big downscaling).
          * 
          * That way, user has choice to:
          * - use our redefined algorithms in an efficient way

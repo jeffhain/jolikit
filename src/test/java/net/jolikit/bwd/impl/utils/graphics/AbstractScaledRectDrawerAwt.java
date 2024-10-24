@@ -229,9 +229,10 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
                 srcImgHeight,
                 bufImgType);
         
-        final int[] dstPixelArr = tl.tmpBigArr2.getArr(dstRectClipped.area());
+        final int dstRectClippedArea = dstRectClipped.area();
+        final int[] dstPixelArr = tl.tmpBigArr2.getArr(dstRectClippedArea);
         // Need to zeroize because AWT will blend into it.
-        Arrays.fill(dstPixelArr, 0);
+        Arrays.fill(dstPixelArr, 0, dstRectClippedArea, 0);
         final BufferedImage dstImg =
             BufferedImageHelper.newBufferedImageWithIntArray(
                 dstPixelArr,

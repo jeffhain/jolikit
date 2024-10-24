@@ -157,6 +157,14 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractBwdTestCase {
     }
     
     @Override
+    public Integer getParallelizerParallelismElseNull() {
+        /*
+         * We use public parallelizer for AWT scalings.
+         */
+        return INTERNAL_PARALLELISM;
+    }
+
+    @Override
     public Integer getInternalParallelismElseNull() {
         return INTERNAL_PARALLELISM;
     }

@@ -40,8 +40,9 @@ public enum BwdScalingType {
      * by each destination pixel contribute proportionally to the overlap
      * (i.e. must use box sampling), so is much better when downscaling.
      * 
-     * If there is no scaling, is equivalent to NEAREST,
-     * so should delegate to NEAREST in that case for speed.
+     * If there is no scaling, or integer-multiple upscaling,
+     * is equivalent to NEAREST, so should delegate to NEAREST
+     * in these cases for speed.
      */
     BILINEAR,
     /**
