@@ -57,10 +57,10 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     private static final int DEFAULT_ARGB_32 = DEFAULT_COLOR.toArgb32();
     
     /**
-     * BICUBIC as per spec.
+     * As per spec.
      */
     private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE =
-        BwdScalingType.BICUBIC;
+        BwdScalingType.BILICUBIC;
     
     private static final int SMALL_ARRAY_LIST_CAPACITY = 1;
     

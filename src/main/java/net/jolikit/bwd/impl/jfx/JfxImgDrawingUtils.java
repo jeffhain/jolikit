@@ -314,23 +314,35 @@ public class JfxImgDrawingUtils {
         int dySpan,
         BwdScalingType scalingType,
         boolean mustUseBackingImageScalingIfApplicable) {
-        /**
+        /*
          * TODO jfx JavaFX uses bicubic(-ish) scaling by default,.
          * Cf. https://stackoverflow.com/questions/44445072/how-to-disable-linear-filtering-on-canvas-in-javafx
          * From JavaFX 12+ (JDK-8204060), GraphicsContext.setImageSmoothing(boolean)
          * allows to change this default scaling in some way,
          * but our binding is for JavaFX8 so we can't use it yet.
          * 
-         * As a result we can only use backing scaling in case of BICUBIC.
+         * As a result we can only use backing scaling in case
+         * of BICUBIC or BILICUBIC.
          * 
-         * JavaFX BICUBIC appears to be faster (asynchonous so measured
+         * JavaFX bicubic appears to be faster (asynchonous so measured
          * by FPS on resizing), but does not seem to use all covered pixels
-         * on downscaling, so we only use it if there is not too much shrinking.
+         * on downscaling, so for BICUBIC we only use it if shrinking
+         * does not divide width or height by more than two,
+         * and for BILICUBIC we do the same to avoid BILINEAR to kick in.
          */
-        return mustUseBackingImageScalingIfApplicable
-            && (scalingType == BwdScalingType.BICUBIC)
-            && (dxSpan >= (sxSpan >> 1))
-            && (dySpan >= (sySpan >> 1));
+        final boolean ret;
+        if (mustUseBackingImageScalingIfApplicable) {
+            if ((scalingType == BwdScalingType.BICUBIC)
+                || (scalingType == BwdScalingType.BILICUBIC)) {
+                ret = (dxSpan >= (sxSpan >> 1))
+                    && (dySpan >= (sySpan >> 1));
+            } else {
+                ret = false;
+            }
+        } else {
+            ret = false;
+        }
+        return ret;
     }
     
     private WritableImage getTmpImage(int width, int height) {

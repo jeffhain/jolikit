@@ -34,6 +34,9 @@ public class ScaledRectDrawing {
     private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
         new ScaledRectDrawerBicubic();
 
+    private static final ScaledRectDrawerBilicubic DRAWER_BILICUBIC =
+        new ScaledRectDrawerBilicubic();
+
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -75,6 +78,9 @@ public class ScaledRectDrawing {
                 break;
             case BICUBIC:
                 drawer = DRAWER_BICUBIC;
+                break;
+            case BILICUBIC:
+                drawer = DRAWER_BILICUBIC;
                 break;
             default:
                 throw new AssertionError();

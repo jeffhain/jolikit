@@ -13,40 +13,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.jolikit.bwd.test.cases.visualtests;
+package net.jolikit.bwd.test.cases.visualbenches;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 
-/**
- * Scale of 2, to check scale handling and better see pixels.
- */
-public class ImageScalingOnCliScale2BwdTestCase extends ImageScalingOnCliScale1BwdTestCase {
-
-    //--------------------------------------------------------------------------
-    // CONFIGURATION
-    //--------------------------------------------------------------------------
-    
-    private static final int SCALE = 2;
+public class BenchDrawImageBilicubicBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public ImageScalingOnCliScale2BwdTestCase() {
+    public BenchDrawImageBilicubicBwdTestCase() {
     }
 
-    public ImageScalingOnCliScale2BwdTestCase(InterfaceBwdBinding binding) {
+    public BenchDrawImageBilicubicBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new ImageScalingOnCliScale2BwdTestCase(binding);
+        return new BenchDrawImageBilicubicBwdTestCase(binding);
     }
-    
+
+    //--------------------------------------------------------------------------
+    // PROTECTED METHODS
+    //--------------------------------------------------------------------------
+
     @Override
-    public Integer getScaleElseNull() {
-        return SCALE;
+    protected BwdScalingType getImageScalingType() {
+        return BwdScalingType.BILICUBIC;
     }
 }

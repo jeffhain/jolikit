@@ -49,26 +49,46 @@ public enum BwdScalingType {
      * Also called cardinal cubic spline.
      * 
      * The main purpose of BICUBIC for us is, on upscaling,
-     * its property to preserve curves better than BILINEAR,
-     * for better and more agreable zoomed text readability.
-     * Its downside compared to BILINEAR is the blurriness
+     * its property to reduce aliasing and preserve curves
+     * better than BILINEAR, for better zoomed text readability.
+     * Its downside compared to BILINEAR are the blurriness
      * it causes to zommed-in (upscaled) pixel art,
      * or when zooming in order to see pixels more clearly
-     * (they actually get more blurry), and its relative slowness. 
+     * (they actually get more blurry),
+     * a result often much worse than BILINEAR in case of
+     * large downscaling (even if using bicubic iteratively), 
+     * and its relative slowness.
      * 
      * There can be many variations of bicubic;
-     * this one must take care, on downscaling, of using
+     * this one should take care, on downscaling, of using
      * the information of (at least) all the source pixels
-     * covering the destination pixel, typically by downscaling
-     * iteratively (faster and more in the spirit of bicubic
-     * than using preliminary box sampling, which could be done
-     * separately using a preliminary BILINEAR downscaling),
-     * and must also prefer speed to low value/cost subtleties.
+     * covering the destination pixel, by downscaling iteratively,
+     * but just as needed to avoid abysmal performances,
+     * i.e. with width and height divided by at most two per iteration
+     * (for quality on downscaling, BILINEAR or BILICUBIC are preferable).
      * 
      * If there is no scaling, is equivalent to NEAREST,
      * so should delegate to NEAREST in that case for speed.
      */
-    BICUBIC;
+    BICUBIC,
+    /**
+     * Same as BICUBIC except when downscaling divides width or height
+     * by more than two, in which case, instead of splitting
+     * the downscaling in multiple bicubic iterations,
+     * downscaling must first partially be done using BILINEAR,
+     * and then terminated using bicubic with width or height
+     * divided by two.
+     * For large downscalings, this is both faster and of better quality
+     * than iterating on bicubic, which makes it a good default
+     * (good quality for both downscaling and upscaling,
+     * and limited cost).
+     * 
+     * Design: Could also consider to just use BILINEAR for the whole
+     * downscaling, which would be faster for example when wanting
+     * to draw or compute many thumbnails, but for that user can just
+     * directly use BILINEAR.
+     */
+    BILICUBIC;
     
     /*
      * 

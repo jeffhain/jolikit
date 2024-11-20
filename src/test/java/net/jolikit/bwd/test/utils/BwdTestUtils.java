@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,10 +63,6 @@ public class BwdTestUtils {
     
     private static final GRect MY_DECORATION_INSETS_ALGR5 =
         JlkTestConfig.getDecorationInsetsAlgr5();
-    
-    /*
-     * 
-     */
     
     //--------------------------------------------------------------------------
     // FIELDS

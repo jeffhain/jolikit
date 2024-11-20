@@ -101,6 +101,11 @@ public class AwtImgDrawingUtils {
         
         final boolean mustUseAwtScaling =
             computeMustUseAwtScaling(
+                sxSpan,
+                sySpan,
+                dxSpan,
+                dySpan,
+                scalingType,
                 mustUseBackingImageScalingIfApplicable);
         if (mustUseAwtScaling) {
             final int _x = dx + xShiftInUser;
@@ -110,10 +115,10 @@ public class AwtImgDrawingUtils {
             if (scalingType == BwdScalingType.NEAREST) {
                 renderingHint = RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR;
                 
-            } else if (scalingType == BwdScalingType.BILINEAR) {
-                renderingHint = RenderingHints.VALUE_INTERPOLATION_BILINEAR;
-                
-            } else if (scalingType == BwdScalingType.BICUBIC) {
+            } else if ((scalingType == BwdScalingType.BICUBIC)
+                || (scalingType == BwdScalingType.BILICUBIC)) {
+                // If BILICUBIC, only passing here when
+                // equivalent to BICUBIC.
                 renderingHint = RenderingHints.VALUE_INTERPOLATION_BICUBIC;
                 
             } else {
@@ -231,19 +236,25 @@ public class AwtImgDrawingUtils {
     //--------------------------------------------------------------------------
     
     private static boolean computeMustUseAwtScaling(
+        int sxSpan,
+        int sySpan,
+        int dxSpan,
+        int dySpan,
+        BwdScalingType scalingType,
         boolean mustUseBackingImageScalingIfApplicable) {
         
         /*
          * Regarding correctness only (compared to our redefined algorithms):
          * - RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
-         *   could be used in case of exact scaling.
+         *   is accurate in case of exact upscaling,
+         *   and not too bad in other cases.
          * - RenderingHints.VALUE_INTERPOLATION_BILINEAR
-         *   would not fit our needs, for it is much closer to
+         *   can't fit our needs, for it is much closer to
          *   RenderingHints.VALUE_INTERPOLATION_BICUBIC
          *   than to what we mean by bilinear.
          * - RenderingHints.VALUE_INTERPOLATION_BICUBIC
-         *   would be accurate enough if not too much shrinking
-         *   (else it seems to ignore some pixels).
+         *   is accurate enough if not dividing width or height
+         *   by more than two.
          * 
          * Regarding speed, our BufferedImageHelper.getPixelsInto()
          * is not parallelized and can spend much time in
@@ -253,29 +264,27 @@ public class AwtImgDrawingUtils {
          * so even though our drawScaledRect() is usually fast with parallelism
          * and our redefined scaling algorithms, and AWT scalings
          * are not always equivalent, we might want to allow for
-         * delegating to AWT scalings when configured in the binding.
+         * delegating to AWT scalings when configured in the binding
+         * and they are accurate enough.
          * Also, by default mustUseIntArrayGraphicsForXxx is true,
          * so we don't even pass here, so it would not break
          * default behavior.
-         * 
-         * What we do: allowing delegation to:
-         * - AWT's nearest (if no parallelism, might be faster than
-         *   (AwtBwdGraphicsWithG + our algo)),
-         * - AWT's bilinear (if no parallelism, faster than
-         *   (AwtBwdGraphicsWithG + our algo), and even though it's closer
-         *   to a bicubic algo and skips pixels on big downscaling),
-         * - AWT's bicubic (if no parallelism, faster than
-         *   (AwtBwdGraphicsWithG + our algo), especially if transparency,
-         *   and even though it skips pixels on big downscaling).
-         * 
-         * That way, user has choice to:
-         * - use our redefined algorithms in an efficient way
-         *   with mustUseIntArrayGraphicsForXxx = true (the default),
-         * - use AWT's algorithms in an efficient way
-         *   with mustUseIntArrayGraphicsForXxx = false
-         *   and mustUseBackingImageScalingIfApplicable = true.
          */
         
-        return mustUseBackingImageScalingIfApplicable;
+        final boolean ret;
+        if (mustUseBackingImageScalingIfApplicable) {
+            if (scalingType == BwdScalingType.NEAREST) {
+                ret = true;
+            } else if ((scalingType == BwdScalingType.BICUBIC)
+                || (scalingType == BwdScalingType.BILICUBIC)) {
+                ret = (dxSpan >= (sxSpan >> 1))
+                    && (dySpan >= (sySpan >> 1));
+            } else {
+                ret = false;
+            }
+        } else {
+            ret = false;
+        }
+        return ret;
     }
 }

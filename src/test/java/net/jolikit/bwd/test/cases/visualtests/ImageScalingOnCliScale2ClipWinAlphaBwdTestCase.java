@@ -18,10 +18,6 @@ package net.jolikit.bwd.test.cases.visualtests;
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 
-/**
- * To test image scaling,
- * with clip and client scaling to help see pixels.
- */
 public class ImageScalingOnCliScale2ClipWinAlphaBwdTestCase extends ImageScalingOnCliScale2BwdTestCase {
 
     //--------------------------------------------------------------------------

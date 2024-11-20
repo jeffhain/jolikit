@@ -58,7 +58,7 @@ public class BwdTestResources {
     
     public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_PNG = TEST_IMAGES_DIR_PATH + "/time_square.png";
     public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/time_square_alpha.png";
-    public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_LINES_PNG = TEST_IMAGES_DIR_PATH + "/time_square_alpha_lines.png";
+    public static final String TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_COLUMNS_PNG = TEST_IMAGES_DIR_PATH + "/time_square_alpha_columns.png";
     
     public static final String TEST_IMG_FILE_PATH_MOUSE_HEAD_PNG = TEST_IMAGES_DIR_PATH + "/mouse_head.png";
     public static final String TEST_IMG_FILE_PATH_MOUSE_HEAD_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/mouse_head_alpha.png";
@@ -66,7 +66,8 @@ public class BwdTestResources {
     public static final String TEST_IMG_FILE_PATH_FILLED_GREY_PNG = TEST_IMAGES_DIR_PATH + "/test_img_41_21_filled_grey.png";
     public static final String TEST_IMG_FILE_PATH_FILLED_GREY_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/test_img_41_21_filled_grey_alpha.png";
     
-    public static final String TEST_IMG_FILE_PATH_LOREM_PNG = TEST_IMAGES_DIR_PATH + "/lorem_650_100.png";
+    public static final String TEST_IMG_FILE_PATH_LOREM_PNG = TEST_IMAGES_DIR_PATH + "/lorem_334_164.png";
+    public static final String TEST_IMG_FILE_PATH_LOREM_X4_PNG = TEST_IMAGES_DIR_PATH + "/lorem_x4_1336_656.png";
     
     public static final String TEST_IMG_FILE_PATH_STRUCT_GREY_PNG = TEST_IMAGES_DIR_PATH + "/test_img_41_21_struct_grey.png";
     

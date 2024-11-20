@@ -22,48 +22,35 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import net.jolikit.bwd.api.InterfaceBwdBinding;
-import net.jolikit.bwd.api.graphics.Argb32;
+import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
 
 /**
- * Tool to create an image with alpha going
- * top to bottom from 255 to 0, from an input image.
+ * Tool to create an image being a rectangle
+ * of an input image.
  */
-public class TestImageAlphaMain {
+public class TestImagePartMain {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private enum MyAlphaType {
-        /**
-         * For nothing to be done.
-         */
-        NO_STATEMENT,
-        /**
-         * Top opaque, bottom transparent.
-         */
-        TRANSP_DOWN,
-        /**
-         * Vertical lines top to bottom and bottom to top.
-         */
-        TRANSP_DOWN_AND_UP_LINES,
-    }
+    /**
+     * Empty means no output.
+     */
+    private static final GRect PART_RECT = GRect.valueOf(0, 0, 0, 0);
     
-    private static final MyAlphaType ALPHA_TYPE = MyAlphaType.NO_STATEMENT;
-        
     private static final String INPUT_IMG_PATH =
-        BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_PNG;
-    private static final String OUTPUT_IMG_PATH =
-        BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_COLUMNS_PNG;
+        BwdTestResources.TEST_IMG_FILE_PATH_LOREM_PNG;
+    private static final String OUTPUT_IMG_PATH = toOutputImgPath(INPUT_IMG_PATH, PART_RECT);
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public static void main(String[] args) {
-        if (ALPHA_TYPE == MyAlphaType.NO_STATEMENT) {
+        if (PART_RECT.isEmpty()) {
             System.out.println("nothing to do");
             return;
         }
@@ -91,55 +78,24 @@ public class TestImageAlphaMain {
     private static void runImpl(final InterfaceBwdBinding binding) {
         final InterfaceBwdImage srcImg =
             binding.newImage(INPUT_IMG_PATH);
-        final int sw = srcImg.getWidth();
-        final int sh = srcImg.getHeight();
         /*
          * 
          */
-        final int[] dstBiArr = new int[sw * sh];
+        final int dw = PART_RECT.xSpan();
+        final int dh = PART_RECT.ySpan();
+        final int[] dstBiArr = new int[dw * dh];
         final BufferedImage dstBi =
             BufferedImageHelper.newBufferedImageWithIntArray(
                 dstBiArr,
-                sw,
-                sh,
+                dw,
+                dh,
                 BufferedImage.TYPE_INT_ARGB);
-        if (ALPHA_TYPE == MyAlphaType.TRANSP_DOWN) {
-            for (int y = 0; y < sh; y++) {
-                final double ratio;
-                if (sh == 1) {
-                    ratio = 0.5;
-                } else {
-                    ratio = (sh - 1 - y) / (double) (sh - 1);
-                }
-                final int alpha8 = Argb32.toInt8FromFp(ratio);
-                for (int x = 0; x < sw; x++) {
-                    final int srcArgb32 = srcImg.getArgb32At(x, y);
-                    final int dstArgb32 = Argb32.withAlpha8(srcArgb32, alpha8);
-                    dstBiArr[sw * y + x] = dstArgb32;
-                }
-            }
-        } else {
-            boolean flipFlop = false;
-            for (int x = 0; x < sw; x++) {
-                flipFlop = !flipFlop;
-                for (int y = 0; y < sh; y++) {
-                    final double ratio;
-                    if (sh == 1) {
-                        ratio = 0.5;
-                    } else {
-                        if (flipFlop) {
-                            // Transparent down.
-                            ratio = (sh - 1 - y) / (double) (sh - 1);
-                        } else {
-                            // Transparent up.
-                            ratio = y / (double) (sh - 1);
-                        }
-                    }
-                    final int alpha8 = Argb32.toInt8FromFp(ratio);
-                    final int srcArgb32 = srcImg.getArgb32At(x, y);
-                    final int dstArgb32 = Argb32.withAlpha8(srcArgb32, alpha8);
-                    dstBiArr[sw * y + x] = dstArgb32;
-                }
+        for (int dy = 0; dy < dh; dy++) {
+            for (int dx = 0; dx < dw; dx++) {
+                final int sx = PART_RECT.x() + dx;
+                final int sy = PART_RECT.y() + dy;
+                final int argb32 = srcImg.getArgb32At(sx, sy);
+                dstBiArr[dw * dy + dx] = argb32;
             }
         }
         /*
@@ -157,5 +113,21 @@ public class TestImageAlphaMain {
             throw new RuntimeException(e);
         }
         dstFile.setLastModified(System.currentTimeMillis());
+    }
+    
+    private static String toOutputImgPath(String inputImgPath, GRect partRect) {
+        final int lastDotIndex = inputImgPath.lastIndexOf('.');
+        final String base = inputImgPath.substring(0, lastDotIndex);
+        final String dotExt = inputImgPath.substring(lastDotIndex);
+        return base
+            + "_"
+            + partRect.x()
+            + "_"
+            + partRect.y()
+            + "_"
+            + partRect.xSpan()
+            + "_"
+            + partRect.ySpan()
+            + dotExt;
     }
 }

@@ -39,6 +39,7 @@ public class ScaledRectDrawerPerf {
     private static final boolean MUST_BENCH_BILINEAR = true;
     private static final boolean MUST_BENCH_BICUBIC_AWT = true;
     private static final boolean MUST_BENCH_BICUBIC = true;
+    private static final boolean MUST_BENCH_BILICUBIC = true;
     
     /*
      * 
@@ -294,6 +295,14 @@ public class ScaledRectDrawerPerf {
                 @Override
                 public String toString() {
                     return "BICUBIC";
+                }
+            });
+        }
+        if (MUST_BENCH_BILICUBIC) {
+            drawerList.add(new ScaledRectDrawerBilicubic() {
+                @Override
+                public String toString() {
+                    return "BILICUBIC";
                 }
             });
         }

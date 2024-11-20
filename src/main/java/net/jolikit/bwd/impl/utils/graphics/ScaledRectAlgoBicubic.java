@@ -33,6 +33,13 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
      */
     private static final double A = -0.5;
     
+    /**
+     * Not shrinking more than that per iteration.
+     */
+    private static final double IT_SHRINK_THRESHOLD = 2.0;
+    
+    private static final double IT_LOG_SHRINK_FACTOR = 1.0 / Math.log(IT_SHRINK_THRESHOLD);
+    
     private static final ScaledRectAlgoNearest ALGO_NEAREST =
         new ScaledRectAlgoNearest();
     
@@ -64,9 +71,8 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         final double yShrink = srcRect.ySpan() / (double) dstRect.ySpan();
         final double maxShrink = Math.max(xShrink, yShrink);
         final int itCount;
-        final double shrinkThreshold = 2.0;
-        if (maxShrink > shrinkThreshold) {
-            itCount = 1 + (int) (Math.log(maxShrink) / Math.log(shrinkThreshold));
+        if (maxShrink > IT_SHRINK_THRESHOLD) {
+            itCount = (int) Math.ceil(Math.log(maxShrink) * IT_LOG_SHRINK_FACTOR);
         } else {
             itCount = 1;
         }
