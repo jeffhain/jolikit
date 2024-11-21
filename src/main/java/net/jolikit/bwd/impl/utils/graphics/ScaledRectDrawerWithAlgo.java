@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.lang.NbrsUtils;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplittable;
@@ -122,14 +123,6 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final ThreadLocal<PpTlData> TL_DATA_0 =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
-    
     private final InterfaceScaledRectAlgo algo;
     
     //--------------------------------------------------------------------------
@@ -187,7 +180,7 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                 maxItCount,
                 this.algo.computeIterationCount(srcRect, dstRect));
         if (itCount >= 2) {
-            final PpTlData tl = TL_DATA_0.get();
+            final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
             //
             InterfaceSrcPixels itSrcPixels = null;
             IntArrSrcPixels itSrcPixelsInterm = null;
@@ -214,6 +207,9 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
             final double dstDxMaxFp = dstRect.xMax() - (double) srcRect.xMax();
             final double dstDyMaxFp = dstRect.yMax() - (double) srcRect.yMax();
             
+            final PooledIntArrHolder tmpBigArrHolder1 = tl.borrowBigArrHolder();
+            final PooledIntArrHolder tmpBigArrHolder2 = tl.borrowBigArrHolder();
+            
             for (int i = 0; i < itCount; i++) {
                 // In ]0,1].
                 final double ratio = (i + 1) / (double) itCount;
@@ -222,7 +218,7 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                     itSrcRect = srcRect;
                 } else {
                     if (i == 1) {
-                        itSrcColor32Arr = tl.tmpBigArr1.getArr(maxArea);
+                        itSrcColor32Arr = tmpBigArrHolder1.getArr(maxArea);
                         itSrcPixelsInterm = new IntArrSrcPixels();
                     }
                     /*
@@ -256,7 +252,7 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                         (int) (dstDxMaxFp * ratio),
                         (int) (dstDyMaxFp * ratio));
                     if (i == 0) {
-                        itDstColor32Arr = tl.tmpBigArr2.getArr(maxArea);
+                        itDstColor32Arr = tmpBigArrHolder2.getArr(maxArea);
                         itDstRowDrawerInterm = new IntArrCopyRowDrawer();
                     }
                     /*
@@ -295,6 +291,9 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                     itDstClip,
                     itDstRowDrawer);
             }
+            
+            tmpBigArrHolder1.release();
+            tmpBigArrHolder2.release();
         } else {
             runSeqOrPrl(
                 parallelizer,

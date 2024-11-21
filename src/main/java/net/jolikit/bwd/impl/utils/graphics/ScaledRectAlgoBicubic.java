@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 
 public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
     
@@ -42,14 +43,6 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
     
     private static final ScaledRectAlgoNearest ALGO_NEAREST =
         new ScaledRectAlgoNearest();
-    
-    private static final ThreadLocal<PpTlData> TL_DATA =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -271,8 +264,11 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         // when scaled up/down to match its corresponding src pixels.
         final double dyPixelSpanFp = srcRect.ySpan() / (double) dstRect.ySpan();
         
-        final PpTlData tl = TL_DATA.get();
-        final int[] dstRowArr = tl.tmpArr1.getArr(dstRectClipped.xSpan());
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
+        
+        final PooledIntArrHolder tmpArrHolder1 = tl.borrowArrHolder();
+        
+        final int[] dstRowArr = tmpArrHolder1.getArr(dstRectClipped.xSpan());
         
         /*
          * For each destination pixel,
@@ -339,5 +335,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
                 rowDstY,
                 rowLength);
         }
+        
+        tmpArrHolder1.release();
     }
 }

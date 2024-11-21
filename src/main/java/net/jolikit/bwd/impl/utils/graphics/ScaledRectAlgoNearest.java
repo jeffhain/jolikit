@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 
 public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
     
@@ -30,18 +31,6 @@ public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
      * smaller ones.
      */
     static final int AREA_THRESHOLD_FOR_SPLIT = 256 * 1024;
-    
-    //--------------------------------------------------------------------------
-    // FIELDS
-    //--------------------------------------------------------------------------
-    
-    private static final ThreadLocal<PpTlData> TL_DATA =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -101,17 +90,20 @@ public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
         final boolean gotXScaling = (drw != srw);
         final boolean gotYScaling = (drh != srh);
         
-        final PpTlData tl = TL_DATA.get();
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
         
         boolean usingSrcColor32Arr = false;
         
+        final PooledIntArrHolder tmpArrHolder1 = tl.borrowArrHolder();
+        final PooledIntArrHolder tmpArrHolder2 = tl.borrowArrHolder();
+
         final int[] rowArr;
         // Optimization, to avoid computing columns scaling for each row.
         final int[] siByDicArr;
         if (gotXScaling) {
-            rowArr = tl.tmpArr1.getArr(drcw);
+            rowArr = tmpArrHolder1.getArr(drcw);
             
-            siByDicArr = tl.tmpArr2.getArr(drcw);
+            siByDicArr = tmpArrHolder2.getArr(drcw);
             for (int dic = 0; dic < drcw; dic++) {
                 final int di = dci0 + dic;
                 final int si = computeSrcIndex(
@@ -126,7 +118,7 @@ public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
                 rowArr = srcColor32Arr;
                 usingSrcColor32Arr = true;
             } else {
-                rowArr = tl.tmpArr1.getArr(drcw);
+                rowArr = tmpArrHolder1.getArr(drcw);
             }
             
             siByDicArr = null;
@@ -184,6 +176,9 @@ public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
             
             prevSj = sj;
         }
+        
+        tmpArrHolder1.release();
+        tmpArrHolder2.release();
     }
     
     /**

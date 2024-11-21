@@ -17,6 +17,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.lang.NbrsUtils;
 
 public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
@@ -66,14 +67,6 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
     
     private static final ScaledRectAlgoNearest ALGO_NEAREST =
         new ScaledRectAlgoNearest();
-    
-    private static final ThreadLocal<PpTlData> TL_DATA =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -416,8 +409,11 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
         // Exact division.
         final int dyPixelSpan = srcRect.ySpan() / dstRect.ySpan();
         
-        final PpTlData tl = TL_DATA.get();
-        final int[] dstRowArr = tl.tmpArr1.getArr(dstRectClipped.xSpan());
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
+        
+        final PooledIntArrHolder tmpArrHolder1 = tl.borrowArrHolder();
+
+        final int[] dstRowArr = tmpArrHolder1.getArr(dstRectClipped.xSpan());
         final PpColorSum tmpColorSum = tl.tmpColorSum;
         tmpColorSum.configure(colorTypeHelper);
         
@@ -464,6 +460,8 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                 dstRowY,
                 dstRowLength);
         }
+        
+        tmpArrHolder1.release();
     }
     
     private static int computeBilinearColor32_alignedShrinking(
@@ -532,8 +530,11 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
         // when scaled up/down to match its corresponding src pixels.
         final double dyPixelSpanFp = srcRect.ySpan() / (double) dstRect.ySpan();
         
-        final PpTlData tl = TL_DATA.get();
-        final int[] dstRowArr = tl.tmpArr1.getArr(dstRectClipped.xSpan());
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
+        
+        final PooledIntArrHolder tmpArrHolder1 = tl.borrowArrHolder();
+        
+        final int[] dstRowArr = tmpArrHolder1.getArr(dstRectClipped.xSpan());
         final PpColorSum tmpColorSum = tl.tmpColorSum;
         tmpColorSum.configure(colorTypeHelper);
         
@@ -626,5 +627,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                 rowDstY,
                 rowLength);
         }
+        
+        tmpArrHolder1.release();
     }
 }

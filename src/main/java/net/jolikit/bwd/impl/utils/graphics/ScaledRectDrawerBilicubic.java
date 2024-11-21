@@ -18,6 +18,7 @@ package net.jolikit.bwd.impl.utils.graphics;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
@@ -45,14 +46,6 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
      * Use 1 to shrink only with BILINEAR.
      */
     private static final double DEFAULT_MAX_BICUBIC_SHRINKING = 2.0;
-    
-    private static final ThreadLocal<PpTlData> TL_DATA =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
     
     /*
      * 
@@ -138,6 +131,10 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
             (interXSpan < srcRect.xSpan())
             || (interYSpan < srcRect.ySpan());
         
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
+        
+        final PooledIntArrHolder tmpBigArrHolder1 = tl.borrowBigArrHolder();
+        
         final InterfaceSrcPixels bicuSrcPixels;
         final GRect bicuSrcRect;
         if (needBili) {
@@ -149,8 +146,6 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
             final GRect biliDstClip;
             final InterfaceRowDrawer biliDstRowDrawer;
             if (needBicu) {
-                final PpTlData tl = TL_DATA.get();
-                
                 // Using dst position for intermediary rectangle,
                 // and then only comparing spans to figure out scaling needs.
                 final GRect interRect = dstRect.withSpans(interXSpan, interYSpan);
@@ -168,7 +163,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
                 // No need to zeroize it since interRowDrawer
                 // uses COPY (or SRC) blending.
                 final int[] interColor32Arr =
-                    tl.tmpBigArr1.getArr(interRectArea);
+                    tmpBigArrHolder1.getArr(interRectArea);
                 final int interScanlineStride = interRect.xSpan();
                 interRowDrawer.configure(
                     interTransformArrToDst,
@@ -222,5 +217,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
                 dstClip,
                 dstRowDrawer);
         }
+        
+        tmpBigArrHolder1.release();
     }
 }

@@ -23,6 +23,7 @@ import java.util.Arrays;
 
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
+import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.InterfaceSplittable;
 
@@ -122,14 +123,6 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final ThreadLocal<PpTlData> TL_DATA =
-        new ThreadLocal<PpTlData>() {
-        @Override
-        public PpTlData initialValue() {
-            return new PpTlData();
-        }
-    };
-    
     private final Object renderingHint;
     
     //--------------------------------------------------------------------------
@@ -183,11 +176,15 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         
         final GRect dstRectClipped = dstRect.intersected(dstClip);
         
-        final PpTlData tl = TL_DATA.get();
+        final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
         
         // Possibly null.
         final int[] srcColor32Arr = srcPixels.color32Arr();
         
+        final PooledIntArrHolder tmpBigArrHolder1 = tl.borrowBigArrHolder();
+        final PooledIntArrHolder tmpBigArrHolder2 = tl.borrowBigArrHolder();
+        final PooledIntArrHolder tmpArrHolder1 = tl.borrowArrHolder();
+
         final int[] srcPixelArr;
         final int srcPixelArrScanlineStride;
         final int srcImgHeight;
@@ -202,7 +199,7 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
             // but simplest to compute and doesn't hurt.
             srcImgHeight = srcPixelsRect.ySpan();
         } else {
-            srcPixelArr = tl.tmpBigArr1.getArr(sw * sh);
+            srcPixelArr = tmpBigArrHolder1.getArr(sw * sh);
             srcPixelArrScanlineStride = sw;
             srcRectInImg = srcRect.withPos(0, 0);
             srcImgHeight = srcRect.ySpan();
@@ -230,7 +227,7 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
                 bufImgType);
         
         final int dstRectClippedArea = dstRectClipped.area();
-        final int[] dstPixelArr = tl.tmpBigArr2.getArr(dstRectClippedArea);
+        final int[] dstPixelArr = tmpBigArrHolder2.getArr(dstRectClippedArea);
         // Need to zeroize because AWT will blend into it.
         Arrays.fill(dstPixelArr, 0, dstRectClippedArea, 0);
         final BufferedImage dstImg =
@@ -258,7 +255,7 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
          * writing rows
          */
 
-        final int[] dstImgRowArr = tl.tmpArr2.getArr(dstRectClippedInImg.xSpan());
+        final int[] dstImgRowArr = tmpArrHolder1.getArr(dstRectClippedInImg.xSpan());
         final BufferedImageHelper dstImgHelper =
             new BufferedImageHelper(dstImg);
         for (int j = 0; j < dstRectClippedInImg.ySpan(); j++) {
@@ -283,6 +280,10 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         
         srcImg.flush();
         dstImg.flush();
+        
+        tmpBigArrHolder1.release();
+        tmpBigArrHolder2.release();
+        tmpArrHolder1.release();
     }
     
     //--------------------------------------------------------------------------

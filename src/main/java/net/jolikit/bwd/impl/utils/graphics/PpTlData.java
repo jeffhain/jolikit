@@ -15,45 +15,113 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import net.jolikit.lang.LangUtils;
+
 /**
  * Package-private.
  */
 class PpTlData {
     
     //--------------------------------------------------------------------------
+    // PUBLIC CLASSES
+    //--------------------------------------------------------------------------
+    
+    public static class PooledIntArrHolder extends IntArrHolder {
+        private final List<PooledIntArrHolder> listForRepool;
+        private boolean needRepool = false;
+        PooledIntArrHolder(List<PooledIntArrHolder> listForRepool) {
+            this.listForRepool = listForRepool;
+        }
+        void onBorrow() {
+            this.needRepool = true;
+        }
+        /**
+         * No big deal if not released due to exception:
+         * will just be GC-ed.
+         */
+        public void release() {
+            if (this.needRepool) {
+                this.listForRepool.add(this);
+                this.needRepool = false;
+            }
+        }
+    }
+    
+    //--------------------------------------------------------------------------
+    // PRIVATE CLASSES
+    //--------------------------------------------------------------------------
+    
+    private static class MyIntArrHolderPool {
+        private final List<PooledIntArrHolder> list = new ArrayList<>();
+        public MyIntArrHolderPool() {
+        }
+        public PooledIntArrHolder borrow() {
+            PooledIntArrHolder ret = null;
+            if (this.list.size() != 0) {
+                ret = LangUtils.removeLast(this.list);
+            } else {
+                ret = new PooledIntArrHolder(this.list);
+            }
+            ret.onBorrow();
+            return ret;
+        }
+    }
+    
+    //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /*
-     * For arrays containing a whole area of pixels.
+    /**
+     * Sharing a default thread-local instance among multiple treatments,
+     * to reduce overall memory footprint.
      */
+    public static final ThreadLocal<PpTlData> DEFAULT_TL_DATA =
+        new ThreadLocal<PpTlData>() {
+        @Override
+        public PpTlData initialValue() {
+            return new PpTlData();
+        }
+    };
     
-    final IntArrHolder tmpBigArr1 = new IntArrHolder();
-    final IntArrHolder tmpBigArr2 = new IntArrHolder();
+    private final MyIntArrHolderPool tmpBigArrPool = new MyIntArrHolderPool();
     
-    /*
-     * For arrays containing a row or a column of pixels.
-     */
-    
-    final IntArrHolder tmpArr1 = new IntArrHolder();
-    final IntArrHolder tmpArr2 = new IntArrHolder();
-    
-    /*
-     * 
-     */
-    
-    final DoubleArrHolder tmpDoubleArr = new DoubleArrHolder();
+    private final MyIntArrHolderPool tmpArrPool = new MyIntArrHolderPool();
     
     /*
      * 
      */
     
-    final PpColorSum tmpColorSum = new PpColorSum();
+    public final DoubleArrHolder tmpDoubleArr = new DoubleArrHolder();
+    
+    /*
+     * 
+     */
+    
+    public final PpColorSum tmpColorSum = new PpColorSum();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public PpTlData() {
+    }
+    
+    /**
+     * For arrays containing a whole area of pixels.
+     * Should release after use.
+     */
+    public PooledIntArrHolder borrowBigArrHolder() {
+        return this.tmpBigArrPool.borrow();
+    }
+    
+    /**
+     * For arrays containing a row or a column of pixels.
+     * Should release after use.
+     */
+    public PooledIntArrHolder borrowArrHolder() {
+        return this.tmpArrPool.borrow();
     }
 }
