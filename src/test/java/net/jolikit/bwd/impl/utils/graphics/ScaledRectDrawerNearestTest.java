@@ -54,8 +54,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -102,8 +101,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -150,8 +148,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -201,8 +198,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -245,8 +241,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);
@@ -289,8 +284,7 @@ public class ScaledRectDrawerNearestTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);

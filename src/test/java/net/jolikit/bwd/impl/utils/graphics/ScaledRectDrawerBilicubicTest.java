@@ -61,8 +61,7 @@ public class ScaledRectDrawerBilicubicTest extends AbstractScaledRectDrawerTezt 
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 5, 5);

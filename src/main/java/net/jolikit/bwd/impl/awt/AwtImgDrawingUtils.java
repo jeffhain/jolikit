@@ -194,13 +194,12 @@ public class AwtImgDrawingUtils {
                 BihPixelFormat.ARGB32,
                 premul);
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
+            final GRect srcRectInImg = GRect.valueOf(0, 0, sxSpan, sySpan);
             srcPixels.configure(
-                sxSpan,
-                sySpan,
+                srcRectInImg,
                 srcPremulArgb32Arr,
                 sxSpan);
             
-            final GRect srcRectInImg = GRect.valueOf(0, 0, sxSpan, sySpan);
             final GRect dstRectInUser = GRect.valueOf(dx, dy, dxSpan, dySpan);
             final GRect dstClipInUser = clipInUser;
             

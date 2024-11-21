@@ -70,16 +70,6 @@ abstract class AbstractScaledRectDrawerTezt extends TestCase {
         public MyPixels() {
         }
         public void reset(
-            int width,
-            int height,
-            int scanlineStride) {
-            this.configure(
-                width,
-                height,
-                new int[scanlineStride * height],
-                scanlineStride);
-        }
-        public void reset(
             GRect rect,
             int scanlineStride) {
             this.configure(
@@ -102,8 +92,8 @@ abstract class AbstractScaledRectDrawerTezt extends TestCase {
         @Override
         public int hashCode() {
             final GRect rect = this.getRect();
-            final int width = this.getWidth();
-            final int height = this.getHeight();
+            final int width = rect.xSpan();
+            final int height = rect.ySpan();
             final int[] color32Arr = this.color32Arr();
             final int scanlineStride = this.getScanlineStride();
             
@@ -124,8 +114,7 @@ abstract class AbstractScaledRectDrawerTezt extends TestCase {
             
             final MyPixels other = (MyPixels) obj;
             
-            final int width1 = this.getWidth();
-            final int height1 = this.getHeight();
+            final GRect rect1 = this.getRect();
             final int[] color32Arr1 = this.color32Arr();
             final int scanlineStride1 = this.getScanlineStride();
             
@@ -133,9 +122,11 @@ abstract class AbstractScaledRectDrawerTezt extends TestCase {
             final int scanlineStride2 = other.getScanlineStride();
             
             boolean foundDiff = false;
-            if (!this.getRect().equals(other.getRect())) {
+            if (!rect1.equals(other.getRect())) {
                 foundDiff = true;
             } else {
+                final int width1 = rect1.xSpan();
+                final int height1 = rect1.ySpan();
                 Loop1 : for (int j = 0; j < height1; j++) {
                     for (int i = 0; i < width1; i++) {
                         final int p1 = color32Arr1[i + scanlineStride1 * j];
@@ -304,8 +295,7 @@ abstract class AbstractScaledRectDrawerTezt extends TestCase {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);

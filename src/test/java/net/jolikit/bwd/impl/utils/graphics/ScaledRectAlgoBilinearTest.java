@@ -127,12 +127,11 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
         
         final MySrcPixels srcPixels = new MySrcPixels();
         final int[] srcArr = new int[scanlineStride * height];
+        final GRect srcRect = GRect.valueOf(0, 0, width, height);
         srcPixels.configure(
-            width,
-            height,
+            srcRect,
             srcArr,
             scanlineStride);
-        final GRect srcRect = GRect.valueOf(0, 0, width, height);
         final PpColorSum tmpColorSum = new PpColorSum();
         tmpColorSum.configure(colorTypeHelper);
         
@@ -260,12 +259,11 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
         
         final MySrcPixels srcPixels = new MySrcPixels();
         final int[] srcArr = new int[scanlineStride * height];
+        final GRect srcRect = GRect.valueOf(0, 0, width, height);
         srcPixels.configure(
-            width,
-            height,
+            srcRect,
             srcArr,
             scanlineStride);
-        final GRect srcRect = GRect.valueOf(0, 0, width, height);
         final PpColorSum tmpColorSum = new PpColorSum();
         tmpColorSum.configure(colorTypeHelper);
         

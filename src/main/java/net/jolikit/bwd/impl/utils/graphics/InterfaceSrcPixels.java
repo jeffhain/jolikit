@@ -22,11 +22,10 @@ import net.jolikit.bwd.api.graphics.GRect;
  */
 public interface InterfaceSrcPixels {
     
+    /**
+     * @return The rectangle covering readable pixels.
+     */
     public GRect getRect();
-    
-    public int getWidth();
-    
-    public int getHeight();
     
     /**
      * Can be null, in which case getColor32At(...) can be used instead.
@@ -44,7 +43,7 @@ public interface InterfaceSrcPixels {
     /**
      * Useful if color32Arr() returns null.
      * 
-     * We prefer specifying (x,y) than just index, because computing
+     * We prefer specifying (x,y) than just an index, because computing
      * index from (x,y) is fast, but not (x,y) from index, due to modulo.
      */
     public int getColor32At(int x, int y);

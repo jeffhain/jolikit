@@ -197,7 +197,7 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
                         srcPixelsArr[y * sw + x] = srcColor32;
                     }
                 }
-                srcPixels.configure(sw, sh, srcPixelsArr, sw);
+                srcPixels.configure(imgRect, srcPixelsArr, sw);
             }
             final GRect dstClip = dstRect;
             final GRect dstRectClipped = dstRect.intersected(dstClip);

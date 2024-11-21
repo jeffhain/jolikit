@@ -121,9 +121,10 @@ public class JfxImgDrawingUtils {
                 JfxPaintUtils.FORMAT_INT_ARGB_PRE,
                 srcArgbArr, 0, imgWidth);
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
+            final GRect srcPixelsRect =
+                GRect.valueOf(0, 0, imgWidth, imgHeight);
             srcPixels.configure(
-                imgWidth,
-                imgHeight,
+                srcPixelsRect,
                 srcArgbArr,
                 imgWidth);
             
@@ -246,9 +247,10 @@ public class JfxImgDrawingUtils {
              */
             
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
+            final GRect srcPixelsRect = GRect.valueOf(
+                0, 0, buffer.getWidth(), buffer.getHeight());
             srcPixels.configure(
-                buffer.getWidth(),
-                buffer.getHeight(),
+                srcPixelsRect,
                 buffer.getPixelArr(),
                 buffer.getScanlineStride());
             

@@ -111,20 +111,12 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             return this.image.getRect();
         }
         @Override
-        public int getWidth() {
-            return this.image.getWidth();
-        }
-        @Override
-        public int getHeight() {
-            return this.image.getHeight();
-        }
-        @Override
         public int[] color32Arr() {
             return null;
         }
         @Override
         public int getScanlineStride() {
-            return this.getWidth();
+            return this.getRect().xSpan();
         }
         @Override
         public int getColor32At(int x, int y) {

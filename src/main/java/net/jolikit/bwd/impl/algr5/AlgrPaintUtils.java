@@ -245,9 +245,10 @@ public class AlgrPaintUtils {
         }
         try {
             final IntArrSrcPixels inputPixels = this.tmpInputPixels;
+            final GRect bufferRect =
+                GRect.valueOf(0, 0, bufferWidth, bufferHeight);
             inputPixels.configure(
-                bufferWidth,
-                bufferHeight,
+                bufferRect,
                 bufferArr,
                 bufferArrScanlineStride);
 

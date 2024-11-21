@@ -33,11 +33,25 @@ public class ScaledRectDrawerPerf {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final boolean MUST_BENCH_NEAREST_AWT = true;
+    /**
+     * To tune area thresholds for parallelization splits.
+     */
+    private static final boolean SPLIT_TUNING_MODE = false;
+
+    /**
+     * For quick bench of our code for basic cases.
+     */
+    private static final boolean BASIC_BENCH_MODE = false || SPLIT_TUNING_MODE;
+
+    /*
+     * 
+     */
+    
+    private static final boolean MUST_BENCH_NEAREST_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_NEAREST = true;
-    private static final boolean MUST_BENCH_BILINEAR_AWT = true;
+    private static final boolean MUST_BENCH_BILINEAR_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_BILINEAR = true;
-    private static final boolean MUST_BENCH_BICUBIC_AWT = true;
+    private static final boolean MUST_BENCH_BICUBIC_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_BICUBIC = true;
     private static final boolean MUST_BENCH_BILICUBIC = true;
     
@@ -45,13 +59,13 @@ public class ScaledRectDrawerPerf {
      * 
      */
     
-    private static final boolean MUST_BENCH_SEQUENTIAL = true;
+    private static final boolean MUST_BENCH_SEQUENTIAL = (!BASIC_BENCH_MODE);
 
-    private static final boolean MUST_BENCH_NON_PREMUL = true;
+    private static final boolean MUST_BENCH_NON_PREMUL = (!BASIC_BENCH_MODE);
 
-    private static final boolean MUST_BENCH_TRANSPARENT = true;
+    private static final boolean MUST_BENCH_TRANSPARENT = (!BASIC_BENCH_MODE);
 
-    private static final boolean MUST_BENCH_REPEATING_COLORS = true;
+    private static final boolean MUST_BENCH_REPEATING_COLORS = (!BASIC_BENCH_MODE);
     
     /*
      * 
@@ -59,14 +73,9 @@ public class ScaledRectDrawerPerf {
     
     private static final int NBR_OF_RUNS = 2;
     
-    private static final int NBR_OF_CALLS = 10;
+    private static final int NBR_OF_CALLS = (SPLIT_TUNING_MODE || MUST_BENCH_SEQUENTIAL ? 10 : 100);
     
-    /**
-     * Bench mode to tune area thresholds for parallelization splits.
-     */
-    private static final boolean TUNING_MODE = false;
-    
-    private static final int SPAN_FACTOR = (TUNING_MODE ? 10 : 1);
+    private static final int SPAN_FACTOR = (SPLIT_TUNING_MODE ? 10 : 1);
     
     private static final int PARALLELISM =
         Runtime.getRuntime().availableProcessors();
@@ -96,14 +105,11 @@ public class ScaledRectDrawerPerf {
     implements InterfaceRowDrawer {
         public MyPixels() {
         }
-        public void reset(
-            int width,
-            int height) {
+        public void reset(GRect rect) {
             this.configure(
-                width,
-                height,
-                new int[width * height],
-                width);
+                rect,
+                new int[rect.area()],
+                rect.xSpan());
         }
         /**
          * Low newColorProba allows to bench regularity optimizations.
@@ -238,15 +244,13 @@ public class ScaledRectDrawerPerf {
         final long seedBeforeRandomize = random.nextLong();
         
         final MyPixels input = new MyPixels();
-        input.reset(srcSpans, srcSpans);
+        final GRect srcRect = GRect.valueOf(0, 0, srcSpans, srcSpans);
+        input.reset(srcRect);
 
         final MyPixels output = new MyPixels();
-        output.reset(dstSpans, dstSpans);
+        final GRect dstRect = GRect.valueOf(0, 0, dstSpans, dstSpans);
+        output.reset(dstRect);
 
-        final GRect srcRect = GRect.valueOf(
-            0, 0, srcSpans, srcSpans);
-        final GRect dstRect = GRect.valueOf(
-            0, 0, dstSpans, dstSpans);
         final GRect dstClip = dstRect;
         
         final List<InterfaceScaledRectDrawer> drawerList = new ArrayList<>();

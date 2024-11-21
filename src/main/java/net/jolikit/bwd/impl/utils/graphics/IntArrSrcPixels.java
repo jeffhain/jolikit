@@ -55,20 +55,6 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
      * @param color32Arr Must not be null.
      */
     public void configure(
-        int width,
-        int height,
-        int[] color32Arr,
-        int scanlineStride) {
-        this.configure_final(
-            GRect.valueOf(0, 0, width, height),
-            color32Arr,
-            scanlineStride);
-    }
-
-    /**
-     * @param color32Arr Must not be null.
-     */
-    public void configure(
         GRect rect,
         int[] color32Arr,
         int scanlineStride) {
@@ -93,16 +79,6 @@ public class IntArrSrcPixels implements InterfaceSrcPixels {
     @Override
     public GRect getRect() {
         return this.rect;
-    }
-    
-    @Override
-    public int getWidth() {
-        return this.rect.xSpan();
-    }
-    
-    @Override
-    public int getHeight() {
-        return this.rect.ySpan();
     }
     
     @Override

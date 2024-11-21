@@ -54,8 +54,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -102,8 +101,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -150,8 +148,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -201,8 +198,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -249,8 +245,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 4, 6);
@@ -300,8 +295,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 6, 9);
@@ -345,8 +339,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 3);
@@ -389,8 +382,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);
@@ -433,8 +425,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);
@@ -478,8 +469,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 2);
@@ -531,8 +521,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 3, 3);
@@ -578,8 +567,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 1, 2);
@@ -622,8 +610,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         
         final MyPixels actual = new MyPixels();
         actual.reset(
-            expected.getWidth(),
-            expected.getHeight(),
+            expected.getRect(),
             scanlineStride = 9);
         
         final GRect srcRect = GRect.valueOf(0, 0, 2, 1);
