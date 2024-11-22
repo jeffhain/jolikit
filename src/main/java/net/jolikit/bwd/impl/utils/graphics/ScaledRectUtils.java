@@ -29,7 +29,36 @@ public class ScaledRectUtils {
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-
+    
+    /**
+     * Args checks for InterfaceScaledRectDrawer.drawScaledRect().
+     * 
+     * @return True if must return early (i.e. nothing to draw).
+     */
+    public static boolean drawArgsCheckAndMustReturn(
+        InterfaceSrcPixels srcPixels,
+        GRect srcRect,
+        //
+        GRect dstRect,
+        GRect dstClip) {
+        
+        if (srcRect.isEmpty()) {
+            return true;
+        }
+        
+        final GRect srcPixelsRect = srcPixels.getRect();
+        if (!srcPixelsRect.contains(srcRect)) {
+            throw new IllegalArgumentException(
+                "srcRect ("
+                    + srcRect
+                    + ") is not included in srcPixels.getRect() ("
+                    + srcPixelsRect
+                    + ")");
+        }
+        
+        return (!dstRect.overlaps(dstClip));
+    }
+    
     /**
      * If any destination span is zero, returns true.
      * If any source span is zero, returns false (undefined can't be exact).

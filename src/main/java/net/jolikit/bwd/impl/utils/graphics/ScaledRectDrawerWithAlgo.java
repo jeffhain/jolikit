@@ -145,25 +145,12 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
         GRect dstClip,
         InterfaceRowDrawer dstRowDrawer) {
         
-        /*
-         * Guard closes and args checks.
-         */
-        
-        if (srcRect.isEmpty()) {
-            return;
-        }
-        
-        final GRect srcPixelsRect = srcPixels.getRect();
-        if (!srcPixelsRect.contains(srcRect)) {
-            throw new IllegalArgumentException(
-                "srcRect ("
-                    + srcRect
-                    + ") is not included in srcPixels.getRect() ("
-                    + srcPixelsRect
-                    + ")");
-        }
-        
-        if (!dstRect.overlaps(dstClip)) {
+        if (ScaledRectUtils.drawArgsCheckAndMustReturn(
+            srcPixels,
+            srcRect,
+            //
+            dstRect,
+            dstClip)) {
             return;
         }
         

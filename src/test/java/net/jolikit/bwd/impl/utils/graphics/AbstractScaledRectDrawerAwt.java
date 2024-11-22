@@ -139,37 +139,26 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
-        //
         GRect srcRect,
+        //
         GRect dstRect,
         GRect dstClip,
         InterfaceRowDrawer dstRowDrawer) {
         
-        /*
-         * Guard closes and args checks.
-         */
-        
-        if (srcRect.isEmpty()) {
-            return;
-        }
-        
-        final GRect srcPixelsRect = srcPixels.getRect();
-        if (!srcPixelsRect.contains(srcRect)) {
-            throw new IllegalArgumentException(
-                "srcRect ("
-                    + srcRect
-                    + ") is not included in srcPixels.getRect() ("
-                    + srcPixelsRect
-                    + ")");
-        }
-        
-        if (!dstRect.overlaps(dstClip)) {
+        if (ScaledRectUtils.drawArgsCheckAndMustReturn(
+            srcPixels,
+            srcRect,
+            //
+            dstRect,
+            dstClip)) {
             return;
         }
         
         /*
          * 
          */
+        
+        final GRect srcPixelsRect = srcPixels.getRect();
         
         final int sw = srcRect.xSpan();
         final int sh = srcRect.ySpan();
