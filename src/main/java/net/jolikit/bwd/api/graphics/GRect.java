@@ -486,7 +486,7 @@ public final class GRect implements Comparable<GRect> {
      */
 
     /**
-     * If this rectangle is empty, this value is < x.
+     * If xSpan is zero, this value is < x.
      * 
      * @return The max x, as x + xSpan - 1.
      * @throws ArithmeticException if max x overflows, either positively,
@@ -505,7 +505,7 @@ public final class GRect implements Comparable<GRect> {
     }
 
     /**
-     * If this rectangle is empty, this value is < y.
+     * If ySpan is zero, this value is < y.
      * 
      * @return The max y, as y + ySpan - 1.
      * @throws ArithmeticException if max y overflows, either positively,
@@ -583,7 +583,7 @@ public final class GRect implements Comparable<GRect> {
      */
     
     /**
-     * If X span is empty, return x().
+     * If xSpan is zero, return x().
      * 
      * @return The specified x clamped into [x(),min(Integer.MAX_VALUE,xMaxLong())].
      */
@@ -602,7 +602,7 @@ public final class GRect implements Comparable<GRect> {
     }
     
     /**
-     * If Y span is empty, return y().
+     * If ySpan is zero, return y().
      * 
      * @return The specified y clamped into [y(),min(Integer.MAX_VALUE,yMaxLong())].
      */

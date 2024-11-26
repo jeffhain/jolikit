@@ -62,7 +62,8 @@ import net.jolikit.threading.locks.MonitorCondilock;
  *   - Methods to cancel or drain pending schedules.
  * - different:
  *   - Uses fixed threads instead of a thread pool.
- *   - Threads naming and deamon flag are specified aside from
+ *     Can help to avoid thread-local inflation with threads turnover.
+ *   - Threads naming and deamon flag can be specified aside from
  *     the thread factory, not to have to create or configure
  *     a specific one for these very situational settings.
  *   - When queue reaches max capacity, runnables are rejected
