@@ -175,10 +175,8 @@ public class AwtImgDrawingUtils {
             
             final BufferedImage dstImage = dstImageHelper.getImage();
             {
-                final boolean withAlpha = true;
                 BufferedImageHelper.requireCompatible(
                     dstImage,
-                    withAlpha,
                     BihPixelFormat.ARGB32,
                     premul);
             }

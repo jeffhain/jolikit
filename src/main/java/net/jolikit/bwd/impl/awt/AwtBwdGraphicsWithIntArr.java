@@ -490,12 +490,10 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      *         is not of compatible type.
      */
     private static BufferedImage requireCompatible(BufferedImage image) {
-        final boolean withAlpha = true;
         final BihPixelFormat pixelFormat = BihPixelFormat.ARGB32;
         final boolean premul = true;
         return BufferedImageHelper.requireCompatible(
                 image,
-                withAlpha,
                 pixelFormat,
                 premul);
     }

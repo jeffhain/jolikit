@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -129,29 +129,7 @@ public class BufferedImageHelper {
     private static final int G_BAND = 1;
     private static final int B_BAND = 2;
     private static final int A_BAND = 3;
-
-    /**
-     * 0x81 = 10000001, to check that extreme bits are preserved.
-     * Not using 0xFF to be more general, less special-case.
-     * 
-     * Always opaque colors for non-alpha components,
-     * for them not to be modified or zeroized
-     * due to alpha premultiplication.
-     */
-    private static final int[] CPT_EXTREME_BITS_BY_BAND = new int[4];
-    static {
-        CPT_EXTREME_BITS_BY_BAND[R_BAND] = 0xFF810000;
-        CPT_EXTREME_BITS_BY_BAND[G_BAND] = 0xFF008100;
-        CPT_EXTREME_BITS_BY_BAND[B_BAND] = 0xFF000081;
-        CPT_EXTREME_BITS_BY_BAND[A_BAND] = 0x81000000;
-    }
     
-    private static final int[] R_G_B_BAND_ARR = new int[]{
-        R_BAND,
-        G_BAND,
-        B_BAND,
-    };
-
     private final BufferedImage image;
     
     /*
@@ -401,7 +379,6 @@ public class BufferedImageHelper {
     
     /**
      * @param image An image.
-     * @param withAlpha Alpha presence flag.
      * @param pixelFormat Pixel format.
      * @param premul Alpha premultiplied flag.
      * @return The specified image.
@@ -410,53 +387,69 @@ public class BufferedImageHelper {
      *         which pixels are as specified.
      */
     public static BufferedImage requireCompatible(
-            BufferedImage image,
-            boolean withAlpha,
-            BihPixelFormat pixelFormat,
-            boolean premul) {
-
-        if (premul && (!withAlpha)) {
-            throw new IllegalArgumentException("alpha premultiplied, but with no alpha");
-        }
-
-        /*
-         * 
-         */
+        BufferedImage image,
+        BihPixelFormat pixelFormat,
+        boolean premul) {
         
         if (!isWithIntArray(image)) {
             throw new IllegalArgumentException("image is not backed by an int array");
         }
+
+        if (premul != image.isAlphaPremultiplied()) {
+            throw new IllegalArgumentException(
+                    "alpha premultiplied : expected " + premul
+                    + ", got " + image.isAlphaPremultiplied());
+        }
+        
+        /*
+         * 
+         */
         
         final WritableRaster raster = image.getRaster();
-        final ColorModel colorModel = image.getColorModel();
         final SampleModel sampleModel = raster.getSampleModel();
         
         final int numBands = sampleModel.getNumBands();
+        checkNumBands(4, numBands);
         
-        if (withAlpha) {
-            checkNumBands(4, numBands);
-            
-            if (premul != image.isAlphaPremultiplied()) {
-                throw new IllegalArgumentException(
-                        "alpha premultiplied : expected " + premul
-                        + ", got " + image.isAlphaPremultiplied());
-            }
-            
-            checkBandDataIsConsistentWithArgb32(
-                    colorModel,
-                    sampleModel,
-                    A_BAND);
-        } else {
-            checkNumBands(3, numBands);
+        checkCptSizeIs8(sampleModel, A_BAND);
+        checkCptSizeIs8(sampleModel, R_BAND);
+        checkCptSizeIs8(sampleModel, G_BAND);
+        checkCptSizeIs8(sampleModel, B_BAND);
+        
+        /*
+         * 0x81 = 10000001, to check that extreme bits are preserved.
+         * Not using 0xFF to be more general, less special-case.
+         * 
+         * Always opaque colors for non-alpha components,
+         * for them not to be modified or zeroized
+         * due to alpha premultiplication.
+         */
+        
+        final ColorModel colorModel = image.getColorModel();
+        
+        switch (pixelFormat) {
+            case ARGB32: {
+                checkCpt(0x81, colorModel.getAlpha(0x81000000));
+                checkCpt(0x81, colorModel.getRed(0xFF810000));
+                checkCpt(0x81, colorModel.getGreen(0xFF008100));
+                checkCpt(0x81, colorModel.getBlue(0xFF000081));
+            } break;
+            case ABGR32: {
+                checkCpt(0x81, colorModel.getAlpha(0x81000000));
+                checkCpt(0x81, colorModel.getBlue(0xFF810000));
+                checkCpt(0x81, colorModel.getGreen(0xFF008100));
+                checkCpt(0x81, colorModel.getRed(0xFF000081));
+            } break;
+            case RGBA32: {
+                checkCpt(0x81, colorModel.getRed(0x810000FF));
+                checkCpt(0x81, colorModel.getGreen(0x008100FF));
+                checkCpt(0x81, colorModel.getBlue(0x000081FF));
+                checkCpt(0x81, colorModel.getAlpha(0x00000081));
+            } break;
+            default:
+                throw new IllegalArgumentException();
         }
-
-        for (int band : R_G_B_BAND_ARR) {
-            checkBandDataIsConsistentWithArgb32(
-                    colorModel,
-                    sampleModel,
-                    band);
-        }
-
+        
         return image;
     }
     
@@ -901,16 +894,13 @@ public class BufferedImageHelper {
                     + ", got " + actualNumBands);
         }
     }
-    
-    private static void checkBandDataIsConsistentWithArgb32(
-            ColorModel colorModel,
-            SampleModel sampleModel,
-            int band) {
-        checkCptSizeIs8(sampleModel, band);
-        
-        checkConversionToFromDataStableFor(
-                colorModel,
-                CPT_EXTREME_BITS_BY_BAND[band]);
+
+    private static void checkCpt(int expectedCpt, int actualCpt) {
+        if (actualCpt != expectedCpt) {
+            throw new IllegalArgumentException(
+                    "cpt : expected " + expectedCpt
+                    + ", got " + actualCpt);
+        }
     }
     
     private static void checkCptSizeIs8(SampleModel sampleModel, int band) {
@@ -919,23 +909,6 @@ public class BufferedImageHelper {
             throw new IllegalArgumentException(
                     "component for band " + band
                     + " is not on 8 bits, but on " + cptSize + " bits");
-        }
-    }
-    
-    private static void checkConversionToFromDataStableFor(
-            ColorModel colorModel,
-            int argb32) {
-        final Object data = colorModel.getDataElements(
-                argb32,
-                null);
-        // Assuming bits are in the right order
-        // (bits swapping shouldn't happen, too weird).
-        final int argb32FromData = colorModel.getRGB(data);
-        if (argb32FromData != argb32) {
-            throw new IllegalArgumentException(
-                    "conversion not stable : "
-                    + Argb32.toString(argb32FromData)
-                    + " != " + Argb32.toString(argb32));
         }
     }
     
