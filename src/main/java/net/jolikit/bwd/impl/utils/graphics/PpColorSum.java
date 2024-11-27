@@ -106,11 +106,32 @@ class PpColorSum {
     }
     
     /**
+     * Accumulated values must not cause resulting components
+     * to be out of range (which might be the case with bicubic
+     * for example, due to negative weights),
+     * else must use toValidPremulColor32() instead.
+     */
+    public int toPremulColor32(double dstPixelSurfInSrcInv) {
+        /*
+         * Getting values back into [0.0,255.0]
+         * by dividing by total dst pixel surf in src.
+         */
+        final double H = 0.5;
+        final int a8 = (int) (this.premulContribSumA8 * dstPixelSurfInSrcInv + H);
+        final int b8 = (int) (this.premulContribSumB8 * dstPixelSurfInSrcInv + H);
+        final int c8 = (int) (this.premulContribSumC8 * dstPixelSurfInSrcInv + H);
+        final int d8 = (int) (this.premulContribSumD8 * dstPixelSurfInSrcInv + H);
+        return BindingColorUtils.toAbcd32_noCheck(a8, b8, c8, d8);
+    }
+    
+    /**
      * Uses InterfaceColorTypeHelper.toValidPremul32()
      * to compute the resulting premul color
      * from rounded accumulated values.
+     * Suited for algorithms using negative pixel weights,
+     * such as bicubic.
      */
-    public int toPremulColor32(
+    public int toValidPremulColor32(
         InterfaceColorTypeHelper colorTypeHelper,
         double dstPixelSurfInSrcInv) {
         /*

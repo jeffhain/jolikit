@@ -332,7 +332,6 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
         
         final int dstPremulColor32 =
             tmpColorSum.toPremulColor32(
-                colorTypeHelper,
                 dstPixelSurfInSrcInv);
         
         final int dstColor32 =
@@ -493,7 +492,6 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
         
         final int dstPremulColor32 =
             tmpColorSum.toPremulColor32(
-                colorTypeHelper,
                 dstPixelSurfInSrcInv);
         
         final int dstColor32 =
