@@ -37,25 +37,25 @@ public enum BwdScalingType {
     NEAREST,
     /**
      * Slower than NEAREST, but all source pixels covered
-     * by each destination pixel contribute proportionally to the overlap
-     * (i.e. must use box sampling), so is much better when downscaling.
+     * by each destination pixel contribute proportionally to the overlap,
+     * so is much better when downscaling.
      * 
      * If there is no scaling, or integer-multiple upscaling,
      * is equivalent to NEAREST, so should delegate to NEAREST
      * in these cases for speed.
      */
-    BILINEAR,
+    BOXSAMPLED,
     /**
      * Also called cardinal cubic spline.
      * 
      * The main purpose of BICUBIC for us is, on upscaling,
      * its property to reduce aliasing and preserve curves
-     * better than BILINEAR, for better zoomed text readability.
-     * Its downside compared to BILINEAR are the blurriness
+     * better than BOXSAMPLED, for better zoomed text readability.
+     * Its downside compared to BOXSAMPLED are the blurriness
      * it causes to zommed-in (upscaled) pixel art,
      * or when zooming in order to see pixels more clearly
      * (they actually get more blurry),
-     * a result often much worse than BILINEAR in case of
+     * a result often much worse than BOXSAMPLED in case of
      * large downscaling (even if using bicubic iteratively), 
      * and its relative slowness.
      * 
@@ -65,7 +65,7 @@ public enum BwdScalingType {
      * covering the destination pixel, by downscaling iteratively,
      * but just as needed to avoid abysmal performances,
      * i.e. with width and height divided by at most two per iteration
-     * (for quality on downscaling, BILINEAR or BILICUBIC are preferable).
+     * (for quality on downscaling, BOXSAMPLED or BOXSAMPLED_BICUBIC are preferable).
      * 
      * If there is no scaling, is equivalent to NEAREST,
      * so should delegate to NEAREST in that case for speed.
@@ -75,7 +75,7 @@ public enum BwdScalingType {
      * Same as BICUBIC except when downscaling divides width or height
      * by more than two, in which case, instead of splitting
      * the downscaling in multiple bicubic iterations,
-     * downscaling must first partially be done using BILINEAR,
+     * downscaling must first partially be done using BOXSAMPLED,
      * and then terminated using bicubic with width or height
      * divided by two.
      * For large downscalings, this is both faster and of better quality
@@ -83,12 +83,12 @@ public enum BwdScalingType {
      * (good quality for both downscaling and upscaling,
      * and limited cost).
      * 
-     * Design: Could also consider to just use BILINEAR for the whole
+     * Design: Could also consider to just use BOXSAMPLED for the whole
      * downscaling, which would be faster for example when wanting
      * to draw or compute many thumbnails, but for that user can just
-     * directly use BILINEAR.
+     * directly use BOXSAMPLED.
      */
-    BILICUBIC;
+    BOXSAMPLED_BICUBIC;
     
     /*
      * 

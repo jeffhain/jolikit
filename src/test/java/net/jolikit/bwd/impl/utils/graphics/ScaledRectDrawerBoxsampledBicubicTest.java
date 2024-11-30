@@ -20,7 +20,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 import net.jolikit.threading.prl.SequentialParallelizer;
 
-public class ScaledRectDrawerBilicubicTest extends AbstractScaledRectDrawerTezt {
+public class ScaledRectDrawerBoxsampledBicubicTest extends AbstractScaledRectDrawerTezt {
 
     //--------------------------------------------------------------------------
     // FIELDS
@@ -33,7 +33,7 @@ public class ScaledRectDrawerBilicubicTest extends AbstractScaledRectDrawerTezt 
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectDrawerBilicubicTest() {
+    public ScaledRectDrawerBoxsampledBicubicTest() {
     }
     
     public void test_drawRectScaled_centeredSinglePixel() {
@@ -96,7 +96,7 @@ public class ScaledRectDrawerBilicubicTest extends AbstractScaledRectDrawerTezt 
         InterfaceRowDrawer dstRowDrawer) {
         ScaledRectDrawing.drawScaledRect(
             parallelizer,
-            BwdScalingType.BILICUBIC,
+            BwdScalingType.BOXSAMPLED_BICUBIC,
             colorTypeHelper,
             //
             srcPixels,

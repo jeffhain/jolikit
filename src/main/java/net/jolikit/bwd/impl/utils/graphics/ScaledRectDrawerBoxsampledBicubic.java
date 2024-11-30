@@ -23,17 +23,17 @@ import net.jolikit.threading.prl.InterfaceParallelizer;
 
 /**
  * Uses BICUBIC, except when shrinking by a factor
- * superior to two, in which case BILINEAR is used first
+ * superior to two, in which case BOXSAMPLED is used first
  * to reduce BICUBIC shrinking to a factor of two.
  */
-public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
+public class ScaledRectDrawerBoxsampledBicubic implements InterfaceScaledRectDrawer {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final ScaledRectDrawerBilinear DRAWER_BILINEAR =
-        new ScaledRectDrawerBilinear();
+    private static final ScaledRectDrawerBoxsampled DRAWER_BOXSAMPLED =
+        new ScaledRectDrawerBoxsampled();
     
     private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
         new ScaledRectDrawerBicubic();
@@ -43,7 +43,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
      */
     
     /**
-     * Use 1 to shrink only with BILINEAR.
+     * Use 1 to shrink only with BOXSAMPLED.
      */
     private static final double DEFAULT_MAX_BICUBIC_SHRINKING = 2.0;
     
@@ -57,16 +57,16 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectDrawerBilicubic() {
+    public ScaledRectDrawerBoxsampledBicubic() {
         this(DEFAULT_MAX_BICUBIC_SHRINKING);
     }
     
     /**
      * @param maxBicubicShrinking Max span division to cover with BICUBIC,
-     *        after preliminary shrinking using BILINEAR. Must be >= 1.
-     *        Use 1 to only shrink using BILINEAR. Default is 2.
+     *        after preliminary shrinking using BOXSAMPLED. Must be >= 1.
+     *        Use 1 to only shrink using BOXSAMPLED. Default is 2.
      */
-    public ScaledRectDrawerBilicubic(double maxBicubicShrinking) {
+    public ScaledRectDrawerBoxsampledBicubic(double maxBicubicShrinking) {
         if (!(maxBicubicShrinking >= 1.0)) {
             throw new IllegalArgumentException(
                 "maxBicubicShrinking ["
@@ -116,7 +116,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
         final int interXSpan = (int) Math.rint(dstRect.xSpan() * xShrForBicu);
         final int interYSpan = (int) Math.rint(dstRect.ySpan() * yShrForBicu);
         
-        final boolean needBili =
+        final boolean needBoxspl =
             (interXSpan < srcRect.xSpan())
             || (interYSpan < srcRect.ySpan());
         
@@ -126,7 +126,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
         
         final InterfaceSrcPixels bicuSrcPixels;
         final GRect bicuSrcRect;
-        if (needBili) {
+        if (needBoxspl) {
             final boolean needBicu =
                 (interXSpan != dstRect.xSpan())
                 || (interYSpan != dstRect.ySpan());
@@ -179,7 +179,7 @@ public class ScaledRectDrawerBilicubic implements InterfaceScaledRectDrawer {
                 bicuSrcRect = null;
             }
             
-            DRAWER_BILINEAR.drawScaledRect(
+            DRAWER_BOXSAMPLED.drawScaledRect(
                 parallelizer,
                 colorTypeHelper,
                 //

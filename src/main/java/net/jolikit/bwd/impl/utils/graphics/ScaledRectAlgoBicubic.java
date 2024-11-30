@@ -324,16 +324,16 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
                 dstRowArr[dic] = dstColor32;
             }
             
-            final int rowOffset = 0;
-            final int rowDstX = dstRectClipped.x();
-            final int rowDstY = dstRectClipped.y() + djc;
-            final int rowLength = dstRectClipped.xSpan();
+            final int dstRowOffset = 0;
+            final int dstRowX = dstRectClipped.x();
+            final int dstRowY = dstRectClipped.y() + djc;
+            final int dstRowLength = dstRectClipped.xSpan();
             dstRowDrawer.drawRow(
                 dstRowArr,
-                rowOffset,
-                rowDstX,
-                rowDstY,
-                rowLength);
+                dstRowOffset,
+                dstRowX,
+                dstRowY,
+                dstRowLength);
         }
         
         tmpArrHolder1.release();

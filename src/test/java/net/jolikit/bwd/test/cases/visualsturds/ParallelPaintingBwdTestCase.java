@@ -57,9 +57,9 @@ public class ParallelPaintingBwdTestCase extends AbstractBwdTestCase {
     private static final int TARGET_PARALLELISM = 4;
     
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
     
     /**
      * To make sure our font is not identical to default font,

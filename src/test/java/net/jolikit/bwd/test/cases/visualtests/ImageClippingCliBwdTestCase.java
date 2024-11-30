@@ -37,9 +37,9 @@ public class ImageClippingCliBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
     
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
 
     private static final String IMG_FILE_PATH = BwdTestResources.TEST_IMG_FILE_PATH_CAT_AND_MICE_ALPHA_PNG;
     

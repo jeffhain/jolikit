@@ -60,7 +60,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
      * As per spec.
      */
     private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE =
-        BwdScalingType.BILICUBIC;
+        BwdScalingType.BOXSAMPLED_BICUBIC;
     
     private static final int SMALL_ARRAY_LIST_CAPACITY = 1;
     

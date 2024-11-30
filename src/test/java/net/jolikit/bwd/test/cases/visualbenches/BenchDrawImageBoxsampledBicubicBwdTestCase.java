@@ -19,22 +19,22 @@ import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 
-public class BenchDrawImageBilicubicBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
+public class BenchDrawImageBoxsampledBicubicBwdTestCase extends AbstractBenchDrawImageBwdTestCase {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
 
-    public BenchDrawImageBilicubicBwdTestCase() {
+    public BenchDrawImageBoxsampledBicubicBwdTestCase() {
     }
 
-    public BenchDrawImageBilicubicBwdTestCase(InterfaceBwdBinding binding) {
+    public BenchDrawImageBoxsampledBicubicBwdTestCase(InterfaceBwdBinding binding) {
         super(binding);
     }
     
     @Override
     public InterfaceBwdTestCase newTestCase(InterfaceBwdBinding binding) {
-        return new BenchDrawImageBilicubicBwdTestCase(binding);
+        return new BenchDrawImageBoxsampledBicubicBwdTestCase(binding);
     }
 
     //--------------------------------------------------------------------------
@@ -43,6 +43,6 @@ public class BenchDrawImageBilicubicBwdTestCase extends AbstractBenchDrawImageBw
 
     @Override
     protected BwdScalingType getImageScalingType() {
-        return BwdScalingType.BILICUBIC;
+        return BwdScalingType.BOXSAMPLED_BICUBIC;
     }
 }

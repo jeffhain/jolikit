@@ -17,9 +17,6 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 import java.awt.RenderingHints;
 
-/**
- * For tests against ScaledRectDrawerBilinear.
- */
 public class ScaledRectDrawerBilinearAwt extends AbstractScaledRectDrawerAwt {
 
     //--------------------------------------------------------------------------
@@ -36,6 +33,6 @@ public class ScaledRectDrawerBilinearAwt extends AbstractScaledRectDrawerAwt {
     
     @Override
     protected int getAreaThresholdForSplit() {
-        return ScaledRectAlgoBilinear.AREA_THRESHOLD_FOR_SPLIT;
+        return ScaledRectAlgoBoxsampled.AREA_THRESHOLD_FOR_SPLIT;
     }
 }

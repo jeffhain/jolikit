@@ -37,8 +37,8 @@ import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.InterfaceScaledRectDrawer;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBicubic;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBicubicAwt;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilicubic;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilinear;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampledBicubic;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampled;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilinearAwt;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerNearest;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerNearestAwt;
@@ -111,11 +111,11 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
         final SortedMap<String,InterfaceScaledRectDrawer> map = new TreeMap<>();
         map.put("1_NEAREST", new ScaledRectDrawerNearest());
         map.put("2_NEAREST_AWT", new ScaledRectDrawerNearestAwt());
-        map.put("3_BILINEAR_AWT", new ScaledRectDrawerBilinearAwt());
-        map.put("4_BILINEAR", new ScaledRectDrawerBilinear());
-        map.put("5_BILICUBIC", new ScaledRectDrawerBilicubic());
-        map.put("6_BICUBIC", new ScaledRectDrawerBicubic());
-        map.put("7_BICUBIC_AWT", new ScaledRectDrawerBicubicAwt());
+        map.put("3_BOXSAMPLED", new ScaledRectDrawerBoxsampled());
+        map.put("4_BILINEAR_AWT", new ScaledRectDrawerBilinearAwt());
+        map.put("5_BICUBIC", new ScaledRectDrawerBicubic());
+        map.put("6_BICUBIC_AWT", new ScaledRectDrawerBicubicAwt());
+        map.put("7_BOXSAMPLED_BICUBIC", new ScaledRectDrawerBoxsampledBicubic());
         DRAWER_BY_NAME = Collections.unmodifiableSortedMap(map);
     }
     
@@ -327,7 +327,7 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
     /**
      * For test when having large downscaling on X dimension
      * and large upscaling on Y dimension,
-     * in which case BILICUBIC should shine.
+     * in which case BOXSAMPLED_BICUBIC should shine.
      */
     private InterfaceBwdImage newAlphaHorOvalsImage() {
         final int width = 800;
@@ -338,7 +338,7 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
     /**
      * For test when having large downscaling on Y dimension
      * and large upscaling on X dimension,
-     * in which case BILICUBIC should shine.
+     * in which case BOXSAMPLED_BICUBIC should shine.
      */
     private InterfaceBwdImage newAlphaVerOvalsImage() {
         final int width = 40;

@@ -116,8 +116,8 @@ public class AwtImgDrawingUtils {
                 renderingHint = RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR;
                 
             } else if ((scalingType == BwdScalingType.BICUBIC)
-                || (scalingType == BwdScalingType.BILICUBIC)) {
-                // If BILICUBIC, only passing here when
+                || (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC)) {
+                // If BOXSAMPLED_BICUBIC, only passing here when
                 // equivalent to BICUBIC.
                 renderingHint = RenderingHints.VALUE_INTERPOLATION_BICUBIC;
                 
@@ -246,9 +246,7 @@ public class AwtImgDrawingUtils {
          *   is accurate in case of exact upscaling,
          *   and not too bad in other cases.
          * - RenderingHints.VALUE_INTERPOLATION_BILINEAR
-         *   can't fit our needs, for it is much closer to
-         *   RenderingHints.VALUE_INTERPOLATION_BICUBIC
-         *   than to what we mean by bilinear.
+         *   can't fit our needs (only similar to BOXSAMPLED on downscaling).
          * - RenderingHints.VALUE_INTERPOLATION_BICUBIC
          *   is accurate enough if not dividing width or height
          *   by more than two.
@@ -273,7 +271,7 @@ public class AwtImgDrawingUtils {
             if (scalingType == BwdScalingType.NEAREST) {
                 ret = true;
             } else if ((scalingType == BwdScalingType.BICUBIC)
-                || (scalingType == BwdScalingType.BILICUBIC)) {
+                || (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC)) {
                 ret = (dxSpan >= (sxSpan >> 1))
                     && (dySpan >= (sySpan >> 1));
             } else {

@@ -70,9 +70,9 @@ public class MandelbrotBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
     
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
 
     /**
      * Dividing by two, to avoid taking the machine too much on its knees

@@ -31,8 +31,8 @@ import net.jolikit.bwd.impl.utils.graphics.InterfaceColorTypeHelper;
 import net.jolikit.bwd.impl.utils.graphics.InterfaceScaledRectDrawer;
 import net.jolikit.bwd.impl.utils.graphics.PremulArgbHelper;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBicubic;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilicubic;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilinear;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampledBicubic;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampled;
 import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerNearest;
 import net.jolikit.bwd.test.cases.utils.AbstractBwdTestCase;
 import net.jolikit.time.TimeUtils;
@@ -153,12 +153,12 @@ public abstract class AbstractImageScalingBwdTestCase extends AbstractBwdTestCas
         final BwdScalingType scalingType;
         if (drawer instanceof ScaledRectDrawerNearest) {
             scalingType = BwdScalingType.NEAREST;
-        } else if (drawer instanceof ScaledRectDrawerBilinear) {
-            scalingType = BwdScalingType.BILINEAR;
+        } else if (drawer instanceof ScaledRectDrawerBoxsampled) {
+            scalingType = BwdScalingType.BOXSAMPLED;
         } else if (drawer instanceof ScaledRectDrawerBicubic) {
             scalingType = BwdScalingType.BICUBIC;
-        } else if (drawer instanceof ScaledRectDrawerBilicubic) {
-            scalingType = BwdScalingType.BILICUBIC;
+        } else if (drawer instanceof ScaledRectDrawerBoxsampledBicubic) {
+            scalingType = BwdScalingType.BOXSAMPLED_BICUBIC;
         } else {
             scalingType = null;
         }

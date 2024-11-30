@@ -20,7 +20,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.lang.NbrsUtils;
 
-public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
+public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -72,7 +72,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectAlgoBilinear() {
+    public ScaledRectAlgoBoxsampled() {
     }
     
     //--------------------------------------------------------------------------
@@ -130,7 +130,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                     dstRowDrawer);
             } break;
             case SAMPLING_ALIGNED_SHRINKING: {
-                drawRectScaled_bilinear_alignedShrinking(
+                drawRectScaled_boxsampled_alignedShrinking(
                     colorTypeHelper,
                     //
                     srcPixels,
@@ -143,7 +143,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                     dstRowDrawer);
             } break;
             case SAMPLING_GENERAL: {
-                drawRectScaled_bilinear_general(
+                drawRectScaled_boxsampled_general(
                     colorTypeHelper,
                     //
                     srcPixels,
@@ -167,7 +167,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
     /**
      * Package-private for tests.
      */
-    static int computeBilinearColor32_general(
+    static int computeBoxsampledColor32_general(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -387,7 +387,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
      * @param dstRect Destination rectangle.
      * @param dstRectClipped The clipped destination rectangle (not just the clip).
      */
-    private static void drawRectScaled_bilinear_alignedShrinking(
+    private static void drawRectScaled_boxsampled_alignedShrinking(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -434,7 +434,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                 final int di = di0 + dic;
                 final int srcXOffset = sx + di * dxPixelSpan;
                 final int dstColor32 =
-                    computeBilinearColor32_alignedShrinking(
+                    computeBoxsampledColor32_alignedShrinking(
                         colorTypeHelper,
                         //
                         srcPixels,
@@ -463,7 +463,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
         tmpArrHolder1.release();
     }
     
-    private static int computeBilinearColor32_alignedShrinking(
+    private static int computeBoxsampledColor32_alignedShrinking(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -509,7 +509,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
      * @param dstRect Destination rectangle.
      * @param dstRectClipped The clipped destination rectangle (not just the clip).
      */
-    private static void drawRectScaled_bilinear_general(
+    private static void drawRectScaled_boxsampled_general(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -595,7 +595,7 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                 final int di = di0 + dic;
                 // x in src of destination pixel's center. 
                 final double centerXFp = srcRect.x() + (di + H) * dxPixelSpanFp - H;
-                final int dstArgb32 = computeBilinearColor32_general(
+                final int dstColor32 = computeBoxsampledColor32_general(
                     colorTypeHelper,
                     //
                     srcPixels,
@@ -611,19 +611,19 @@ public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
                     hiYRatio,
                     //
                     tmpColorSum);
-                dstRowArr[dic] = dstArgb32;
+                dstRowArr[dic] = dstColor32;
             }
             
-            final int rowOffset = 0;
-            final int rowDstX = dstRectClipped.x();
-            final int rowDstY = dstRectClipped.y() + djc;
-            final int rowLength = dstRectClipped.xSpan();
+            final int dstRowOffset = 0;
+            final int dstRowX = dstRectClipped.x();
+            final int dstRowY = dstRectClipped.y() + djc;
+            final int dstRowLength = dstRectClipped.xSpan();
             dstRowDrawer.drawRow(
                 dstRowArr,
-                rowOffset,
-                rowDstX,
-                rowDstY,
-                rowLength);
+                dstRowOffset,
+                dstRowX,
+                dstRowY,
+                dstRowLength);
         }
         
         tmpArrHolder1.release();

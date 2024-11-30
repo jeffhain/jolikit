@@ -49,11 +49,11 @@ public class ScaledRectDrawerPerf {
     
     private static final boolean MUST_BENCH_NEAREST_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_NEAREST = true;
+    private static final boolean MUST_BENCH_BOXSAMPLED = true;
     private static final boolean MUST_BENCH_BILINEAR_AWT = (!BASIC_BENCH_MODE);
-    private static final boolean MUST_BENCH_BILINEAR = true;
     private static final boolean MUST_BENCH_BICUBIC_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_BICUBIC = true;
-    private static final boolean MUST_BENCH_BILICUBIC = true;
+    private static final boolean MUST_BENCH_BOXSAMPLED_BICUBIC = true;
     
     /*
      * 
@@ -202,8 +202,8 @@ public class ScaledRectDrawerPerf {
         System.out.println("--- " + ScaledRectDrawerPerf.class.getSimpleName() + "... ---");
         System.out.println("AREA_THRESHOLD_FOR_SPLIT (NEAREST) = "
             + ScaledRectAlgoNearest.AREA_THRESHOLD_FOR_SPLIT);
-        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BILINEAR) = "
-            + ScaledRectAlgoBilinear.AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BOXSAMPLED) = "
+            + ScaledRectAlgoBoxsampled.AREA_THRESHOLD_FOR_SPLIT);
         System.out.println("AREA_THRESHOLD_FOR_SPLIT (BICUBIC) = "
             + ScaledRectAlgoBicubic.AREA_THRESHOLD_FOR_SPLIT);
         
@@ -270,19 +270,19 @@ public class ScaledRectDrawerPerf {
                 }
             });
         }
+        if (MUST_BENCH_BOXSAMPLED) {
+            drawerList.add(new ScaledRectDrawerBoxsampled() {
+                @Override
+                public String toString() {
+                    return "BOXSAMPLED";
+                }
+            });
+        }
         if (MUST_BENCH_BILINEAR_AWT) {
             drawerList.add(new ScaledRectDrawerBilinearAwt() {
                 @Override
                 public String toString() {
                     return "BILINEAR_AWT";
-                }
-            });
-        }
-        if (MUST_BENCH_BILINEAR) {
-            drawerList.add(new ScaledRectDrawerBilinear() {
-                @Override
-                public String toString() {
-                    return "BILINEAR";
                 }
             });
         }
@@ -302,11 +302,11 @@ public class ScaledRectDrawerPerf {
                 }
             });
         }
-        if (MUST_BENCH_BILICUBIC) {
-            drawerList.add(new ScaledRectDrawerBilicubic() {
+        if (MUST_BENCH_BOXSAMPLED_BICUBIC) {
+            drawerList.add(new ScaledRectDrawerBoxsampledBicubic() {
                 @Override
                 public String toString() {
-                    return "BILICUBIC";
+                    return "BOXSAMPLED_BICUBIC";
                 }
             });
         }

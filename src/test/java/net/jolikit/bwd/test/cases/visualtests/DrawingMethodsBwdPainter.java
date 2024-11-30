@@ -48,9 +48,9 @@ public class DrawingMethodsBwdPainter {
     //--------------------------------------------------------------------------
     
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType DEFAULT_IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
     
     private static GTransform[] LOCAL_TRANSFORM_BY_QUADRANT = new GTransform[]{
         GTransform.valueOf(GRotation.ROT_0, 0, 0),

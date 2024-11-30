@@ -24,10 +24,10 @@ import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 /**
- * The class is mostly tested through ScaledRectDrawerBilinearTest,
+ * The class is mostly tested through ScaledRectDrawerBoxsampledTest,
  * here we only test the core interpolation method.
  */
-public class ScaledRectAlgoBilinearTest extends TestCase {
+public class ScaledRectAlgoBoxsampledTest extends TestCase {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -90,20 +90,20 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectAlgoBilinearTest() {
+    public ScaledRectAlgoBoxsampledTest() {
     }
     
     /*
      * 
      */
     
-    public void test_computeBilinearColor32_uniform() {
+    public void test_computeBoxsampledColor32_uniform() {
         final int[] spanArr = new int[] {1,2,3,4,5};
         for (int width : spanArr) {
             for (int height : spanArr) {
                 for (boolean opaque : new boolean[] {false,true}) {
                     for (boolean premul : new boolean[] {false,true}) {
-                        test_computeBilinearColor32_uniform_xxx(
+                        test_computeBoxsampledColor32_uniform_xxx(
                             width,
                             height,
                             opaque,
@@ -114,7 +114,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
         }
     }
     
-    public void test_computeBilinearColor32_uniform_xxx(
+    public void test_computeBoxsampledColor32_uniform_xxx(
         int width,
         int height,
         boolean opaque,
@@ -203,7 +203,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
                 System.out.println("dyPixelSpanFp = " + dyPixelSpanFp);
             }
             
-            final int actual = call_computeBilinearColor32_general(
+            final int actual = call_computeBoxsampledColor32_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -229,13 +229,13 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
      * 
      */
     
-    public void test_computeBilinearColor32_exactPixel() {
+    public void test_computeBoxsampledColor32_exactPixel() {
         final int[] spanArr = new int[] {4,5};
         for (int width : spanArr) {
             for (int height : spanArr) {
                 for (boolean opaque : new boolean[] {false,true}) {
                     for (boolean premul : new boolean[] {false,true}) {
-                        test_computeBilinearColor32_exactPixel_xxx(
+                        test_computeBoxsampledColor32_exactPixel_xxx(
                             width,
                             height,
                             opaque,
@@ -246,7 +246,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
         }
     }
     
-    public void test_computeBilinearColor32_exactPixel_xxx(
+    public void test_computeBoxsampledColor32_exactPixel_xxx(
         int width,
         int height,
         boolean opaque,
@@ -303,7 +303,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
             
             final int expected = srcPixels.getColor32At(x, y);
             
-            final int actual = call_computeBilinearColor32_general(
+            final int actual = call_computeBoxsampledColor32_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -328,17 +328,17 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
      * 
      */
     
-    public void test_computeBilinearColor32_2x2_oneOverFour() {
+    public void test_computeBoxsampledColor32_2x2_oneOverFour() {
         for (boolean opaque : new boolean[] {false,true}) {
             for (boolean premul : new boolean[] {false,true}) {
-                test_computeBilinearColor32_2x2_oneOverFour_xxx(
+                test_computeBoxsampledColor32_2x2_oneOverFour_xxx(
                     opaque,
                     premul);
             }
         }
     }
     
-    public void test_computeBilinearColor32_2x2_oneOverFour_xxx(
+    public void test_computeBoxsampledColor32_2x2_oneOverFour_xxx(
         boolean opaque,
         boolean premul) {
         
@@ -410,7 +410,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
             final int expectedNp = Argb32.withAlpha8(0xFFBBCCDD, alpha8);
             final int expected = colorTypeHelper.asTypeFromNonPremul32(expectedNp);
             
-            final int actual = call_computeBilinearColor32_general(
+            final int actual = call_computeBoxsampledColor32_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -437,17 +437,17 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
      * - with clamping
      * - with one full pixel and others partially covered
      */
-    public void test_computeBilinearColor32_2x2_generalCase() {
+    public void test_computeBoxsampledColor32_2x2_generalCase() {
         for (boolean opaque : new boolean[] {false,true}) {
             for (boolean premul : new boolean[] {false,true}) {
-                test_computeBilinearColor32_2x2_generalCase_xxx(
+                test_computeBoxsampledColor32_2x2_generalCase_xxx(
                     opaque,
                     premul);
             }
         }
     }
     
-    public void test_computeBilinearColor32_2x2_generalCase_xxx(
+    public void test_computeBoxsampledColor32_2x2_generalCase_xxx(
         boolean opaque,
         boolean premul) {
         
@@ -617,7 +617,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
             
             final int expected = colorTypeHelper.asTypeFromPremul32(expectedP);
             
-            final int actual = call_computeBilinearColor32_general(
+            final int actual = call_computeBoxsampledColor32_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -645,11 +645,11 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
     //--------------------------------------------------------------------------
     
     /**
-     * Method to test ScaledRectAlgoBilinear.computeBilinearColor32_general()
+     * Method to test ScaledRectAlgoBoxsampled.computeBoxsampledColor32_general()
      * more easily, by doing preliminary Y parameters computations
-     * exactly as done in ScaledRectAlgoBilinear.
+     * exactly as done in ScaledRectAlgoBoxsampled.
      */
-    private static int call_computeBilinearColor32_general(
+    private static int call_computeBoxsampledColor32_general(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -706,7 +706,7 @@ public class ScaledRectAlgoBilinearTest extends TestCase {
             hiYRatio = (clpDyMaxFp - clpDyMaxFloor);
         }
         
-        return ScaledRectAlgoBilinear.computeBilinearColor32_general(
+        return ScaledRectAlgoBoxsampled.computeBoxsampledColor32_general(
             colorTypeHelper,
             //
             srcPixels,

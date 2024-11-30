@@ -28,14 +28,14 @@ public class ScaledRectDrawing {
     private static final ScaledRectDrawerNearest DRAWER_NEAREST =
         new ScaledRectDrawerNearest();
 
-    private static final ScaledRectDrawerBilinear DRAWER_BILINEAR =
-        new ScaledRectDrawerBilinear();
+    private static final ScaledRectDrawerBoxsampled DRAWER_BOXSAMPLED =
+        new ScaledRectDrawerBoxsampled();
 
     private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
         new ScaledRectDrawerBicubic();
 
-    private static final ScaledRectDrawerBilicubic DRAWER_BILICUBIC =
-        new ScaledRectDrawerBilicubic();
+    private static final ScaledRectDrawerBoxsampledBicubic DRAWER_BOXSAMPLED_BICUBIC =
+        new ScaledRectDrawerBoxsampledBicubic();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -73,14 +73,14 @@ public class ScaledRectDrawing {
             case NEAREST:
                 drawer = DRAWER_NEAREST;
                 break;
-            case BILINEAR:
-                drawer = DRAWER_BILINEAR;
+            case BOXSAMPLED:
+                drawer = DRAWER_BOXSAMPLED;
                 break;
             case BICUBIC:
                 drawer = DRAWER_BICUBIC;
                 break;
-            case BILICUBIC:
-                drawer = DRAWER_BILICUBIC;
+            case BOXSAMPLED_BICUBIC:
+                drawer = DRAWER_BOXSAMPLED_BICUBIC;
                 break;
             default:
                 throw new AssertionError();

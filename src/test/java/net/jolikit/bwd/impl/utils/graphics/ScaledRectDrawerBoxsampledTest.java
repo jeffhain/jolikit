@@ -19,13 +19,13 @@ import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.threading.prl.InterfaceParallelizer;
 
-public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
+public class ScaledRectDrawerBoxsampledTest extends AbstractScaledRectDrawerTezt {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectDrawerBilinearTest() {
+    public ScaledRectDrawerBoxsampledTest() {
     }
 
     /**
@@ -645,7 +645,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         InterfaceRowDrawer dstRowDrawer) {
         ScaledRectDrawing.drawScaledRect(
             parallelizer,
-            BwdScalingType.BILINEAR,
+            BwdScalingType.BOXSAMPLED,
             colorTypeHelper,
             //
             srcPixels,
@@ -697,7 +697,7 @@ public class ScaledRectDrawerBilinearTest extends AbstractScaledRectDrawerTezt {
         } else {
             /*
              * Can't check simply.
-             * Counting on ScaledRectAlgoBilinearTest instead.
+             * Counting on ScaledRectAlgoBoxsampledTest instead.
              */
         }
     }

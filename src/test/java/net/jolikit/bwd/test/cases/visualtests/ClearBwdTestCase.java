@@ -42,9 +42,9 @@ public class ClearBwdTestCase extends AbstractBwdTestCase {
     //--------------------------------------------------------------------------
 
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
     
     private static final BwdColor TEXT_BG_COLOR = BwdColor.WHITE;
     private static final BwdColor TEXT_FG_COLOR = BwdColor.BLACK;

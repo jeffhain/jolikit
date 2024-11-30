@@ -15,13 +15,13 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
-public class ScaledRectDrawerBilinear extends ScaledRectDrawerWithAlgo {
+public class ScaledRectDrawerBoxsampled extends ScaledRectDrawerWithAlgo {
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectDrawerBilinear() {
-        super(new ScaledRectAlgoBilinear());
+    public ScaledRectDrawerBoxsampled() {
+        super(new ScaledRectAlgoBoxsampled());
     }
 }

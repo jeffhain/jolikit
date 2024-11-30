@@ -1065,7 +1065,7 @@ public interface InterfaceBwdGraphics {
     
     /**
      * The default value for this parameter (i.e. its value after
-     * call to init() or reset()) must be BILICUBIC,
+     * call to init() or reset()) must be BOXSAMPLED_BICUBIC,
      * because it's of good quality for both downscaling and upscaling
      * while being reasonably fast, and is only inappropriate
      * when wanting to upscale pixel art, which is a niche use case.

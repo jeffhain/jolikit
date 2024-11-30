@@ -324,18 +324,18 @@ public class JfxImgDrawingUtils {
          * but our binding is for JavaFX8 so we can't use it yet.
          * 
          * As a result we can only use backing scaling in case
-         * of BICUBIC or BILICUBIC.
+         * of BICUBIC or BOXSAMPLED_BICUBIC.
          * 
          * JavaFX bicubic appears to be faster (asynchonous so measured
          * by FPS on resizing), but does not seem to use all covered pixels
          * on downscaling, so for BICUBIC we only use it if shrinking
          * does not divide width or height by more than two,
-         * and for BILICUBIC we do the same to avoid BILINEAR to kick in.
+         * and for BOXSAMPLED_BICUBIC we do the same to avoid BOXSAMPLED to kick in.
          */
         final boolean ret;
         if (mustUseBackingImageScalingIfApplicable) {
             if ((scalingType == BwdScalingType.BICUBIC)
-                || (scalingType == BwdScalingType.BILICUBIC)) {
+                || (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC)) {
                 ret = (dxSpan >= (sxSpan >> 1))
                     && (dySpan >= (sySpan >> 1));
             } else {

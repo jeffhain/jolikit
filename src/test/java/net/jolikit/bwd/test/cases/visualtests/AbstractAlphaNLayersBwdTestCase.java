@@ -43,9 +43,9 @@ public abstract class AbstractAlphaNLayersBwdTestCase extends AbstractBwdTestCas
     //--------------------------------------------------------------------------
     
     /**
-     * BILINEAR to see image pixels accurately.
+     * BOXSAMPLED to see image pixels accurately.
      */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BILINEAR;
+    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.BOXSAMPLED;
     
     /*
      * 
