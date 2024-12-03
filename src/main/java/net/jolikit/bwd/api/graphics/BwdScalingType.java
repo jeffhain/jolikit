@@ -31,14 +31,14 @@ import java.util.List;
  */
 public enum BwdScalingType {
     /**
-     * Fastest, but can quickly get ugly when downscaling
-     * as more and more source pixels get not used. 
+     * Fastest, but can quickly get ugly on downscaling
+     * as more and more source pixels don't get used. 
      */
     NEAREST,
     /**
      * Slower than NEAREST, but all source pixels covered
      * by each destination pixel contribute proportionally to the overlap,
-     * so is much better when downscaling.
+     * so the quality is much better on downscaling.
      * 
      * If there is no scaling, or integer-multiple upscaling,
      * is equivalent to NEAREST, so should delegate to NEAREST
@@ -46,31 +46,41 @@ public enum BwdScalingType {
      */
     BOXSAMPLED,
     /**
-     * Also called cardinal cubic spline.
+     * Unlike BOXSAMPLED, on upscaling it causes smoothing,
+     * but also some blurring.
+     * On downscaling, is usually much worse, even when
+     * done iteratively to make sure all covered source pixels
+     * contribute, which is advised, even though it can make it
+     * not only worse than BOXSAMPLED but also slower.
      * 
-     * The main purpose of BICUBIC for us is, on upscaling,
-     * its property to reduce aliasing and preserve curves
-     * better than BOXSAMPLED, for better zoomed text readability.
-     * Its downside compared to BOXSAMPLED are the blurriness
-     * it causes to zommed-in (upscaled) pixel art,
-     * or when zooming in order to see pixels more clearly
-     * (they actually get more blurry),
-     * a result often much worse than BOXSAMPLED in case of
-     * large downscaling (even if using bicubic iteratively), 
-     * and its relative slowness.
-     * 
-     * There can be many variations of bicubic;
-     * this one should take care, on downscaling, of using
-     * the information of (at least) all the source pixels
-     * covering the destination pixel, by downscaling iteratively,
-     * but just as needed to avoid abysmal performances,
-     * i.e. with width and height divided by at most two per iteration
-     * (for quality on downscaling, BOXSAMPLED or BOXSAMPLED_BICUBIC are preferable).
+     * If there is no scaling, is equivalent to NEAREST,
+     * so should delegate to NEAREST in that case for speed.
+     */
+    BILINEAR,
+    /**
+     * Similar to BILINEAR but gives a sharper result,
+     * at the cost of being slower.
+     * Same remarks as for BILINEAR for downscaling.
      * 
      * If there is no scaling, is equivalent to NEAREST,
      * so should delegate to NEAREST in that case for speed.
      */
     BICUBIC,
+    /**
+     * Same as BILINEAR except when downscaling divides width or height
+     * by more than two, in which case, instead of splitting
+     * the downscaling in multiple bilinear iterations,
+     * downscaling must first partially be done using BOXSAMPLED,
+     * and then terminated using bilinear with width or height
+     * divided by two.
+     * 
+     * Combines the smoothing qualities of BILINEAR
+     * with the quality and speed of BOXSAMPLED for large downscalings. 
+     * 
+     * If there is no scaling, is equivalent to NEAREST,
+     * so should delegate to NEAREST in that case for speed.
+     */
+    BOXSAMPLED_BILINEAR,
     /**
      * Same as BICUBIC except when downscaling divides width or height
      * by more than two, in which case, instead of splitting
@@ -78,15 +88,12 @@ public enum BwdScalingType {
      * downscaling must first partially be done using BOXSAMPLED,
      * and then terminated using bicubic with width or height
      * divided by two.
-     * For large downscalings, this is both faster and of better quality
-     * than iterating on bicubic, which makes it a good default
-     * (good quality for both downscaling and upscaling,
-     * and limited cost).
      * 
-     * Design: Could also consider to just use BOXSAMPLED for the whole
-     * downscaling, which would be faster for example when wanting
-     * to draw or compute many thumbnails, but for that user can just
-     * directly use BOXSAMPLED.
+     * Combines the smoothing qualities of BICUBIC
+     * with the quality and speed of BOXSAMPLED for large downscalings. 
+     * 
+     * If there is no scaling, is equivalent to NEAREST,
+     * so should delegate to NEAREST in that case for speed.
      */
     BOXSAMPLED_BICUBIC;
     

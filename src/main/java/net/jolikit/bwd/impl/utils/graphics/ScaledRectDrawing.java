@@ -31,8 +31,14 @@ public class ScaledRectDrawing {
     private static final ScaledRectDrawerBoxsampled DRAWER_BOXSAMPLED =
         new ScaledRectDrawerBoxsampled();
 
+    private static final ScaledRectDrawerBilinear DRAWER_BILINEAR =
+        new ScaledRectDrawerBilinear();
+
     private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
         new ScaledRectDrawerBicubic();
+
+    private static final ScaledRectDrawerBoxsampledBilinear DRAWER_BOXSAMPLED_BILINEAR =
+        new ScaledRectDrawerBoxsampledBilinear();
 
     private static final ScaledRectDrawerBoxsampledBicubic DRAWER_BOXSAMPLED_BICUBIC =
         new ScaledRectDrawerBoxsampledBicubic();
@@ -76,8 +82,14 @@ public class ScaledRectDrawing {
             case BOXSAMPLED:
                 drawer = DRAWER_BOXSAMPLED;
                 break;
+            case BILINEAR:
+                drawer = DRAWER_BILINEAR;
+                break;
             case BICUBIC:
                 drawer = DRAWER_BICUBIC;
+                break;
+            case BOXSAMPLED_BILINEAR:
+                drawer = DRAWER_BOXSAMPLED_BILINEAR;
                 break;
             case BOXSAMPLED_BICUBIC:
                 drawer = DRAWER_BOXSAMPLED_BICUBIC;

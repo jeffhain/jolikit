@@ -28,6 +28,24 @@ class ScaledRectTestUtils {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    public static void checkIsValidColor(
+        InterfaceColorTypeHelper colorTypeHelper,
+        int color32) {
+        if (colorTypeHelper.isPremul()) {
+            final int a8 = Argb32.getAlpha8(color32);
+            final int b8 = Argb32.getRed8(color32);
+            final int c8 = Argb32.getGreen8(color32);
+            final int d8 = Argb32.getBlue8(color32);
+            final int validColor32 =
+                colorTypeHelper.toValidPremul32(a8, b8, c8, d8);
+            if (color32 != validColor32) {
+                throw new AssertionError(
+                    "not valid premul color: "
+                        + Argb32.toString(color32));
+            }
+        }
+    }
+    
     public static InterfaceColorTypeHelper getColorTypeHelper(boolean premul) {
         final InterfaceColorTypeHelper ret;
         if (premul) {

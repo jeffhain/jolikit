@@ -38,7 +38,9 @@ import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCa
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBicubicBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBilinearBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBicubicBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBilinearBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageNearestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
@@ -303,7 +305,9 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
                     new BenchDrawTextBwdTestCase(),
                     new BenchDrawImageNearestBwdTestCase(),
                     new BenchDrawImageBoxsampledBwdTestCase(),
+                    new BenchDrawImageBilinearBwdTestCase(),
                     new BenchDrawImageBicubicBwdTestCase(),
+                    new BenchDrawImageBoxsampledBilinearBwdTestCase(),
                     new BenchDrawImageBoxsampledBicubicBwdTestCase(),
             });
 

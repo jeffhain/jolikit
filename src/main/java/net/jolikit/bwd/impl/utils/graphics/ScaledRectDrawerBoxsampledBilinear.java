@@ -16,11 +16,11 @@
 package net.jolikit.bwd.impl.utils.graphics;
 
 /**
- * Uses BICUBIC, except when shrinking by a factor
+ * Uses BILINEAR, except when shrinking by a factor
  * superior to two, in which case BOXSAMPLED is used first
- * to reduce BICUBIC shrinking to a factor of two.
+ * to reduce BILINEAR shrinking to a factor of two.
  */
-public class ScaledRectDrawerBoxsampledBicubic extends ScaledRectDrawerWithPreDs {
+public class ScaledRectDrawerBoxsampledBilinear extends ScaledRectDrawerWithPreDs {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -29,28 +29,28 @@ public class ScaledRectDrawerBoxsampledBicubic extends ScaledRectDrawerWithPreDs
     private static final ScaledRectDrawerBoxsampled DRAWER_BOXSAMPLED =
         new ScaledRectDrawerBoxsampled();
     
-    private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
-        new ScaledRectDrawerBicubic();
+    private static final ScaledRectDrawerBilinear DRAWER_BILINEAR =
+        new ScaledRectDrawerBilinear();
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectDrawerBoxsampledBicubic() {
+    public ScaledRectDrawerBoxsampledBilinear() {
         super(
             DRAWER_BOXSAMPLED,
-            DRAWER_BICUBIC);
+            DRAWER_BILINEAR);
     }
     
     /**
-     * @param maxBicubicShrinking Max span division to cover with BICUBIC,
+     * @param maxBilinearShrinking Max span division to cover with BILINEAR,
      *        after preliminary shrinking using BOXSAMPLED. Must be >= 1.
      *        Use 1 to only shrink using BOXSAMPLED. Default is 2.
      */
-    public ScaledRectDrawerBoxsampledBicubic(double maxBicubicShrinking) {
+    public ScaledRectDrawerBoxsampledBilinear(double maxBilinearShrinking) {
         super(
             DRAWER_BOXSAMPLED,
-            DRAWER_BICUBIC,
-            maxBicubicShrinking);
+            DRAWER_BILINEAR,
+            maxBilinearShrinking);
     }
 }

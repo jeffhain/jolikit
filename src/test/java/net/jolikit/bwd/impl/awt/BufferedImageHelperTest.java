@@ -54,7 +54,8 @@ public class BufferedImageHelperTest extends TestCase {
         }
         
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
-            for (boolean premul : new boolean[] {false,true}) {
+            // Premul first, for early fail on validity check.
+            for (boolean premul : new boolean[] {true,false}) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,

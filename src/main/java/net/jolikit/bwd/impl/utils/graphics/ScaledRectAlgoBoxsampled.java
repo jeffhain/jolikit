@@ -167,7 +167,7 @@ public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
     /**
      * Package-private for tests.
      */
-    static int computeBoxsampledColor32_general(
+    static int boxsampledInterpolate_general(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -434,7 +434,7 @@ public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
                 final int di = di0 + dic;
                 final int srcXOffset = sx + di * dxPixelSpan;
                 final int dstColor32 =
-                    computeBoxsampledColor32_alignedShrinking(
+                    boxsampledInterpolate_alignedShrinking(
                         colorTypeHelper,
                         //
                         srcPixels,
@@ -463,7 +463,7 @@ public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
         tmpArrHolder1.release();
     }
     
-    private static int computeBoxsampledColor32_alignedShrinking(
+    private static int boxsampledInterpolate_alignedShrinking(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -595,7 +595,7 @@ public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
                 final int di = di0 + dic;
                 // x in src of destination pixel's center. 
                 final double centerXFp = srcRect.x() + (di + H) * dxPixelSpanFp - H;
-                final int dstColor32 = computeBoxsampledColor32_general(
+                final int dstColor32 = boxsampledInterpolate_general(
                     colorTypeHelper,
                     //
                     srcPixels,

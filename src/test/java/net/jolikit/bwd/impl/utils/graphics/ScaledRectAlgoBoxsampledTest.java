@@ -24,7 +24,7 @@ import net.jolikit.lang.NbrsUtils;
 import net.jolikit.test.utils.TestUtils;
 
 /**
- * The class is mostly tested through ScaledRectDrawerBoxsampledTest,
+ * ScaledRectAlgoBoxsampled is mostly tested through ScaledRectDrawerBoxsampledTest,
  * here we only test the core interpolation method.
  */
 public class ScaledRectAlgoBoxsampledTest extends TestCase {
@@ -97,13 +97,14 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
      * 
      */
     
-    public void test_computeBoxsampledColor32_uniform() {
+    public void test_boxsampledInterpolate_uniform() {
         final int[] spanArr = new int[] {1,2,3,4,5};
         for (int width : spanArr) {
             for (int height : spanArr) {
                 for (boolean opaque : new boolean[] {false,true}) {
-                    for (boolean premul : new boolean[] {false,true}) {
-                        test_computeBoxsampledColor32_uniform_xxx(
+                    // Premul first, for early fail on validity check.
+                    for (boolean premul : new boolean[] {true,false}) {
+                        test_boxsampledInterpolate_uniform_xxx(
                             width,
                             height,
                             opaque,
@@ -114,7 +115,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
         }
     }
     
-    public void test_computeBoxsampledColor32_uniform_xxx(
+    public void test_boxsampledInterpolate_uniform_xxx(
         int width,
         int height,
         boolean opaque,
@@ -203,7 +204,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
                 System.out.println("dyPixelSpanFp = " + dyPixelSpanFp);
             }
             
-            final int actual = call_computeBoxsampledColor32_general(
+            final int actual = call_boxsampledInterpolate_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -229,13 +230,14 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
      * 
      */
     
-    public void test_computeBoxsampledColor32_exactPixel() {
+    public void test_boxsampledInterpolate_exactPixel() {
         final int[] spanArr = new int[] {4,5};
         for (int width : spanArr) {
             for (int height : spanArr) {
                 for (boolean opaque : new boolean[] {false,true}) {
-                    for (boolean premul : new boolean[] {false,true}) {
-                        test_computeBoxsampledColor32_exactPixel_xxx(
+                    // Premul first, for early fail on validity check.
+                    for (boolean premul : new boolean[] {true,false}) {
+                        test_boxsampledInterpolate_exactPixel_xxx(
                             width,
                             height,
                             opaque,
@@ -246,7 +248,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
         }
     }
     
-    public void test_computeBoxsampledColor32_exactPixel_xxx(
+    public void test_boxsampledInterpolate_exactPixel_xxx(
         int width,
         int height,
         boolean opaque,
@@ -303,7 +305,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
             
             final int expected = srcPixels.getColor32At(x, y);
             
-            final int actual = call_computeBoxsampledColor32_general(
+            final int actual = call_boxsampledInterpolate_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -328,17 +330,18 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
      * 
      */
     
-    public void test_computeBoxsampledColor32_2x2_oneOverFour() {
+    public void test_boxsampledInterpolate_2x2_oneOverFour() {
         for (boolean opaque : new boolean[] {false,true}) {
-            for (boolean premul : new boolean[] {false,true}) {
-                test_computeBoxsampledColor32_2x2_oneOverFour_xxx(
+            // Premul first, for early fail on validity check.
+            for (boolean premul : new boolean[] {true,false}) {
+                test_boxsampledInterpolate_2x2_oneOverFour_xxx(
                     opaque,
                     premul);
             }
         }
     }
     
-    public void test_computeBoxsampledColor32_2x2_oneOverFour_xxx(
+    public void test_boxsampledInterpolate_2x2_oneOverFour_xxx(
         boolean opaque,
         boolean premul) {
         
@@ -410,7 +413,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
             final int expectedNp = Argb32.withAlpha8(0xFFBBCCDD, alpha8);
             final int expected = colorTypeHelper.asTypeFromNonPremul32(expectedNp);
             
-            final int actual = call_computeBoxsampledColor32_general(
+            final int actual = call_boxsampledInterpolate_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -437,17 +440,18 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
      * - with clamping
      * - with one full pixel and others partially covered
      */
-    public void test_computeBoxsampledColor32_2x2_generalCase() {
+    public void test_boxsampledInterpolate_2x2_generalCase() {
         for (boolean opaque : new boolean[] {false,true}) {
-            for (boolean premul : new boolean[] {false,true}) {
-                test_computeBoxsampledColor32_2x2_generalCase_xxx(
+            // Premul first, for early fail on validity check.
+            for (boolean premul : new boolean[] {true,false}) {
+                test_boxsampledInterpolate_2x2_generalCase_xxx(
                     opaque,
                     premul);
             }
         }
     }
     
-    public void test_computeBoxsampledColor32_2x2_generalCase_xxx(
+    public void test_boxsampledInterpolate_2x2_generalCase_xxx(
         boolean opaque,
         boolean premul) {
         
@@ -617,7 +621,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
             
             final int expected = colorTypeHelper.asTypeFromPremul32(expectedP);
             
-            final int actual = call_computeBoxsampledColor32_general(
+            final int actual = call_boxsampledInterpolate_general(
                 colorTypeHelper,
                 //
                 srcPixels,
@@ -628,6 +632,15 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
                 dyPixelSpanFp,
                 //
                 tmpColorSum);
+            
+            if (DEBUG) {
+                System.out.println("expected = " + Argb32.toString(expected));
+                System.out.println("actual =   " + Argb32.toString(actual));
+            }
+
+            ScaledRectTestUtils.checkIsValidColor(
+                colorTypeHelper,
+                actual);
             
             // One because might have ties due to rounding errors
             // (like 124.5 giving 125, vs 124.49999999999997 giving 124).
@@ -641,15 +654,17 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
     }
     
     //--------------------------------------------------------------------------
-    // PRIVATE METHODS
+    // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
     
     /**
-     * Method to test ScaledRectAlgoBoxsampled.computeBoxsampledColor32_general()
+     * Method to test ScaledRectAlgoBoxsampled.boxsampledInterpolate_general()
      * more easily, by doing preliminary Y parameters computations
      * exactly as done in ScaledRectAlgoBoxsampled.
+     * 
+     * Package-private for use in bilinear test.
      */
-    private static int call_computeBoxsampledColor32_general(
+    static int call_boxsampledInterpolate_general(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -706,7 +721,7 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
             hiYRatio = (clpDyMaxFp - clpDyMaxFloor);
         }
         
-        return ScaledRectAlgoBoxsampled.computeBoxsampledColor32_general(
+        return ScaledRectAlgoBoxsampled.boxsampledInterpolate_general(
             colorTypeHelper,
             //
             srcPixels,
@@ -724,9 +739,9 @@ public class ScaledRectAlgoBoxsampledTest extends TestCase {
             tmpColorSum);
     }
     
-    /*
-     * 
-     */
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
     
     private static int randomArgb32(Random random, int minAlpha8) {
         return Argb32.withAlpha8(random.nextInt(), uniform(random, minAlpha8, 0xFF));

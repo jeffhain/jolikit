@@ -51,6 +51,8 @@ public class ScaledRectDrawerPerf {
     private static final boolean MUST_BENCH_NEAREST = true;
     private static final boolean MUST_BENCH_BOXSAMPLED = true;
     private static final boolean MUST_BENCH_BILINEAR_AWT = (!BASIC_BENCH_MODE);
+    private static final boolean MUST_BENCH_BILINEAR = true;
+    private static final boolean MUST_BENCH_BOXSAMPLED_BILINEAR = true;
     private static final boolean MUST_BENCH_BICUBIC_AWT = (!BASIC_BENCH_MODE);
     private static final boolean MUST_BENCH_BICUBIC = true;
     private static final boolean MUST_BENCH_BOXSAMPLED_BICUBIC = true;
@@ -75,7 +77,7 @@ public class ScaledRectDrawerPerf {
     
     private static final int NBR_OF_CALLS = (SPLIT_TUNING_MODE || MUST_BENCH_SEQUENTIAL ? 10 : 100);
     
-    private static final int SPAN_FACTOR = (SPLIT_TUNING_MODE ? 10 : 1);
+    private static final int SPAN_FACTOR = (SPLIT_TUNING_MODE ? 4 : 1);
     
     private static final int PARALLELISM =
         Runtime.getRuntime().availableProcessors();
@@ -86,13 +88,11 @@ public class ScaledRectDrawerPerf {
     
     private static final int[][] SRC_DST_SPANS_ARR = new int[][] {
         {1000, 101},
-        {1000, 333},
         {1000, 500},
-        {1000, 750},
+        {1000, 505},
         {1000, 1000},
-        {750, 1000},
+        {505, 1000},
         {500, 1000},
-        {333, 1000},
         {101, 1000},
     };
     
@@ -204,6 +204,8 @@ public class ScaledRectDrawerPerf {
             + ScaledRectAlgoNearest.AREA_THRESHOLD_FOR_SPLIT);
         System.out.println("AREA_THRESHOLD_FOR_SPLIT (BOXSAMPLED) = "
             + ScaledRectAlgoBoxsampled.AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BILINEAR) = "
+            + ScaledRectAlgoBilinear.AREA_THRESHOLD_FOR_SPLIT);
         System.out.println("AREA_THRESHOLD_FOR_SPLIT (BICUBIC) = "
             + ScaledRectAlgoBicubic.AREA_THRESHOLD_FOR_SPLIT);
         
@@ -283,6 +285,22 @@ public class ScaledRectDrawerPerf {
                 @Override
                 public String toString() {
                     return "BILINEAR_AWT";
+                }
+            });
+        }
+        if (MUST_BENCH_BILINEAR) {
+            drawerList.add(new ScaledRectDrawerBilinear() {
+                @Override
+                public String toString() {
+                    return "BILINEAR";
+                }
+            });
+        }
+        if (MUST_BENCH_BOXSAMPLED_BILINEAR) {
+            drawerList.add(new ScaledRectDrawerBoxsampledBilinear() {
+                @Override
+                public String toString() {
+                    return "BOXSAMPLED_BILINEAR";
                 }
             });
         }

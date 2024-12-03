@@ -19,20 +19,15 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 
-public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
+public class ScaledRectAlgoBilinear implements InterfaceScaledRectAlgo {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    static final int AREA_THRESHOLD_FOR_SPLIT = 1024;
+    static final int AREA_THRESHOLD_FOR_SPLIT = 4 * 1024;
     
     private static final double H = 0.5;
-    
-    /**
-     * For bicubic interpolation.
-     */
-    private static final double A = -0.5;
     
     /**
      * Not shrinking more than that per iteration.
@@ -48,7 +43,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
-    public ScaledRectAlgoBicubic() {
+    public ScaledRectAlgoBilinear() {
     }
     
     @Override
@@ -93,7 +88,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         if ((srcRect.xSpan() == dstRect.xSpan())
             && (srcRect.ySpan() == dstRect.ySpan())) {
             /*
-             * No scaling: nearest equivalent to bicubic
+             * No scaling: nearest equivalent to bilinear
              * but faster.
              */
             ALGO_NEAREST.drawScaledRectChunk(
@@ -106,7 +101,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
                 dstYEnd,
                 dstRowDrawer);
         } else {
-            drawScaledRectChunk_bicubic(
+            drawScaledRectChunk_bilinear(
                 colorTypeHelper,
                 srcPixels,
                 srcRect,
@@ -119,12 +114,10 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
     }
     
     //--------------------------------------------------------------------------
-    // PRIVATE METHODS
+    // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private static int bicubicInterpolate(
-        PpTlData tl,
-        //
+    static int bilinearInterpolate(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -135,24 +128,10 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         double syFracFp) {
         
         /*
-         * Weight in x cached in array to avoid recomputation.
-         * 
-         * Caching wx in a 4*dxSpan length array
-         * and wy in a 4 length array, both given to this method,
-         * doesn't help (probably due to cache misses and memory load).
-         */
-        
-        final double[] wxArr = tl.tmpDoubleArr.getArr(4);
-        for (int kx = -1; kx <= 2; kx++) {
-            final double wx = cubicWeight(kx - sxFracFp);
-            wxArr[kx + 1] = wx;
-        }
-        
-        /*
          * A bit faster to inline PpColorSum logic here
-         * rather than using the class (like 27ms vs 33ms).
+         * rather than using the class.
          */
-
+        
         int a8 = 0;
         int b8 = 0;
         int c8 = 0;
@@ -164,14 +143,14 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         double resCFp = 0.0;
         double resDFp = 0.0;
         
-        // Iterating over 4x4 neighborhood.
-        for (int ky = -1; ky <= 2; ky++) {
+        // Iterating over 2x2 neighborhood.
+        double wy = 1 - syFracFp;
+        for (int ky = 0; ky <= 1; ky++) {
             final int sy = srcRect.clampY(syFloor + ky);
-            final double wy = cubicWeight(ky - syFracFp);
             
-            for (int kx = -1; kx <= 2; kx++) {
+            double wx = 1 - sxFracFp;
+            for (int kx = 0; kx <= 1; kx++) {
                 final int sx = srcRect.clampX(sxFloor + kx);
-                final double wx = wxArr[kx + 1];
                 
                 final double w = wx * wy;
                 
@@ -194,7 +173,11 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
                 resBFp += (b8 * w);
                 resCFp += (c8 * w);
                 resDFp += (d8 * w);
+                
+                wx = sxFracFp;
             }
+            
+            wy = syFracFp;
         }
         
         final int resA8 = (int) (resAFp + H);
@@ -203,7 +186,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         final int resD8 = (int) (resDFp + H);
         
         final int dstPremulColor32 =
-            colorTypeHelper.toValidPremul32(
+            BindingColorUtils.toAbcd32_noCheck(
                 resA8,
                 resB8,
                 resC8,
@@ -216,36 +199,11 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
         return dstColor32;
     }
     
-    /**
-     * This weight can be negative.
-     * 
-     * @param x Its absolute value must be <= 2,
-     *        which holds as long as we don't go further
-     *        than +-2 around interpolation position.
-     */
-    private static double cubicWeight(double x) {
-        /*
-         * Can have accuracy tests to still pass
-         * if using a 1024-long table of precomputed weights,
-         * but perfs seem the same so not bothering.
-         */
-        x = Math.abs(x);
-        final double x2 = x * x;
-        final double ret;
-        if (x <= 1.0) {
-            ret = x2 * (x * (A + 2) - (A + 3)) + 1;
-        } else {
-            // Here we assume x <= 2.
-            ret = A * (x2 * (x - 5) + 8 * x - 4);
-        }
-        return ret;
-    }
+    //--------------------------------------------------------------------------
+    // PRIVATE METHODS
+    //--------------------------------------------------------------------------
     
-    /*
-     * 
-     */
-    
-    private static void drawScaledRectChunk_bicubic(
+    private static void drawScaledRectChunk_bilinear(
         InterfaceColorTypeHelper colorTypeHelper,
         //
         InterfaceSrcPixels srcPixels,
@@ -310,9 +268,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
                 final int sxFloor = (int) Math.floor(srcXFp);
                 final double sxFracFp = srcXFp - sxFloor;
                 
-                final int dstColor32 = bicubicInterpolate(
-                    tl,
-                    //
+                final int dstColor32 = bilinearInterpolate(
                     colorTypeHelper,
                     //
                     srcPixels,
