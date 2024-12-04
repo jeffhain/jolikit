@@ -73,7 +73,10 @@ public class ScaledRectDrawerPerf {
      * 
      */
     
-    private static final int NBR_OF_RUNS = 2;
+    /**
+     * 3 for 1 load/warmup run + 2 meaningful runs.
+     */
+    private static final int NBR_OF_RUNS = 3;
     
     private static final int NBR_OF_CALLS = (SPLIT_TUNING_MODE || MUST_BENCH_SEQUENTIAL ? 10 : 100);
     

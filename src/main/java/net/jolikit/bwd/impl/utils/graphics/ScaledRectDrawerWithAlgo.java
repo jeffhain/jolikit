@@ -158,15 +158,57 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
          * 
          */
         
-        final int maxItCount =
-            Math.max(
-                Math.abs(srcRect.xSpan() - dstRect.xSpan()),
-                Math.abs(srcRect.ySpan() - dstRect.ySpan()));
-        final int itCount =
-            Math.min(
-                maxItCount,
-                this.algo.computeIterationCount(srcRect, dstRect));
-        if (itCount >= 2) {
+        final double itSpanGrowthFactor = this.algo.getIterationSpanGrowthFactor();
+        if (!(itSpanGrowthFactor > 1.0)) {
+            throw new IllegalArgumentException(
+                "iteration span growth factor ["
+                    + itSpanGrowthFactor
+                    + "] must be > 1");
+        }
+        
+        final double itSpanShrinkFactor = this.algo.getIterationSpanShrinkFactor();
+        if (!((itSpanShrinkFactor >= 0.0) && (itSpanShrinkFactor < 1.0))) {
+            throw new IllegalArgumentException(
+                "iteration span shrink factor ["
+                    + itSpanShrinkFactor
+                    + "] must be in [0,1[");
+        }
+        
+        /*
+         * 
+         */
+        
+        final boolean xGrowth = (dstRect.xSpan() > srcRect.xSpan());
+        final boolean yGrowth = (dstRect.ySpan() > srcRect.ySpan());
+        
+        final double xSpanFactor;
+        if (xGrowth) {
+            xSpanFactor = itSpanGrowthFactor;
+        } else {
+            xSpanFactor = itSpanShrinkFactor;
+        }
+        final double ySpanFactor;
+        if (yGrowth) {
+            ySpanFactor = itSpanGrowthFactor;
+        } else {
+            ySpanFactor = itSpanShrinkFactor;
+        }
+        
+        int itKDstXSpan =
+            computeNextItDstRectSpan(
+                srcRect.xSpan(),
+                xSpanFactor,
+                dstRect.xSpan());
+        int itKDstYSpan =
+            computeNextItDstRectSpan(
+                srcRect.ySpan(),
+                ySpanFactor,
+                dstRect.ySpan());
+        
+        final boolean gotIter =
+            (itKDstXSpan != dstRect.xSpan())
+            || (itKDstYSpan != dstRect.ySpan());
+        if (gotIter) {
             final PpTlData tl = PpTlData.DEFAULT_TL_DATA.get();
             //
             InterfaceSrcPixels itSrcPixels = null;
@@ -188,23 +230,16 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
             // than max of src and dst area.
             final int maxArea = NbrsUtils.timesBounded(maxXSpan, maxYSpan);
             
-            // double to avoid overflow issues here.
-            final double dstDxMinFp = dstRect.x() - (double) srcRect.x();
-            final double dstDyMinFp = dstRect.y() - (double) srcRect.y();
-            final double dstDxMaxFp = dstRect.xMax() - (double) srcRect.xMax();
-            final double dstDyMaxFp = dstRect.yMax() - (double) srcRect.yMax();
-            
             final PooledIntArrHolder tmpBigArrHolder1 = tl.borrowBigArrHolder();
             final PooledIntArrHolder tmpBigArrHolder2 = tl.borrowBigArrHolder();
             
-            for (int i = 0; i < itCount; i++) {
-                // In ]0,1].
-                final double ratio = (i + 1) / (double) itCount;
-                if (i == 0) {
+            boolean isLastIt = false;
+            while (!isLastIt) {
+                if (itSrcPixels == null) {
                     itSrcPixels = srcPixels;
                     itSrcRect = srcRect;
                 } else {
-                    if (i == 1) {
+                    if (itSrcPixelsInterm == null) {
                         itSrcColor32Arr = tmpBigArrHolder1.getArr(maxArea);
                         itSrcPixelsInterm = new IntArrSrcPixels();
                     }
@@ -231,17 +266,37 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                     itSrcPixels = itSrcPixelsInterm;
                 }
                 //
-                if (i < itCount - 1) {
-                    // int part, to make sure not to remove too much.
-                    itDstRect = srcRect.withBordersDeltas(
-                        (int) (dstDxMinFp * ratio),
-                        (int) (dstDyMinFp * ratio),
-                        (int) (dstDxMaxFp * ratio),
-                        (int) (dstDyMaxFp * ratio));
-                    if (i == 0) {
-                        itDstColor32Arr = tmpBigArrHolder2.getArr(maxArea);
-                        itDstRowDrawerInterm = new IntArrCopyRowDrawer();
-                    }
+                final boolean isFirstIt = (itDstRect == null);
+                
+                if (isFirstIt) {
+                    itDstColor32Arr = tmpBigArrHolder2.getArr(maxArea);
+                    itDstRowDrawerInterm = new IntArrCopyRowDrawer();
+                } else {
+                    itKDstXSpan =
+                        computeNextItDstRectSpan(
+                            itKDstXSpan,
+                            xSpanFactor,
+                            dstRect.xSpan());
+                    itKDstYSpan =
+                        computeNextItDstRectSpan(
+                            itKDstYSpan,
+                            ySpanFactor,
+                            dstRect.ySpan());
+                }
+                
+                isLastIt =
+                    ((itKDstXSpan == dstRect.xSpan())
+                    && (itKDstYSpan == dstRect.ySpan()));
+                
+                if (!isLastIt) {
+                    // Using (0,0) position for itDstRect for all non-last iterations,
+                    // to avoid risk of overflow due to eventual huge intermediary span
+                    // starting at eventually huge srcRect or dstRect position.
+                    itDstRect = GRect.valueOf(
+                        0,
+                        0,
+                        itKDstXSpan,
+                        itKDstYSpan);
                     /*
                      * Always using itDstRect as itDstClip
                      * for non-last iterations, for all pixels
@@ -265,6 +320,9 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                         itDstScanlineStride);
                     itDstRowDrawer = itDstRowDrawerInterm;
                 } else {
+                    /*
+                     * Last iteration.
+                     */
                     itDstRect = dstRect;
                     itDstClip = dstClip;
                     itDstRowDrawer = dstRowDrawer;
@@ -291,6 +349,53 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                 dstClip,
                 dstRowDrawer);
         }
+    }
+    
+    //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    /**
+     * factor is never 1, which is checked on retrieval.
+     * 
+     * @param factor Is > 1 for span growth, < 1 for span shrink.
+     */
+    static int computeNextItDstRectSpan(
+        int prevItDstRectSpan,
+        double factor,
+        int dstRectSpan) {
+        
+        int ret;
+        if (factor > 1.0) {
+            // floor() not to grow more than the specified factor...
+            ret = (int) Math.floor(prevItDstRectSpan * factor);
+            // ...unless if we did not grow,
+            // in which case we force growth if possible.
+            if ((ret == prevItDstRectSpan)
+                // Need this check to avoid wrapping
+                // when dstRectSpan is Integer.MAX_VALUE
+                // and has already been reached.
+                && (ret < Integer.MAX_VALUE)) {
+                ret++;
+            }
+            // Making sure we don't go above target span.
+            ret = Math.min(dstRectSpan, ret);
+        } else {
+            // ceil() not to shrink more than the specified factor...
+            ret = (int) Math.ceil(prevItDstRectSpan * factor);
+            // ...unless if we did not shrink,
+            // in which case we force shrinking if possible.
+            if (ret == prevItDstRectSpan) {
+                // Fine if ret goes from 1 to 0 here,
+                // since it will be raised
+                // by subsequent max(dstRectSpan,_),
+                // since we don't iterate with empty dstRect.
+                ret--;
+            }
+            // Making sure we don't go below target span.
+            ret = Math.max(dstRectSpan, ret);
+        }
+        return ret;
     }
     
     //--------------------------------------------------------------------------

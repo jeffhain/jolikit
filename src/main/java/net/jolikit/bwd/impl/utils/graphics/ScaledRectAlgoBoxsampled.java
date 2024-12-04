@@ -20,7 +20,7 @@ import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 import net.jolikit.lang.NbrsUtils;
 
-public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
+public class ScaledRectAlgoBoxsampled extends AbstractScaledRectAlgo {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -82,13 +82,6 @@ public class ScaledRectAlgoBoxsampled implements InterfaceScaledRectAlgo {
     @Override
     public int getAreaThresholdForSplit() {
         return AREA_THRESHOLD_FOR_SPLIT;
-    }
-    
-    @Override
-    public int computeIterationCount(
-        GRect srcRect,
-        GRect dstRect) {
-        return 1;
     }
     
     /**

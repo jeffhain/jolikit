@@ -48,10 +48,12 @@ public enum BwdScalingType {
     /**
      * Unlike BOXSAMPLED, on upscaling it causes smoothing,
      * but also some blurring.
-     * On downscaling, is usually much worse, even when
-     * done iteratively to make sure all covered source pixels
-     * contribute, which is advised, even though it can make it
-     * not only worse than BOXSAMPLED but also slower.
+     * On downscaling, should use iterations to make sure that
+     * all covered source pixels contribute.
+     * Note that iterations on downscaling can both make it slower
+     * than BOXSAMPLED, and cause the end result to drift further away
+     * from original image than with BOXSAMPLED, due to accumulated deltas,
+     * such as for large downscaling BOXSAMPLED might be preferable.
      * 
      * If there is no scaling, is equivalent to NEAREST,
      * so should delegate to NEAREST in that case for speed.
@@ -60,7 +62,7 @@ public enum BwdScalingType {
     /**
      * Similar to BILINEAR but gives a sharper result,
      * at the cost of being slower.
-     * Same remarks as for BILINEAR for downscaling.
+     * On downscaling, same remarks as for BILINEAR.
      * 
      * If there is no scaling, is equivalent to NEAREST,
      * so should delegate to NEAREST in that case for speed.
@@ -70,11 +72,11 @@ public enum BwdScalingType {
      * Same as BILINEAR except when downscaling divides width or height
      * by more than two, in which case, instead of splitting
      * the downscaling in multiple bilinear iterations,
-     * downscaling must first partially be done using BOXSAMPLED,
+     * downscaling is first partially done using BOXSAMPLED,
      * and then terminated using bilinear with width or height
      * divided by two.
      * 
-     * Combines the smoothing qualities of BILINEAR
+     * Combines the smoothing qualities of BILINEAR,
      * with the quality and speed of BOXSAMPLED for large downscalings. 
      * 
      * If there is no scaling, is equivalent to NEAREST,
@@ -85,11 +87,11 @@ public enum BwdScalingType {
      * Same as BICUBIC except when downscaling divides width or height
      * by more than two, in which case, instead of splitting
      * the downscaling in multiple bicubic iterations,
-     * downscaling must first partially be done using BOXSAMPLED,
+     * downscaling is first partially done using BOXSAMPLED,
      * and then terminated using bicubic with width or height
      * divided by two.
      * 
-     * Combines the smoothing qualities of BICUBIC
+     * Combines the smoothing and sharpening qualities of BICUBIC,
      * with the quality and speed of BOXSAMPLED for large downscalings. 
      * 
      * If there is no scaling, is equivalent to NEAREST,

@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
 import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 
-public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
+public class ScaledRectAlgoNearest extends AbstractScaledRectAlgo {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -42,13 +42,6 @@ public class ScaledRectAlgoNearest implements InterfaceScaledRectAlgo {
     @Override
     public int getAreaThresholdForSplit() {
         return AREA_THRESHOLD_FOR_SPLIT;
-    }
-    
-    @Override
-    public int computeIterationCount(
-        GRect srcRect,
-        GRect dstRect) {
-        return 1;
     }
     
     /**

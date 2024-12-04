@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -245,11 +245,11 @@ public class PixelFormatConverter {
         if (aMask == 0) {
             this.aFfDivMax = Double.NaN;
         } else {
-            this.aFfDivMax = computeFfDivMax(aMask, this.aShift, this.aBitSize);
+            this.aFfDivMax = computeFfDivMax(this.aBitSize);
         }
-        this.rFfDivMax = computeFfDivMax(rMask, this.rShift, this.rBitSize);
-        this.gFfDivMax = computeFfDivMax(gMask, this.gShift, this.gBitSize);
-        this.bFfDivMax = computeFfDivMax(bMask, this.bShift, this.bBitSize);
+        this.rFfDivMax = computeFfDivMax(this.rBitSize);
+        this.gFfDivMax = computeFfDivMax(this.gBitSize);
+        this.bFfDivMax = computeFfDivMax(this.bBitSize);
     }
     
     /*
@@ -302,8 +302,8 @@ public class PixelFormatConverter {
      * ffDivMax = (0xFF / (double) cptMax)
      * with cptMax = ((1<<cptBitSize)-1)
      */
-    private static double computeFfDivMax(int mask, int shift, int bitSize) {
-        final int cptMax = ((1 << bitSize) - 1);
+    private static double computeFfDivMax(int cptBitSize) {
+        final int cptMax = ((1 << cptBitSize) - 1);
         return (0xFF / (double) cptMax);
     }
 

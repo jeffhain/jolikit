@@ -33,16 +33,25 @@ public interface InterfaceScaledRectAlgo {
      *         for parallelization.
      */
     public int getAreaThresholdForSplit();
+    
+    /**
+     * @return Factor by which to multiply growing destination span
+     *         at each iteration, until reaching destination span.
+     *         Must be > 1. Double.POSITIVE_INFINITY means
+     *         just using one iteration for the growing span(s),
+     *         i.e. using destination rectangle span directly.
+     */
+    public double getIterationSpanGrowthFactor();
 
     /**
-     * @return The number of scaling iterations to use,
-     *         with linear intermediary srcRect, dstRect
-     *         and dstRectClipped.
+     * @return Factor by which to multiply shrinking destination span
+     *         at each iteration, until reaching destination span.
+     *         Must be in [0,1[. Zero means just using one iteration
+     *         for the shrinking span(s), i.e. using destination rectangle
+     *         span directly.
      */
-    public int computeIterationCount(
-        GRect srcRect,
-        GRect dstRect);
-    
+    public double getIterationSpanShrinkFactor();
+
     /**
      * Specifying dstRectClipped and not dstClip,
      * because it typically has been computed before this call,

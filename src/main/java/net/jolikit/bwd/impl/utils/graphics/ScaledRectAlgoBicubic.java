@@ -19,7 +19,7 @@ import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.impl.utils.graphics.PpTlData.PooledIntArrHolder;
 
-public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
+public class ScaledRectAlgoBicubic extends AbstractScaledRectAlgo {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -34,12 +34,7 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
      */
     private static final double A = -0.5;
     
-    /**
-     * Not shrinking more than that per iteration.
-     */
-    private static final double IT_SHRINK_THRESHOLD = 2.0;
-    
-    private static final double IT_LOG_SHRINK_FACTOR = 1.0 / Math.log(IT_SHRINK_THRESHOLD);
+    private static final double IT_SPAN_SHRINK_FACTOR = 0.5;
     
     private static final ScaledRectAlgoNearest ALGO_NEAREST =
         new ScaledRectAlgoNearest();
@@ -57,19 +52,8 @@ public class ScaledRectAlgoBicubic implements InterfaceScaledRectAlgo {
     }
     
     @Override
-    public int computeIterationCount(
-        GRect srcRect,
-        GRect dstRect) {
-        final double xShrink = srcRect.xSpan() / (double) dstRect.xSpan();
-        final double yShrink = srcRect.ySpan() / (double) dstRect.ySpan();
-        final double maxShrink = Math.max(xShrink, yShrink);
-        final int itCount;
-        if (maxShrink > IT_SHRINK_THRESHOLD) {
-            itCount = (int) Math.ceil(Math.log(maxShrink) * IT_LOG_SHRINK_FACTOR);
-        } else {
-            itCount = 1;
-        }
-        return itCount;
+    public double getIterationSpanShrinkFactor() {
+        return IT_SPAN_SHRINK_FACTOR;
     }
     
     @Override
