@@ -493,15 +493,12 @@ public final class GRect implements Comparable<GRect> {
      *         or negatively (i.e. when x = Integer.MIN_VALUE and xSpan = 0).
      */
     public int xMax() {
-        final int xMax = this.x + this.xSpan - 1;
-        if (this.xSpan == 0) {
-            if (this.x == Integer.MIN_VALUE) {
-                throw new ArithmeticException("xMax [" + xMax + "] overflows (negatively)");
-            }
-        } else if (xMax < this.x) {
-            throw new ArithmeticException("xMax [" + xMax + "] overflows (positively)");
+        final int xMaxP1 = this.x + this.xSpan;
+        if (xMaxP1 <= this.x) {
+            // Might have overflow.
+            this.xMax_throwIfOverflow(xMaxP1);
         }
-        return xMax;
+        return xMaxP1 - 1;
     }
 
     /**
@@ -512,15 +509,12 @@ public final class GRect implements Comparable<GRect> {
      *         or negatively (i.e. when y = Integer.MIN_VALUE and ySpan = 0).
      */
     public int yMax() {
-        final int yMax = this.y + this.ySpan - 1;
-        if (this.ySpan == 0) {
-            if (this.y == Integer.MIN_VALUE) {
-                throw new ArithmeticException("yMax [" + yMax + "] overflows (negatively)");
-            }
-        } else if (yMax < this.y) {
-            throw new ArithmeticException("yMax [" + yMax + "] overflows (positively)");
+        final int yMaxP1 = this.y + this.ySpan;
+        if (yMaxP1 <= this.y) {
+            // Might have overflow.
+            this.yMax_throwIfOverflow(yMaxP1);
         }
-        return yMax;
+        return yMaxP1 - 1;
     }
 
     /*
@@ -588,17 +582,12 @@ public final class GRect implements Comparable<GRect> {
      * @return The specified x clamped into [x(),min(Integer.MAX_VALUE,xMaxLong())].
      */
     public int clampX(int x) {
-        if ((x <= this.x)
-            || (this.xSpan == 0)) {
-            x = this.x;
-        } else {
-            final long xMaxLong = this.xMaxLong();
-            if (x > xMaxLong) {
-                // Means xMaxLong is in int range.
-                x = (int) xMaxLong;
-            }
+        final int xMaxP1 = this.x + this.xSpan;
+        if (xMaxP1 <= this.x) {
+            // Might have overflow.
+            return this.clampX_mightOverflow(x);
         }
-        return x;
+        return NbrsUtils.toRange(this.x, xMaxP1 - 1, x);
     }
     
     /**
@@ -607,17 +596,12 @@ public final class GRect implements Comparable<GRect> {
      * @return The specified y clamped into [y(),min(Integer.MAX_VALUE,yMaxLong())].
      */
     public int clampY(int y) {
-        if ((y <= this.y)
-            || (this.ySpan == 0)) {
-            y = this.y;
-        } else {
-            final long yMaxLong = this.yMaxLong();
-            if (y > yMaxLong) {
-                // Means yMaxLong is in int range
-                y = (int) yMaxLong;
-            }
+        final int yMaxP1 = this.y + this.ySpan;
+        if (yMaxP1 <= this.y) {
+            // Might have overflow.
+            return this.clampY_mightOverflow(y);
         }
-        return y;
+        return NbrsUtils.toRange(this.y, yMaxP1 - 1, y);
     }
     
     /*
@@ -1132,6 +1116,64 @@ public final class GRect implements Comparable<GRect> {
                 && (y1 == y2)
                 && (xSpan1 == xSpan2)
                 && (ySpan1 == ySpan2);
+    }
+    
+    /*
+     * 
+     */
+    
+    private void xMax_throwIfOverflow(int xMaxP1) {
+        final int xMax = xMaxP1 - 1;
+        if (this.xSpan == 0) {
+            if (this.x == Integer.MIN_VALUE) {
+                throw new ArithmeticException("xMax [" + xMax + "] overflows (negatively)");
+            }
+        } else if (xMax < this.x) {
+            throw new ArithmeticException("xMax [" + xMax + "] overflows (positively)");
+        }
+    }
+
+    private void yMax_throwIfOverflow(int yMaxP1) {
+        final int yMax = yMaxP1 - 1;
+        if (this.ySpan == 0) {
+            if (this.y == Integer.MIN_VALUE) {
+                throw new ArithmeticException("yMax [" + yMax + "] overflows (negatively)");
+            }
+        } else if (yMax < this.y) {
+            throw new ArithmeticException("yMax [" + yMax + "] overflows (positively)");
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    private int clampX_mightOverflow(int x) {
+        if ((x <= this.x)
+            || (this.xSpan == 0)) {
+            x = this.x;
+        } else {
+            final long xMaxLong = this.xMaxLong();
+            if (x > xMaxLong) {
+                // Means xMaxLong is in int range.
+                x = (int) xMaxLong;
+            }
+        }
+        return x;
+    }
+
+    private int clampY_mightOverflow(int y) {
+        if ((y <= this.y)
+            || (this.ySpan == 0)) {
+            y = this.y;
+        } else {
+            final long yMaxLong = this.yMaxLong();
+            if (y > yMaxLong) {
+                // Means yMaxLong is in int range.
+                y = (int) yMaxLong;
+            }
+        }
+        return y;
     }
 
     /*
