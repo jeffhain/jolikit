@@ -36,6 +36,9 @@ public class ScaledRectDrawerBoxsampledBilinear extends ScaledRectDrawerWithPreD
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    /**
+     * Uses 2 for maxBilinearShrinking.
+     */
     public ScaledRectDrawerBoxsampledBilinear() {
         super(
             DRAWER_BOXSAMPLED,
@@ -45,7 +48,7 @@ public class ScaledRectDrawerBoxsampledBilinear extends ScaledRectDrawerWithPreD
     /**
      * @param maxBilinearShrinking Max span division to cover with BILINEAR,
      *        after preliminary shrinking using BOXSAMPLED. Must be >= 1.
-     *        Use 1 to only shrink using BOXSAMPLED. Default is 2.
+     *        Use 1 to only shrink using BOXSAMPLED.
      */
     public ScaledRectDrawerBoxsampledBilinear(double maxBilinearShrinking) {
         super(

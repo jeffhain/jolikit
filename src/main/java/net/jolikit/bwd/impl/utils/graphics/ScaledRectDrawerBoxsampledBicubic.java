@@ -36,6 +36,9 @@ public class ScaledRectDrawerBoxsampledBicubic extends ScaledRectDrawerWithPreDs
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    /**
+     * Uses 2 for maxBicubicShrinking.
+     */
     public ScaledRectDrawerBoxsampledBicubic() {
         super(
             DRAWER_BOXSAMPLED,
@@ -45,7 +48,7 @@ public class ScaledRectDrawerBoxsampledBicubic extends ScaledRectDrawerWithPreDs
     /**
      * @param maxBicubicShrinking Max span division to cover with BICUBIC,
      *        after preliminary shrinking using BOXSAMPLED. Must be >= 1.
-     *        Use 1 to only shrink using BOXSAMPLED. Default is 2.
+     *        Use 1 to only shrink using BOXSAMPLED.
      */
     public ScaledRectDrawerBoxsampledBicubic(double maxBicubicShrinking) {
         super(

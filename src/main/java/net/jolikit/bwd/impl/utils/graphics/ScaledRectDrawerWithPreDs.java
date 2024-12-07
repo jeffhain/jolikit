@@ -49,6 +49,9 @@ public class ScaledRectDrawerWithPreDs implements InterfaceScaledRectDrawer {
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
+    /**
+     * Uses 2 for maxRegularShrinking.
+     */
     public ScaledRectDrawerWithPreDs(
         final InterfaceScaledRectDrawer preliminaryDrawer,
         final InterfaceScaledRectDrawer regularDrawer) {
@@ -62,7 +65,6 @@ public class ScaledRectDrawerWithPreDs implements InterfaceScaledRectDrawer {
      * @param maxRegularShrinking Max span division to cover with regular
      *        drawer, after shrinking with preliminary drawer.
      *        Must be >= 1. Use 1 to only shrink using preliminary drawer.
-     *        Default is 2.
      */
     public ScaledRectDrawerWithPreDs(
         final InterfaceScaledRectDrawer preliminaryDrawer,
