@@ -59,19 +59,12 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
      */
     private class MyTimingThreadRunnable implements InterfaceCancellable {
         final Runnable runnable;
-        /**
-         * null for ASAP schedules.
-         */
-        final Long theoreticalTimeNsIfAny;
-        public MyTimingThreadRunnable(
-                Runnable runnable,
-                Long theoreticalTimeNsIfAny) {
+        public MyTimingThreadRunnable(Runnable runnable) {
             this.runnable = runnable;
-            this.theoreticalTimeNsIfAny = theoreticalTimeNsIfAny;
         }
         @Override
         public void run() {
-            wrapAndCallRunLater(this.runnable, this.theoreticalTimeNsIfAny);
+            wrapAndCallRunLater(this.runnable);
         }
         @Override
         public void onCancel() {
@@ -196,16 +189,12 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
     public void execute(Runnable runnable) {
         LangUtils.requireNonNull(runnable);
         
-        final Long theoreticalTimeNsIfAny = null;
-        
         if (this.mustCallRunLaterFromTimingThread) {
             final MyTimingThreadRunnable cancellable =
-                    new MyTimingThreadRunnable(
-                            runnable,
-                            theoreticalTimeNsIfAny);
+                    new MyTimingThreadRunnable(runnable);
             this.timingScheduler.execute(cancellable);
         } else {
-            wrapAndCallRunLater(runnable, theoreticalTimeNsIfAny);
+            wrapAndCallRunLater(runnable);
         }
     }
 
@@ -216,9 +205,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
         // reached, and then will delegate actual runnable execution to
         // UI thread.
         final MyTimingThreadRunnable cancellable =
-                new MyTimingThreadRunnable(
-                        runnable,
-                        timeNs);
+                new MyTimingThreadRunnable(runnable);
         this.timingScheduler.executeAtNs(cancellable, timeNs);
     }
 
@@ -281,8 +268,7 @@ public abstract class AbstractUiThreadScheduler extends AbstractScheduler implem
      * the specified runnable is a cancellable.
      */
     private void wrapAndCallRunLater(
-            final Runnable runnable,
-            Long theoreticalTimeNsIfAny) {
+            final Runnable runnable) {
         final Runnable runnableWrapper = new MyRunnableWrapper(runnable);
         
         RejectedExecutionException ree = null;
