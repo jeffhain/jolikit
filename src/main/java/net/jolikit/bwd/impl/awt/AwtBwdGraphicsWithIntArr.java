@@ -137,7 +137,10 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 box, // initialClip
                 //
                 isImageGraphics,
-                requireCompatible(backingImage));
+                BufferedImageHelper.requireCompatibleSimpleIntArray(
+                    backingImage,
+                    BihPixelFormat.ARGB32,
+                    BufferedImageHelper.PREMUL));
     }
     
     /*
@@ -478,24 +481,9 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 initialClip,
                 //
                 isImageGraphics,
-                BufferedImageHelper.getIntPixelArr(backingImage),
+                BufferedImageHelper.getIntArray(backingImage),
                 backingImage.getWidth());
         this.backingImage = backingImage;
-    }
-
-    /**
-     * @param image Image to use for this graphics.
-     * @return The image.
-     * @throws IllegalArgumentException if the image
-     *         is not of compatible type.
-     */
-    private static BufferedImage requireCompatible(BufferedImage image) {
-        final BihPixelFormat pixelFormat = BihPixelFormat.ARGB32;
-        final boolean premul = true;
-        return BufferedImageHelper.requireCompatible(
-                image,
-                pixelFormat,
-                premul);
     }
     
     /**

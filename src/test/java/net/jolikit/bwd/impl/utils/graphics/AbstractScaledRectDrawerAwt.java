@@ -250,10 +250,9 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         for (int j = 0; j < dstRectClippedInImg.ySpan(); j++) {
             final int y = dstRectClippedInImg.y() + j;
             for (int i = 0; i < dstRectClippedInImg.xSpan(); i++) {
-                final int argb32 = dstImgHelper.getArgb32At(i, y);
-                final int color32 =
-                    colorTypeHelper.asTypeFromNonPremul32(argb32);
-                dstImgRowArr[i] = color32;
+                final boolean premul = colorTypeHelper.isPremul();
+                final int argb32 = dstImgHelper.getArgb32At(i, y, premul);
+                dstImgRowArr[i] = argb32;
             }
             final int rowOffset = 0;
             final int dstX = dstRectClipped.x();

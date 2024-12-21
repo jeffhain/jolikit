@@ -176,13 +176,11 @@ public class AwtImgDrawingUtils {
                 PremulArgbHelper.getInstance();
             final boolean premul = colorTypeHelper.isPremul();
             
-            final BufferedImage dstImage = dstImageHelper.getImage();
-            {
-                BufferedImageHelper.requireCompatible(
-                    dstImage,
+            final BufferedImage dstImage =
+                BufferedImageHelper.requireCompatibleSimpleIntArray(
+                    dstImageHelper.getImage(),
                     BihPixelFormat.ARGB32,
                     premul);
-            }
             
             final int[] srcPremulArgb32Arr =
                 this.tmpIntArr.getArr(sxSpan * sySpan);
@@ -211,7 +209,7 @@ public class AwtImgDrawingUtils {
                     rootBoxTopLeft,
                     transform);
             final int[] dstPremulArgb32Arr =
-                BufferedImageHelper.getIntPixelArr(dstImage);
+                BufferedImageHelper.getIntArray(dstImage);
             dstRowDrawer.configure(
                 transformBiToUser,
                 dstPremulArgb32Arr,

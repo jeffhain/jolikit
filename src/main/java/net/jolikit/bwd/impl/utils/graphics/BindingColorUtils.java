@@ -144,26 +144,84 @@ public class BindingColorUtils {
      * Conversions between ARGB, and ABGR or RGBA.
      * These two last formats are useful to deal with
      * OpenGL libraries in big or little endian.
+     * 
+     * Also additional conversions to cover all BihPixelFormat needs.
+     */
+    
+    /*
+     * ARGB <-> ABGR
      */
     
     public static int toArgb32FromAbgr32(int abgr32) {
-        // A_G_ | _R__ | ___B
-        return (abgr32 & 0xFF00FF00) | ((abgr32 & 0x00000FF) << 16) | ((abgr32 & 0x00FF0000) >>> 16);
+        return switch_2_4(abgr32);
     }
     
     public static int toAbgr32FromArgb32(int argb32) {
-        // A_G_ | _B__ | ___R
-        return (argb32 & 0xFF00FF00) | ((argb32 & 0x00000FF) << 16) | ((argb32 & 0x00FF0000) >>> 16);
+        return switch_2_4(argb32);
     }
     
+    /*
+     * ARGB <-> RGBA
+     */
+    
     public static int toArgb32FromRgba32(int rgba32) {
-        // A___ | _RGB
-        return (rgba32 << 24) | (rgba32 >>> 8);
+        return rotateRightOneByte(rgba32);
     }
     
     public static int toRgba32FromArgb32(int argb32) {
-        // ___A | RGB_
-        return (argb32 >>> 24) | (argb32 << 8);
+        return rotateLeftOneByte(argb32);
+    }
+    
+    /*
+     * ARGB <-> BGRA
+     */
+    
+    public static int toArgb32FromBgra32(int bgra32) {
+        return Integer.reverseBytes(bgra32);
+    }
+    
+    public static int toBgra32FromArgb32(int argb32) {
+        return Integer.reverseBytes(argb32);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Switches second and fourth bytes.
+     */
+    public static int switch_2_4(int xuxv) {
+        // X_X_ | _V__ | ___U
+        return (xuxv & 0xFF00FF00)
+            | ((xuxv & 0x000000FF) << 16)
+            | ((xuxv & 0x00FF0000) >>> 16);
+    }
+    
+    /**
+     * Switches first and third bytes.
+     */
+    public static int switch_1_3(int uxvx) {
+        // _X_X_ | V___ | __U_
+        return (uxvx & 0x00FF00FF)
+            | ((uxvx & 0x0000FF00) << 16)
+            | ((uxvx & 0xFF000000) >>> 16);
+    }
+    
+    /**
+     * @return xyyy
+     */
+    public static int rotateRightOneByte(int yyyx) {
+        // X___ | _YYY
+        return (yyyx << 24) | (yyyx >>> 8);
+    }
+    
+    /**
+     * @return yyyx
+     */
+    public static int rotateLeftOneByte(int xyyy) {
+        // ___X | YYY_
+        return (xyyy >>> 24) | (xyyy << 8);
     }
     
     /*

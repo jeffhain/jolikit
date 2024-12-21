@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,7 +85,7 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
                     isImageGraphics,
                     backingImage);
             
-            this.premulArgb32Arr = BufferedImageHelper.getIntPixelArr(backingImage);
+            this.premulArgb32Arr = premulArgb32Arr;
         }
 
         this.graphics = graphics;

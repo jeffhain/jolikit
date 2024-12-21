@@ -368,7 +368,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
             initialClip,
             //
             isImageGraphics,
-            BufferedImageHelper.getIntPixelArr(bufferedImage),
+            BufferedImageHelper.getIntArray(bufferedImage),
             bufferedImage.getWidth());
         
         this.bufferedImage = bufferedImage;

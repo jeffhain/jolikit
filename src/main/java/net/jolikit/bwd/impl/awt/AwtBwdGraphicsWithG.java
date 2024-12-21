@@ -162,6 +162,9 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * 
      * backing : 0.016 us per call (lowest that could measure)
      * redefined : 0.019 us per call (lowest that could measure)
+     * 
+     * Evol: Now we also want to use it to avoid
+     * color model usage if possible.
      */
     private static final boolean MUST_USE_REDEF_FOR_GET_ARGB32_AT = true;
 
@@ -487,12 +490,14 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
                 // For client, must be opaque.
                 argb32ToSet = Argb32.toOpaque(argb32);
             }
+            final boolean premul = false;
             this.bufferedImageHelper.clearRect(
                     xInBaseClipped,
                     yInBaseClipped,
                     xSpanInBaseClipped,
                     ySpanInBaseClipped,
-                    argb32ToSet);
+                    argb32ToSet,
+                    premul);
         } else {
             /*
              * From clearRect(...) javadoc:
@@ -775,7 +780,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         
         final int argb32;
         if (MUST_USE_REDEF_FOR_GET_ARGB32_AT) {
-            argb32 = this.bufferedImageHelper.getArgb32At(xInBi, yInBi);
+            argb32 = this.bufferedImageHelper.getNonPremulArgb32At(xInBi, yInBi);
         } else {
             final BufferedImage bufferedImage = this.bufferedImageHelper.getImage();
             argb32 = bufferedImage.getRGB(xInBi, yInBi);
@@ -1001,7 +1006,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final int yInBi = transformBiToUser.yIn1(x, y);
         
         final int premulArgb32 = this.getPremulArgb32();
-        this.bufferedImageHelper.drawPointAt(
+        this.bufferedImageHelper.drawPointPremulAt(
             xInBi,
             yInBi,
             premulArgb32);
@@ -1050,7 +1055,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final int xSpanInBase = rectInBase.xSpan();
         final int ySpanInBase = rectInBase.ySpan();
         
-        this.bufferedImageHelper.fillRect(
+        this.bufferedImageHelper.fillRectPremul(
                 xInBase,
                 yInBase,
                 xSpanInBase,
