@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -140,7 +140,7 @@ public class Argb64 {
      * @return The alpha component in [0,255].
      */
     public static int getAlpha8(long argb64) {
-        return ((int) (argb64 >> 56)) & 0xFF;
+        return (int) (argb64 >>> 56);
     }
 
     /**
@@ -176,7 +176,7 @@ public class Argb64 {
      * @return The alpha component in [0,65535].
      */
     public static int getAlpha16(long argb64) {
-        return (int) ((argb64 >> 48) & 0xFFFF);
+        return (int) (argb64 >>> 48);
     }
 
     /**

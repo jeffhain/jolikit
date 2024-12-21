@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -128,7 +128,7 @@ public class Argb32 {
      * @return The alpha component in [0,255].
      */
     public static int getAlpha8(int argb32) {
-        return (argb32 >> 24) & 0xFF;
+        return (argb32 >>> 24);
     }
 
     /**
