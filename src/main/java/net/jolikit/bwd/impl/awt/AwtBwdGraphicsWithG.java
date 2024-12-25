@@ -941,7 +941,15 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         
         this.isImageGraphics = isImageGraphics;
         
-        this.bufferedImageHelper = new BufferedImageHelper(backingImage);
+        final boolean allowColorModelAvoiding = true;
+        // The point of this graphics is to not use the array directly.
+        // Also might allow for some hardware acceleration
+        // due to no call to "theTrackable.setUntrackable()".
+        final boolean allowArrayDirectUse = false;
+        this.bufferedImageHelper = new BufferedImageHelper(
+            backingImage,
+            allowColorModelAvoiding,
+            allowArrayDirectUse);
     }
     
     /*

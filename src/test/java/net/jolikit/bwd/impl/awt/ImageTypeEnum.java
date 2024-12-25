@@ -27,22 +27,22 @@ import java.util.TreeMap;
  * (TYPE_CUSTOM excluded - can't have premul flag for it).
  */
 public enum ImageTypeEnum {
-    TYPE_3BYTE_BGR(BufferedImage.TYPE_3BYTE_BGR, false, false),
-    TYPE_4BYTE_ABGR(BufferedImage.TYPE_4BYTE_ABGR, true, false),
-    TYPE_4BYTE_ABGR_PRE(BufferedImage.TYPE_4BYTE_ABGR_PRE, true, true),
-    //
-    TYPE_BYTE_BINARY(BufferedImage.TYPE_BYTE_BINARY, false, false),
-    TYPE_BYTE_GRAY(BufferedImage.TYPE_BYTE_GRAY, false, false),
-    TYPE_BYTE_INDEXED(BufferedImage.TYPE_BYTE_INDEXED, false, false),
-    //
     TYPE_INT_ARGB(BufferedImage.TYPE_INT_ARGB, true, false),
     TYPE_INT_ARGB_PRE(BufferedImage.TYPE_INT_ARGB_PRE, true, true),
-    TYPE_INT_BGR(BufferedImage.TYPE_INT_BGR, false, false),
     TYPE_INT_RGB(BufferedImage.TYPE_INT_RGB, false, false),
+    TYPE_INT_BGR(BufferedImage.TYPE_INT_BGR, false, false),
+    //
+    TYPE_4BYTE_ABGR(BufferedImage.TYPE_4BYTE_ABGR, true, false),
+    TYPE_4BYTE_ABGR_PRE(BufferedImage.TYPE_4BYTE_ABGR_PRE, true, true),
+    TYPE_3BYTE_BGR(BufferedImage.TYPE_3BYTE_BGR, false, false),
     //
     TYPE_USHORT_555_RGB(BufferedImage.TYPE_USHORT_555_RGB, false, false),
     TYPE_USHORT_565_RGB(BufferedImage.TYPE_USHORT_565_RGB, false, false),
-    TYPE_USHORT_GRAY(BufferedImage.TYPE_USHORT_GRAY, false, false);
+    TYPE_USHORT_GRAY(BufferedImage.TYPE_USHORT_GRAY, false, false),
+    //
+    TYPE_BYTE_GRAY(BufferedImage.TYPE_BYTE_GRAY, false, false),
+    TYPE_BYTE_BINARY(BufferedImage.TYPE_BYTE_BINARY, false, false),
+    TYPE_BYTE_INDEXED(BufferedImage.TYPE_BYTE_INDEXED, false, false);
     /*
      * 
      */

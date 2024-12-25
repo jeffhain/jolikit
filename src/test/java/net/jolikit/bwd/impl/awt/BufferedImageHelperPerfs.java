@@ -15,8 +15,12 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.Transparency;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.Random;
+import java.util.Set;
+import java.util.TreeSet;
 
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
@@ -32,13 +36,56 @@ public class BufferedImageHelperPerfs {
     private static final int NBR_OF_RUNS = 2;
     private static final int NBR_OF_CALLS = 10 * 1000 * 1000;
     
+    private static final boolean MUST_BENCH_SINGLE_PIXEL_METHODS = true;
+    private static final boolean MUST_BENCH_BULK_METHODS = true;
+    
     /*
      * Small image, for all array to stay in cache
      * and just bench computations.
      */
     
-    private static final int WIDTH = 10;
-    private static final int HEIGHT = 10;
+    private static final int SMALL_IMAGE_WIDTH = 10;
+    private static final int SMALL_IMAGE_HEIGHT = 10;
+    
+    /*
+     * Allowed types of pixels for type-to-type conversions
+     * (for bench not to take ages).
+     */
+    
+    private static final Set<BihPixelFormat> QUADRATIC_PIXEL_FORMAT_SET =
+        new TreeSet<>(Arrays.asList(
+            /*
+             * The basic.
+             */
+            BihPixelFormat.ARGB32,
+            /*
+             * To have another alpha format than ARGB,
+             * and one with alpha in LSByte,
+             * for conversions to/from itself or another format.
+             */
+            BihPixelFormat.RGBA32,
+            /*
+             * The basic opaque format.
+             */
+            BihPixelFormat.XRGB24));
+    
+    private static final Set<Integer> QUADRATIC_SRC_IMAGE_TYPE_SET =
+        new TreeSet<>(Arrays.asList(
+            /**
+             * To have a color format for which
+             * we never use array directly (only raster).
+             */
+            BufferedImage.TYPE_3BYTE_BGR,
+            /**
+             * To have a short format for which
+             * we can use array directly.
+             */
+            BufferedImage.TYPE_USHORT_565_RGB,
+            /**
+             * To have a byte format for which
+             * we can use array directly.
+             */
+            BufferedImage.TYPE_BYTE_GRAY));
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -63,21 +110,27 @@ public class BufferedImageHelperPerfs {
         final long a = System.nanoTime();
         System.out.println("--- " + BufferedImageHelperPerfs.class.getSimpleName() + "... ---");
         
-        bench_getArgb32At_nonPremul();
+        if (MUST_BENCH_SINGLE_PIXEL_METHODS) {
+            bench_getArgb32At_nonPremul();
+            
+            bench_getArgb32At_premul();
+            
+            bench_setArgb32At_nonPremul();
+            
+            bench_setArgb32At_premul();
+            
+            bench_drawPointPremulAt();
+        }
         
-        bench_getArgb32At_premul();
-        
-        bench_setArgb32At_nonPremul();
-        
-        bench_setArgb32At_premul();
-        
-        bench_drawPointPremulAt();
-        
-        bench_getPixelsInto_128_128();
-        
-        bench_getPixelsInto_1024_1024();
-        
-        bench_getPixelsInto_4096_2048();
+        if (MUST_BENCH_BULK_METHODS) {
+            bench_getPixelsInto_1920_1080_opaque();
+            
+            bench_getPixelsInto_1920_1080_translucent();
+            
+            bench_getPixelsInto_3840_2160_opaque();
+            
+            bench_getPixelsInto_3840_2160_translucent();
+        }
         
         final long b = System.nanoTime();
         System.out.println("--- ..." + BufferedImageHelperPerfs.class.getSimpleName()
@@ -98,12 +151,10 @@ public class BufferedImageHelperPerfs {
     
     private static void bench_getArgb32At_xxx(boolean getPremulElseNonPremul) {
         
-        final int width = WIDTH;
-        final int height = HEIGHT;
+        final int width = SMALL_IMAGE_WIDTH;
+        final int height = SMALL_IMAGE_HEIGHT;
         
         for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
-            
-            System.out.println();
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -111,17 +162,15 @@ public class BufferedImageHelperPerfs {
                 BufferedImageHelper.computePixelFormat(image);
             
             final int imageType = image.getType();
-            final ImageTypeEnum imageTypeEnum;
-            if (pixelFormat != null) {
-                imageTypeEnum = null;
-            } else {
-                imageTypeEnum = ImageTypeEnum.enumByType().get(imageType);
-            }
+            final ImageTypeEnum imageTypeEnum =
+                ImageTypeEnum.enumByType().get(imageType);
             
             final boolean hasAlpha =
                 (pixelFormat != null)
                 ? pixelFormat.hasAlpha()
                     : imageTypeEnum.hasAlpha();
+            
+            System.out.println();
             
             for (boolean withAlphaPixels : BihTestUtils.newBooleanArr(hasAlpha)) {
                 {
@@ -179,7 +228,7 @@ public class BufferedImageHelperPerfs {
                             + ", " + methodStr
                             + ", " + typeStr
                             + (withAlphaPixels ? ", (a-pix)" : "")
-                            + (helper.isColorModelAvoided() ? ", (CM bypass)" : "")
+                            + toStringHelperCapabilities(helper)
                             + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
@@ -213,12 +262,10 @@ public class BufferedImageHelperPerfs {
             throw new IllegalArgumentException();
         }
         
-        final int width = WIDTH;
-        final int height = HEIGHT;
+        final int width = SMALL_IMAGE_WIDTH;
+        final int height = SMALL_IMAGE_HEIGHT;
         
         for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
-            
-            System.out.println();
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -226,17 +273,15 @@ public class BufferedImageHelperPerfs {
                 BufferedImageHelper.computePixelFormat(image);
             
             final int imageType = image.getType();
-            final ImageTypeEnum imageTypeEnum;
-            if (pixelFormat != null) {
-                imageTypeEnum = null;
-            } else {
-                imageTypeEnum = ImageTypeEnum.enumByType().get(imageType);
-            }
+            final ImageTypeEnum imageTypeEnum =
+                ImageTypeEnum.enumByType().get(imageType);
             
             final boolean hasAlpha =
                 (pixelFormat != null)
                 ? pixelFormat.hasAlpha()
                     : imageTypeEnum.hasAlpha();
+            
+            System.out.println();
             
             for (boolean withAlphaPixels : BihTestUtils.newBooleanArr(hasAlpha)) {
                 
@@ -302,7 +347,7 @@ public class BufferedImageHelperPerfs {
                             + ", " + methodStr
                             + ", " + typeStr
                             + (withAlphaPixels ? ", (a-pix)" : "")
-                            + (helper.isColorModelAvoided() ? ", (CM bypass)" : "")
+                            + toStringHelperCapabilities(helper)
                             + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
@@ -314,42 +359,56 @@ public class BufferedImageHelperPerfs {
      * 
      */
     
-    private static void bench_getPixelsInto_128_128() {
-        bench_getPixelsInto_xxx(1000, 128, 128);
+    private static void bench_getPixelsInto_1920_1080_opaque() {
+        bench_getPixelsInto_xxx(10, 1920, 1080, false);
     }
     
-    private static void bench_getPixelsInto_1024_1024() {
-        bench_getPixelsInto_xxx(10, 1024, 1024);
+    private static void bench_getPixelsInto_1920_1080_translucent() {
+        bench_getPixelsInto_xxx(10, 1920, 1080, true);
     }
     
-    private static void bench_getPixelsInto_4096_2048() {
-        bench_getPixelsInto_xxx(1, 4096, 2048);
+    private static void bench_getPixelsInto_3840_2160_opaque() {
+        bench_getPixelsInto_xxx(2, 3840, 2160, false);
+    }
+    
+    private static void bench_getPixelsInto_3840_2160_translucent() {
+        bench_getPixelsInto_xxx(2, 3840, 2160, true);
     }
     
     private static void bench_getPixelsInto_xxx(
         int bulkNbrOfCalls,
         int width,
-        int height) {
+        int height,
+        boolean withTranslucency) {
         
         final int color32ArrScanlineStride = width;
         final int[] color32Arr = new int[color32ArrScanlineStride * height];
         
         for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
-            
-            System.out.println();
+            if (withTranslucency
+                && (image.getTransparency() != Transparency.TRANSLUCENT)) {
+                // N/A
+                continue;
+            }
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
             final BihPixelFormat pixelFormat =
                 BufferedImageHelper.computePixelFormat(image);
-            
             final int imageType = image.getType();
-            final ImageTypeEnum imageTypeEnum;
+            
             if (pixelFormat != null) {
-                imageTypeEnum = null;
+                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormat)) {
+                    continue;
+                }
             } else {
-                imageTypeEnum = ImageTypeEnum.enumByType().get(imageType);
+                if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(imageType)) {
+                    continue;
+                }
             }
+            
+            final ImageTypeEnum imageTypeEnum =
+                ImageTypeEnum.enumByType().get(imageType);
             
             // Randomizing image.
             {
@@ -358,17 +417,24 @@ public class BufferedImageHelperPerfs {
                     new BufferedImageHelper(image);
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
-                        // Not bothering to bench alpha (not a common case).
-                        final int argb = Argb32.toOpaque(random.nextInt());
+                        int argb = random.nextInt();
+                        if (withTranslucency) {
+                            // Letting alpha value.
+                        } else {
+                            argb = Argb32.toOpaque(argb);
+                        }
                         helperForSet.setNonPremulArgb32At(x, y, argb);
                     }
                 }
             }
             
-            for (BihPixelFormat pixelFormatTo : new BihPixelFormat[] {
-                BihPixelFormat.XRGB24,
-                BihPixelFormat.ARGB32,
-            }) {
+            System.out.println();
+            
+            for (BihPixelFormat pixelFormatTo : BihPixelFormat.values()) {
+                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatTo)) {
+                    continue;
+                }
+                
                 for (boolean premulTo : BihTestUtils.newPremulArr(pixelFormatTo)) {
                     
                     for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
@@ -399,14 +465,36 @@ public class BufferedImageHelperPerfs {
                             System.out.println(bulkNbrOfCalls + " call"
                                 + (bulkNbrOfCalls >= 2 ? "s" : "")
                                 + ", " + methodStr
+                                + ", " + (withTranslucency ? "(tr)" : "(op)")
                                 + ", " + typeStr
                                 + "->" + typeToStr
-                                + (helper.isColorModelAvoided() ? ", (CM bypass)" : "")
+                                + toStringHelperCapabilities(helper)
                                 + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                         }
                     }
                 }
             }
         }
+    }
+    
+    /*
+     * 
+     */
+    
+    private static String toStringHelperCapabilities(
+        BufferedImageHelper helper) {
+        
+        final String ret;
+        if (helper.isArrayDirectlyUsed()) {
+            if (!helper.isColorModelAvoided()) {
+                throw new AssertionError();
+            }
+            ret = ", (cma)(arr)";
+        } else if (helper.isColorModelAvoided()) {
+            ret = ", (cma)";
+        } else {
+            ret = "";
+        }
+        return ret;
     }
 }

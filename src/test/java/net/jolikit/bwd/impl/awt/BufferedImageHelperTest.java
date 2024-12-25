@@ -83,36 +83,51 @@ public class BufferedImageHelperTest extends TestCase {
     public void test_BufferedImageHelper_BufferedImage() {
         final BufferedImage image = newImage();
         final BufferedImageHelper helper = new BufferedImageHelper(image);
-        // allowAvoidColorModel is true by default.
+        // allowColorModelAvoiding is true by default.
         assertTrue(helper.isColorModelAvoided());
     }
     
-    public void test_BufferedImageHelper_BufferedImage_boolean() {
+    public void test_BufferedImageHelper_BufferedImage_2boolean() {
         for (BufferedImage image : newImageList()) {
             final int imageType = image.getType();
-            for (boolean allowAvoidColorModel : new boolean[] {false, true}) {
-                final BufferedImageHelper helper = new BufferedImageHelper(
-                    image,
-                    allowAvoidColorModel);
-                final boolean avoidCompatibleImageType =
-                    (imageType == BufferedImage.TYPE_INT_ARGB)
-                    || (imageType == BufferedImage.TYPE_INT_ARGB_PRE)
-                    || (imageType == BufferedImage.TYPE_INT_RGB)
-                    || (imageType == BufferedImage.TYPE_INT_BGR)
-                    || (imageType == BufferedImage.TYPE_CUSTOM) // BihPixelFormat
-                    || (imageType == BufferedImage.TYPE_USHORT_555_RGB)
-                    || (imageType == BufferedImage.TYPE_USHORT_565_RGB)
-                    || (imageType == BufferedImage.TYPE_USHORT_GRAY)
-                    || (imageType == BufferedImage.TYPE_BYTE_GRAY);
-                // For all supported image types,
-                // we have scalar pixels,
-                // so color model is actually avoided.
-                final boolean expectedAvoiding =
-                    allowAvoidColorModel
-                    && avoidCompatibleImageType;
-                final boolean actualAvoiding =
-                    helper.isColorModelAvoided();
-                assertEquals(expectedAvoiding, actualAvoiding);
+            final BihPixelFormat pixelFormat =
+                BufferedImageHelper.computePixelFormat(image);
+            
+            final boolean isImageTypeCmaCompatible =
+                (pixelFormat != null)
+                || (imageType == BufferedImage.TYPE_USHORT_555_RGB)
+                || (imageType == BufferedImage.TYPE_USHORT_565_RGB)
+                || (imageType == BufferedImage.TYPE_USHORT_GRAY)
+                || (imageType == BufferedImage.TYPE_BYTE_GRAY);
+            
+            final boolean isImageTypeAduCompatible =
+                isImageTypeCmaCompatible;
+                
+            for (boolean allowColorModelAvoiding : new boolean[] {false, true}) {
+                for (boolean allowArrayDirectUse : new boolean[] {false, true}) {
+                    final BufferedImageHelper helper = new BufferedImageHelper(
+                        image,
+                        allowColorModelAvoiding,
+                        allowArrayDirectUse);
+                    
+                    // For all supported image types,
+                    // we have scalar pixels,
+                    // so color model is actually avoided.
+                    final boolean expectedCma =
+                        allowColorModelAvoiding
+                        && isImageTypeCmaCompatible;
+                    final boolean actualCma =
+                        helper.isColorModelAvoided();
+                    assertEquals(expectedCma, actualCma);
+                    
+                    final boolean expectedAdu =
+                        allowArrayDirectUse
+                        && isImageTypeAduCompatible
+                        && expectedCma;
+                    final boolean actualAdu =
+                        helper.isArrayDirectlyUsed();
+                    assertEquals(expectedAdu, actualAdu);
+                }
             }
         }
     }
@@ -142,6 +157,10 @@ public class BufferedImageHelperTest extends TestCase {
         // Already tested in constructor test.
     }
     
+    public void test_isArrayDirectlyUsed() {
+        // Already tested in constructor test.
+    }
+    
     /*
      * 
      */
@@ -157,7 +176,7 @@ public class BufferedImageHelperTest extends TestCase {
                 
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         pixelFormat,
@@ -206,18 +225,6 @@ public class BufferedImageHelperTest extends TestCase {
         final int width = SMALL_WIDTH;
         final int height = SMALL_HEIGHT;
         
-        // null array
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                null,
-                width,
-                height,
-                BufferedImage.TYPE_INT_ARGB);
-            fail();
-        } catch (NullPointerException e) {
-            assertNotNull(e);
-        }
-        
         // too small array
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
@@ -238,7 +245,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[height],
+                    null,
                     badWidth,
                     height,
                     BufferedImage.TYPE_INT_ARGB);
@@ -256,7 +263,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[width],
+                    null,
                     width,
                     badHeight,
                     BufferedImage.TYPE_INT_ARGB);
@@ -271,7 +278,7 @@ public class BufferedImageHelperTest extends TestCase {
             if (!TYPE_INT_XXX_LIST.contains(imageType)) {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         imageType);
@@ -283,38 +290,48 @@ public class BufferedImageHelperTest extends TestCase {
         }
         
         /*
-         * 
+         * With array created internally.
          */
         
         for (int imageType : TYPE_INT_XXX_LIST) {
             final BufferedImage image =
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[width * height],
+                    null,
                     width,
                     height,
                     imageType);
             assertEquals(width, image.getWidth());
             assertEquals(height, image.getHeight());
             assertEquals(imageType, image.getType());
+            final int[] pixelArr = BufferedImageHelper.getIntArray(image);
+            assertNotNull(pixelArr);
+            assertEquals(width * height, pixelArr.length);
+        }
+        
+        /*
+         * With array specified.
+         */
+        
+        {
+            final int[] pixelArr = new int[width * height];
+            for (int imageType : TYPE_INT_XXX_LIST) {
+                final BufferedImage image =
+                    BufferedImageHelper.newBufferedImageWithIntArray(
+                        pixelArr,
+                        width,
+                        height,
+                        imageType);
+                assertEquals(width, image.getWidth());
+                assertEquals(height, image.getHeight());
+                assertEquals(imageType, image.getType());
+                assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+            }
         }
     }
     
     public void test_newBufferedImageWithIntArray_BihPixelFormat() {
         final int width = SMALL_WIDTH;
         final int height = SMALL_HEIGHT;
-        
-        // null array
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                null,
-                width,
-                height,
-                BihPixelFormat.ARGB32,
-                false);
-            fail();
-        } catch (NullPointerException e) {
-            assertNotNull(e);
-        }
         
         // too small array
         try {
@@ -337,7 +354,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[height],
+                    null,
                     badWidth,
                     height,
                     BihPixelFormat.ARGB32,
@@ -356,7 +373,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[width],
+                    null,
                     width,
                     badHeight,
                     BihPixelFormat.ARGB32,
@@ -370,7 +387,7 @@ public class BufferedImageHelperTest extends TestCase {
         // null pixel format
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[width * height],
+                null,
                 width,
                 height,
                 null,
@@ -385,7 +402,7 @@ public class BufferedImageHelperTest extends TestCase {
             if (!pixelFormat.hasAlpha()) {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         pixelFormat,
@@ -398,24 +415,51 @@ public class BufferedImageHelperTest extends TestCase {
         }
         
         /*
-         * 
+         * With array created internally.
          */
         
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
             for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         pixelFormat,
                         premul);
                 assertEquals(width, image.getWidth());
                 assertEquals(height, image.getHeight());
-                
                 final int expectedImageType =
                     pixelFormat.toImageType(premul);
                 assertEquals(expectedImageType, image.getType());
+                final int[] pixelArr = BufferedImageHelper.getIntArray(image);
+                assertNotNull(pixelArr);
+                assertEquals(width * height, pixelArr.length);
+            }
+        }
+        
+        /*
+         * With array specified.
+         */
+        
+        {
+            final int[] pixelArr = new int[width * height];
+            for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
+                for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
+                    final BufferedImage image =
+                        BufferedImageHelper.newBufferedImageWithIntArray(
+                            pixelArr,
+                            width,
+                            height,
+                            pixelFormat,
+                            premul);
+                    assertEquals(width, image.getWidth());
+                    assertEquals(height, image.getHeight());
+                    final int expectedImageType =
+                        pixelFormat.toImageType(premul);
+                    assertEquals(expectedImageType, image.getType());
+                    assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+                }
             }
         }
     }
@@ -423,24 +467,6 @@ public class BufferedImageHelperTest extends TestCase {
     public void test_newBufferedImageWithIntArray_cptIndexes() {
         final int width = SMALL_WIDTH;
         final int height = SMALL_HEIGHT;
-        
-        // null array
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                null,
-                width,
-                height,
-                //
-                false,
-                -1,
-                //
-                1,
-                2,
-                3);
-            fail();
-        } catch (NullPointerException e) {
-            assertNotNull(e);
-        }
         
         // too small array
         try {
@@ -468,7 +494,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[height],
+                    null,
                     badWidth,
                     height,
                     //
@@ -492,7 +518,7 @@ public class BufferedImageHelperTest extends TestCase {
         }) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[width],
+                    null,
                     width,
                     badHeight,
                     //
@@ -511,7 +537,7 @@ public class BufferedImageHelperTest extends TestCase {
         // bad premul
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[width * height],
+                null,
                 width,
                 height,
                 //
@@ -564,7 +590,7 @@ public class BufferedImageHelperTest extends TestCase {
                 
                 if (expectedOk) {
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         //
@@ -577,7 +603,7 @@ public class BufferedImageHelperTest extends TestCase {
                 } else {
                     try {
                         BufferedImageHelper.newBufferedImageWithIntArray(
-                            new int[width * height],
+                            null,
                             width,
                             height,
                             //
@@ -596,24 +622,61 @@ public class BufferedImageHelperTest extends TestCase {
         }
         
         /*
-         * 
+         * With array created internally.
          */
         
-        for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
-            for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
+        for (boolean premul : new boolean[] {false, true}) {
+            final BufferedImage image =
+                BufferedImageHelper.newBufferedImageWithIntArray(
+                    null,
+                    width,
+                    height,
+                    //
+                    premul,
+                    0,
+                    //
+                    1,
+                    2,
+                    3);
+            assertEquals(width, image.getWidth());
+            assertEquals(height, image.getHeight());
+            final int expectedImageType =
+                (premul
+                    ? BufferedImage.TYPE_INT_ARGB_PRE
+                        : BufferedImage.TYPE_INT_ARGB);
+            assertEquals(expectedImageType, image.getType());
+            final int[] pixelArr = BufferedImageHelper.getIntArray(image);
+            assertNotNull(pixelArr);
+            assertEquals(width * height, pixelArr.length);
+        }
+        
+        /*
+         * With array specified.
+         */
+        
+        {
+            final int[] pixelArr = new int[width * height];
+            for (boolean premul : new boolean[] {false, true}) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        pixelArr,
                         width,
                         height,
-                        pixelFormat,
-                        premul);
+                        //
+                        premul,
+                        0,
+                        //
+                        1,
+                        2,
+                        3);
                 assertEquals(width, image.getWidth());
                 assertEquals(height, image.getHeight());
-                
                 final int expectedImageType =
-                    pixelFormat.toImageType(premul);
+                    (premul
+                        ? BufferedImage.TYPE_INT_ARGB_PRE
+                            : BufferedImage.TYPE_INT_ARGB);
                 assertEquals(expectedImageType, image.getType());
+                assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
             }
         }
     }

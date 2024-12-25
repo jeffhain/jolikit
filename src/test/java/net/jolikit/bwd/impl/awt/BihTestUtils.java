@@ -32,6 +32,8 @@ public class BihTestUtils {
     /**
      * @return Images of all BufferedImage types
      *         and all (BihPixelFormat,premul) types (which overlap a bit).
+     *         For all these images, array has been created by the buffer
+     *         (no call to theTrackable.setUntrackable()).
      */
     public static List<BufferedImage> newImageList(int width, int height) {
         final List<BufferedImage> ret = new ArrayList<>();
@@ -58,6 +60,11 @@ public class BihTestUtils {
         return ret;
     }
     
+    /**
+     * @return List of images of all possible (BihPixelFormat,premul) types,
+     *         with array created by the buffer
+     *         (no call to theTrackable.setUntrackable()).
+     */
     public static List<BufferedImage> newImageList_allBihPixelFormat(
         int width,
         int height) {
@@ -67,7 +74,7 @@ public class BihTestUtils {
             for (boolean premul : newPremulArr(pixelFormat)) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[width * height],
+                        null,
                         width,
                         height,
                         pixelFormat,
@@ -84,19 +91,36 @@ public class BihTestUtils {
      */
     public static List<BufferedImageHelper> newHelperList(BufferedImage image) {
         final List<BufferedImageHelper> ret = new ArrayList<>();
-        for (boolean allowAvoidColorModel : new boolean[] {false, true}) {
-            final BufferedImageHelper helper =
-                new BufferedImageHelper(
-                    image,
-                    allowAvoidColorModel);
-            if (allowAvoidColorModel) {
-                if (helper.isColorModelAvoided()) {
-                    ret.add(helper);
-                } else {
-                    // Equivalent to other one.
+        for (boolean allowColorModelAvoiding : new boolean[] {false, true}) {
+            for (boolean allowUseArray : new boolean[] {false, true}) {
+                if (allowUseArray
+                    && (!allowColorModelAvoiding)) {
+                    // Equivalent to (false,false).
+                    continue;
                 }
-            } else {
-                ret.add(helper);
+                
+                final BufferedImageHelper helper =
+                    new BufferedImageHelper(
+                        image,
+                        allowColorModelAvoiding,
+                        allowUseArray);
+                if (allowColorModelAvoiding) {
+                    if (allowUseArray) {
+                        if (helper.isArrayDirectlyUsed()) {
+                            ret.add(helper);
+                        } else {
+                            // Equivalent to (true,false).
+                        }
+                    } else {
+                        if (helper.isColorModelAvoided()) {
+                            ret.add(helper);
+                        } else {
+                            // Equivalent to (false,false).
+                        }
+                    }
+                } else {
+                    ret.add(helper);
+                }
             }
         }
         return ret;
