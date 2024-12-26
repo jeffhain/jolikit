@@ -81,10 +81,12 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_BufferedImageHelper_BufferedImage() {
-        final BufferedImage image = newImage();
-        final BufferedImageHelper helper = new BufferedImageHelper(image);
-        // allowColorModelAvoiding is true by default.
-        assertTrue(helper.isColorModelAvoided());
+        for (BufferedImage image : newImageList()) {
+            final BufferedImageHelper helper = new BufferedImageHelper(image);
+            // Both true by default.
+            assertTrue(helper.isColorModelAvoidingAllowed());
+            assertTrue(helper.isArrayDirectUseAllowed());
+        }
     }
     
     public void test_BufferedImageHelper_BufferedImage_2boolean() {
@@ -93,15 +95,15 @@ public class BufferedImageHelperTest extends TestCase {
             final BihPixelFormat pixelFormat =
                 BufferedImageHelper.computePixelFormat(image);
             
-            final boolean isImageTypeCmaCompatible =
+            final boolean isImageTypeSinglePixelCmaCompatible =
                 (pixelFormat != null)
                 || (imageType == BufferedImage.TYPE_USHORT_555_RGB)
                 || (imageType == BufferedImage.TYPE_USHORT_565_RGB)
                 || (imageType == BufferedImage.TYPE_USHORT_GRAY)
                 || (imageType == BufferedImage.TYPE_BYTE_GRAY);
             
-            final boolean isImageTypeAduCompatible =
-                isImageTypeCmaCompatible;
+            final boolean isImageTypeSinglePixelAduCompatible =
+                isImageTypeSinglePixelCmaCompatible;
                 
             for (boolean allowColorModelAvoiding : new boolean[] {false, true}) {
                 for (boolean allowArrayDirectUse : new boolean[] {false, true}) {
@@ -110,23 +112,32 @@ public class BufferedImageHelperTest extends TestCase {
                         allowColorModelAvoiding,
                         allowArrayDirectUse);
                     
+                    assertEquals(
+                        allowColorModelAvoiding,
+                        helper.isColorModelAvoidingAllowed());
+                    assertEquals(
+                        allowColorModelAvoiding
+                        && allowArrayDirectUse,
+                        helper.isArrayDirectUseAllowed());
+                    
                     // For all supported image types,
                     // we have scalar pixels,
-                    // so color model is actually avoided.
-                    final boolean expectedCma =
+                    // so color model is actually avoided
+                    // for single pixel methods.
+                    final boolean expectedSinglePixelCma =
                         allowColorModelAvoiding
-                        && isImageTypeCmaCompatible;
-                    final boolean actualCma =
-                        helper.isColorModelAvoided();
-                    assertEquals(expectedCma, actualCma);
+                        && isImageTypeSinglePixelCmaCompatible;
+                    assertEquals(
+                        expectedSinglePixelCma,
+                        helper.isColorModelAvoidedForSinglePixelMethods());
                     
-                    final boolean expectedAdu =
+                    final boolean expectedSinglePixelAdu =
                         allowArrayDirectUse
-                        && isImageTypeAduCompatible
-                        && expectedCma;
-                    final boolean actualAdu =
-                        helper.isArrayDirectlyUsed();
-                    assertEquals(expectedAdu, actualAdu);
+                        && isImageTypeSinglePixelAduCompatible
+                        && expectedSinglePixelCma;
+                    assertEquals(
+                        expectedSinglePixelAdu,
+                        helper.isArrayDirectlyUsedForSinglePixelMethods());
                 }
             }
         }
@@ -153,11 +164,11 @@ public class BufferedImageHelperTest extends TestCase {
         }
     }
     
-    public void test_isColorModelAvoided() {
+    public void test_isColorModelAvoidingAllowed() {
         // Already tested in constructor test.
     }
     
-    public void test_isArrayDirectlyUsed() {
+    public void test_isArrayDirectUsedAllowed() {
         // Already tested in constructor test.
     }
     
@@ -962,7 +973,7 @@ public class BufferedImageHelperTest extends TestCase {
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
-                final boolean cma = helper.isColorModelAvoided();
+                final boolean cma = helper.isColorModelAvoidedForSinglePixelMethods();
                 
                 final int x = 1;
                 final int y = 2;
@@ -1065,7 +1076,7 @@ public class BufferedImageHelperTest extends TestCase {
                     
                     if (DEBUG) {
                         System.out.println("imageTypeEnum = " + imageTypeEnum);
-                        System.out.println("isColorModelAvoided() = " + helper.isColorModelAvoided());
+                        System.out.println("colorModelAvoided = " + cma);
                         System.out.println("imageRgbSet =          " + Argb32.toString(imageRgbSet));
                         System.out.println("expectedHelperRgbGet = " + Argb32.toString(expectedHelperRgbGet));
                         System.out.println("actualHelperRgbGet =   " + Argb32.toString(actualHelperRgbGet));
@@ -1088,7 +1099,7 @@ public class BufferedImageHelperTest extends TestCase {
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
-                final boolean cma = helper.isColorModelAvoided();
+                final boolean cma = helper.isColorModelAvoidedForSinglePixelMethods();
                 
                 final int x = 1;
                 final int y = 2;
@@ -1203,7 +1214,7 @@ public class BufferedImageHelperTest extends TestCase {
                     
                     if (DEBUG) {
                         System.out.println("imageTypeEnum = " + imageTypeEnum);
-                        System.out.println("isColorModelAvoided() = " + helper.isColorModelAvoided());
+                        System.out.println("colorModelAvoided = " + cma);
                         System.out.println("helperRgbSet =        " + Argb32.toString(helperRgbSet));
                         System.out.println("expectedImageRgbGet = " + Argb32.toString(expectedImageRgbGet));
                         System.out.println("actualImageRgbGet =   " + Argb32.toString(actualImageRgbGet));
@@ -1226,7 +1237,7 @@ public class BufferedImageHelperTest extends TestCase {
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
-                final boolean cma = helper.isColorModelAvoided();
+                final boolean cma = helper.isColorModelAvoidedForSinglePixelMethods();
                 if (!cma) {
                     continue;
                 }
@@ -1333,7 +1344,7 @@ public class BufferedImageHelperTest extends TestCase {
                     
                     if (DEBUG) {
                         System.out.println("imageTypeEnum = " + imageTypeEnum);
-                        System.out.println("isColorModelAvoided() = " + helper.isColorModelAvoided());
+                        System.out.println("colorModelAvoided = " + cma);
                         System.out.println("helperRgbSet =         " + Argb32.toString(helperRgbSet));
                         System.out.println("expectedHelperRgbGet = " + Argb32.toString(expectedHelperRgbGet));
                         System.out.println("actualHelperRgbGet =   " + Argb32.toString(actualHelperRgbGet));
@@ -1354,7 +1365,7 @@ public class BufferedImageHelperTest extends TestCase {
         for (BufferedImage image : BihTestUtils.newImageList_allBihPixelFormat(width, height)) {
             
             final BufferedImageHelper helper = new BufferedImageHelper(image);
-            assertTrue(helper.isColorModelAvoided());
+            assertTrue(helper.isColorModelAvoidedForSinglePixelMethods());
             
             final BihPixelFormat pixelFormat = helper.getPixelFormat();
             
@@ -1952,7 +1963,8 @@ public class BufferedImageHelperTest extends TestCase {
         for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
-                final boolean isColorModelAvoided = helper.isColorModelAvoided();
+                final boolean cmaAllowed =
+                    helper.isColorModelAvoidingAllowed();
                 
                 // Can be null.
                 final BihPixelFormat imagePixelFormat =
@@ -1976,7 +1988,7 @@ public class BufferedImageHelperTest extends TestCase {
                             System.out.println("imagePixelFormat = " + imagePixelFormat);
                             System.out.println("imagePremul = " + imagePremul);
                             System.out.println("imageTypeEnum = " + imageTypeEnum);
-                            System.out.println("isColorModelAvoided = " + isColorModelAvoided);
+                            System.out.println("colorModelAvoidingAllowed = " + cmaAllowed);
                             System.out.println("image pixelFormat = " + imagePixelFormat);
                             System.out.println("image premul = " + image.isAlphaPremultiplied());
                             System.out.println("array pixelFormat = " + pixelFormatTo);
@@ -2040,7 +2052,7 @@ public class BufferedImageHelperTest extends TestCase {
                                 final int expectedColor32 = expectedColor32Arr[index];
                                 final int actualColor32 = actualColor32Arr[index];
                                 
-                                if (isColorModelAvoided
+                                if (cmaAllowed
                                     && image.isAlphaPremultiplied()
                                     && (!premulTo)) {
                                     /*
@@ -2196,30 +2208,6 @@ public class BufferedImageHelperTest extends TestCase {
             srcY,
             srcWidth,
             srcHeight,
-            //
-            color32Arr,
-            color32ArrScanlineStride,
-            pixelFormatTo,
-            premulTo);
-    }
-    
-    private static void callGetPixelsInto_fullRect(
-        BufferedImageHelper helper,
-        //
-        int[] color32Arr,
-        int color32ArrScanlineStride,
-        //
-        BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
-        final boolean srcRectElseFullRect = false;
-        callGetPixelsInto_xxx(
-            srcRectElseFullRect,
-            helper,
-            //
-            0,
-            0,
-            helper.getImage().getWidth(),
-            helper.getImage().getHeight(),
             //
             color32Arr,
             color32ArrScanlineStride,

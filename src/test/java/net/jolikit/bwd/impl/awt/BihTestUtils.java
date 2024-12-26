@@ -85,15 +85,47 @@ public class BihTestUtils {
         
         return ret;
     }
-
+    
+    /**
+     * @return Helpers with no redundant capabilities for single pixel methods.
+     */
+    public static List<BufferedImageHelper> newHelperListForSinglePixel(BufferedImage image) {
+        final List<BufferedImageHelper> ret = new ArrayList<>();
+        
+        boolean didWithNoCmaForSinglePixel = false;
+        boolean didWithCmaButNoAduForSinglePixel = false;
+        
+        for (BufferedImageHelper helper : newHelperList(image)) {
+            if (!helper.isColorModelAvoidedForSinglePixelMethods()) {
+                if (didWithNoCmaForSinglePixel) {
+                    // Redundant.
+                    continue;
+                }
+                didWithNoCmaForSinglePixel = true;
+            }
+            if (helper.isColorModelAvoidedForSinglePixelMethods()
+                && !helper.isArrayDirectlyUsedForSinglePixelMethods()) {
+                if (didWithCmaButNoAduForSinglePixel) {
+                    // Redundant.
+                    continue;
+                }
+                didWithCmaButNoAduForSinglePixel = true;
+            }
+            
+            ret.add(helper);
+        }
+        
+        return ret;
+    }
+    
     /**
      * @return A list with all kinds of helpers to test.
      */
     public static List<BufferedImageHelper> newHelperList(BufferedImage image) {
         final List<BufferedImageHelper> ret = new ArrayList<>();
         for (boolean allowColorModelAvoiding : new boolean[] {false, true}) {
-            for (boolean allowUseArray : new boolean[] {false, true}) {
-                if (allowUseArray
+            for (boolean allowArrayDirectUse : new boolean[] {false, true}) {
+                if (allowArrayDirectUse
                     && (!allowColorModelAvoiding)) {
                     // Equivalent to (false,false).
                     continue;
@@ -103,24 +135,8 @@ public class BihTestUtils {
                     new BufferedImageHelper(
                         image,
                         allowColorModelAvoiding,
-                        allowUseArray);
-                if (allowColorModelAvoiding) {
-                    if (allowUseArray) {
-                        if (helper.isArrayDirectlyUsed()) {
-                            ret.add(helper);
-                        } else {
-                            // Equivalent to (true,false).
-                        }
-                    } else {
-                        if (helper.isColorModelAvoided()) {
-                            ret.add(helper);
-                        } else {
-                            // Equivalent to (false,false).
-                        }
-                    }
-                } else {
-                    ret.add(helper);
-                }
+                        allowArrayDirectUse);
+                ret.add(helper);
             }
         }
         return ret;

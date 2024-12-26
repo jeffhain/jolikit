@@ -33,7 +33,6 @@ import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
-
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
@@ -281,7 +280,7 @@ public class BufferedImageHelper {
     /**
      * Type of color model avoiding.
      */
-    private enum MyCmaType {
+    private enum MySinglePixelCmaType {
         /**
          * Means using the color model.
          */
@@ -348,7 +347,10 @@ public class BufferedImageHelper {
      */
     private final BihPixelFormat pixelFormat;
     
-    private final MyCmaType colorModelAvoidingType;
+    private final boolean isCmaAllowed;
+    private final boolean isAduAllowed;
+    
+    private final MySinglePixelCmaType singlePixelCmaType;
     
     private final int[] intPixelArr;
     
@@ -386,6 +388,11 @@ public class BufferedImageHelper {
      * @param allowColorModelAvoiding If true, avoiding
      *        color model for pixels reads/writes when possible
      *        (and not too tricky).
+     *        Note that color model might end up being only avoided
+     *        for some methods, for example for bulk methods (using drawImage())
+     *        but not for single pixel methods, causing inconsistencies,
+     *        although in practice with basic images it boils down to
+     *        a difference in brightness for gray image types (cf. below).
      *        There are two reasons to do that are:
      *        First, to improve performances, because color model
      *        pixel<->color conversions often preserve the value
@@ -424,18 +431,23 @@ public class BufferedImageHelper {
             computePixelFormat(image);
         this.pixelFormat = pixelFormat;
         
-        final MyCmaType cmBypassType =
-            computeColorModelBypassType(
+        final boolean isCmaAllowed = allowColorModelAvoiding;
+        final boolean isAduAllowed = allowColorModelAvoiding && allowArrayDirectUse;
+        this.isCmaAllowed = isCmaAllowed;
+        this.isAduAllowed = isAduAllowed;
+        
+        final MySinglePixelCmaType singlePixelCmaType =
+            computeSinglePixelCmaType(
                 image,
                 allowColorModelAvoiding,
                 pixelFormat);
-        this.colorModelAvoidingType = cmBypassType;
+        this.singlePixelCmaType = singlePixelCmaType;
         
         int[] intArr = null;
         short[] shortArr = null;
         byte[] byteArr = null;
-        if (allowArrayDirectUse) {
-            if ((cmBypassType == MyCmaType.INT_BIH_PIXEL_FORMAT)
+        if (isAduAllowed) {
+            if ((singlePixelCmaType == MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT)
                 && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_INT)) {
@@ -443,9 +455,9 @@ public class BufferedImageHelper {
                     (DataBufferInt) raster.getDataBuffer();
                 intArr = buffer.getData();
                 
-            } else if (((cmBypassType == MyCmaType.USHORT_555_RGB)
-                || (cmBypassType == MyCmaType.USHORT_565_RGB)
-                || (cmBypassType == MyCmaType.USHORT_GRAY))
+            } else if (((singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB)
+                || (singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB)
+                || (singlePixelCmaType == MySinglePixelCmaType.USHORT_GRAY))
                 && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_USHORT)) {
@@ -453,7 +465,7 @@ public class BufferedImageHelper {
                     (DataBufferUShort) raster.getDataBuffer();
                 shortArr = buffer.getData();
                 
-            } else if ((cmBypassType == MyCmaType.BYTE_GRAY)
+            } else if ((singlePixelCmaType == MySinglePixelCmaType.BYTE_GRAY)
                 && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_BYTE)) {
@@ -483,25 +495,23 @@ public class BufferedImageHelper {
     }
     
     /**
-     * Note that isColorModelAvoided() being false
-     * implies isArrayDirectlyUsed() being false.
+     * Note that isColorModelAvoidingAllowed() being false
+     * implies isArrayDirectUseAllowed() being false.
      * 
-     * @return True if color model is avoided for pixel read/write.
+     * @return True if color model avoiding is allowed.
      */
-    public boolean isColorModelAvoided() {
-        return this.colorModelAvoidingType != MyCmaType.NONE;
+    public boolean isColorModelAvoidingAllowed() {
+        return this.isCmaAllowed;
     }
     
     /**
-     * Note that isArrayDirectlyUsed() being true
-     * implies isColorModelAvoided() being true.
+     * Note that isArrayDirectUseAllowed() being true
+     * implies isColorModelAvoidingAllowed() being true.
      * 
-     * @return True if array is used (directly) for pixel read/write.
+     * @return True if array direct use is allowed.
      */
-    public boolean isArrayDirectlyUsed() {
-        return (this.intPixelArr != null)
-            || (this.shortPixelArr != null)
-            || (this.bytePixelArr != null);
+    public boolean isArrayDirectUseAllowed() {
+        return this.isAduAllowed;
     }
     
     /*
@@ -934,11 +944,11 @@ public class BufferedImageHelper {
         } else if (this.shortPixelArr != null) {
             final int index = this.toIndex(x, y);
             final short pixel = this.shortPixelArr[index];
-            if (this.colorModelAvoidingType == MyCmaType.USHORT_555_RGB) {
+            if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
                 ret = this.convertPixelToArgb32_USHORT_555_RGB(
                     pixel,
                     premul);
-            } else if (this.colorModelAvoidingType == MyCmaType.USHORT_565_RGB) {
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB) {
                 ret = this.convertPixelToArgb32_USHORT_565_RGB(
                     pixel,
                     premul);
@@ -990,15 +1000,15 @@ public class BufferedImageHelper {
         } else if (this.shortPixelArr != null) {
             final int index = this.toIndex(x, y);
             final short pixel;
-            if (this.colorModelAvoidingType == MyCmaType.USHORT_555_RGB) {
+            if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
                 pixel = this.convertArgb32ToPixel_USHORT_555_RGB(
                     argb32,
                     premul);
-            } else if (this.colorModelAvoidingType == MyCmaType.USHORT_565_RGB) {
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB) {
                 pixel = this.convertArgb32ToPixel_USHORT_565_RGB(
                     argb32,
                     premul);
-            } else if (this.colorModelAvoidingType == MyCmaType.USHORT_GRAY) {
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_GRAY) {
                 pixel = this.convertArgb32ToPixel_USHORT_GRAY(
                     argb32,
                     premul);
@@ -1315,7 +1325,6 @@ public class BufferedImageHelper {
                 srcHeight,
                 color32Arr,
                 color32ArrScanlineStride,
-                pixelFormatTo,
                 premulTo);
         } else {
             /*
@@ -1351,7 +1360,7 @@ public class BufferedImageHelper {
              * and either input or output alpha-premultiplied.
              */
             final boolean canUseDrawImage =
-                this.isColorModelAvoided()
+                this.isColorModelAvoidingAllowed()
                 && (this.image.isAlphaPremultiplied()
                     || premulTo);
             if (canUseDrawImage) {
@@ -1379,6 +1388,20 @@ public class BufferedImageHelper {
     }
     
     //--------------------------------------------------------------------------
+    // PACKAGE-PRIVATE METHODS
+    //--------------------------------------------------------------------------
+    
+    boolean isColorModelAvoidedForSinglePixelMethods() {
+        return this.singlePixelCmaType != MySinglePixelCmaType.NONE;
+    }
+    
+    boolean isArrayDirectlyUsedForSinglePixelMethods() {
+        return (this.intPixelArr != null)
+            || (this.shortPixelArr != null)
+            || (this.bytePixelArr != null);
+    }
+
+    //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
@@ -1399,7 +1422,7 @@ public class BufferedImageHelper {
         return y * this.scanlineStride + x;
     }
     
-    private static MyCmaType computeColorModelBypassType(
+    private static MySinglePixelCmaType computeSinglePixelCmaType(
         BufferedImage image,
         boolean allowColorModelAvoiding,
         BihPixelFormat pixelFormat) {
@@ -1411,24 +1434,24 @@ public class BufferedImageHelper {
         
         final int imageType = image.getType();
         
-        final MyCmaType ret;
+        final MySinglePixelCmaType ret;
         if (allowColorModelAvoiding
             && gotScalarPixels) {
             if (pixelFormat != null) {
-                ret = MyCmaType.INT_BIH_PIXEL_FORMAT;
+                ret = MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT;
             } else if (imageType == BufferedImage.TYPE_USHORT_555_RGB) {
-                ret = MyCmaType.USHORT_555_RGB;
+                ret = MySinglePixelCmaType.USHORT_555_RGB;
             } else if (imageType == BufferedImage.TYPE_USHORT_565_RGB) {
-                ret = MyCmaType.USHORT_565_RGB;
+                ret = MySinglePixelCmaType.USHORT_565_RGB;
             } else if (imageType == BufferedImage.TYPE_USHORT_GRAY) {
-                ret = MyCmaType.USHORT_GRAY;
+                ret = MySinglePixelCmaType.USHORT_GRAY;
             } else if (imageType == BufferedImage.TYPE_BYTE_GRAY) {
-                ret = MyCmaType.BYTE_GRAY;
+                ret = MySinglePixelCmaType.BYTE_GRAY;
             } else {
-                ret = MyCmaType.NONE;
+                ret = MySinglePixelCmaType.NONE;
             }
         } else {
-            ret = MyCmaType.NONE;
+            ret = MySinglePixelCmaType.NONE;
         }
         return ret;
     }
@@ -1614,11 +1637,11 @@ public class BufferedImageHelper {
         } else if (this.shortPixelArr != null) {
             final int index = this.toIndex_noCheck(x, y);
             final short pixel = this.shortPixelArr[index];
-            if (this.colorModelAvoidingType == MyCmaType.USHORT_555_RGB) {
+            if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
                 ret = this.convertPixelToArgb32_USHORT_555_RGB(
                     pixel,
                     premul);
-            } else if (this.colorModelAvoidingType == MyCmaType.USHORT_565_RGB) {
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB) {
                 ret = this.convertPixelToArgb32_USHORT_565_RGB(
                     pixel,
                     premul);
@@ -1660,7 +1683,7 @@ public class BufferedImageHelper {
         this.tmpDataLazy = data;
         
         final int argb32;
-        switch (this.colorModelAvoidingType) {
+        switch (this.singlePixelCmaType) {
             case NONE: {
                 argb32 = this.convertDataToArgb32(
                     data,
@@ -1705,7 +1728,7 @@ public class BufferedImageHelper {
         final WritableRaster raster = this.image.getRaster();
         
         final Object data;
-        switch (this.colorModelAvoidingType) {
+        switch (this.singlePixelCmaType) {
             case NONE: {
                 data = this.convertArgb32ToData(
                     argb32,
@@ -1957,12 +1980,7 @@ public class BufferedImageHelper {
         int[] color32Arr,
         int color32ArrScanlineStride,
         //
-        BihPixelFormat pixelFormatTo,
         boolean premulTo) {
-        
-        if (pixelFormatTo != this.pixelFormat) {
-            throw new IllegalArgumentException();
-        }
         
         /*
          * Copying pixels into destination array.
@@ -2002,7 +2020,7 @@ public class BufferedImageHelper {
              * Means the (single) format has alpha,
              * so no need to ensure opaque before premul conversion.
              */
-            final boolean isAlphaInMSByte = pixelFormatTo.areColorsInLsbElseMsb();
+            final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
             for (int j = 0; j < srcHeight; j++) {
                 final int dstStrideOffset = j * color32ArrScanlineStride;
                 for (int i = 0; i < srcWidth; i++) {
