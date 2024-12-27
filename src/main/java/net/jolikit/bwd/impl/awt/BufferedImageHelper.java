@@ -15,8 +15,10 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Point;
+import java.awt.Transparency;
 import java.awt.color.ColorSpace;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
@@ -33,6 +35,7 @@ import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
 import java.util.Arrays;
+
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.impl.utils.basics.BindingBasicsUtils;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
@@ -57,7 +60,7 @@ public class BufferedImageHelper {
      * As a result, we always use ARGB for reading pixels,
      * and then convert pixels to the proper format afterwards.
      */
-    private static final BihPixelFormat TMP_IMAGE_PIXEL_FORMAT = BihPixelFormat.ARGB32;
+    private static final BihPixelFormat TMP_IMAGE_TO_PIXEL_FORMAT = BihPixelFormat.ARGB32;
     
     //--------------------------------------------------------------------------
     // PUBLIC CLASSES
@@ -325,6 +328,8 @@ public class BufferedImageHelper {
     
     private static final int[] RGB_BAND_ARR = new int[] {R_BAND, G_BAND, B_BAND};
     private static final int[] RGBA_BAND_ARR = new int[] {R_BAND, G_BAND, B_BAND, A_BAND};
+    
+    private static final Color COLOR_TRANSPARENT = new Color(0, 0, 0, 0); 
     
     /*
      * 
@@ -1206,8 +1211,9 @@ public class BufferedImageHelper {
     /*
      * Bulk methods, for performances.
      * 
-     * For bulk methods, adding pixel format and alpha premultiplied
-     * arguments to allow for various kinds of input and output,
+     * For bulk methods, adding pixel format argument
+     * (instead of sticking to ARGB32),
+     * to allow for various kinds of input and output,
      * because the overhead is relatively small.
      */
     
@@ -1216,6 +1222,7 @@ public class BufferedImageHelper {
      * 
      * @param color32Arr (out) Must not be helper's image pixel array,
      *        else behavior is undefined.
+     * @param color32ArrScanlineStride Must be >= 1.
      * @param pixelFormatTo Pixel format to use for output.
      * @param premulTo Whether output must be alpha-premultiplied.
      * @throws NullPointerException if the specified array or
@@ -1233,10 +1240,14 @@ public class BufferedImageHelper {
         //
         BihPixelFormat pixelFormatTo,
         boolean premulTo) {
+        
         final int width = this.image.getWidth();
         final int height = this.image.getHeight();
         this.getPixelsInto(
-            0, 0, width, height,
+            0,
+            0,
+            width,
+            height,
             color32Arr,
             color32ArrScanlineStride,
             pixelFormatTo,
@@ -1244,8 +1255,8 @@ public class BufferedImageHelper {
     }
     
     /**
-     * Top-left pixel of src rectangle will be put at index 0
-     * in the output array.
+     * Pixel at (srcX,srcY) in the image will be put
+     * at index 0 in the output array.
      * 
      * @param color32Arr (out) Must not be helper's image pixel array,
      *        else behavior is undefined.
@@ -1323,8 +1334,10 @@ public class BufferedImageHelper {
                 srcY,
                 srcWidth,
                 srcHeight,
+                //
                 color32Arr,
                 color32ArrScanlineStride,
+                //
                 premulTo);
         } else {
             /*
@@ -1343,9 +1356,9 @@ public class BufferedImageHelper {
              * As a result, we don't use drawImage() if input image and
              * output are both not alpha-premultiplied.
              * 
-             * NB: When avoiding color model and output is not alpha-premultiplied,
-             * if input image is alpha-premultiplied drawImage() can give results
-             * off by one compared to our single-pixel treatments
+             * NB: If input image is alpha-premultiplied and output is not,
+             * drawImage() can give results off by one compared to
+             * our single-pixel treatments
              * (ex.: (ARGB32,p)->(ARGB32,np):
              *     when expecting 0x16B98046
              *  drawImage() gives 0x16B97F46),
@@ -1358,6 +1371,12 @@ public class BufferedImageHelper {
              * Note that all these guards still allow to use drawImage()
              * for the usual fast case of having color model avoided
              * and either input or output alpha-premultiplied.
+             * 
+             * Synthesis:
+             * (np,np): very bad
+             * (np,p): good
+             * (p,np): off by one
+             * (p,p): good
              */
             final boolean canUseDrawImage =
                 this.isColorModelAvoidingAllowed()
@@ -1369,8 +1388,10 @@ public class BufferedImageHelper {
                     srcY,
                     srcWidth,
                     srcHeight,
+                    //
                     color32Arr,
                     color32ArrScanlineStride,
+                    //
                     pixelFormatTo,
                     premulTo);
             } else {
@@ -1379,10 +1400,182 @@ public class BufferedImageHelper {
                     srcY,
                     srcWidth,
                     srcHeight,
+                    //
                     color32Arr,
                     color32ArrScanlineStride,
+                    //
                     pixelFormatTo,
                     premulTo);
+            }
+        }
+    }
+    
+    /**
+     * Sets the whole image.
+     * 
+     * @param color32Arr (in) Must not be helper's image pixel array,
+     *        else behavior is undefined.
+     * @param color32ArrScanlineStride Must be >= 1.
+     * @param pixelFormatFrom Pixel format of input.
+     * @param premulFrom Whether input is alpha-premultiplied.
+     * @throws NullPointerException if the specified array or
+     *         pixel format is null.
+     * @throws IllegalArgumentException if the specified pixel format
+     *         has no alpha and the specified premul is true,
+     *         or scanline stride is inferior to image width,
+     *         or the specified array is too small for
+     *         the specified scanline stride and
+     *         image height and width.
+     */
+    public void setPixelsFrom(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom) {
+        
+        final int width = this.image.getWidth();
+        final int height = this.image.getHeight();
+        this.setPixelsFrom(
+            color32Arr,
+            color32ArrScanlineStride,
+            //
+            pixelFormatFrom,
+            premulFrom,
+            //
+            0,
+            0,
+            width,
+            height);
+    }
+    
+    /**
+     * Pixel at index 0 in the input array will be put
+     * at (dstX,dstY) in the image.
+     * 
+     * @param color32Arr (in) Must not be helper's image pixel array,
+     *        else behavior is undefined.
+     * @param color32ArrScanlineStride Must be >= 1.
+     * @param pixelFormatFrom Pixel format of input.
+     * @param premulFrom Whether input is alpha-premultiplied.
+     * @throws NullPointerException if the specified array or
+     *         pixel format is null.
+     * @throws IllegalArgumentException if the specified pixel format
+     *         has no alpha and the specified premul is true,
+     *         or the specified width or height is negative,
+     *         or a specified position is out of image,
+     *         or scanline stride is inferior to width,
+     *         or the specified array is too small for
+     *         the specified height, width and scanline stride.
+     */
+    public void setPixelsFrom(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        //
+        int dstX,
+        int dstY,
+        int dstWidth,
+        int dstHeight) {
+        
+        /*
+         * Checks.
+         */
+        
+        LangUtils.requireNonNull(color32Arr);
+        // Implicit null check.
+        if ((!pixelFormatFrom.hasAlpha()) && premulFrom) {
+            throw new IllegalArgumentException(
+                "premul can't be true for " + pixelFormatFrom);
+        }
+        
+        if (color32Arr == this.intPixelArr) {
+            // Behavior undefined per spec in this case,
+            // so we have the right to throw
+            // if we happen to know they are the same.
+            throw new IllegalArgumentException(
+                "color32Arr is image array");
+        }
+        
+        NbrsUtils.requireInRange(0, this.width - 1, dstX, "dstX");
+        NbrsUtils.requireInRange(0, this.height - 1, dstY, "dstY");
+        NbrsUtils.requireInRange(0, this.width - dstX, dstWidth, "dstWidth");
+        NbrsUtils.requireInRange(0, this.height - dstY, dstHeight, "dstHeight");
+        NbrsUtils.requireSupOrEq(
+            dstWidth,
+            color32ArrScanlineStride,
+            "color32ArrScanlineStride");
+        // Check in long to avoid overflow/wrapping.
+        NbrsUtils.requireSupOrEq(
+            (dstHeight - 1) * (long) color32ArrScanlineStride + dstWidth,
+            color32Arr.length,
+            "color32Arr.length");
+        
+        /*
+         * Getting pixels.
+         */
+        
+        if ((this.intPixelArr != null)
+            && (pixelFormatFrom == this.pixelFormat)) {
+            this.setPixelsFrom_noCheck_intArr_samePixelFormat(
+                color32Arr,
+                color32ArrScanlineStride,
+                //
+                premulFrom,
+                //
+                dstX,
+                dstY,
+                dstWidth,
+                dstHeight);
+        } else {
+            /*
+             * Compared to getPixelsInto(), doing one additional check
+             * before eventually using drawImage():
+             * If drawing a TYPE_INT_ARGB_PRE image containing
+             * 0x80302010 pixels, which corresponds to 0x80604020 when
+             * not alpha-premultiplied, into a TYPE_INT_RGB image,
+             * whatever its previous content the resulting image
+             * will contain 0xFF302010 instead of 0xFF604020,
+             * i.e. it will contain the alpha-premultiplied
+             * color components, with an opaque alpha.
+             * As a result, we also don't use drawImage()
+             * is source is alpha-premultiplied and destination is not.
+             * 
+             * Synthesis:
+             * (np,np): very bad
+             * (np,p): good
+             * (p,np): very bad
+             * (p,p): good
+             */
+            final boolean canUseDrawImage =
+                this.isColorModelAvoidingAllowed()
+                && this.image.isAlphaPremultiplied();
+            if (canUseDrawImage) {
+                this.setPixelsFrom_noCheck_drawImage(
+                    color32Arr,
+                    color32ArrScanlineStride,
+                    //
+                    pixelFormatFrom,
+                    premulFrom,
+                    //
+                    dstX,
+                    dstY,
+                    dstWidth,
+                    dstHeight);
+            } else {
+                this.setPixelsFrom_noCheck_arrOrRaster(
+                    color32Arr,
+                    color32ArrScanlineStride,
+                    //
+                    pixelFormatFrom,
+                    premulFrom,
+                    //
+                    dstX,
+                    dstY,
+                    dstWidth,
+                    dstHeight);
             }
         }
     }
@@ -1663,6 +1856,56 @@ public class BufferedImageHelper {
             ret = this.getArgb32At_raster(x, y, premul);
         }
         return ret;
+    }
+    
+    /**
+     * Does not check (x,y).
+     * Useful for bulk methods.
+     */
+    private void setArgb32At_noCheck_arrOrRaster(
+        int x,
+        int y,
+        int argb32,
+        boolean premul) {
+        if (this.intPixelArr != null) {
+            final int index = this.toIndex_noCheck(x, y);
+            final int pixel =
+                this.convertArgb32ToPixel_INT_BIH_PIXEL_FORMAT(
+                    argb32,
+                    premul);
+            this.intPixelArr[index] = pixel;
+            
+        } else if (this.shortPixelArr != null) {
+            final int index = this.toIndex_noCheck(x, y);
+            final short pixel;
+            if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
+                pixel = this.convertArgb32ToPixel_USHORT_555_RGB(
+                    argb32,
+                    premul);
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB) {
+                pixel = this.convertArgb32ToPixel_USHORT_565_RGB(
+                    argb32,
+                    premul);
+            } else if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_GRAY) {
+                pixel = this.convertArgb32ToPixel_USHORT_GRAY(
+                    argb32,
+                    premul);
+            } else {
+                throw new AssertionError();
+            }
+            this.shortPixelArr[index] = pixel;
+            
+        } else if (this.bytePixelArr != null) {
+            final int index = this.toIndex_noCheck(x, y);
+            final byte pixel =
+                this.convertArgb32ToPixel_BYTE_GRAY(
+                    argb32,
+                    premul);
+            this.bytePixelArr[index] = pixel;
+            
+        } else {
+            this.setArgb32At_raster(x, y, argb32, premul);
+        }
     }
     
     /*
@@ -2025,22 +2268,95 @@ public class BufferedImageHelper {
                 final int dstStrideOffset = j * color32ArrScanlineStride;
                 for (int i = 0; i < srcWidth; i++) {
                     final int index = dstStrideOffset + i;
-                    int pixelFrom = color32Arr[index];
-                    final int pixelTo;
+                    int pixel = color32Arr[index];
                     if (premulTo) {
                         if (isAlphaInMSByte) {
-                            pixelTo = BindingColorUtils.toPremulAxyz32(pixelFrom);
+                            pixel = BindingColorUtils.toPremulAxyz32(pixel);
                         } else {
-                            pixelTo = BindingColorUtils.toPremulXyza32(pixelFrom);
+                            pixel = BindingColorUtils.toPremulXyza32(pixel);
                         }
                     } else {
                         if (isAlphaInMSByte) {
-                            pixelTo = BindingColorUtils.toNonPremulAxyz32(pixelFrom);
+                            pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
                         } else {
-                            pixelTo = BindingColorUtils.toNonPremulXyza32(pixelFrom);
+                            pixel = BindingColorUtils.toNonPremulXyza32(pixel);
                         }
                     }
-                    color32Arr[index] = pixelTo;
+                    color32Arr[index] = pixel;
+                }
+            }
+        }
+    }
+    
+    private void setPixelsFrom_noCheck_intArr_samePixelFormat(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        boolean premulFrom,
+        //
+        int dstX,
+        int dstY,
+        int dstWidth,
+        int dstHeight) {
+        
+        /*
+         * Copying pixels from destination array.
+         */
+        final int areaFrom = dstWidth * dstHeight;
+        if ((dstWidth == this.scanlineStride)
+            && (dstWidth == color32ArrScanlineStride)) {
+            /*
+             * Means setting some or all lines,
+             * over the whole width=srcStride=dstStride,
+             * so we can copy with a single arraycopy().
+             */
+            System.arraycopy(
+                color32Arr,
+                0,
+                this.intPixelArr,
+                dstY * this.scanlineStride,
+                areaFrom);
+        } else {
+            /*
+             * Not full width, or different strides.
+             */
+            for (int j = 0; j < dstHeight; j++) {
+                System.arraycopy(
+                    color32Arr,
+                    j * color32ArrScanlineStride,
+                    this.intPixelArr,
+                    (dstY + j) * this.scanlineStride + dstX,
+                    dstWidth);
+            }
+        }
+        /*
+         * Eventual premul rework.
+         */
+        if (premulFrom != this.image.isAlphaPremultiplied()) {
+            /*
+             * Means the (single) format has alpha,
+             * so no need to ensure opaque before premul conversion.
+             */
+            final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
+            for (int j = 0; j < dstHeight; j++) {
+                final int dstStrideOffset = (dstY + j) * this.scanlineStride;
+                for (int i = 0; i < dstWidth; i++) {
+                    final int index = dstStrideOffset + (dstX + i);
+                    int pixel = this.intPixelArr[index];
+                    if (premulFrom) {
+                        if (isAlphaInMSByte) {
+                            pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
+                        } else {
+                            pixel = BindingColorUtils.toNonPremulXyza32(pixel);
+                        }
+                    } else {
+                        if (isAlphaInMSByte) {
+                            pixel = BindingColorUtils.toPremulAxyz32(pixel);
+                        } else {
+                            pixel = BindingColorUtils.toPremulXyza32(pixel);
+                        }
+                    }
+                    this.intPixelArr[index] = pixel;
                 }
             }
         }
@@ -2078,6 +2394,37 @@ public class BufferedImageHelper {
         }
     }
     
+    private void setPixelsFrom_noCheck_arrOrRaster(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        //
+        int dstX,
+        int dstY,
+        int dstWidth,
+        int dstHeight) {
+        
+        for (int j = 0; j < dstHeight; j++) {
+            final int dy = dstY + j;
+            final int srcLineOffset =
+                j * color32ArrScanlineStride;
+            for (int i = 0; i < dstWidth; i++) {
+                final int dx = dstX + i;
+                final int indexFrom = srcLineOffset + i;
+                final int color32 = color32Arr[indexFrom];
+                final int argb32 =
+                    pixelFormatFrom.toArgb32FromPixel(color32);
+                this.setArgb32At_noCheck_arrOrRaster(
+                        dx,
+                        dy,
+                        argb32,
+                        premulFrom);
+            }
+        }
+    }
+    
     private void getPixelsInto_noCheck_drawImage(
         int srcX,
         int srcY,
@@ -2098,23 +2445,24 @@ public class BufferedImageHelper {
             return;
         }
         
-        // Need to reset output pixels before drawing into it
-        // with image, for it does blending
-        // (matters for non-opaque images).
-        zeroizePixels(
-            color32Arr,
-            color32ArrScanlineStride,
-            srcWidth,
-            srcHeight);
+        if (this.image.getTransparency() != Transparency.OPAQUE) {
+            // Need to reset destination pixels before using
+            // drawImage(), for it does blending.
+            zeroizePixels(
+                color32Arr,
+                color32ArrScanlineStride,
+                srcWidth,
+                srcHeight);
+        }
         
-        final BihPixelFormat tmpImagePixelFormat = TMP_IMAGE_PIXEL_FORMAT;
-        final BufferedImage tmpImage = newBufferedImageWithIntArray(
+        final BihPixelFormat tmpImageToPixelFormat = TMP_IMAGE_TO_PIXEL_FORMAT;
+        final BufferedImage tmpImageTo = newBufferedImageWithIntArray(
             color32Arr,
             color32ArrScanlineStride,
             srcHeight,
-            tmpImagePixelFormat,
+            tmpImageToPixelFormat,
             premulTo);
-        final Graphics2D tmpG = tmpImage.createGraphics();
+        final Graphics2D tmpG = tmpImageTo.createGraphics();
         try {
             tmpG.drawImage(
                 this.image,
@@ -2139,10 +2487,10 @@ public class BufferedImageHelper {
          * (premul or not is already ensured through tmp image).
          */
         
-        if (pixelFormatTo != tmpImagePixelFormat) {
-            for (int y = 0; y < height; y++) {
+        if (pixelFormatTo != tmpImageToPixelFormat) {
+            for (int y = 0; y < srcHeight; y++) {
                 final int lineOffset = y * color32ArrScanlineStride;
-                for (int x = 0; x < width; x++) {
+                for (int x = 0; x < srcWidth; x++) {
                     final int index = lineOffset + x;
                     color32Arr[index] =
                         pixelFormatTo.toPixelFromArgb32(
@@ -2151,6 +2499,59 @@ public class BufferedImageHelper {
             }
         }
     }
+    
+    private void setPixelsFrom_noCheck_drawImage(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        //
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        //
+        int dstX,
+        int dstY,
+        int dstWidth,
+        int dstHeight) {
+        
+        if ((color32ArrScanlineStride == 0) || (dstHeight == 0)) {
+            /*
+             * SampleModel creation would throw.
+             * Nothing to do.
+             */
+            return;
+        }
+        
+        final BufferedImage tmpImageFrom = newBufferedImageWithIntArray(
+            color32Arr,
+            color32ArrScanlineStride,
+            dstHeight,
+            pixelFormatFrom,
+            premulFrom);
+        final Graphics2D g = this.image.createGraphics();
+        try {
+            if (pixelFormatFrom.hasAlpha()) {
+                // Need to reset destination pixels before using
+                // drawImage(), for it does blending.
+                g.setBackground(COLOR_TRANSPARENT);
+                g.clearRect(dstX, dstY, dstWidth, dstHeight);
+            }
+            g.drawImage(
+                tmpImageFrom,
+                //
+                dstX, // dx1
+                dstY, // dy1
+                dstX + dstWidth, // dx2 (exclusive)
+                dstY + dstHeight, // dy2 (exclusive)
+                //
+                0, // sx1
+                0, // sy1
+                dstWidth, // sx2 (exclusive)
+                dstHeight, // sy2 (exclusive)
+                //
+                null);
+        } finally {
+            g.dispose();
+        }
+    }   
     
     /*
      * 
@@ -2192,13 +2593,13 @@ public class BufferedImageHelper {
         int color32ArrScanlineStride,
         int width,
         int height) {
-        for (int y = 0; y < height; y++) {
-            final int lineOffset = y * color32ArrScanlineStride;
-            Arrays.fill(
-                color32Arr,
-                lineOffset,
-                lineOffset + width,
-                0);
+        if (color32ArrScanlineStride == width) {
+            Arrays.fill(color32Arr, 0, width * height, 0);
+        } else {
+            for (int y = 0; y < height; y++) {
+                final int lineOffset = y * color32ArrScanlineStride;
+                Arrays.fill(color32Arr, lineOffset, lineOffset + width, 0);
+            }
         }
     }
     
