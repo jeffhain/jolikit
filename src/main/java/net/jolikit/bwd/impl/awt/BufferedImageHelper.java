@@ -60,7 +60,7 @@ public class BufferedImageHelper {
      * As a result, we always use ARGB for reading pixels,
      * and then convert pixels to the proper format afterwards.
      */
-    private static final BihPixelFormat TMP_IMAGE_TO_PIXEL_FORMAT = BihPixelFormat.ARGB32;
+    static final BihPixelFormat DRAW_IMAGE_FAST_DST_PIXEL_FORMAT = BihPixelFormat.ARGB32;
     
     //--------------------------------------------------------------------------
     // PUBLIC CLASSES
@@ -453,7 +453,7 @@ public class BufferedImageHelper {
         byte[] byteArr = null;
         if (isAduAllowed) {
             if ((singlePixelCmaType == MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT)
-                && hasSimpleArrayOfType(
+                && hasDirectlyUsableArrayOfType(
                     image,
                     DataBuffer.TYPE_INT)) {
                 final DataBufferInt buffer =
@@ -463,7 +463,7 @@ public class BufferedImageHelper {
             } else if (((singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB)
                 || (singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB)
                 || (singlePixelCmaType == MySinglePixelCmaType.USHORT_GRAY))
-                && hasSimpleArrayOfType(
+                && hasDirectlyUsableArrayOfType(
                     image,
                     DataBuffer.TYPE_USHORT)) {
                 final DataBufferUShort buffer =
@@ -471,7 +471,7 @@ public class BufferedImageHelper {
                 shortArr = buffer.getData();
                 
             } else if ((singlePixelCmaType == MySinglePixelCmaType.BYTE_GRAY)
-                && hasSimpleArrayOfType(
+                && hasDirectlyUsableArrayOfType(
                     image,
                     DataBuffer.TYPE_BYTE)) {
                 final DataBufferByte buffer =
@@ -591,6 +591,8 @@ public class BufferedImageHelper {
      */
     
     /**
+     * Uses width as scanline stride.
+     * 
      * @param pixelArr The int array of pixels to use, or null for the array
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
@@ -655,6 +657,8 @@ public class BufferedImageHelper {
     }
     
     /**
+     * Uses width as scanline stride.
+     * 
      * @param pixelArr The int array of pixels to use, or null for the array
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
@@ -686,8 +690,10 @@ public class BufferedImageHelper {
             throw new IllegalArgumentException(
                 "premul can't be true for " + pixelFormat);
         }
+        final int scanlineStride = width;
         return newBufferedImageWithIntArray(
             pixelArr,
+            scanlineStride,
             width,
             height,
             //
@@ -706,6 +712,7 @@ public class BufferedImageHelper {
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
      *        the array is retrieved afterwards with DataBufferInt.getData()).
+     * @param scanlineStride Scanline stride to use. Must be >= 1.
      * @param width Image width. Must be >= 1.
      * @param height Image height. Must be >= 1.
      * @param premul True if the raster must be alpha-premultiplied.
@@ -719,9 +726,11 @@ public class BufferedImageHelper {
      *        in [0,3] if having alpha, else in [1,3].
      * @return The created buffered image, with 32 bits pixels
      *         if having alpha, and 24 bits pixels otherwise.
-     * @throws IllegalArgumentException if the specified width or height
-     *         are not strictly positive, or the specified array is non-null
-     *         and too small for width and height,
+     * @throws IllegalArgumentException if the specified width, height
+     *         or scanline stride are not strictly positive,
+     *         or the specified scanline stride is inferior to width
+     *         or too large for int range or for the specified array
+     *         length (if any),
      *         or component indexes are out of range,
      *         or alpha index is -1 but premul is true,
      *         or some components use a same index.
@@ -732,6 +741,7 @@ public class BufferedImageHelper {
      */
     public static BufferedImage newBufferedImageWithIntArray(
         int[] pixelArr,
+        int scanlineStride,
         int width,
         int height,
         //
@@ -744,14 +754,18 @@ public class BufferedImageHelper {
         
         NbrsUtils.requireSupOrEq(1, width, "width");
         NbrsUtils.requireSupOrEq(1, height, "height");
+        NbrsUtils.requireSupOrEq(width, scanlineStride, "scanlineStride");
+        {
+            final int bound =
+                (pixelArr != null) ? pixelArr.length : Integer.MAX_VALUE;
+            // Check in long to avoid overflow/wrapping.
+            NbrsUtils.requireInfOrEq(
+                bound,
+                (height - 1) * (long) scanlineStride + width,
+                "(height-1)*scanlineStride+width");
+        }
         
         final int area = NbrsUtils.timesExact(width, height);
-        if (pixelArr != null) {
-            NbrsUtils.requireSupOrEq(
-                area,
-                pixelArr.length,
-                "pixelArr.length");
-        }
         
         if (premul) {
             NbrsUtils.requireInRange(0, 3, aIndex, "aIndex");
@@ -820,6 +834,7 @@ public class BufferedImageHelper {
             DataBuffer.TYPE_INT,
             width,
             height,
+            scanlineStride,
             bitMasks);
         final DataBuffer dataBuffer;
         if (pixelArr != null) {
@@ -827,7 +842,9 @@ public class BufferedImageHelper {
                 pixelArr,
                 area);
         } else {
-            dataBuffer = new DataBufferInt(area);
+            final int arrayLength =
+                (height - 1) * scanlineStride + width;
+            dataBuffer = new DataBufferInt(arrayLength);
         }
         final Point upperLeftLocation = new Point(0,0);
         final WritableRaster raster = Raster.createWritableRaster(
@@ -854,9 +871,10 @@ public class BufferedImageHelper {
      *         width as scanline stride and no translation).
      */
     public static boolean hasSimpleIntArray(BufferedImage image) {
-        return hasSimpleArrayOfType(
+        return hasDirectlyUsableArrayOfType(
             image,
-            DataBuffer.TYPE_INT);
+            DataBuffer.TYPE_INT)
+            && (getScanlineStride(image) == image.getWidth());
     }
     
     /**
@@ -919,6 +937,68 @@ public class BufferedImageHelper {
         final WritableRaster raster = image.getRaster();
         final DataBufferInt dataBuffer = (DataBufferInt) raster.getDataBuffer();
         return dataBuffer.getData();
+    }
+    
+    /**
+     * @return The scanline stride of the backing array,
+     *         or -1 if could not be found.
+     */
+    public static int getScanlineStride(BufferedImage image) {
+        final int ret;
+        final SampleModel sampleModel = image.getSampleModel();
+        if (sampleModel instanceof SinglePixelPackedSampleModel) {
+            /*
+             * For TYPE_INT_XXX and TYPE_USHORT_XXX_RGB images.
+             */
+            ret = ((SinglePixelPackedSampleModel) sampleModel).getScanlineStride();
+        } else if (sampleModel instanceof ComponentSampleModel) {
+            /*
+             * For TYPE_(X)BYTE_XXX and TYPE_USHORT_GRAY images
+             * (PixelInterleavedSampleModel subclass in practice).
+             */
+            ret = ((ComponentSampleModel) sampleModel).getScanlineStride();
+        } else if (sampleModel instanceof MultiPixelPackedSampleModel) {
+            /*
+             * For TYPE_BYTE_BINARY images.
+             */
+            ret = ((MultiPixelPackedSampleModel) sampleModel).getScanlineStride();
+        } else {
+            ret = -1;
+        }
+        return ret;
+    }
+    
+    /*
+     * Internal array.
+     */
+    
+    /**
+     * @return The int array directly used, or null if none.
+     */
+    public int[] getIntArrayDirectlyUsed() {
+        return this.intPixelArr;
+    }
+    
+    /**
+     * @return The short array directly used, or null if none.
+     */
+    public short[] getShortArrayDirectlyUsed() {
+        return this.shortPixelArr;
+    }
+    
+    /**
+     * @return The byte array directly used, or null if none.
+     */
+    public byte[] getByteArrayDirectlyUsed() {
+        return this.bytePixelArr;
+    }
+    
+    /**
+     * @return Internal array scanline stride,
+     *         if could be retrieved, else -1.
+     */
+    public int getScanlineStride() {
+        return this.scanlineStride;
     }
     
     /*
@@ -1209,9 +1289,9 @@ public class BufferedImageHelper {
     }
     
     /*
-     * Bulk methods, for performances.
+     * Bulk get/set methods, for performances.
      * 
-     * For bulk methods, adding pixel format argument
+     * For bulk get/set methods, adding pixel format argument
      * (instead of sticking to ARGB32),
      * to allow for various kinds of input and output,
      * because the overhead is relatively small.
@@ -1322,14 +1402,12 @@ public class BufferedImageHelper {
          * Getting pixels.
          */
         
-        if ((this.intPixelArr != null)
-            && (pixelFormatTo == this.pixelFormat)) {
+        if (this.intPixelArr != null) {
             /*
              * A lot faster than drawImage() if we only use arraycopy(),
-             * and still faster if doing non-opaque premul rework
-             * (but not if doing format rework).
+             * and still faster if doing rework.
              */
-            this.getPixelsInto_noCheck_intArr_samePixelFormat(
+            this.getPixelsInto_noCheck_intArr(
                 srcX,
                 srcY,
                 srcWidth,
@@ -1338,51 +1416,24 @@ public class BufferedImageHelper {
                 color32Arr,
                 color32ArrScanlineStride,
                 //
+                pixelFormatTo,
                 premulTo);
         } else {
             /*
-             * drawImage() faster than pixel-per-pixel copy,
-             * so using it whenever we can.
-             * 
              * We only use drawImage() if avoiding color model,
              * for it avoids it.
-             * 
-             * drawImage() seem to use alpha-premultiplied values internally
-             * even if both its input and output images are not alpha-premultiplied
-             * (and even if none has an alpha component,
-             * i.e. using XRGB24 for graphics image doesn't help).
-             * For example, it converts (non-premul) 0x01374EBD
-             * into (premul) 0x01000001 and then into (non-premul) 0x010000FF.
-             * As a result, we don't use drawImage() if input image and
-             * output are both not alpha-premultiplied.
-             * 
-             * NB: If input image is alpha-premultiplied and output is not,
-             * drawImage() can give results off by one compared to
-             * our single-pixel treatments
-             * (ex.: (ARGB32,p)->(ARGB32,np):
-             *     when expecting 0x16B98046
-             *  drawImage() gives 0x16B97F46),
-             * but since this is just a rounding error and only seem to occur
-             * for alpha <= 0xFE, i.e. for non-opaque colors,
-             * for which having rounding errors is expectable
-             * due to alpha-premultiplication,
-             * we still call drawImage() in this case for speed.
-             * 
-             * Note that all these guards still allow to use drawImage()
-             * for the usual fast case of having color model avoided
-             * and either input or output alpha-premultiplied.
-             * 
-             * Synthesis:
-             * (np,np): very bad
-             * (np,p): good
-             * (p,np): off by one
-             * (p,p): good
              */
-            final boolean canUseDrawImage =
+            final boolean mustUseDrawImage =
                 this.isColorModelAvoidingAllowed()
-                && (this.image.isAlphaPremultiplied()
-                    || premulTo);
-            if (canUseDrawImage) {
+                && mustUseDrawImageOverPixelLoop(
+                    this.image.getType(),
+                    this.pixelFormat,
+                    this.image.isAlphaPremultiplied(),
+                    //
+                    DRAW_IMAGE_FAST_DST_PIXEL_FORMAT.toImageType(premulTo),
+                    DRAW_IMAGE_FAST_DST_PIXEL_FORMAT,
+                    premulTo);
+            if (mustUseDrawImage) {
                 this.getPixelsInto_noCheck_drawImage(
                     srcX,
                     srcY,
@@ -1517,12 +1568,12 @@ public class BufferedImageHelper {
          * Getting pixels.
          */
         
-        if ((this.intPixelArr != null)
-            && (pixelFormatFrom == this.pixelFormat)) {
-            this.setPixelsFrom_noCheck_intArr_samePixelFormat(
+        if (this.intPixelArr != null) {
+            this.setPixelsFrom_noCheck_intArr(
                 color32Arr,
                 color32ArrScanlineStride,
                 //
+                pixelFormatFrom,
                 premulFrom,
                 //
                 dstX,
@@ -1531,28 +1582,20 @@ public class BufferedImageHelper {
                 dstHeight);
         } else {
             /*
-             * Compared to getPixelsInto(), doing one additional check
-             * before eventually using drawImage():
-             * If drawing a TYPE_INT_ARGB_PRE image containing
-             * 0x80302010 pixels, which corresponds to 0x80604020 when
-             * not alpha-premultiplied, into a TYPE_INT_RGB image,
-             * whatever its previous content the resulting image
-             * will contain 0xFF302010 instead of 0xFF604020,
-             * i.e. it will contain the alpha-premultiplied
-             * color components, with an opaque alpha.
-             * As a result, we also don't use drawImage()
-             * is source is alpha-premultiplied and destination is not.
-             * 
-             * Synthesis:
-             * (np,np): very bad
-             * (np,p): good
-             * (p,np): very bad
-             * (p,p): good
+             * We only use drawImage() if avoiding color model,
+             * for it avoids it.
              */
-            final boolean canUseDrawImage =
+            final boolean mustUseDrawImage =
                 this.isColorModelAvoidingAllowed()
-                && this.image.isAlphaPremultiplied();
-            if (canUseDrawImage) {
+                && mustUseDrawImageOverPixelLoop(
+                    pixelFormatFrom.toImageType(premulFrom),
+                    pixelFormatFrom,
+                    premulFrom,
+                    //
+                    this.image.getType(),
+                    this.pixelFormat,
+                    this.image.isAlphaPremultiplied());
+            if (mustUseDrawImage) {
                 this.setPixelsFrom_noCheck_drawImage(
                     color32Arr,
                     color32ArrScanlineStride,
@@ -1580,6 +1623,143 @@ public class BufferedImageHelper {
         }
     }
     
+    /*
+     * Bulk copy.
+     */
+    
+    /**
+     * Respects both helpers directives regarding
+     * color model avoidance and array direct use.
+     * 
+     * If helpers images are different but share a same array,
+     * the result is undefined (defining it would require to
+     * retrieve the array, which we might not want to do
+     * to obey helpers directives).
+     * 
+     * @param helperFrom Helper of source image.
+     * @param srcX X in source image where to start the copy.
+     * @param srcY Y in source image where to start the copy.
+     * @param helperTo Helper of destination image.
+     * @param dstX X in destination image where to start the copy.
+     * @param dstY Y in destination image where to start the copy.
+     * @param width Width of the area to copy. Must be >= 0.
+     * @param height Height of the area to copy. Must be >= 0.
+     * @throws NullPointerException if a helper is null.
+     * @throws IllegalArgumentException if the source area
+     *         does not fit in source image,
+     *         or the destination area does not fit in
+     *         destination image, of source and destination
+     *         images are a same object.
+     */
+    public static void copyImage(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        // Implicit null checks.
+        final BufferedImage imageFrom = helperFrom.getImage();
+        final BufferedImage imageTo = helperTo.getImage();
+        
+        if (imageFrom == imageTo) {
+            throw new IllegalArgumentException(
+                "images are a same object");
+        }
+        if (sameAndNotNull(helperFrom.intPixelArr, helperTo.intPixelArr)
+            || sameAndNotNull(helperFrom.shortPixelArr, helperTo.shortPixelArr)
+            || sameAndNotNull(helperFrom.bytePixelArr, helperTo.bytePixelArr)) {
+            /*
+             * Undefined so we can throw.
+             * Should guard against most misuses.
+             */
+            throw new IllegalArgumentException(
+                "images use a same array");
+        }
+        
+        NbrsUtils.requireInRange(0, imageFrom.getWidth() - 1, srcX, "srcX");
+        NbrsUtils.requireInRange(0, imageFrom.getHeight() - 1, srcY, "srcY");
+        NbrsUtils.requireInRange(0, imageTo.getWidth() - 1, dstX, "dstX");
+        NbrsUtils.requireInRange(0, imageTo.getHeight() - 1, dstY, "dstY");
+        NbrsUtils.requireInRange(0, imageFrom.getWidth() - srcX, width, "width");
+        NbrsUtils.requireInRange(0, imageFrom.getHeight() - srcY, height, "height");
+        NbrsUtils.requireInRange(0, imageTo.getWidth() - dstX, width, "width");
+        NbrsUtils.requireInRange(0, imageTo.getHeight() - dstY, height, "height");
+        
+        if ((width == 0) || (height == 0)) {
+            // Easy.
+            return;
+        }
+        
+        /*
+         * 
+         */
+        
+        if ((helperFrom.intPixelArr != null)
+            && (helperTo.intPixelArr != null)) {
+            copyPixels_noCheck_2intArr(
+                helperFrom,
+                srcX,
+                srcY,
+                //
+                helperTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else {
+            final int imageTypeFrom = imageFrom.getType();
+            final BihPixelFormat pixelFormatFrom = helperFrom.getPixelFormat();
+            final boolean premulFrom = imageFrom.isAlphaPremultiplied();
+
+            final int imageTypeTo = imageTo.getType();
+            final BihPixelFormat pixelFormatTo = helperTo.getPixelFormat();
+            final boolean premulTo = imageTo.isAlphaPremultiplied();
+            
+            if (helperFrom.isColorModelAvoidingAllowed()
+                && helperTo.isColorModelAvoidingAllowed()
+                && mustUseDrawImageOverPixelLoop(
+                    imageTypeFrom,
+                    pixelFormatFrom,
+                    premulFrom,
+                    //
+                    imageTypeTo,
+                    pixelFormatTo,
+                    premulTo)) {
+                
+                copyPixels_noCheck_drawImage(
+                    helperFrom,
+                    srcX,
+                    srcY,
+                    //
+                    helperTo,
+                    dstX,
+                    dstY,
+                    //
+                    width,
+                    height);
+            } else {
+                copyPixels_noCheck_arrOrRaster(
+                    helperFrom,
+                    srcX,
+                    srcY,
+                    //
+                    helperTo,
+                    dstX,
+                    dstY,
+                    //
+                    width,
+                    height);
+            }
+        }
+    }
+    
     //--------------------------------------------------------------------------
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
@@ -1588,10 +1768,211 @@ public class BufferedImageHelper {
         return this.singlePixelCmaType != MySinglePixelCmaType.NONE;
     }
     
-    boolean isArrayDirectlyUsedForSinglePixelMethods() {
+    boolean isArrayDirectlyUsed() {
         return (this.intPixelArr != null)
             || (this.shortPixelArr != null)
             || (this.bytePixelArr != null);
+    }
+    
+    /**
+     * drawImage() max component error (over) estimation,
+     * to guard against bad drawImage() uses. 
+     * Not public because of semi-redundant (hyperstatic) arguments,
+     * and returns a work value.
+     * 
+     * drawImage() seem to use alpha-premultiplied values internally
+     * even if both its input and output images are not alpha-premultiplied
+     * (and even if none has an alpha component,
+     * i.e. using XRGB24 for graphics image doesn't help).
+     * For example, it converts (non-premul) 0x01374EBD
+     * into (premul) 0x01000001 and then into (non-premul) 0x010000FF.
+     * 
+     * In some cases, drawImage() can give results off by one
+     * compared to our single-pixel treatments
+     * (ex.: (ARGB32,p)->(ARGB32,np):
+     *     when expecting 0x16B98046
+     *  drawImage() gives 0x16B97F46),
+     * but this is just a rounding error and only seem to occur
+     * for alpha <= 0xFE, i.e. for non-opaque colors,
+     * for which having rounding errors is expectable
+     * due to alpha-premultiplication.
+     * 
+     * If drawing a TYPE_INT_ARGB_PRE image containing
+     * 0x80302010 pixels, which corresponds to 0x80604020 when
+     * not alpha-premultiplied, into a TYPE_INT_RGB image,
+     * whatever its previous content the resulting image
+     * will contain 0xFF302010 instead of 0xFF604020,
+     * i.e. it will contain the alpha-premultiplied
+     * color components, with an opaque alpha.
+     * 
+     * @return A value equal or superior to the max error on components
+     *         when using drawImage() in the specified context,
+     *         compared to using get/set with non-premul ARGB32.
+     */
+    static int getDrawImageMaxCptDelta(
+        int imageTypeFrom,
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        //
+        int imageTypeTo,
+        BihPixelFormat pixelFormatTo,
+        boolean premulTo) {
+        
+        /*
+         * From most generic/common to most specific/unusual cases.
+         */
+        
+        final int max = 0xFF;
+        
+        if (isArgb32PrePermu(imageTypeFrom, pixelFormatFrom, premulFrom)) {
+            if (isArgb32PrePermu(imageTypeTo, pixelFormatTo, premulTo)) {
+                return 0;
+            } else if (isArgb32Permu(imageTypeTo, pixelFormatTo, premulTo)) {
+                return 1;
+            } else {
+                return max;
+            }
+        }
+        
+        if (isArgb32Permu(imageTypeFrom, pixelFormatFrom, premulFrom)) {
+            if (isArgb32PrePermu(imageTypeTo, pixelFormatTo, premulTo)) {
+                return 0;
+            } else {
+                return max;
+            }
+        }
+        
+        if (isRgb24Permu(imageTypeFrom, pixelFormatFrom)) {
+            if (isGray(imageTypeTo)
+                || (imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
+                || (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED)) {
+                return max;
+            } else {
+                return 0;
+            }
+        }
+        
+        if (isUShortRgb(imageTypeFrom)) {
+            if (isGray(imageTypeTo)
+                || (imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
+                || (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED)) {
+                return max;
+            } else {
+                return 0;
+            }
+        }
+        
+        if (isGray(imageTypeFrom)) {
+            if (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED) {
+                return max;
+            } else {
+                return 0;
+            }
+        }
+        
+        if (imageTypeFrom == BufferedImage.TYPE_BYTE_BINARY) {
+            if (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED) {
+                return max;
+            } else {
+                return 0;
+            }
+        }
+        
+        if (imageTypeFrom == BufferedImage.TYPE_BYTE_INDEXED) {
+            if ((imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
+                || isGray(imageTypeTo)) {
+                return max;
+            } else {
+                return 0;
+            }
+        }
+        
+        // No idea: worst case.
+        return max;
+    }
+    
+    static boolean isDrawImageMaxCptDeltaSmallEnough(
+        int drawImageMaxCptDelta) {
+        return (drawImageMaxCptDelta <= 1);
+    }
+    
+    static boolean mustUseDrawImageOverPixelLoop(
+        int imageTypeFrom,
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        //
+        int imageTypeTo,
+        BihPixelFormat pixelFormatTo,
+        boolean premulTo) {
+        
+        final int maxCptDelta =
+            getDrawImageMaxCptDelta(
+                imageTypeFrom,
+                pixelFormatFrom,
+                premulFrom,
+                imageTypeTo,
+                pixelFormatTo,
+                premulTo);
+        final boolean ret;
+        if (isDrawImageMaxCptDeltaSmallEnough(maxCptDelta)) {
+            ret = isDrawImageFasterThanPixelLoop(
+                imageTypeFrom,
+                pixelFormatFrom,
+                imageTypeTo,
+                pixelFormatTo);
+        } else {
+            ret = false;
+        }
+        return ret;
+    }
+    
+    /**
+     * Must only be used if
+     * isDrawImageMaxCptDeltaSmallEnough(getDrawImageMaxCptDelta())
+     * returns true for the specified arguments,
+     * as other cases are not handled by this treatment.
+     */
+    static boolean isDrawImageFasterThanPixelLoop(
+        int imageTypeFrom,
+        BihPixelFormat pixelFormatFrom,
+        //
+        int imageTypeTo,
+        BihPixelFormat pixelFormatTo) {
+        
+        if ((pixelFormatTo == BihPixelFormat.ABGR32)
+            || (pixelFormatTo == BihPixelFormat.RGBA32)
+            || (pixelFormatTo == BihPixelFormat.BGRA32)) {
+            if ((imageTypeFrom == BufferedImage.TYPE_3BYTE_BGR)
+                || (imageTypeFrom == BufferedImage.TYPE_4BYTE_ABGR)
+                || (imageTypeFrom == BufferedImage.TYPE_4BYTE_ABGR_PRE)) {
+                /*
+                 * For these cases, speeds about equivalent or faster,
+                 * so we stick to drawImage().
+                 */
+                return true;
+            } else {
+                /*
+                 * For all the other cases of output,
+                 * drawImage() is slow.
+                 */
+                return false;
+            }
+        }
+        
+        if ((pixelFormatFrom == BihPixelFormat.ABGR32)
+            || (pixelFormatFrom == BihPixelFormat.RGBA32)
+            || (pixelFormatFrom == BihPixelFormat.BGRA32)) {
+            if ((imageTypeTo == BufferedImage.TYPE_INT_ARGB_PRE)
+                || (imageTypeTo == BufferedImage.TYPE_INT_ARGB)) {
+                /*
+                 * For these cases of output,
+                 * drawImage() is usually slightly slower.
+                 */
+                return false;
+            }
+        }
+
+        return true;
     }
 
     //--------------------------------------------------------------------------
@@ -1649,53 +2030,27 @@ public class BufferedImageHelper {
         return ret;
     }
     
-    /**
-     * @return The scanline stride of the backing array,
-     *         or -1 if could not be found.
-     */
-    private static int getScanlineStride(BufferedImage image) {
-        final int ret;
-        final SampleModel sampleModel = image.getSampleModel();
-        if (sampleModel instanceof SinglePixelPackedSampleModel) {
-            /*
-             * For TYPE_INT_XXX and TYPE_USHORT_XXX_RGB images.
-             */
-            ret = ((SinglePixelPackedSampleModel) sampleModel).getScanlineStride();
-        } else if (sampleModel instanceof ComponentSampleModel) {
-            /*
-             * For TYPE_(X)BYTE_XXX and TYPE_USHORT_GRAY images
-             * (PixelInterleavedSampleModel subclass in practice).
-             */
-            ret = ((ComponentSampleModel) sampleModel).getScanlineStride();
-        } else if (sampleModel instanceof MultiPixelPackedSampleModel) {
-            /*
-             * For TYPE_BYTE_BINARY images.
-             */
-            ret = ((MultiPixelPackedSampleModel) sampleModel).getScanlineStride();
-        } else {
-            ret = -1;
-        }
-        return ret;
-    }
-    
     /*
      * 
      */
     
-    private static boolean hasSimpleArrayOfType(
+    private static boolean hasDirectlyUsableArrayOfType(
         BufferedImage image,
         int bufferType) {
-        return (getCstErrorNoSimpleArrayOfType(
+        return (getCstErrorNoDirectlyUsableArrayOfType(
             image,
             bufferType) == null);
     }
     
     /**
+     * "Directly Usable" = "Simple" minus the constraint on scanline stride,
+     * which here is allowed to be different from width.
+     * 
      * @return String with constant error message,
      *         or null if the specified image has
-     *         a simple array of the specified type.
+     *         a directly usable array of the specified type.
      */
-    private static String getCstErrorNoSimpleArrayOfType(
+    private static String getCstErrorNoDirectlyUsableArrayOfType(
         BufferedImage image,
         int bufferType) {
         
@@ -1711,11 +2066,6 @@ public class BufferedImageHelper {
         if ((error == null)
             && (buffer.getDataType() != bufferType)) {
             error = "bad buffer type";
-        }
-        
-        if ((error == null)
-            && (getScanlineStride(image) != image.getWidth())) {
-            error = "scanline stride != width";
         }
         
         if ((error == null)
@@ -1748,9 +2098,14 @@ public class BufferedImageHelper {
         BihPixelFormat pixelFormat,
         boolean premul) {
         
-        String error = getCstErrorNoSimpleArrayOfType(
+        String error = getCstErrorNoDirectlyUsableArrayOfType(
             image,
             DataBuffer.TYPE_INT);
+        
+        if ((error == null)
+            && (getScanlineStride(image) != image.getWidth())) {
+            error = "scanline stride != width";
+        }
         
         if (error == null) {
             if (premul) {
@@ -2214,7 +2569,7 @@ public class BufferedImageHelper {
      * 
      */
     
-    private void getPixelsInto_noCheck_intArr_samePixelFormat(
+    private void getPixelsInto_noCheck_intArr(
         int srcX,
         int srcY,
         int srcWidth,
@@ -2223,144 +2578,267 @@ public class BufferedImageHelper {
         int[] color32Arr,
         int color32ArrScanlineStride,
         //
+        BihPixelFormat pixelFormatTo,
         boolean premulTo) {
-        
         /*
-         * Copying pixels into destination array.
+         * If need rework,
+         * doing it after each line copy,
+         * to reduce cache misses.
          */
-        final int areaTo = srcWidth * srcHeight;
-        if ((srcWidth == this.scanlineStride)
+        final boolean needFormatRework =
+            (pixelFormatTo != this.pixelFormat);
+        final boolean needPremulRework =
+            (premulTo != this.image.isAlphaPremultiplied());
+        if ((!needFormatRework)
+            && (!needPremulRework)
+            && (srcWidth == this.scanlineStride)
             && (srcWidth == color32ArrScanlineStride)) {
-            /*
-             * Means getting some or all lines,
-             * over the whole width=srcStride=dstStride,
-             * so we can copy with a single arraycopy().
-             */
+            final int area = srcWidth * srcHeight;
             System.arraycopy(
                 this.intPixelArr,
                 srcY * this.scanlineStride,
                 color32Arr,
                 0,
-                areaTo);
+                area);
         } else {
-            /*
-             * Not full width, or different strides.
-             */
-            for (int j = 0; j < srcHeight; j++) {
-                System.arraycopy(
-                    this.intPixelArr,
-                    (srcY + j) * this.scanlineStride + srcX,
-                    color32Arr,
-                    j * color32ArrScanlineStride,
-                    srcWidth);
-            }
-        }
-        /*
-         * Eventual premul rework.
-         */
-        if (premulTo != this.image.isAlphaPremultiplied()) {
-            /*
-             * Means the (single) format has alpha,
-             * so no need to ensure opaque before premul conversion.
-             */
             final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
             for (int j = 0; j < srcHeight; j++) {
-                final int dstStrideOffset = j * color32ArrScanlineStride;
-                for (int i = 0; i < srcWidth; i++) {
-                    final int index = dstStrideOffset + i;
-                    int pixel = color32Arr[index];
-                    if (premulTo) {
-                        if (isAlphaInMSByte) {
-                            pixel = BindingColorUtils.toPremulAxyz32(pixel);
-                        } else {
-                            pixel = BindingColorUtils.toPremulXyza32(pixel);
+                final int srcLineOffset = (srcY + j) * this.scanlineStride + srcX;
+                final int dstLineOffset = j * color32ArrScanlineStride;
+                
+                System.arraycopy(
+                    this.intPixelArr,
+                    srcLineOffset,
+                    color32Arr,
+                    dstLineOffset,
+                    srcWidth);
+                
+                // Memory-friendly reverse-loop,
+                // assuming arraycopy() is forward-looping.
+                if (needFormatRework) {
+                    for (int i = srcWidth; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = color32Arr[index];
+                        int argb32 = this.pixelFormat.toArgb32FromPixel(pixel);
+                        if (needPremulRework) {
+                            if (premulTo) {
+                                argb32 = BindingColorUtils.toPremulAxyz32(argb32);
+                            } else {
+                                argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
+                            }
                         }
-                    } else {
-                        if (isAlphaInMSByte) {
-                            pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
-                        } else {
-                            pixel = BindingColorUtils.toNonPremulXyza32(pixel);
-                        }
+                        pixel = pixelFormatTo.toPixelFromArgb32(argb32);
+                        color32Arr[index] = pixel;
                     }
-                    color32Arr[index] = pixel;
+                } else if (needPremulRework) {
+                    for (int i = srcWidth; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = color32Arr[index];
+                        if (premulTo) {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toPremulXyza32(pixel);
+                            }
+                        } else {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toNonPremulXyza32(pixel);
+                            }
+                        }
+                        color32Arr[index] = pixel;
+                    }
                 }
             }
         }
     }
     
-    private void setPixelsFrom_noCheck_intArr_samePixelFormat(
+    private void setPixelsFrom_noCheck_intArr(
         int[] color32Arr,
         int color32ArrScanlineStride,
         //
+        BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
         //
         int dstX,
         int dstY,
         int dstWidth,
         int dstHeight) {
-        
         /*
-         * Copying pixels from destination array.
+         * If need rework,
+         * doing it after each line copy,
+         * to reduce cache misses.
          */
-        final int areaFrom = dstWidth * dstHeight;
-        if ((dstWidth == this.scanlineStride)
+        final boolean needFormatRework =
+            (pixelFormatFrom != this.pixelFormat);
+        final boolean needPremulRework =
+            (premulFrom != this.image.isAlphaPremultiplied());
+        if ((!needFormatRework)
+            && (!needPremulRework)
+            && (dstWidth == this.scanlineStride)
             && (dstWidth == color32ArrScanlineStride)) {
-            /*
-             * Means setting some or all lines,
-             * over the whole width=srcStride=dstStride,
-             * so we can copy with a single arraycopy().
-             */
+            final int area = dstWidth * dstHeight;
             System.arraycopy(
                 color32Arr,
                 0,
                 this.intPixelArr,
                 dstY * this.scanlineStride,
-                areaFrom);
+                area);
         } else {
-            /*
-             * Not full width, or different strides.
-             */
-            for (int j = 0; j < dstHeight; j++) {
-                System.arraycopy(
-                    color32Arr,
-                    j * color32ArrScanlineStride,
-                    this.intPixelArr,
-                    (dstY + j) * this.scanlineStride + dstX,
-                    dstWidth);
-            }
-        }
-        /*
-         * Eventual premul rework.
-         */
-        if (premulFrom != this.image.isAlphaPremultiplied()) {
-            /*
-             * Means the (single) format has alpha,
-             * so no need to ensure opaque before premul conversion.
-             */
             final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
             for (int j = 0; j < dstHeight; j++) {
-                final int dstStrideOffset = (dstY + j) * this.scanlineStride;
-                for (int i = 0; i < dstWidth; i++) {
-                    final int index = dstStrideOffset + (dstX + i);
-                    int pixel = this.intPixelArr[index];
-                    if (premulFrom) {
-                        if (isAlphaInMSByte) {
-                            pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
-                        } else {
-                            pixel = BindingColorUtils.toNonPremulXyza32(pixel);
+                final int srcLineOffset = j * color32ArrScanlineStride;
+                final int dstLineOffset = (dstY + j) * this.scanlineStride + dstX;
+                
+                System.arraycopy(
+                    color32Arr,
+                    srcLineOffset,
+                    this.intPixelArr,
+                    dstLineOffset,
+                    dstWidth);
+                
+                // Memory-friendly reverse-loop,
+                // assuming arraycopy() is forward-looping.
+                if (needFormatRework) {
+                    for (int i = dstWidth; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = this.intPixelArr[index];
+                        int argb32 = pixelFormatFrom.toArgb32FromPixel(pixel);
+                        if (needPremulRework) {
+                            if (premulFrom) {
+                                argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
+                            } else {
+                                argb32 = BindingColorUtils.toPremulAxyz32(argb32);
+                            }
                         }
-                    } else {
-                        if (isAlphaInMSByte) {
-                            pixel = BindingColorUtils.toPremulAxyz32(pixel);
-                        } else {
-                            pixel = BindingColorUtils.toPremulXyza32(pixel);
-                        }
+                        pixel = this.pixelFormat.toPixelFromArgb32(argb32);
+                        this.intPixelArr[index] = pixel;
                     }
-                    this.intPixelArr[index] = pixel;
+                } else if (needPremulRework) {
+                    for (int i = dstWidth; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = this.intPixelArr[index];
+                        if (premulFrom) {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toNonPremulXyza32(pixel);
+                            }
+                        } else {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toPremulXyza32(pixel);
+                            }
+                        }
+                        this.intPixelArr[index] = pixel;
+                    }
                 }
             }
         }
     }
+    
+    private static void copyPixels_noCheck_2intArr(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        final int[] arrFrom = helperFrom.intPixelArr;
+        final int scanlineStrideFrom = helperFrom.scanlineStride;
+        final int[] arrTo = helperTo.intPixelArr;
+        final int scanlineStrideTo = helperTo.scanlineStride;
+        
+        final BihPixelFormat pixelFormatFrom = helperFrom.pixelFormat;
+        final boolean premulFrom = helperFrom.image.isAlphaPremultiplied();
+        final BihPixelFormat pixelFormatTo = helperTo.pixelFormat;
+        final boolean premulTo = helperTo.image.isAlphaPremultiplied();
+        
+        /*
+         * If need rework,
+         * doing it after each line copy,
+         * to reduce cache misses.
+         */
+        final boolean needFormatRework =
+            (pixelFormatFrom != pixelFormatTo);
+        final boolean needPremulRework =
+            (premulFrom != premulTo);
+        if ((!needFormatRework)
+            && (!needPremulRework)
+            && (width == scanlineStrideFrom)
+            && (width == scanlineStrideTo)) {
+            final int areaTo = width * height;
+            System.arraycopy(
+                arrFrom,
+                srcY * scanlineStrideFrom,
+                arrTo,
+                dstY * scanlineStrideTo,
+                areaTo);
+        } else {
+            for (int j = 0; j < height; j++) {
+                final int srcLineOffset = (srcY + j) * scanlineStrideFrom + srcX;
+                final int dstLineOffset = (dstY + j) * scanlineStrideTo + dstX;
+                
+                System.arraycopy(
+                    arrFrom,
+                    srcLineOffset,
+                    arrTo,
+                    dstLineOffset,
+                    width);
+                
+                // Memory-friendly reverse-loop,
+                // assuming arraycopy() is forward-looping.
+                if (needFormatRework) {
+                    for (int i = width; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = arrTo[index];
+                        int argb32 = pixelFormatFrom.toArgb32FromPixel(pixel);
+                        if (needPremulRework) {
+                            if (premulTo) {
+                                argb32 = BindingColorUtils.toPremulAxyz32(argb32);
+                            } else {
+                                argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
+                            }
+                        }
+                        pixel = pixelFormatTo.toPixelFromArgb32(argb32);
+                        arrTo[index] = pixel;
+                    }
+                } else if (needPremulRework) {
+                    final boolean isAlphaInMSByte =
+                        pixelFormatTo.areColorsInLsbElseMsb();
+                    for (int i = width; --i >= 0;) {
+                        final int index = dstLineOffset + i;
+                        int pixel = arrTo[index];
+                        if (premulTo) {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toPremulXyza32(pixel);
+                            }
+                        } else {
+                            if (isAlphaInMSByte) {
+                                pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
+                            } else {
+                                pixel = BindingColorUtils.toNonPremulXyza32(pixel);
+                            }
+                        }
+                        arrTo[index] = pixel;
+                    }
+                }
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
     
     private void getPixelsInto_noCheck_arrOrRaster(
         int srcX,
@@ -2417,13 +2895,47 @@ public class BufferedImageHelper {
                 final int argb32 =
                     pixelFormatFrom.toArgb32FromPixel(color32);
                 this.setArgb32At_noCheck_arrOrRaster(
-                        dx,
-                        dy,
-                        argb32,
-                        premulFrom);
+                    dx,
+                    dy,
+                    argb32,
+                    premulFrom);
             }
         }
     }
+    
+    private static void copyPixels_noCheck_arrOrRaster(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        final boolean premulTo = helperTo.image.isAlphaPremultiplied();
+        
+        for (int j = 0; j < height; j++) {
+            final int sy = srcY + j;
+            final int dy = dstY + j;
+            for (int i = 0; i < width; i++) {
+                final int sx = srcX + i;
+                final int dx = dstX + i;
+                final int argb32 =
+                    helperFrom.getArgb32At_noCheck_arrOrRaster(
+                        sx,
+                        sy,
+                        premulTo);
+                helperTo.setArgb32At(dx, dy, argb32, premulTo);
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
     
     private void getPixelsInto_noCheck_drawImage(
         int srcX,
@@ -2455,7 +2967,7 @@ public class BufferedImageHelper {
                 srcHeight);
         }
         
-        final BihPixelFormat tmpImageToPixelFormat = TMP_IMAGE_TO_PIXEL_FORMAT;
+        final BihPixelFormat tmpImageToPixelFormat = DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
         final BufferedImage tmpImageTo = newBufferedImageWithIntArray(
             color32Arr,
             color32ArrScanlineStride,
@@ -2553,6 +3065,51 @@ public class BufferedImageHelper {
         }
     }   
     
+    private static void copyPixels_noCheck_drawImage(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        final BufferedImage imageFrom = helperFrom.getImage();
+        final BufferedImage imageTo = helperTo.getImage();
+        
+        final boolean srcHasAlpha =
+            (imageFrom.getTransparency() == Transparency.TRANSLUCENT);
+        
+        final Graphics2D g = imageTo.createGraphics();
+        try {
+            if (srcHasAlpha) {
+                // Need to reset destination pixels before using
+                // drawImage(), for it does blending.
+                g.setBackground(COLOR_TRANSPARENT);
+                g.clearRect(dstX, dstY, width, height);
+            }
+            g.drawImage(
+                imageFrom,
+                //
+                dstX, // dx1
+                dstY, // dy1
+                dstX + width, // dx2 (exclusive)
+                dstY + height, // dy2 (exclusive)
+                //
+                srcX, // sx1
+                srcY, // sy1
+                srcX + width, // sx2 (exclusive)
+                srcY + height, // sy2 (exclusive)
+                //
+                null);
+        } finally {
+            g.dispose();
+        }
+    }
+    
     /*
      * 
      */
@@ -2588,6 +3145,10 @@ public class BufferedImageHelper {
      * 
      */
     
+    private static boolean sameAndNotNull(Object a, Object b) {
+        return (a != null) && (a == b);
+    }
+    
     private static void zeroizePixels(
         int[] color32Arr,
         int color32ArrScanlineStride,
@@ -2615,5 +3176,87 @@ public class BufferedImageHelper {
             cptMask = (0xFF << (32 - (cptIndex + 1) * 8));
         }
         return cptMask;
+    }
+    
+    /*
+     * 
+     */
+    
+    private static boolean isArgb32PrePermu(int imageType) {
+        return (imageType == BufferedImage.TYPE_INT_ARGB_PRE)
+            || (imageType == BufferedImage.TYPE_4BYTE_ABGR_PRE);
+    }
+    
+    private static boolean isArgb32Permu(int imageType) {
+        return (imageType == BufferedImage.TYPE_INT_ARGB)
+            || (imageType == BufferedImage.TYPE_4BYTE_ABGR);
+    }
+    
+    private static boolean isRgb24Permu(int imageType) {
+        return (imageType == BufferedImage.TYPE_INT_RGB)
+            || (imageType == BufferedImage.TYPE_INT_BGR)
+            || (imageType == BufferedImage.TYPE_3BYTE_BGR);
+    }
+    
+    private static boolean isUShortRgb(int imageType) {
+        return (imageType == BufferedImage.TYPE_USHORT_555_RGB)
+            || (imageType == BufferedImage.TYPE_USHORT_565_RGB);
+    }
+    
+    private static boolean isGray(int imageType) {
+        return (imageType == BufferedImage.TYPE_USHORT_GRAY)
+            || (imageType == BufferedImage.TYPE_BYTE_GRAY);
+    }
+    
+    /*
+     * 
+     */
+    
+    private static boolean isArgb32PrePermu(
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        return (pixelFormat != null)
+            && premul;
+    }
+    
+    private static boolean isArgb32Permu(
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        return (pixelFormat != null)
+            && pixelFormat.hasAlpha()
+            && (!premul);
+    }
+    
+    private static boolean isRgb24Permu(
+        BihPixelFormat pixelFormat) {
+        return (pixelFormat != null)
+            && (!pixelFormat.hasAlpha());
+    }
+    
+    /*
+     * 
+     */
+    
+    private static boolean isArgb32PrePermu(
+        int imageType,
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        return isArgb32PrePermu(pixelFormat, premul)
+            || isArgb32PrePermu(imageType);
+    }
+    
+    private static boolean isArgb32Permu(
+        int imageType,
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        return isArgb32Permu(pixelFormat, premul)
+            || isArgb32Permu(imageType);
+    }
+    
+    private static boolean isRgb24Permu(
+        int imageType,
+        BihPixelFormat pixelFormat) {
+        return isRgb24Permu(pixelFormat)
+            || isRgb24Permu(imageType);
     }
 }

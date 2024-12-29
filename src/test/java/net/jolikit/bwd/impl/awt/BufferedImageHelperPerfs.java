@@ -17,7 +17,9 @@ package net.jolikit.bwd.impl.awt;
 
 import java.awt.Transparency;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
@@ -40,6 +42,7 @@ public class BufferedImageHelperPerfs {
     private static final boolean MUST_BENCH_SINGLE_PIXEL_SET_METHODS = true;
     private static final boolean MUST_BENCH_BULK_GET_METHODS = true;
     private static final boolean MUST_BENCH_BULK_SET_METHODS = true;
+    private static final boolean MUST_BENCH_BULK_COPY_METHODS = true;
     
     /*
      * Small image, for all array to stay in cache
@@ -148,6 +151,12 @@ public class BufferedImageHelperPerfs {
             bench_setPixelsFrom_3840_2160_translucent();
         }
         
+        if (MUST_BENCH_BULK_COPY_METHODS) {
+            bench_copyImage_3840_2160_opaque();
+            
+            bench_copyImage_3840_2160_translucent();
+        }
+        
         final long b = System.nanoTime();
         System.out.println("--- ..." + BufferedImageHelperPerfs.class.getSimpleName()
             + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
@@ -180,9 +189,9 @@ public class BufferedImageHelperPerfs {
         final int width = SMALL_IMAGE_WIDTH;
         final int height = SMALL_IMAGE_HEIGHT;
         
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
-            if (withTranslucency
-                && (image.getTransparency() != Transparency.TRANSLUCENT)) {
+        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+            if ((getPremulElseNonPremul || withTranslucency)
+                && (image.getTransparency() == Transparency.OPAQUE)) {
                 // N/A
                 continue;
             }
@@ -237,12 +246,10 @@ public class BufferedImageHelperPerfs {
                     if (antiOptim == 0) {
                         System.out.println("rare");
                     }
-                    final String typeStr;
-                    if (pixelFormat != null) {
-                        typeStr = pixelFormat + (imagePremul ? "_P" : "");
-                    } else {
-                        typeStr = imageTypeEnum.toString();
-                    }
+                    final String typeStr = getPixelTypeStr(
+                        imageTypeEnum,
+                        pixelFormat,
+                        imagePremul);
                     final String methodStr;
                     if (getPremulElseNonPremul) {
                         methodStr = "getP()";
@@ -302,9 +309,9 @@ public class BufferedImageHelperPerfs {
         final int width = SMALL_IMAGE_WIDTH;
         final int height = SMALL_IMAGE_HEIGHT;
         
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
-            if (withTranslucency
-                && (image.getTransparency() != Transparency.TRANSLUCENT)) {
+        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+            if ((setPremulElseNonPremul || withTranslucency)
+                && (image.getTransparency() == Transparency.OPAQUE)) {
                 // N/A
                 continue;
             }
@@ -362,12 +369,10 @@ public class BufferedImageHelperPerfs {
                         }
                     }
                     final long b = System.nanoTime();
-                    final String typeStr;
-                    if (pixelFormat != null) {
-                        typeStr = pixelFormat + (imagePremul ? "_P" : "");
-                    } else {
-                        typeStr = imageTypeEnum.toString();
-                    }
+                    final String typeStr = getPixelTypeStr(
+                        imageTypeEnum,
+                        pixelFormat,
+                        imagePremul);
                     final String methodStr;
                     if (setPremulElseNonPremul) {
                         if (setElseDraw) {
@@ -394,11 +399,11 @@ public class BufferedImageHelperPerfs {
      */
     
     private static void bench_getPixelsInto_3840_2160_opaque() {
-        bench_getPixelsInto_xxx(2, 3840, 2160, false);
+        bench_getPixelsInto_xxx(1, 3840, 2160, false);
     }
     
     private static void bench_getPixelsInto_3840_2160_translucent() {
-        bench_getPixelsInto_xxx(2, 3840, 2160, true);
+        bench_getPixelsInto_xxx(1, 3840, 2160, true);
     }
     
     private static void bench_getPixelsInto_xxx(
@@ -410,7 +415,7 @@ public class BufferedImageHelperPerfs {
         final int color32ArrScanlineStride = width;
         final int[] color32Arr = new int[color32ArrScanlineStride * height];
         
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
             if (withTranslucency
                 && (image.getTransparency() != Transparency.TRANSLUCENT)) {
                 // N/A
@@ -482,20 +487,21 @@ public class BufferedImageHelperPerfs {
                                 System.out.println("rare");
                             }
                             final String methodStr = "getPix()(" + width + "x" + height + ")";
-                            final String typeFromStr;
-                            if (pixelFormat != null) {
-                                typeFromStr = pixelFormat + (imagePremul ? "_P" : "");
-                            } else {
-                                typeFromStr = imageTypeEnum.toString();
-                            }
-                            final String typeToStr = pixelFormatTo + (premulTo ? "_P" : "");
+                            final String typeFromStr = getPixelTypeStr(
+                                imageTypeEnum,
+                                pixelFormat,
+                                imagePremul);
+                            final String typeToStr = getPixelTypeStr(
+                                null,
+                                pixelFormatTo,
+                                premulTo);
                             System.out.println(bulkNbrOfCalls + " call"
                                 + (bulkNbrOfCalls >= 2 ? "s" : "")
                                 + ", " + methodStr
                                 + ", " + (withTranslucency ? "(tr)" : "(op)")
                                 + ", " + typeFromStr
                                 + "->" + typeToStr
-                                + toStringHelperCapabilitiesPotential(helper)
+                                + toStringHelperCapabilitiesForBulk(helper)
                                 + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                         }
                     }
@@ -509,11 +515,11 @@ public class BufferedImageHelperPerfs {
      */
     
     private static void bench_setPixelsFrom_3840_2160_opaque() {
-        bench_setPixelsFrom_xxx(2, 3840, 2160, false);
+        bench_setPixelsFrom_xxx(1, 3840, 2160, false);
     }
     
     private static void bench_setPixelsFrom_3840_2160_translucent() {
-        bench_setPixelsFrom_xxx(2, 3840, 2160, true);
+        bench_setPixelsFrom_xxx(1, 3840, 2160, true);
     }
     
     private static void bench_setPixelsFrom_xxx(
@@ -563,7 +569,7 @@ public class BufferedImageHelperPerfs {
                 // Separation between input types.
                 System.out.println();
                 
-                for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+                for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
                     
                     final boolean imagePremul = image.isAlphaPremultiplied();
                     
@@ -585,7 +591,7 @@ public class BufferedImageHelperPerfs {
                         ImageTypeEnum.enumByType().get(imageType);
                     
                     for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
-                        
+
                         for (int k = 0; k < NBR_OF_RUNS; k++) {
                             int antiOptim = 0;
                             final long a = System.nanoTime();
@@ -602,20 +608,21 @@ public class BufferedImageHelperPerfs {
                                 System.out.println("rare");
                             }
                             final String methodStr = "setPix()(" + width + "x" + height + ")";
-                            final String typeFromStr = pixelFormatFrom + (premulFrom ? "_P" : "");
-                            final String typeToStr;
-                            if (pixelFormat != null) {
-                                typeToStr = pixelFormat + (imagePremul ? "_P" : "");
-                            } else {
-                                typeToStr = imageTypeEnum.toString();
-                            }
+                            final String typeFromStr = getPixelTypeStr(
+                                null,
+                                pixelFormatFrom,
+                                premulFrom);
+                            final String typeToStr = getPixelTypeStr(
+                                imageTypeEnum,
+                                pixelFormat,
+                                imagePremul);
                             System.out.println(bulkNbrOfCalls + " call"
                                 + (bulkNbrOfCalls >= 2 ? "s" : "")
                                 + ", " + methodStr
                                 + ", " + (withTranslucency ? "(tr)" : "(op)")
                                 + ", " + typeFromStr
                                 + "->" + typeToStr
-                                + toStringHelperCapabilitiesPotential(helper)
+                                + toStringHelperCapabilitiesForBulk(helper)
                                 + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                         }
                     }
@@ -628,15 +635,218 @@ public class BufferedImageHelperPerfs {
      * 
      */
     
+    private static void bench_copyImage_3840_2160_opaque() {
+        bench_copyImage_xxx(1, 3840, 2160, false);
+    }
+    
+    private static void bench_copyImage_3840_2160_translucent() {
+        bench_copyImage_xxx(1, 3840, 2160, true);
+    }
+    
+    private static void bench_copyImage_xxx(
+        int bulkNbrOfCalls,
+        int width,
+        int height,
+        boolean withTranslucency) {
+        
+        for (BufferedImage imageFrom : BihTestUtils.newImageList_forBench(width, height)) {
+            if (withTranslucency
+                && (imageFrom.getTransparency() != Transparency.TRANSLUCENT)) {
+                // N/A
+                continue;
+            }
+            
+            final int imageTypeFrom = imageFrom.getType();
+            final BihPixelFormat pixelFormatFrom =
+                BufferedImageHelper.computePixelFormat(imageFrom);
+            if (pixelFormatFrom != null) {
+                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatFrom)) {
+                    continue;
+                }
+            } else {
+                if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(imageTypeFrom)) {
+                    continue;
+                }
+            }
+            
+            final ImageTypeEnum imageTypeEnumFrom =
+                ImageTypeEnum.enumByType().get(imageTypeFrom);
+            final boolean premulFrom = imageFrom.isAlphaPremultiplied();
+            
+            // Randomizing input.
+            {
+                final Random random = TestUtils.newRandom123456789L();
+                final BufferedImageHelper helperForSet =
+                    new BufferedImageHelper(imageFrom);
+                for (int y = 0; y < height; y++) {
+                    for (int x = 0; x < width; x++) {
+                        int argb = random.nextInt();
+                        if (withTranslucency) {
+                            // Letting alpha value.
+                        } else {
+                            argb = Argb32.toOpaque(argb);
+                        }
+                        helperForSet.setNonPremulArgb32At(x, y, argb);
+                    }
+                }
+            }
+            
+            // Separation between input types.
+            System.out.println();
+            
+            for (BufferedImage imageTo : BihTestUtils.newImageList_forBench(width, height)) {
+                if (withTranslucency
+                    && (imageTo.getTransparency() != Transparency.TRANSLUCENT)) {
+                    // N/A
+                    continue;
+                }
+                
+                final int imageTypeTo = imageTo.getType();
+                final BihPixelFormat pixelFormatTo =
+                    BufferedImageHelper.computePixelFormat(imageTo);
+                if (pixelFormatTo != null) {
+                    if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatTo)) {
+                        continue;
+                    }
+                } else {
+                    if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(imageTypeTo)) {
+                        continue;
+                    }
+                }
+                
+                final ImageTypeEnum imageTypeEnumTo =
+                    ImageTypeEnum.enumByType().get(imageTypeTo);
+                final boolean premulTo = imageTo.isAlphaPremultiplied();
+                
+                /*
+                 * 
+                 */
+                
+                final List<BufferedImageHelper> helperFromList = new ArrayList<>();
+                final List<BufferedImageHelper> helperToList = new ArrayList<>();
+                {
+                    /*
+                     * Optimizations order to go crescendo
+                     * on max used optimization,
+                     * with priority to "from" over "to". 
+                     */
+                    final List<Integer> optimFromList = new ArrayList<>();
+                    final List<Integer> optimToList = new ArrayList<>();
+                    final int maxOptim = 2; // cma+arr
+                    for (int hi = 0; hi <= maxOptim; hi++) {
+                        for (int lo = 0; lo <= hi; lo++) {
+                            // "from" high first.
+                            optimFromList.add(hi);
+                            optimToList.add(lo);
+                            if (lo < hi) {
+                                optimFromList.add(lo);
+                                optimToList.add(hi);
+                            }
+                        }
+                    }
+                    final int optimPairCount = optimFromList.size();
+                    for (int i = 0; i < optimPairCount; i++) {
+                        final int optimFrom = optimFromList.get(i);
+                        final int optimTo = optimToList.get(i);
+                        final boolean cmaFrom = (optimFrom >= 1);
+                        final boolean aduFrom = (optimFrom == 2);
+                        final boolean cmaTo = (optimTo >= 1);
+                        final boolean aduTo = (optimTo == 2);
+                        final BufferedImageHelper helperFrom =
+                            new BufferedImageHelper(
+                                imageFrom, cmaFrom, aduFrom);
+                        if (helperFrom.isArrayDirectUseAllowed()
+                            && (!helperFrom.isArrayDirectlyUsed())) {
+                            // Optimization ineffective: not benching it.
+                            continue;
+                        }
+                        final BufferedImageHelper helperTo =
+                            new BufferedImageHelper(
+                                imageTo, cmaTo, aduTo);
+                        if (helperTo.isArrayDirectUseAllowed()
+                            && (!helperTo.isArrayDirectlyUsed())) {
+                            // Optimization ineffective: not benching it.
+                            continue;
+                        }
+                        helperFromList.add(helperFrom);
+                        helperToList.add(helperTo);
+                    }
+                }
+                final int helperPairCount = helperFromList.size();
+                for (int helperIndex = 0; helperIndex < helperPairCount; helperIndex++) {
+                    final BufferedImageHelper helperFrom = helperFromList.get(helperIndex);
+                    final BufferedImageHelper helperTo = helperToList.get(helperIndex);
+                    
+                    for (int k = 0; k < NBR_OF_RUNS; k++) {
+                        int antiOptim = 0;
+                        final long a = System.nanoTime();
+                        for (int i = 0; i < bulkNbrOfCalls; i++) {
+                            BufferedImageHelper.copyImage(
+                                helperFrom,
+                                0,
+                                0,
+                                helperTo,
+                                0,
+                                0,
+                                width,
+                                height);
+                            antiOptim += helperTo.getNonPremulArgb32At(0, 0);
+                        }
+                        final long b = System.nanoTime();
+                        if (antiOptim == 0) {
+                            System.out.println("rare");
+                        }
+                        final String methodStr = "copy()(" + width + "x" + height + ")";
+                        final String typeFromStr = getPixelTypeStr(
+                            imageTypeEnumFrom,
+                            pixelFormatFrom,
+                            premulFrom);
+                        final String typeToStr = getPixelTypeStr(
+                            imageTypeEnumTo,
+                            pixelFormatTo,
+                            premulTo);
+                        System.out.println(bulkNbrOfCalls + " call"
+                            + (bulkNbrOfCalls >= 2 ? "s" : "")
+                            + ", " + methodStr
+                            + ", " + (withTranslucency ? "(tr)" : "(op)")
+                            + ", " + typeFromStr
+                            + "->" + typeToStr
+                            + toStringHelperCapabilitiesForBulk(helperFrom, helperTo)
+                            + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                    }
+                }
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    private static String getPixelTypeStr(
+        ImageTypeEnum imageTypeEnum,
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        final String ret;
+        if (pixelFormat != null) {
+            ret = pixelFormat + (premul ? "_P" : "");
+        } else if (imageTypeEnum != null) {
+            ret = imageTypeEnum.toString();
+        } else {
+            ret = "TYPE_CUSTOM(unknown)";
+        }
+        return ret;
+    }
+    
     private static String toStringHelperCapabilitiesForSinglePixel(
         BufferedImageHelper helper) {
         
         final String ret;
-        if (helper.isArrayDirectlyUsedForSinglePixelMethods()) {
+        if (helper.isArrayDirectlyUsed()) {
             if (!helper.isColorModelAvoidedForSinglePixelMethods()) {
                 throw new AssertionError();
             }
-            ret = ", (cma)(arr)";
+            ret = ", (cma+arr)";
         } else if (helper.isColorModelAvoidedForSinglePixelMethods()) {
             ret = ", (cma)";
         } else {
@@ -645,19 +855,57 @@ public class BufferedImageHelperPerfs {
         return ret;
     }
     
-    private static String toStringHelperCapabilitiesPotential(
+    private static String toStringHelperCapabilitiesForBulk(
         BufferedImageHelper helper) {
         
         final String ret;
-        if (helper.isArrayDirectUseAllowed()) {
+        if (helper.isArrayDirectlyUsed()) {
             if (!helper.isColorModelAvoidingAllowed()) {
                 throw new AssertionError();
             }
-            ret = ", (?cma)(?arr)";
+            ret = ", (cma+arr)";
         } else if (helper.isColorModelAvoidingAllowed()) {
-            ret = ", (?cma)";
+            ret = ", (cma)";
         } else {
             ret = "";
+        }
+        return ret;
+    }
+    
+    private static String toStringHelperCapabilitiesForBulk(
+        BufferedImageHelper helperFrom,
+        BufferedImageHelper helperTo) {
+        
+        final StringBuilder sb1 = new StringBuilder();
+        if (helperFrom.isArrayDirectlyUsed()) {
+            if (!helperFrom.isColorModelAvoidingAllowed()) {
+                throw new AssertionError();
+            }
+            sb1.append("(cma+arr)");
+        } else if (helperFrom.isColorModelAvoidingAllowed()) {
+            sb1.append("(cma)");
+        } else {
+            sb1.append("()");
+        }
+        
+        final StringBuilder sb2 = new StringBuilder();
+        if (helperTo.isArrayDirectlyUsed()) {
+            if (!helperTo.isColorModelAvoidingAllowed()) {
+                throw new AssertionError();
+            }
+            sb2.append("(cma+arr)");
+        } else if (helperTo.isColorModelAvoidingAllowed()) {
+            sb2.append("(cma)");
+        } else {
+            sb2.append("()");
+        }
+        
+        final String ret;
+        if ((sb1.length() > 2)
+            || (sb2.length() > 2)) {
+            ret = ", " + sb1.toString() + "->" + sb2.toString();
+        } else {
+            ret = ""; 
         }
         return ret;
     }
