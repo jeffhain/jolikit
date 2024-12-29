@@ -476,10 +476,18 @@ public class BufferedImageHelperPerfs {
                             final long a = System.nanoTime();
                             for (int i = 0; i < bulkNbrOfCalls; i++) {
                                 helper.getPixelsInto(
+                                    0,
+                                    0,
+                                    //
                                     color32Arr,
                                     color32ArrScanlineStride,
                                     pixelFormatTo,
-                                    premulTo);
+                                    premulTo,
+                                    0,
+                                    0,
+                                    //
+                                    image.getWidth(),
+                                    image.getHeight());
                                 antiOptim += color32Arr[0];
                             }
                             final long b = System.nanoTime();
@@ -600,7 +608,15 @@ public class BufferedImageHelperPerfs {
                                     color32Arr,
                                     color32ArrScanlineStride,
                                     pixelFormatFrom,
-                                    premulFrom);
+                                    premulFrom,
+                                    0,
+                                    0,
+                                    //
+                                    0,
+                                    0,
+                                    //
+                                    width,
+                                    height);
                                 antiOptim += helper.getArgb32At(0, 0, imagePremul);
                             }
                             final long b = System.nanoTime();

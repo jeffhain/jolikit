@@ -187,11 +187,18 @@ public class AwtImgDrawingUtils {
             final BufferedImageHelper srcImageHelper =
                 new BufferedImageHelper(srcImage);
             srcImageHelper.getPixelsInto(
-                sx, sy, sxSpan, sySpan,
+                sx,
+                sy,
+                //
                 srcPremulArgb32Arr,
                 sxSpan,
                 BihPixelFormat.ARGB32,
-                premul);
+                premul,
+                0,
+                0,
+                //
+                sxSpan,
+                sySpan);
             final IntArrSrcPixels srcPixels = this.tmpSrcPixels;
             final GRect srcRectInImg = GRect.valueOf(0, 0, sxSpan, sySpan);
             srcPixels.configure(
@@ -254,10 +261,7 @@ public class AwtImgDrawingUtils {
          *   by more than two.
          * 
          * Regarding speed, our BufferedImageHelper.getPixelsInto()
-         * is not parallelized and can spend much time in
-         * sun.java2d.SunGraphics2D.drawImage()
-         * -(...)-> sun.java2d.loops.MaskBlit$General.MaskBlit
-         * when having transparency,
+         * is not parallelized and might take some time,
          * so even though our drawScaledRect() is usually fast with parallelism
          * and our redefined scaling algorithms, and AWT scalings
          * are not always equivalent, we might want to allow for

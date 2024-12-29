@@ -229,16 +229,16 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_getScanlineStride() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        final int scanlineStride = width + 1;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        final int scanlineStride = imageWidth + 1;
         final BufferedImage image =
             BufferedImageHelper.newBufferedImageWithIntArray(
                 null,
                 scanlineStride,
                 //
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 //
                 false,
                 -1,
@@ -257,8 +257,8 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_computePixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         /*
          * Images corresponding to all (BihPixelFormat,premul) types.
          */
@@ -268,8 +268,8 @@ public class BufferedImageHelperTest extends TestCase {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         pixelFormat,
                         premul);
                 
@@ -295,8 +295,8 @@ public class BufferedImageHelperTest extends TestCase {
             final int imageType = imageTypeEnum.imageType();
             final BufferedImage image =
                 new BufferedImage(
-                    width,
-                    height,
+                    imageWidth,
+                    imageHeight,
                     imageType);
             final BihPixelFormat actualPixelFormat =
                 BufferedImageHelper.computePixelFormat(image);
@@ -313,17 +313,17 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_newBufferedImageWithIntArray_imageType() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         
         /*
          * Too small array.
          */
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[width * height - 1],
-                width,
-                height,
+                new int[imageWidth * imageHeight - 1],
+                imageWidth,
+                imageHeight,
                 BufferedImage.TYPE_INT_ARGB);
             fail();
         } catch (IllegalArgumentException e) {
@@ -341,7 +341,7 @@ public class BufferedImageHelperTest extends TestCase {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
                     badWidth,
-                    height,
+                    imageHeight,
                     BufferedImage.TYPE_INT_ARGB);
                 fail();
             } catch (IllegalArgumentException e) {
@@ -359,7 +359,7 @@ public class BufferedImageHelperTest extends TestCase {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
-                    width,
+                    imageWidth,
                     badHeight,
                     BufferedImage.TYPE_INT_ARGB);
                 fail();
@@ -375,8 +375,8 @@ public class BufferedImageHelperTest extends TestCase {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         imageType);
                     fail();
                 } catch (IllegalArgumentException e) {
@@ -393,15 +393,15 @@ public class BufferedImageHelperTest extends TestCase {
             final BufferedImage image =
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
-                    width,
-                    height,
+                    imageWidth,
+                    imageHeight,
                     imageType);
-            assertEquals(width, image.getWidth());
-            assertEquals(height, image.getHeight());
+            assertEquals(imageWidth, image.getWidth());
+            assertEquals(imageHeight, image.getHeight());
             assertEquals(imageType, image.getType());
             final int[] pixelArr = BufferedImageHelper.getIntArray(image);
             assertNotNull(pixelArr);
-            assertEquals(width * height, pixelArr.length);
+            assertEquals(imageWidth * imageHeight, pixelArr.length);
         }
         
         /*
@@ -409,16 +409,16 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         {
-            final int[] pixelArr = new int[width * height];
+            final int[] pixelArr = new int[imageWidth * imageHeight];
             for (int imageType : TYPE_INT_XXX_LIST) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         imageType);
-                assertEquals(width, image.getWidth());
-                assertEquals(height, image.getHeight());
+                assertEquals(imageWidth, image.getWidth());
+                assertEquals(imageHeight, image.getHeight());
                 assertEquals(imageType, image.getType());
                 assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
             }
@@ -426,17 +426,17 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_newBufferedImageWithIntArray_BihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         
         /*
          * Too small array.
          */
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[width * height - 1],
-                width,
-                height,
+                new int[imageWidth * imageHeight - 1],
+                imageWidth,
+                imageHeight,
                 BihPixelFormat.ARGB32,
                 false);
             fail();
@@ -455,7 +455,7 @@ public class BufferedImageHelperTest extends TestCase {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
                     badWidth,
-                    height,
+                    imageHeight,
                     BihPixelFormat.ARGB32,
                     false);
                 fail();
@@ -474,7 +474,7 @@ public class BufferedImageHelperTest extends TestCase {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
-                    width,
+                    imageWidth,
                     badHeight,
                     BihPixelFormat.ARGB32,
                     false);
@@ -489,8 +489,8 @@ public class BufferedImageHelperTest extends TestCase {
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
                 null,
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 null,
                 false);
             fail();
@@ -505,8 +505,8 @@ public class BufferedImageHelperTest extends TestCase {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         pixelFormat,
                         true);
                     fail();
@@ -525,18 +525,18 @@ public class BufferedImageHelperTest extends TestCase {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         pixelFormat,
                         premul);
-                assertEquals(width, image.getWidth());
-                assertEquals(height, image.getHeight());
+                assertEquals(imageWidth, image.getWidth());
+                assertEquals(imageHeight, image.getHeight());
                 final int expectedImageType =
                     pixelFormat.toImageType(premul);
                 assertEquals(expectedImageType, image.getType());
                 final int[] pixelArr = BufferedImageHelper.getIntArray(image);
                 assertNotNull(pixelArr);
-                assertEquals(width * height, pixelArr.length);
+                assertEquals(imageWidth * imageHeight, pixelArr.length);
             }
         }
         
@@ -545,18 +545,18 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         {
-            final int[] pixelArr = new int[width * height];
+            final int[] pixelArr = new int[imageWidth * imageHeight];
             for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
                 for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
                     final BufferedImage image =
                         BufferedImageHelper.newBufferedImageWithIntArray(
                             pixelArr,
-                            width,
-                            height,
+                            imageWidth,
+                            imageHeight,
                             pixelFormat,
                             premul);
-                    assertEquals(width, image.getWidth());
-                    assertEquals(height, image.getHeight());
+                    assertEquals(imageWidth, image.getWidth());
+                    assertEquals(imageHeight, image.getHeight());
                     final int expectedImageType =
                         pixelFormat.toImageType(premul);
                     assertEquals(expectedImageType, image.getType());
@@ -567,19 +567,19 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_newBufferedImageWithIntArray_cptIndexes() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         
         /*
          * Too small array.
          */
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[width * height - 1],
-                width,
+                new int[imageWidth * imageHeight - 1],
+                imageWidth,
                 //
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 //
                 false,
                 -1,
@@ -594,22 +594,14 @@ public class BufferedImageHelperTest extends TestCase {
         /*
          * Bad scanline stride.
          */
-        for (int badScanlineStride : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-            width - 1,
-            // Not bad in itself, but too large for array,
-            // and to test overflow handling in checks.
-            Integer.MAX_VALUE,
-        }) {
+        for (int badScanlineStride : newBadScanlineStrideArr(imageWidth)) {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[width * height],
+                    new int[imageWidth * imageHeight],
                     badScanlineStride,
                     //
-                    width,
-                    height,
+                    imageWidth,
+                    imageHeight,
                     //
                     false,
                     -1,
@@ -626,19 +618,19 @@ public class BufferedImageHelperTest extends TestCase {
          * Bad array length.
          */
         {
-            final int scanlineStride = width + 1;
+            final int scanlineStride = imageWidth + 1;
             for (int badArrayLength : new int[] {
                 0,
                 1,
-                ((height - 1) * scanlineStride + width) - 1,
+                ((imageHeight - 1) * scanlineStride + imageWidth) - 1,
             }) {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         new int[badArrayLength],
                         scanlineStride,
                         //
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         //
                         false,
                         -1,
@@ -663,10 +655,10 @@ public class BufferedImageHelperTest extends TestCase {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
-                    width,
+                    imageWidth,
                     //
                     badWidth,
-                    height,
+                    imageHeight,
                     //
                     true,
                     -1,
@@ -690,9 +682,9 @@ public class BufferedImageHelperTest extends TestCase {
             try {
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
-                    width,
+                    imageWidth,
                     //
-                    width,
+                    imageWidth,
                     badHeight,
                     //
                     true,
@@ -712,10 +704,10 @@ public class BufferedImageHelperTest extends TestCase {
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
                 null,
-                width,
+                imageWidth,
                 //
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 //
                 true,
                 -1,
@@ -768,10 +760,10 @@ public class BufferedImageHelperTest extends TestCase {
                 if (expectedOk) {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
-                        width,
+                        imageWidth,
                         //
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         //
                         false,
                         aIndex,
@@ -783,10 +775,10 @@ public class BufferedImageHelperTest extends TestCase {
                     try {
                         BufferedImageHelper.newBufferedImageWithIntArray(
                             null,
-                            width,
+                            imageWidth,
                             //
-                            width,
-                            height,
+                            imageWidth,
+                            imageHeight,
                             //
                             false,
                             aIndex,
@@ -807,14 +799,14 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         for (boolean premul : new boolean[] {false, true}) {
-            final int scanlineStride = width + 1;
+            final int scanlineStride = imageWidth + 1;
             final BufferedImage image =
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
                     scanlineStride,
                     //
-                    width,
-                    height,
+                    imageWidth,
+                    imageHeight,
                     //
                     premul,
                     0,
@@ -822,8 +814,8 @@ public class BufferedImageHelperTest extends TestCase {
                     1,
                     2,
                     3);
-            assertEquals(width, image.getWidth());
-            assertEquals(height, image.getHeight());
+            assertEquals(imageWidth, image.getWidth());
+            assertEquals(imageHeight, image.getHeight());
             final int expectedImageType =
                 (premul
                     ? BufferedImage.TYPE_INT_ARGB_PRE
@@ -831,7 +823,7 @@ public class BufferedImageHelperTest extends TestCase {
             assertEquals(expectedImageType, image.getType());
             final int[] pixelArr = BufferedImageHelper.getIntArray(image);
             assertNotNull(pixelArr);
-            assertEquals((height - 1) * scanlineStride + width, pixelArr.length);
+            assertEquals((imageHeight - 1) * scanlineStride + imageWidth, pixelArr.length);
         }
         
         /*
@@ -840,16 +832,16 @@ public class BufferedImageHelperTest extends TestCase {
         
         {
             for (boolean premul : new boolean[] {false, true}) {
-                final int scanlineStride = width + 1;
+                final int scanlineStride = imageWidth + 1;
                 // Possibly larger than needed, doesnt hurt.
-                final int[] pixelArr = new int[scanlineStride * height];
+                final int[] pixelArr = new int[scanlineStride * imageHeight];
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
                         scanlineStride,
                         //
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         //
                         premul,
                         0,
@@ -857,8 +849,8 @@ public class BufferedImageHelperTest extends TestCase {
                         1,
                         2,
                         3);
-                assertEquals(width, image.getWidth());
-                assertEquals(height, image.getHeight());
+                assertEquals(imageWidth, image.getWidth());
+                assertEquals(imageHeight, image.getHeight());
                 final int expectedImageType =
                     (premul
                         ? BufferedImage.TYPE_INT_ARGB_PRE
@@ -877,9 +869,9 @@ public class BufferedImageHelperTest extends TestCase {
      * Tests all static methods related to int array.
      */
     public void test_xxxIntArray_static() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        final int[] pixelArr = new int[width * height];
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        final int[] pixelArr = new int[imageWidth * imageHeight];
         
         /*
          * Bad array type.
@@ -888,8 +880,8 @@ public class BufferedImageHelperTest extends TestCase {
         {
             final BufferedImage image =
                 new BufferedImage(
-                    width,
-                    height,
+                    imageWidth,
+                    imageHeight,
                     BufferedImage.TYPE_3BYTE_BGR);
             
             assertFalse(BufferedImageHelper.hasSimpleIntArray(image));
@@ -925,8 +917,8 @@ public class BufferedImageHelperTest extends TestCase {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
-                        width,
-                        height,
+                        imageWidth,
+                        imageHeight,
                         pixelFormat,
                         premul);
                 
@@ -1009,19 +1001,14 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_getArgb32At_setArgb32At_exceptions() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
                 final boolean premul = false;
                 
-                for (int badX : new int[] {
-                    Integer.MIN_VALUE,
-                    -1,
-                    width,
-                    Integer.MAX_VALUE}) {
-                    
+                for (int badX : newBadPositionArr(imageWidth)) {
                     try {
                         helper.getArgb32At(badX, 0, premul);
                         fail();
@@ -1037,12 +1024,7 @@ public class BufferedImageHelperTest extends TestCase {
                     }
                 }
                 
-                for (int badY : new int[] {
-                    Integer.MIN_VALUE,
-                    -1,
-                    height,
-                    Integer.MAX_VALUE}) {
-                    
+                for (int badY : newBadPositionArr(imageHeight)) {
                     try {
                         helper.getArgb32At(0, badY, premul);
                         fail();
@@ -1062,9 +1044,9 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_getXxxArgb32At_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -1104,9 +1086,9 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_setXxxArgb32At_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -1147,13 +1129,13 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_getXxxArgb32At_allImageType() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
             final int imageType = imageTypeEnum.imageType();
             final BufferedImage image = new BufferedImage(
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 imageType);
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
@@ -1273,13 +1255,13 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_setXxxArgb32At_allImageType() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
             final int imageType = imageTypeEnum.imageType();
             final BufferedImage image = new BufferedImage(
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 imageType);
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
@@ -1411,13 +1393,13 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_setXxxArgb32At_getXxxArgb32At_deltasOkWithCma_allImageType() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
         for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
             final int imageType = imageTypeEnum.imageType();
             final BufferedImage image = new BufferedImage(
-                width,
-                height,
+                imageWidth,
+                imageHeight,
                 imageType);
             
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
@@ -1545,9 +1527,9 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_drawPointPremulAt_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             
             final BufferedImageHelper helper = new BufferedImageHelper(image);
             assertTrue(helper.isColorModelAvoidedForSinglePixelMethods());
@@ -1593,17 +1575,12 @@ public class BufferedImageHelperTest extends TestCase {
      */
     
     public void test_clearRect_fillRectPremul_invertPixels_exceptions() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
-                for (int badX : new int[] {
-                    Integer.MIN_VALUE,
-                    -1,
-                    width,
-                    Integer.MAX_VALUE}) {
-                    
+                for (int badX : newBadPositionArr(imageWidth)) {
                     try {
                         helper.clearRect(badX, 0, 1, 1, 0xFF000000, false);
                         fail();
@@ -1626,12 +1603,7 @@ public class BufferedImageHelperTest extends TestCase {
                     }
                 }
                 
-                for (int badY : new int[] {
-                    Integer.MIN_VALUE,
-                    -1,
-                    height,
-                    Integer.MAX_VALUE}) {
-                    
+                for (int badY : newBadPositionArr(imageHeight)) {
                     try {
                         helper.clearRect(0, badY, 1, 1, 0xFF000000, false);
                         fail();
@@ -1658,9 +1630,9 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_clearRect_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             final BufferedImageHelper helper = new BufferedImageHelper(image);
             
             final BihPixelFormat pixelFormat = helper.getPixelFormat();
@@ -1720,9 +1692,9 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_fillRectPremul_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             final BufferedImageHelper helper = new BufferedImageHelper(image);
             
             final BihPixelFormat pixelFormat = helper.getPixelFormat();
@@ -1782,9 +1754,9 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_invertPixels_allBihPixelFormat() {
-        final int width = SMALL_WIDTH;
-        final int height = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(width, height)) {
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
             final BufferedImageHelper helper = new BufferedImageHelper(image);
             
             final BihPixelFormat pixelFormat = helper.getPixelFormat();
@@ -1808,7 +1780,7 @@ public class BufferedImageHelperTest extends TestCase {
              * Clearing all with the color (to invert it).
              */
             
-            helper.clearRect(0, 0, width, height, nonPremulArgb32, false);
+            helper.clearRect(0, 0, imageWidth, imageHeight, nonPremulArgb32, false);
             
             /*
              * Inverting.
@@ -1841,8 +1813,8 @@ public class BufferedImageHelperTest extends TestCase {
             helper.invertPixels(1, 1, 3, 2);
             
             // All become as after clearing.
-            for (int y = 0; y < height; y++) {
-                for (int x = 0; x < width; x++) {
+            for (int y = 0; y < imageHeight; y++) {
+                for (int x = 0; x < imageWidth; x++) {
                     final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
                     checkEqual(nonPremulArgb32, actualNonPremulArgb32);
                 }
@@ -1854,65 +1826,45 @@ public class BufferedImageHelperTest extends TestCase {
      * 
      */
     
-    public void test_getPixelsInto_exceptions_fullRect() {
+    public void test_getPixelsInto_exceptions() {
         final boolean isGetElseSet = true;
-        final boolean srcRectElseFullRect = false;
         this.test_getPixelsInto_setPixelsInto_exceptions_xxx(
-            isGetElseSet,
-            srcRectElseFullRect);
+            isGetElseSet);
     }
     
-    public void test_getPixelsInto_exceptions_srcRect() {
-        final boolean isGetElseSet = true;
-        final boolean srcRectElseFullRect = true;
-        this.test_getPixelsInto_setPixelsInto_exceptions_xxx(
-            isGetElseSet,
-            srcRectElseFullRect);
-    }
-    
-    public void test_setPixelsFrom_exceptions_fullRect() {
+    public void test_setPixelsFrom_exceptions() {
         final boolean isGetElseSet = false;
-        final boolean srcRectElseFullRect = false;
         this.test_getPixelsInto_setPixelsInto_exceptions_xxx(
-            isGetElseSet,
-            srcRectElseFullRect);
-    }
-    
-    public void test_setPixelsFrom_exceptions_srcRect() {
-        final boolean isGetElseSet = false;
-        final boolean srcRectElseFullRect = true;
-        this.test_getPixelsInto_setPixelsInto_exceptions_xxx(
-            isGetElseSet,
-            srcRectElseFullRect);
+            isGetElseSet);
     }
     
     public void test_getPixelsInto_setPixelsInto_exceptions_xxx(
-        boolean isGetElseSet,
-        boolean srcRectElseFullRect) {
+        boolean isGetElseSet) {
         // Large enough for some coordinates leeway.
-        final int width = 30;
-        final int height = 20;
-        for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+        final int imageWidth = 30;
+        final int imageHeight = 20;
+        for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
             for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 /*
                  * Null array.
                  */
                 try {
-                    callGetOrSetPixelsInto_xxx(
+                    callGetOrSetPixelsInto(
                         isGetElseSet,
-                        srcRectElseFullRect,
                         helper,
                         //
-                        0,
-                        0,
-                        width,
-                        height,
-                        //
                         null,
-                        width,
-                        //
+                        imageWidth,
                         BihPixelFormat.ARGB32,
-                        false);
+                        false,
+                        0,
+                        0,
+                        //
+                        0,
+                        0,
+                        //
+                        imageWidth,
+                        imageHeight);
                     fail();
                 } catch (NullPointerException e) {
                     assertNotNull(e);
@@ -1921,21 +1873,22 @@ public class BufferedImageHelperTest extends TestCase {
                  * Null pixel format.
                  */
                 try {
-                    callGetOrSetPixelsInto_xxx(
+                    callGetOrSetPixelsInto(
                         isGetElseSet,
-                        srcRectElseFullRect,
                         helper,
                         //
-                        0,
-                        0,
-                        width,
-                        height,
-                        //
-                        new int[width * height],
-                        width,
-                        //
+                        new int[imageWidth * imageHeight],
+                        imageWidth,
                         null,
-                        false);
+                        false,
+                        0,
+                        0,
+                        //
+                        0,
+                        0,
+                        //
+                        imageWidth,
+                        imageHeight);
                     fail();
                 } catch (NullPointerException e) {
                     assertNotNull(e);
@@ -1944,202 +1897,151 @@ public class BufferedImageHelperTest extends TestCase {
                  * Bad premul.
                  */
                 try {
-                    callGetOrSetPixelsInto_xxx(
+                    callGetOrSetPixelsInto(
                         isGetElseSet,
-                        srcRectElseFullRect,
                         helper,
                         //
-                        0,
-                        0,
-                        width,
-                        height,
-                        //
-                        new int[width * height],
-                        width,
-                        //
+                        new int[imageWidth * imageHeight],
+                        imageWidth,
                         BihPixelFormat.XRGB24,
-                        true);
+                        true,
+                        0,
+                        0,
+                        //
+                        0,
+                        0,
+                        //
+                        imageWidth,
+                        imageHeight);
                     fail();
                 } catch (IllegalArgumentException e) {
                     assertNotNull(e);
                 }
                 /*
-                 * Bad x positions.
+                 * Bad X range.
+                 * Using same width for array as for image.
                  */
-                if (srcRectElseFullRect) {
-                    for (int[] badXPosSpan : new int[][] {
-                        {Integer.MIN_VALUE, 0},
-                        {-1, 0},
-                        {width, 0},
-                        {Integer.MAX_VALUE, 0},
-                        //
-                        {0, Integer.MIN_VALUE},
-                        {0, -1},
-                        {0, width + 1},
-                        {0, Integer.MAX_VALUE},
-                        //
-                        {width-1, 2},
-                        {width-1, Integer.MAX_VALUE},
-                    }) {
-                        final int srcX = badXPosSpan[0];
-                        final int srcWidth = badXPosSpan[1];
-                        try {
-                            callGetOrSetPixelsInto_xxx(
-                                isGetElseSet,
-                                srcRectElseFullRect,
-                                helper,
-                                //
-                                srcX,
-                                0,
-                                srcWidth,
-                                height,
-                                //
-                                new int[width * height],
-                                width,
-                                //
-                                BihPixelFormat.ARGB32,
-                                false);
-                            fail();
-                        } catch (IllegalArgumentException e) {
-                            assertNotNull(e);
-                        }
-                    }
-                } else {
-                    // N/A
-                }
-                /*
-                 * Bad y positions.
-                 */
-                if (srcRectElseFullRect) {
-                    for (int[] badYPosSpan : new int[][] {
-                        {Integer.MIN_VALUE, 0},
-                        {-1, 0},
-                        {height, 0},
-                        {Integer.MAX_VALUE, 0},
-                        //
-                        {0, Integer.MIN_VALUE},
-                        {0, -1},
-                        {0, height + 1},
-                        {0, Integer.MAX_VALUE},
-                        //
-                        {height-1, 2},
-                        {height-1, Integer.MAX_VALUE},
-                    }) {
-                        final int srcY = badYPosSpan[0];
-                        final int srcHeight = badYPosSpan[1];
-                        try {
-                            callGetOrSetPixelsInto_xxx(
-                                isGetElseSet,
-                                srcRectElseFullRect,
-                                helper,
-                                //
-                                0,
-                                srcY,
-                                width,
-                                srcHeight,
-                                //
-                                new int[width * height],
-                                width,
-                                //
-                                BihPixelFormat.ARGB32,
-                                false);
-                            fail();
-                        } catch (IllegalArgumentException e) {
-                            assertNotNull(e);
-                        }
-                    }
-                } else {
-                    // N/A
-                }
-                /*
-                 * Bad scanline stride.
-                 */
-                for (int badScanlineStride : new int[] {
-                    Integer.MIN_VALUE,
-                    -1,
-                    0,
-                    width - 1,
-                    // Not bad in itself, but too large for array,
-                    // and to test overflow handling in checks.
-                    Integer.MAX_VALUE,
-                }) {
+                for (int[] arrImgSpan : newBadRangeArr(imageWidth, imageWidth)) {
+                    final int arrX = arrImgSpan[0];
+                    final int imgX = arrImgSpan[1];
+                    final int width = arrImgSpan[2];
                     try {
-                        callGetOrSetPixelsInto_xxx(
+                        callGetOrSetPixelsInto(
                             isGetElseSet,
-                            srcRectElseFullRect,
                             helper,
                             //
-                            0,
-                            0,
-                            width,
-                            height,
-                            //
-                            new int[width * height],
-                            badScanlineStride,
-                            //
+                            new int[imageWidth * imageHeight],
+                            imageWidth,
                             BihPixelFormat.ARGB32,
-                            false);
+                            false,
+                            arrX,
+                            0,
+                            //
+                            imgX,
+                            0,
+                            //
+                            width,
+                            imageHeight);
                         fail();
                     } catch (IllegalArgumentException e) {
                         assertNotNull(e);
                     }
                 }
                 /*
-                 * Not bad scanline stride:
-                 * zero valid if srcWidth is zero.
+                 * Bad Y range.
+                 * Using same height for array as for image.
                  */
-                if (srcRectElseFullRect) {
-                    final int scanlineStride = 0;
+                for (int[] arrImgSpan : newBadRangeArr(imageHeight, imageHeight)) {
+                    final int arrY = arrImgSpan[0];
+                    final int imgY = arrImgSpan[1];
+                    final int height = arrImgSpan[2];
                     try {
-                        callGetOrSetPixelsInto_xxx(
+                        callGetOrSetPixelsInto(
                             isGetElseSet,
-                            srcRectElseFullRect,
                             helper,
                             //
-                            0,
-                            0,
-                            0,
-                            1,
-                            //
-                            new int[width * height],
-                            scanlineStride,
-                            //
+                            new int[imageWidth * imageHeight],
+                            imageWidth,
                             BihPixelFormat.ARGB32,
-                            false);
+                            false,
+                            0,
+                            arrY,
+                            //
+                            0,
+                            imgY,
+                            //
+                            imageWidth,
+                            height);
+                        fail();
                     } catch (IllegalArgumentException e) {
-                        assertNull(e);
+                        assertNotNull(e);
+                    }
+                }
+                /*
+                 * Bad scanline stride.
+                 * Zero allowed if width is zero,
+                 * to be able to use width as scanline stride.
+                 */
+                for (int badScanlineStride : newBadScanlineStrideArr(imageWidth)) {
+                    for (int width : new int[] {0, imageWidth}) {
+                        try {
+                            callGetOrSetPixelsInto(
+                                isGetElseSet,
+                                helper,
+                                //
+                                new int[imageWidth * imageHeight],
+                                badScanlineStride,
+                                BihPixelFormat.ARGB32,
+                                false,
+                                0,
+                                0,
+                                //
+                                0,
+                                0,
+                                //
+                                width,
+                                imageHeight);
+                            if (width != 0) {
+                                fail();
+                            }
+                        } catch (IllegalArgumentException e) {
+                            if (width == 0) {
+                                assertNotNull(e);
+                            }
+                        }
                     }
                 }
                 /*
                  * Bad array length.
                  */
                 {
-                    final int srcX = (srcRectElseFullRect ? 2 : 0);
-                    final int srcY = (srcRectElseFullRect ? 1 : 0);
-                    final int srcWidth = (srcRectElseFullRect ? width - 8 : width);
-                    final int srcHeight = (srcRectElseFullRect ? height - 9 : height);
-                    final int scanlineStride = srcWidth + 1;
+                    final int srcX = 2;
+                    final int srcY = 1;
+                    final int width = imageWidth - 8;
+                    final int height = imageHeight - 9;
+                    final int scanlineStride = width + 1;
                     for (int badArrayLength : new int[] {
                         0,
                         1,
-                        ((srcHeight - 1) * scanlineStride + srcWidth) - 1,
+                        ((height - 1) * scanlineStride + width) - 1,
                     }) {
                         try {
-                            callGetOrSetPixelsInto_xxx(
+                            callGetOrSetPixelsInto(
                                 isGetElseSet,
-                                srcRectElseFullRect,
                                 helper,
-                                //
-                                srcX,
-                                srcY,
-                                srcWidth,
-                                srcHeight,
                                 //
                                 new int[badArrayLength],
                                 scanlineStride,
-                                //
                                 BihPixelFormat.ARGB32,
-                                false);
+                                false,
+                                0,
+                                0,
+                                //
+                                srcX,
+                                srcY,
+                                //
+                                width,
+                                height);
                             fail();
                         } catch (IllegalArgumentException e) {
                             assertNotNull(e);
@@ -2170,21 +2072,21 @@ public class BufferedImageHelperTest extends TestCase {
          * and various kinds of (alpha,color) pairs
          * (at least when srcRectElseFullRect is false).
          */
-        final int width = 256;
-        final int height = 32;
+        final int imageWidth = 256;
+        final int imageHeight = 32;
         
         final Random random = TestUtils.newRandom123456789L();
         
         for (int strideBonus : new int[] {0, 1}) {
             
-            final int color32ArrScanlineStride = width + strideBonus;
+            final int color32ArrScanlineStride = imageWidth + strideBonus;
             
             final int[] expectedColor32Arr =
-                new int[color32ArrScanlineStride * height];
+                new int[color32ArrScanlineStride * imageHeight];
             final int[] actualColor32Arr =
-                new int[color32ArrScanlineStride * height];
+                new int[color32ArrScanlineStride * imageHeight];
             
-            for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+            for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
                 for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                     
                     final boolean cmaAllowed =
@@ -2199,8 +2101,8 @@ public class BufferedImageHelperTest extends TestCase {
                         ImageTypeEnum.enumByType().get(image.getType());
                     
                     // Randomizing input image.
-                    for (int y = 0; y < height; y++) {
-                        for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < imageHeight; y++) {
+                        for (int x = 0; x < imageWidth; x++) {
                             final int argb32 = random.nextInt();
                             helper.setNonPremulArgb32At(x, y, argb32);
                         }
@@ -2210,8 +2112,8 @@ public class BufferedImageHelperTest extends TestCase {
                         for (boolean premulTo : BihTestUtils.newPremulArr(pixelFormatTo)) {
                             if (DEBUG) {
                                 System.out.println();
-                                System.out.println("imageWidth = " + width);
-                                System.out.println("imageHeight = " + height);
+                                System.out.println("imageWidth = " + imageWidth);
+                                System.out.println("imageHeight = " + imageHeight);
                                 System.out.println("imagePixelFormat = " + imagePixelFormat);
                                 System.out.println("imagePremul = " + imagePremul);
                                 System.out.println("imageTypeEnum = " + imageTypeEnum);
@@ -2223,19 +2125,19 @@ public class BufferedImageHelperTest extends TestCase {
                             
                             final int srcX;
                             final int srcY;
-                            final int srcWidth;
-                            final int srcHeight;
+                            final int width;
+                            final int height;
                             if (srcRectElseFullRect) {
-                                srcX = random.nextInt(width);
-                                srcY = random.nextInt(height);
-                                // Zero width/height accepted.
-                                srcWidth = random.nextInt(width - srcX + 1);
-                                srcHeight = random.nextInt(height - srcY + 1);
+                                srcX = random.nextInt(imageWidth);
+                                srcY = random.nextInt(imageHeight);
+                                // Zero width/imageHeight accepted.
+                                width = random.nextInt(imageWidth - srcX + 1);
+                                height = random.nextInt(imageHeight - srcY + 1);
                             } else {
                                 srcX = 0;
                                 srcY = 0;
-                                srcWidth = width;
-                                srcHeight = height;
+                                width = imageWidth;
+                                height = imageHeight;
                             }
                             
                             // Filling output with some semi opaque color,
@@ -2260,44 +2162,47 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 srcX,
                                 srcY,
-                                srcWidth,
-                                srcHeight,
                                 //
                                 expectedColor32Arr,
                                 color32ArrScanlineStride,
-                                //
                                 pixelFormatTo,
-                                premulTo);
+                                premulTo,
+                                0,
+                                0,
+                                //
+                                width,
+                                height);
                             
-                            callGetPixelsInto_xxx(
-                                srcRectElseFullRect,
+                            callGetPixelsInto(
                                 helper,
                                 //
                                 srcX,
                                 srcY,
-                                srcWidth,
-                                srcHeight,
                                 //
                                 actualColor32Arr,
                                 color32ArrScanlineStride,
-                                //
                                 pixelFormatTo,
-                                premulTo);
+                                premulTo,
+                                0,
+                                0,
+                                //
+                                width,
+                                height);
                             
                             // Checking no damage to pixels outside the area.
                             for (int i = 0; i < actualColor32Arr.length; i++) {
                                 final int x = i % color32ArrScanlineStride;
                                 final int y = i / color32ArrScanlineStride;
-                                if ((x >= srcWidth)
-                                    || (y >= srcHeight)) {
+                                if ((x >= width)
+                                    || (y >= height)) {
                                     final int actualPixel = actualColor32Arr[i];
                                     checkEqual(initialPixel, actualPixel);
                                 }
                             }
                             
                             // Checking pixels within the area.
-                            for (int y = srcY; y < srcY + srcHeight; y++) {
-                                for (int x = srcX; x < srcX + srcWidth; x++) {
+                            for (int y = srcY; y < srcY + height; y++) {
+                                for (int x = srcX; x < srcX + width; x++) {
                                     final int index =
                                         (y - srcY) * color32ArrScanlineStride
                                         + (x - srcX);
@@ -2367,18 +2272,18 @@ public class BufferedImageHelperTest extends TestCase {
          * and various kinds of (alpha,color) pairs
          * (at least when srcRectElseFullRect is false).
          */
-        final int width = 256;
-        final int height = 32;
+        final int imageWidth = 256;
+        final int imageHeight = 32;
         
         final Random random = TestUtils.newRandom123456789L();
         
         for (int strideBonus : new int[] {0, 1}) {
             
-            final int color32ArrScanlineStride = width + strideBonus;
+            final int color32ArrScanlineStride = imageWidth + strideBonus;
             final int[] color32Arr =
-                new int[color32ArrScanlineStride * height];
+                new int[color32ArrScanlineStride * imageHeight];
             
-            for (BufferedImage image : BihTestUtils.newImageList(width, height)) {
+            for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
                 for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                     
                     final boolean cmaAllowed =
@@ -2402,8 +2307,8 @@ public class BufferedImageHelperTest extends TestCase {
                                 System.out.println("scanlineStrideFrom = " + color32ArrScanlineStride);
                                 System.out.println("pixelFormatFrom = " + pixelFormatFrom);
                                 System.out.println("premulFrom = " + premulFrom);
-                                System.out.println("imageWidth = " + width);
-                                System.out.println("imageHeight = " + height);
+                                System.out.println("imageWidth = " + imageWidth);
+                                System.out.println("imageHeight = " + imageHeight);
                                 System.out.println("imagePixelFormat = " + imagePixelFormat);
                                 System.out.println("imagePremul = " + imagePremul);
                                 System.out.println("imageTypeEnum = " + imageTypeEnum);
@@ -2415,16 +2320,16 @@ public class BufferedImageHelperTest extends TestCase {
                             final int dstWidth;
                             final int dstHeight;
                             if (srcRectElseFullRect) {
-                                dstX = random.nextInt(width);
-                                dstY = random.nextInt(height);
-                                // Zero width/height accepted.
-                                dstWidth = random.nextInt(width - dstX + 1);
-                                dstHeight = random.nextInt(height - dstY + 1);
+                                dstX = random.nextInt(imageWidth);
+                                dstY = random.nextInt(imageHeight);
+                                // Zero width/imageHeight accepted.
+                                dstWidth = random.nextInt(imageWidth - dstX + 1);
+                                dstHeight = random.nextInt(imageHeight - dstY + 1);
                             } else {
                                 dstX = 0;
                                 dstY = 0;
-                                dstWidth = width;
-                                dstHeight = height;
+                                dstWidth = imageWidth;
+                                dstHeight = imageHeight;
                             }
                             
                             // Randomizing input array.
@@ -2451,7 +2356,7 @@ public class BufferedImageHelperTest extends TestCase {
                                     argb32 = Argb32.toOpaque(argb32);
                                 }
                                 initialNonPremulArgb32 = argb32;
-                                helper.clearRect(0, 0, width, height, initialNonPremulArgb32, false);
+                                helper.clearRect(0, 0, imageWidth, imageHeight, initialNonPremulArgb32, false);
                             }
                             
                             BihTestUtils.setPixelsFrom_reference(
@@ -2459,33 +2364,36 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 color32Arr,
                                 color32ArrScanlineStride,
-                                //
                                 pixelFormatFrom,
                                 premulFrom,
+                                0,
+                                0,
                                 //
                                 dstX,
                                 dstY,
+                                //
                                 dstWidth,
                                 dstHeight);
                             
-                            callSetPixelsFrom_xxx(
-                                srcRectElseFullRect,
+                            callSetPixelsFrom(
                                 helper,
                                 //
                                 color32Arr,
                                 color32ArrScanlineStride,
-                                //
                                 pixelFormatFrom,
                                 premulFrom,
+                                0,
+                                0,
                                 //
                                 dstX,
                                 dstY,
+                                //
                                 dstWidth,
                                 dstHeight);
                             
                             // Checking no damage to pixels outside the area.
-                            for (int y = 0; y < height; y++) {
-                                for (int x = 0; x < width; x++) {
+                            for (int y = 0; y < imageHeight; y++) {
+                                for (int x = 0; x < imageWidth; x++) {
                                     if ((x < dstX)
                                         || (y < dstY)
                                         || (x >= dstX + dstWidth)
@@ -2592,7 +2500,7 @@ public class BufferedImageHelperTest extends TestCase {
          * Null helper.
          */
         try {
-            BufferedImageHelper.copyImage(
+            callCopyImage(
                 helperFrom,
                 0,
                 0,
@@ -2606,7 +2514,7 @@ public class BufferedImageHelperTest extends TestCase {
             assertNotNull(e);
         }
         try {
-            BufferedImageHelper.copyImage(
+            callCopyImage(
                 null,
                 0,
                 0,
@@ -2620,159 +2528,14 @@ public class BufferedImageHelperTest extends TestCase {
             assertNotNull(e);
         }
         /*
-         * Bad srcX.
-         */
-        for (int badSrcX : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            srcWidth,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    badSrcX,
-                    0,
-                    helperTo,
-                    0,
-                    0,
-                    0,
-                    0);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad srcY.
-         */
-        for (int badSrcY : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            srcHeight,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    0,
-                    badSrcY,
-                    helperTo,
-                    0,
-                    0,
-                    0,
-                    0);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad dstX.
-         */
-        for (int badDstX : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            dstWidth,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    0,
-                    0,
-                    helperTo,
-                    badDstX,
-                    0,
-                    0,
-                    0);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad dstY.
-         */
-        for (int badDstY : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            dstHeight,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    0,
-                    0,
-                    helperTo,
-                    0,
-                    badDstY,
-                    0,
-                    0);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad width.
-         */
-        for (int badWidth : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            minWidth + 1,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    0,
-                    0,
-                    helperTo,
-                    0,
-                    0,
-                    badWidth,
-                    0);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad height.
-         */
-        for (int badHeight : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            minHeight + 1,
-            Integer.MAX_VALUE}) {
-            try {
-                BufferedImageHelper.copyImage(
-                    helperFrom,
-                    0,
-                    0,
-                    helperTo,
-                    0,
-                    0,
-                    0,
-                    badHeight);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
          * Bad X range.
          */
-        for (int[] srcDstSpan : new int[][] {
-            {0, 0, minWidth + 1},
-            {0, 1, Math.min(srcWidth, dstWidth - 1) + 1},
-            {1, 0, Math.min(srcWidth - 1, dstWidth) + 1},
-            {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE},
-            {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE},
-            {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE},
-            {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE}}) {
+        for (int[] srcDstSpan : newBadRangeArr(srcWidth, dstWidth)) {
             final int srcX = srcDstSpan[0];
             final int dstX = srcDstSpan[1];
             final int width = srcDstSpan[2];
             try {
-                BufferedImageHelper.copyImage(
+                callCopyImage(
                     helperFrom,
                     srcX,
                     0,
@@ -2789,19 +2552,12 @@ public class BufferedImageHelperTest extends TestCase {
         /*
          * Bad Y range.
          */
-        for (int[] srcDstSpan : new int[][] {
-            {0, 0, minHeight + 1},
-            {0, 1, Math.min(srcHeight, dstHeight - 1) + 1},
-            {1, 0, Math.min(srcHeight - 1, dstHeight) + 1},
-            {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MIN_VALUE},
-            {Integer.MIN_VALUE, Integer.MIN_VALUE, Integer.MAX_VALUE},
-            {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MIN_VALUE},
-            {Integer.MAX_VALUE, Integer.MAX_VALUE, Integer.MAX_VALUE}}) {
+        for (int[] srcDstSpan : newBadRangeArr(srcHeight, dstHeight)) {
             final int srcY = srcDstSpan[0];
             final int dstY = srcDstSpan[1];
             final int height = srcDstSpan[2];
             try {
-                BufferedImageHelper.copyImage(
+                callCopyImage(
                     helperFrom,
                     0,
                     srcY,
@@ -2836,12 +2592,12 @@ public class BufferedImageHelperTest extends TestCase {
          * Using a single Random for all the loops helps
          * encountering more cases.
          */
-        final int width = 256/4;
-        final int height = 32/2;
+        final int imageWidth = 256/4;
+        final int imageHeight = 32/2;
         
         final Random random = TestUtils.newRandom123456789L();
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList(width, height)) {
+        for (BufferedImage imageFrom : BihTestUtils.newImageList(imageWidth, imageHeight)) {
             for (BufferedImageHelper helperFrom : BihTestUtils.newHelperList(imageFrom)) {
                 
                 // When not doing full copies,
@@ -2849,8 +2605,8 @@ public class BufferedImageHelperTest extends TestCase {
                 final int spanDelta = (srcDstRectElseFullRect ? 1 : 0);
                 
                 for (BufferedImage imageTo : BihTestUtils.newImageList(
-                    width + spanDelta,
-                    height - spanDelta)) {
+                    imageWidth + spanDelta,
+                    imageHeight - spanDelta)) {
                     for (BufferedImageHelper helperTo : BihTestUtils.newHelperList(imageTo)) {
                         
                         test_copyImage_xxx_withHelpers(
@@ -2863,7 +2619,7 @@ public class BufferedImageHelperTest extends TestCase {
             }
         }
     }
-
+    
     public void test_copyImage_xxx_withHelpers(
         Random random,
         boolean srcDstRectElseFullRect,
@@ -2875,13 +2631,13 @@ public class BufferedImageHelperTest extends TestCase {
         
         final int srcImageWidth = imageFrom.getWidth();
         final int srcImageHeight = imageFrom.getHeight();
-
+        
         final int dstImageWidth = imageTo.getWidth();
         final int dstImageHeight = imageTo.getHeight();
         
         final int minImageWidth = Math.min(srcImageWidth, dstImageWidth);
         final int minImageHeight = Math.min(srcImageHeight, dstImageHeight);
-
+        
         // Randomizing input image.
         for (int y = 0; y < srcImageHeight; y++) {
             for (int x = 0; x < srcImageWidth; x++) {
@@ -2935,7 +2691,7 @@ public class BufferedImageHelperTest extends TestCase {
             System.out.println("cmaAllowedTo = " + cmaAllowedTo);
             System.out.println("aduAllowedTo = " + aduAllowedTo);
         }
-
+        
         final int srcX;
         final int srcY;
         final int dstX;
@@ -2996,7 +2752,7 @@ public class BufferedImageHelperTest extends TestCase {
             width,
             height);
         
-        BufferedImageHelper.copyImage(
+        callCopyImage(
             helperFrom,
             srcX,
             srcY,
@@ -3073,24 +2829,24 @@ public class BufferedImageHelperTest extends TestCase {
     public void test_getDrawImageMaxCptDelta() {
         
         // Large enough to encounter all possible issues.
-        final int width = 256;
-        final int height = 256;
+        final int imageWidth = 256;
+        final int imageHeight = 256;
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList_allImageType(width, height)) {
+        for (BufferedImage imageFrom : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
             final BufferedImageHelper helperFrom = new BufferedImageHelper(imageFrom);
             
             // Randomizing input image (always the same).
             {
                 final Random random = TestUtils.newRandom123456789L();
-                for (int x = 0; x < width; x++) {
-                    for (int y = 0; y < height; y++) {
+                for (int y = 0; y < imageHeight; y++) {
+                    for (int x = 0; x < imageWidth; x++) {
                         final int argb32 = random.nextInt();
                         helperFrom.setNonPremulArgb32At(x, y, argb32);
                     }
                 }
             }
             
-            for (BufferedImage imageTo : BihTestUtils.newImageList_allImageType(width, height)) {
+            for (BufferedImage imageTo : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
                 final BufferedImageHelper helperTo = new BufferedImageHelper(imageTo);
                 
                 final BufferedImageHelper expectedHelperTo =
@@ -3103,8 +2859,8 @@ public class BufferedImageHelperTest extends TestCase {
                     expectedHelperTo,
                     0,
                     0,
-                    width,
-                    height);
+                    imageWidth,
+                    imageHeight);
                 
                 final Graphics g = imageTo.getGraphics();
                 try {
@@ -3123,15 +2879,15 @@ public class BufferedImageHelperTest extends TestCase {
                     ? 0xFF : expectedMaxCptDelta_raw);
                 
                 final int actualMaxCptDelta =
-                   BufferedImageHelper.getDrawImageMaxCptDelta(
-                       imageFrom.getType(),
-                       helperFrom.getPixelFormat(),
-                       imageFrom.isAlphaPremultiplied(),
-                       //
-                       imageTo.getType(),
-                       helperTo.getPixelFormat(),
-                       imageTo.isAlphaPremultiplied());
-                   
+                    BufferedImageHelper.getDrawImageMaxCptDelta(
+                        imageFrom.getType(),
+                        helperFrom.getPixelFormat(),
+                        imageFrom.isAlphaPremultiplied(),
+                        //
+                        imageTo.getType(),
+                        helperTo.getPixelFormat(),
+                        imageTo.isAlphaPremultiplied());
+                
                 if (expectedMaxCptDelta != actualMaxCptDelta) {
                     final String srcStr = BihTestUtils.toStringImageKind(imageFrom);
                     final String dstStr = BihTestUtils.toStringImageKind(imageTo);
@@ -3211,6 +2967,73 @@ public class BufferedImageHelperTest extends TestCase {
     /*
      * 
      */
+
+    private static int[] newBadPositionArr(int span) {
+        return new int[] {
+            Integer.MIN_VALUE,
+            -1,
+            span,
+            Integer.MAX_VALUE,
+        };
+    }
+    
+    private static int[] newBadScanlineStrideArr(int width) {
+        return new int[] {
+            Integer.MIN_VALUE,
+            -1,
+            0,
+            width - 1,
+            // Not bad in itself, but too large for array,
+            // and to test overflow handling in checks.
+            Integer.MAX_VALUE,
+        };
+    }
+    
+    /**
+     * @param span1 Span of image 1.
+     * @param span2 Span of image 2.
+     * @return Array of {pos1, pos2, span} triplets
+     *         that don't fit into both images.
+     */
+    private static int[][] newBadRangeArr(
+        int span1,
+        int span2) {
+        
+        final int minSpan = Math.min(span1, span2);
+        
+        final List<int[]> retList = new ArrayList<>();
+        
+        final int[] crazyOrNotArr = new int[] {
+            Integer.MIN_VALUE,
+            -1,
+            0, // not crazy
+            minSpan + 1,
+            Integer.MAX_VALUE};
+        for (int pos1 : crazyOrNotArr) {
+            for (int pos2 : crazyOrNotArr) {
+                for (int span : crazyOrNotArr) {
+                    if ((pos1|pos2|span) != 0) {
+                        retList.add(new int[] {pos1, pos2, span});
+                    }
+                }
+            }
+        }
+        retList.add(new int[] {1, 0, span1});
+        retList.add(new int[] {0, 1, span2});
+        retList.add(new int[] {span1, 0, 0});
+        retList.add(new int[] {0, span2, 0});
+        retList.add(new int[] {span1, 0, Integer.MAX_VALUE});
+        retList.add(new int[] {0, span2, Integer.MAX_VALUE});
+        retList.add(new int[] {span1 - 1, 0, 2});
+        retList.add(new int[] {0, span2 - 1, 2});
+        retList.add(new int[] {span1 - 1, 0, Integer.MAX_VALUE});
+        retList.add(new int[] {0, span2 - 1, Integer.MAX_VALUE});
+        return retList.toArray(new int[retList.size()][]);
+    }
+    
+    /*
+     * 
+     */
     
     private static void checkEqual(int expectedColor32, int actualColor32) {
         final String expected = Argb32.toString(expectedColor32);
@@ -3260,48 +3083,52 @@ public class BufferedImageHelperTest extends TestCase {
      * Useful for exceptions tests,
      * since the checks are the same for get and set.
      */
-    private static void callGetOrSetPixelsInto_xxx(
+    private static void callGetOrSetPixelsInto(
         boolean isGetElseSet,
-        boolean srcRectElseFullRect,
         BufferedImageHelper helper,
-        //
-        int x,
-        int y,
-        int width,
-        int height,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
         BihPixelFormat pixelFormat,
-        boolean premul) {
+        boolean premul,
+        int arrX,
+        int arrY,
+        //
+        int imgX,
+        int imgY,
+        //
+        int width,
+        int height) {
         if (isGetElseSet) {
-            callGetPixelsInto_xxx(
-                srcRectElseFullRect,
+            callGetPixelsInto(
                 helper,
                 //
-                x,
-                y,
-                width,
-                height,
+                imgX,
+                imgY,
                 //
                 color32Arr,
                 color32ArrScanlineStride,
-                //
-                pixelFormat,
-                premul);
-        } else {
-            callSetPixelsFrom_xxx(
-                srcRectElseFullRect,
-                helper,
-                //
-                color32Arr,
-                color32ArrScanlineStride,
-                //
                 pixelFormat,
                 premul,
+                arrX,
+                arrY,
                 //
-                x,
-                y,
+                width,
+                height);
+        } else {
+            callSetPixelsFrom(
+                helper,
+                //
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormat,
+                premul,
+                arrX,
+                arrY,
+                //
+                imgX,
+                imgY,
+                //
                 width,
                 height);
         }
@@ -3311,113 +3138,132 @@ public class BufferedImageHelperTest extends TestCase {
      * 
      */
     
-    private static void callGetPixelsInto_xxx(
-        boolean srcRectElseFullRect,
+    private static void callGetPixelsInto(
         BufferedImageHelper helper,
         //
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         
         if (DEBUG) {
-            if (srcRectElseFullRect) {
-                System.out.println("calling getPixelsInto() (srcRect):");
-                System.out.println("srcX = " + srcX);
-                System.out.println("srcY = " + srcY);
-                System.out.println("srcWidth = " + srcWidth);
-                System.out.println("srcHeight = " + srcHeight);
-            } else {
-                System.out.println("calling getPixelsInto() (fullRect):");
-            }
+            System.out.println("calling getPixelsInto():");
+            System.out.println("srcX = " + srcX);
+            System.out.println("srcY = " + srcY);
             System.out.println("color32Arr.length = "
                 + ((color32Arr != null) ? color32Arr.length : 0));
             System.out.println("color32ArrScanlineStride = " + color32ArrScanlineStride);
             System.out.println("pixelFormatTo = " + pixelFormatTo);
             System.out.println("premulTo = " + premulTo);
+            System.out.println("dstX = " + dstX);
+            System.out.println("dstY = " + dstY);
+            System.out.println("width = " + width);
+            System.out.println("height = " + height);
         }
         
-        if (srcRectElseFullRect) {
-            helper.getPixelsInto(
-                srcX,
-                srcY,
-                srcWidth,
-                srcHeight,
-                //
-                color32Arr,
-                color32ArrScanlineStride,
-                //
-                pixelFormatTo,
-                premulTo);
-        } else {
-            helper.getPixelsInto(
-                color32Arr,
-                color32ArrScanlineStride,
-                //
-                pixelFormatTo,
-                premulTo);
-        }
+        helper.getPixelsInto(
+            srcX,
+            srcY,
+            //
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormatTo,
+            premulTo,
+            dstX,
+            dstY,
+            //
+            width,
+            height);
     }
     
-    private static void callSetPixelsFrom_xxx(
-        boolean srcRectElseFullRect,
+    private static void callSetPixelsFrom(
         BufferedImageHelper helper,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         
         if (DEBUG) {
-            if (srcRectElseFullRect) {
-                System.out.println("calling setPixelsFrom() (srcRect):");
-            } else {
-                System.out.println("calling setPixelsFrom() (fullRect):");
-            }
+            System.out.println("calling setPixelsFrom():");
             System.out.println("color32Arr.length = "
                 + ((color32Arr != null) ? color32Arr.length : 0));
             System.out.println("color32ArrScanlineStride = " + color32ArrScanlineStride);
             System.out.println("pixelFormatFrom = " + pixelFormatFrom);
             System.out.println("premulFrom = " + premulFrom);
-            if (srcRectElseFullRect) {
-                System.out.println("dstX = " + dstX);
-                System.out.println("dstY = " + dstY);
-                System.out.println("dstWidth = " + dstWidth);
-                System.out.println("dstHeight = " + dstHeight);
-            }
+            System.out.println("srcX = " + srcX);
+            System.out.println("srcY = " + srcY);
+            System.out.println("dstX = " + dstX);
+            System.out.println("dstY = " + dstY);
+            System.out.println("width = " + width);
+            System.out.println("height = " + height);
         }
         
-        if (srcRectElseFullRect) {
-            helper.setPixelsFrom(
-                color32Arr,
-                color32ArrScanlineStride,
-                //
-                pixelFormatFrom,
-                premulFrom,
-                //
-                dstX,
-                dstY,
-                dstWidth,
-                dstHeight);
-        } else {
-            helper.setPixelsFrom(
-                color32Arr,
-                color32ArrScanlineStride,
-                //
-                pixelFormatFrom,
-                premulFrom);
+        helper.setPixelsFrom(
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormatFrom,
+            premulFrom,
+            srcX,
+            srcY,
+            //
+            dstX,
+            dstY,
+            //
+            width,
+            height);
+    }
+    
+    private static void callCopyImage(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        if (DEBUG) {
+            System.out.println("calling copyImage():");
+            System.out.println("helperFrom = " + helperFrom);
+            System.out.println("srcX = " + srcX);
+            System.out.println("srcY = " + srcY);
+            System.out.println("helperTo = " + helperTo);
+            System.out.println("dstX = " + dstX);
+            System.out.println("dstY = " + dstY);
+            System.out.println("width = " + width);
+            System.out.println("height = " + height);
         }
+        
+        BufferedImageHelper.copyImage(
+            helperFrom,
+            srcX,
+            srcY,
+            //
+            helperTo,
+            dstX,
+            dstY,
+            //
+            width,
+            height);
     }
 }

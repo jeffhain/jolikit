@@ -43,9 +43,22 @@ import net.jolikit.lang.LangUtils;
 import net.jolikit.lang.NbrsUtils;
 
 /**
- * Non-static methods may use instance-specific mutable state
- * (other than the buffered image), so they must not be used concurrently
- * (even read methods).
+ * Helper class to read and write pixels from/into a BufferedImage,
+ * faster and/or more reliably than with BufferedImage.getRGB(),
+ * BufferedImage.setRGB(), or even Graphics.drawImage().
+ * 
+ * Also provides methods for creating images wrapped around
+ * a specified int array and/or with specific ARGB components order.
+ * 
+ * Non-goals:
+ * - images resizing.
+ * - optimization with parallelization.
+ * - optimization causing much garbage,
+ *   such as creating an intermediary ARGB image
+ *   to accelerate copy between two images of slow types.
+ * 
+ * Static methods are thread-safe.
+ * Non-static methods are not, even single pixel read methods.
  */
 public class BufferedImageHelper {
     
@@ -67,6 +80,10 @@ public class BufferedImageHelper {
     //--------------------------------------------------------------------------
     
     /**
+     * Formats of pixels managed efficiently by this helper.
+     * Covers all BufferedImage.TYPE_INT_XXX formats
+     * and a few more.
+     * 
      * For formats with alpha,
      * doesn't indicate whether the pixel is alpha premultiplied:
      * it has to be specified aside.
@@ -337,9 +354,9 @@ public class BufferedImageHelper {
     
     private final BufferedImage image;
     
-    private final int width;
+    private final int imageWidth;
     
-    private final int height;
+    private final int imageHeight;
     
     /**
      * -1 if could not be computed.
@@ -424,8 +441,8 @@ public class BufferedImageHelper {
         boolean allowArrayDirectUse) {
         
         this.image = image;
-        this.width = image.getWidth();
-        this.height = image.getHeight();
+        this.imageWidth = image.getWidth();
+        this.imageHeight = image.getHeight();
         
         final Raster raster = image.getRaster();
         
@@ -482,6 +499,38 @@ public class BufferedImageHelper {
         this.intPixelArr = intArr;
         this.shortPixelArr = shortArr;
         this.bytePixelArr = byteArr;
+    }
+    
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append("[(");
+        sb.append(this.imageWidth);
+        sb.append("x");
+        sb.append(this.imageHeight);
+        sb.append(",type=");
+        if (this.pixelFormat != null) {
+            sb.append(this.pixelFormat);
+        } else {
+            sb.append(this.image.getType());
+        }
+        if (this.image.isAlphaPremultiplied()) {
+            sb.append(",premul");
+        }
+        if (this.isCmaAllowed) {
+            sb.append(",cma");
+        }
+        if (this.intPixelArr != null) {
+            sb.append(",intArr");
+        }
+        if (this.shortPixelArr != null) {
+            sb.append(",shortArr");
+        }
+        if (this.bytePixelArr != null) {
+            sb.append(",byteArr");
+        }
+        sb.append("]");
+        return sb.toString();
     }
     
     /**
@@ -1298,72 +1347,41 @@ public class BufferedImageHelper {
      */
     
     /**
-     * Retrieves the whole image.
+     * Behavior is undefined if helper image array
+     * is the specified one.
      * 
+     * @param srcX X in image of the area to copy.
+     * @param srcY Y in image of the area to copy.
      * @param color32Arr (out) Must not be helper's image pixel array,
      *        else behavior is undefined.
-     * @param color32ArrScanlineStride Must be >= 1.
+     * @param color32ArrScanlineStride Must be >= width.
      * @param pixelFormatTo Pixel format to use for output.
      * @param premulTo Whether output must be alpha-premultiplied.
+     * @param dstX X in array of the area to copy.
+     * @param dstY Y in array of the area to copy.
+     * @param width Width of the area to copy. Must be >= 0.
+     * @param height Height of the area to copy. Must be >= 0.
      * @throws NullPointerException if the specified array or
      *         pixel format is null.
      * @throws IllegalArgumentException if the specified pixel format
      *         has no alpha and the specified premul is true,
-     *         or scanline stride is inferior to image width,
-     *         or the specified array is too small for
-     *         the specified scanline stride and
-     *         image height and width.
-     */
-    public void getPixelsInto(
-        int[] color32Arr,
-        int color32ArrScanlineStride,
-        //
-        BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
-        
-        final int width = this.image.getWidth();
-        final int height = this.image.getHeight();
-        this.getPixelsInto(
-            0,
-            0,
-            width,
-            height,
-            color32Arr,
-            color32ArrScanlineStride,
-            pixelFormatTo,
-            premulTo);
-    }
-    
-    /**
-     * Pixel at (srcX,srcY) in the image will be put
-     * at index 0 in the output array.
-     * 
-     * @param color32Arr (out) Must not be helper's image pixel array,
-     *        else behavior is undefined.
-     * @param color32ArrScanlineStride Must be >= 1.
-     * @param pixelFormatTo Pixel format to use for output.
-     * @param premulTo Whether output must be alpha-premultiplied.
-     * @throws NullPointerException if the specified array or
-     *         pixel format is null.
-     * @throws IllegalArgumentException if the specified pixel format
-     *         has no alpha and the specified premul is true,
-     *         or the specified width or height is negative,
-     *         or a specified position is out of image,
-     *         or scanline stride is inferior to width,
-     *         or the specified array is too small for
-     *         the specified height, width and scanline stride.
+     *         or the specified area and scanline stride
+     *         are not consistent with image dimensions
+     *         and array length.
      */
     public void getPixelsInto(
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         
         /*
          * Checks.
@@ -1377,26 +1395,32 @@ public class BufferedImageHelper {
         }
         
         if (color32Arr == this.intPixelArr) {
-            // Behavior undefined per spec in this case,
-            // so we have the right to throw
-            // if we happen to know they are the same.
+            /*
+             * Behavior undefined, so we can throw.
+             * Should guard against most misuses.
+             */
             throw new IllegalArgumentException(
                 "color32Arr is image array");
         }
         
-        NbrsUtils.requireInRange(0, this.width - 1, srcX, "srcX");
-        NbrsUtils.requireInRange(0, this.height - 1, srcY, "srcY");
-        NbrsUtils.requireInRange(0, this.width - srcX, srcWidth, "srcWidth");
-        NbrsUtils.requireInRange(0, this.height - srcY, srcHeight, "srcHeight");
-        NbrsUtils.requireSupOrEq(
-            srcWidth,
-            color32ArrScanlineStride,
-            "color32ArrScanlineStride");
-        // Check in long to avoid overflow/wrapping.
-        NbrsUtils.requireSupOrEq(
-            (srcHeight - 1) * (long) color32ArrScanlineStride + srcWidth,
+        final int sw = this.imageWidth;
+        final int sh = this.imageHeight;
+        NbrsUtils.requireInRange(0, sw - 1, srcX, "srcX");
+        NbrsUtils.requireInRange(0, sh - 1, srcY, "srcY");
+        NbrsUtils.requireInRange(0, sw - srcX, width, "width");
+        NbrsUtils.requireInRange(0, sh - srcY, height, "height");
+        
+        final int dw = color32ArrScanlineStride;
+        NbrsUtils.requireSupOrEq(width, dw, "color32ArrScanlineStride");
+        NbrsUtils.requireInRange(0, dw - 1, dstX, "dstX");
+        NbrsUtils.requireInRange(0, dw - dstX, width, "width");
+        final int dh = computeArrayHeight(
             color32Arr.length,
-            "color32Arr.length");
+            color32ArrScanlineStride,
+            dstX,
+            width);
+        NbrsUtils.requireInRange(0, dh - 1, dstY, "dstY");
+        NbrsUtils.requireInRange(0, dh - dstY, height, "height");
         
         /*
          * Getting pixels.
@@ -1410,14 +1434,16 @@ public class BufferedImageHelper {
             this.getPixelsInto_noCheck_intArr(
                 srcX,
                 srcY,
-                srcWidth,
-                srcHeight,
                 //
                 color32Arr,
                 color32ArrScanlineStride,
-                //
                 pixelFormatTo,
-                premulTo);
+                premulTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
         } else {
             /*
              * We only use drawImage() if avoiding color model,
@@ -1437,99 +1463,70 @@ public class BufferedImageHelper {
                 this.getPixelsInto_noCheck_drawImage(
                     srcX,
                     srcY,
-                    srcWidth,
-                    srcHeight,
                     //
                     color32Arr,
                     color32ArrScanlineStride,
-                    //
                     pixelFormatTo,
-                    premulTo);
+                    premulTo,
+                    dstX,
+                    dstY,
+                    //
+                    width,
+                    height);
             } else {
                 this.getPixelsInto_noCheck_arrOrRaster(
                     srcX,
                     srcY,
-                    srcWidth,
-                    srcHeight,
                     //
                     color32Arr,
                     color32ArrScanlineStride,
-                    //
                     pixelFormatTo,
-                    premulTo);
+                    premulTo,
+                    dstX,
+                    dstY,
+                    //
+                    width,
+                    height);
             }
         }
     }
     
     /**
-     * Sets the whole image.
+     * Behavior is undefined if helper image array
+     * is the specified one.
      * 
      * @param color32Arr (in) Must not be helper's image pixel array,
      *        else behavior is undefined.
-     * @param color32ArrScanlineStride Must be >= 1.
+     * @param color32ArrScanlineStride Must be >= width.
      * @param pixelFormatFrom Pixel format of input.
      * @param premulFrom Whether input is alpha-premultiplied.
+     * @param srcX X in array of the area to copy.
+     * @param srcY Y in array of the area to copy.
+     * @param dstX X in image of the area to copy.
+     * @param dstY Y in image of the area to copy.
+     * @param width Width of the area to copy. Must be >= 0.
+     * @param height Height of the area to copy. Must be >= 0.
      * @throws NullPointerException if the specified array or
      *         pixel format is null.
      * @throws IllegalArgumentException if the specified pixel format
      *         has no alpha and the specified premul is true,
-     *         or scanline stride is inferior to image width,
-     *         or the specified array is too small for
-     *         the specified scanline stride and
-     *         image height and width.
+     *         or the specified area and scanline stride
+     *         are not consistent with image dimensions
+     *         and array length.
      */
     public void setPixelsFrom(
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
-        BihPixelFormat pixelFormatFrom,
-        boolean premulFrom) {
-        
-        final int width = this.image.getWidth();
-        final int height = this.image.getHeight();
-        this.setPixelsFrom(
-            color32Arr,
-            color32ArrScanlineStride,
-            //
-            pixelFormatFrom,
-            premulFrom,
-            //
-            0,
-            0,
-            width,
-            height);
-    }
-    
-    /**
-     * Pixel at index 0 in the input array will be put
-     * at (dstX,dstY) in the image.
-     * 
-     * @param color32Arr (in) Must not be helper's image pixel array,
-     *        else behavior is undefined.
-     * @param color32ArrScanlineStride Must be >= 1.
-     * @param pixelFormatFrom Pixel format of input.
-     * @param premulFrom Whether input is alpha-premultiplied.
-     * @throws NullPointerException if the specified array or
-     *         pixel format is null.
-     * @throws IllegalArgumentException if the specified pixel format
-     *         has no alpha and the specified premul is true,
-     *         or the specified width or height is negative,
-     *         or a specified position is out of image,
-     *         or scanline stride is inferior to width,
-     *         or the specified array is too small for
-     *         the specified height, width and scanline stride.
-     */
-    public void setPixelsFrom(
-        int[] color32Arr,
-        int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         
         /*
          * Checks.
@@ -1550,19 +1547,24 @@ public class BufferedImageHelper {
                 "color32Arr is image array");
         }
         
-        NbrsUtils.requireInRange(0, this.width - 1, dstX, "dstX");
-        NbrsUtils.requireInRange(0, this.height - 1, dstY, "dstY");
-        NbrsUtils.requireInRange(0, this.width - dstX, dstWidth, "dstWidth");
-        NbrsUtils.requireInRange(0, this.height - dstY, dstHeight, "dstHeight");
-        NbrsUtils.requireSupOrEq(
-            dstWidth,
-            color32ArrScanlineStride,
-            "color32ArrScanlineStride");
-        // Check in long to avoid overflow/wrapping.
-        NbrsUtils.requireSupOrEq(
-            (dstHeight - 1) * (long) color32ArrScanlineStride + dstWidth,
+        final int dw = this.imageWidth;
+        final int dh = this.imageHeight;
+        NbrsUtils.requireInRange(0, dw - 1, dstX, "dstX");
+        NbrsUtils.requireInRange(0, dh - 1, dstY, "dstY");
+        NbrsUtils.requireInRange(0, dw - dstX, width, "width");
+        NbrsUtils.requireInRange(0, dh - dstY, height, "height");
+        
+        final int sw = color32ArrScanlineStride;
+        NbrsUtils.requireSupOrEq(width, sw, "color32ArrScanlineStride");
+        NbrsUtils.requireInRange(0, sw - 1, srcX, "srcX");
+        NbrsUtils.requireInRange(0, sw - srcX, width, "width");
+        final int sh = computeArrayHeight(
             color32Arr.length,
-            "color32Arr.length");
+            color32ArrScanlineStride,
+            srcX,
+            width);
+        NbrsUtils.requireInRange(0, sh - 1, srcY, "srcY");
+        NbrsUtils.requireInRange(0, sh - srcY, height, "height");
         
         /*
          * Getting pixels.
@@ -1572,14 +1574,16 @@ public class BufferedImageHelper {
             this.setPixelsFrom_noCheck_intArr(
                 color32Arr,
                 color32ArrScanlineStride,
-                //
                 pixelFormatFrom,
                 premulFrom,
+                srcX,
+                srcY,
                 //
                 dstX,
                 dstY,
-                dstWidth,
-                dstHeight);
+                //
+                width,
+                height);
         } else {
             /*
              * We only use drawImage() if avoiding color model,
@@ -1599,26 +1603,30 @@ public class BufferedImageHelper {
                 this.setPixelsFrom_noCheck_drawImage(
                     color32Arr,
                     color32ArrScanlineStride,
-                    //
                     pixelFormatFrom,
                     premulFrom,
+                    srcX,
+                    srcY,
                     //
                     dstX,
                     dstY,
-                    dstWidth,
-                    dstHeight);
+                    //
+                    width,
+                    height);
             } else {
                 this.setPixelsFrom_noCheck_arrOrRaster(
                     color32Arr,
                     color32ArrScanlineStride,
-                    //
                     pixelFormatFrom,
                     premulFrom,
+                    srcX,
+                    srcY,
                     //
                     dstX,
                     dstY,
-                    dstWidth,
-                    dstHeight);
+                    //
+                    width,
+                    height);
             }
         }
     }
@@ -1631,17 +1639,15 @@ public class BufferedImageHelper {
      * Respects both helpers directives regarding
      * color model avoidance and array direct use.
      * 
-     * If helpers images are different but share a same array,
-     * the result is undefined (defining it would require to
-     * retrieve the array, which we might not want to do
-     * to obey helpers directives).
+     * Behavior is undefined if helpers images
+     * are different but share a same array.
      * 
      * @param helperFrom Helper of source image.
-     * @param srcX X in source image where to start the copy.
-     * @param srcY Y in source image where to start the copy.
+     * @param srcX X in source image of the area to copy.
+     * @param srcY Y in source image of the area to copy.
      * @param helperTo Helper of destination image.
-     * @param dstX X in destination image where to start the copy.
-     * @param dstY Y in destination image where to start the copy.
+     * @param dstX X in destination image of the area to copy.
+     * @param dstY Y in destination image of the area to copy.
      * @param width Width of the area to copy. Must be >= 0.
      * @param height Height of the area to copy. Must be >= 0.
      * @throws NullPointerException if a helper is null.
@@ -1675,21 +1681,26 @@ public class BufferedImageHelper {
             || sameAndNotNull(helperFrom.shortPixelArr, helperTo.shortPixelArr)
             || sameAndNotNull(helperFrom.bytePixelArr, helperTo.bytePixelArr)) {
             /*
-             * Undefined so we can throw.
+             * Behavior undefined, so we can throw.
              * Should guard against most misuses.
              */
             throw new IllegalArgumentException(
                 "images use a same array");
         }
         
-        NbrsUtils.requireInRange(0, imageFrom.getWidth() - 1, srcX, "srcX");
-        NbrsUtils.requireInRange(0, imageFrom.getHeight() - 1, srcY, "srcY");
-        NbrsUtils.requireInRange(0, imageTo.getWidth() - 1, dstX, "dstX");
-        NbrsUtils.requireInRange(0, imageTo.getHeight() - 1, dstY, "dstY");
-        NbrsUtils.requireInRange(0, imageFrom.getWidth() - srcX, width, "width");
-        NbrsUtils.requireInRange(0, imageFrom.getHeight() - srcY, height, "height");
-        NbrsUtils.requireInRange(0, imageTo.getWidth() - dstX, width, "width");
-        NbrsUtils.requireInRange(0, imageTo.getHeight() - dstY, height, "height");
+        final int sw = imageFrom.getWidth();
+        final int sh = imageFrom.getHeight();
+        final int dw = imageTo.getWidth();
+        final int dh = imageTo.getHeight();
+        NbrsUtils.requireInRange(0, sw - 1, srcX, "srcX");
+        NbrsUtils.requireInRange(0, sh - 1, srcY, "srcY");
+        NbrsUtils.requireInRange(0, dw - 1, dstX, "dstX");
+        NbrsUtils.requireInRange(0, dh - 1, dstY, "dstY");
+        
+        final int maxXRange = Math.min(sw - srcX, dw - dstX);
+        final int maxYRange = Math.min(sh - srcY, dh - dstY);
+        NbrsUtils.requireInRange(0, maxXRange, width, "width");
+        NbrsUtils.requireInRange(0, maxYRange, height, "height");
         
         if ((width == 0) || (height == 0)) {
             // Easy.
@@ -1984,8 +1995,8 @@ public class BufferedImageHelper {
      */
     private int toIndex(int x, int y) {
         if (((x|y) < 0)
-            || (x >= this.width)
-            || (y >= this.height)) {
+            || (x >= this.imageWidth)
+            || (y >= this.imageHeight)) {
             // Same message as JDK.
             throw new ArrayIndexOutOfBoundsException("Coordinate out of bounds!");
         }
@@ -2572,14 +2583,16 @@ public class BufferedImageHelper {
     private void getPixelsInto_noCheck_intArr(
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         /*
          * If need rework,
          * doing it after each line copy,
@@ -2591,32 +2604,32 @@ public class BufferedImageHelper {
             (premulTo != this.image.isAlphaPremultiplied());
         if ((!needFormatRework)
             && (!needPremulRework)
-            && (srcWidth == this.scanlineStride)
-            && (srcWidth == color32ArrScanlineStride)) {
-            final int area = srcWidth * srcHeight;
+            && (width == this.scanlineStride)
+            && (width == color32ArrScanlineStride)) {
+            final int area = width * height;
             System.arraycopy(
                 this.intPixelArr,
                 srcY * this.scanlineStride,
                 color32Arr,
-                0,
+                dstY * color32ArrScanlineStride,
                 area);
         } else {
             final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
-            for (int j = 0; j < srcHeight; j++) {
+            for (int j = 0; j < height; j++) {
                 final int srcLineOffset = (srcY + j) * this.scanlineStride + srcX;
-                final int dstLineOffset = j * color32ArrScanlineStride;
+                final int dstLineOffset = (dstY + j) * color32ArrScanlineStride + dstX;
                 
                 System.arraycopy(
                     this.intPixelArr,
                     srcLineOffset,
                     color32Arr,
                     dstLineOffset,
-                    srcWidth);
+                    width);
                 
                 // Memory-friendly reverse-loop,
                 // assuming arraycopy() is forward-looping.
                 if (needFormatRework) {
-                    for (int i = srcWidth; --i >= 0;) {
+                    for (int i = width; --i >= 0;) {
                         final int index = dstLineOffset + i;
                         int pixel = color32Arr[index];
                         int argb32 = this.pixelFormat.toArgb32FromPixel(pixel);
@@ -2631,7 +2644,7 @@ public class BufferedImageHelper {
                         color32Arr[index] = pixel;
                     }
                 } else if (needPremulRework) {
-                    for (int i = srcWidth; --i >= 0;) {
+                    for (int i = width; --i >= 0;) {
                         final int index = dstLineOffset + i;
                         int pixel = color32Arr[index];
                         if (premulTo) {
@@ -2657,14 +2670,16 @@ public class BufferedImageHelper {
     private void setPixelsFrom_noCheck_intArr(
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         /*
          * If need rework,
          * doing it after each line copy,
@@ -2676,19 +2691,19 @@ public class BufferedImageHelper {
             (premulFrom != this.image.isAlphaPremultiplied());
         if ((!needFormatRework)
             && (!needPremulRework)
-            && (dstWidth == this.scanlineStride)
-            && (dstWidth == color32ArrScanlineStride)) {
-            final int area = dstWidth * dstHeight;
+            && (width == this.scanlineStride)
+            && (width == color32ArrScanlineStride)) {
+            final int area = width * height;
             System.arraycopy(
                 color32Arr,
-                0,
+                srcY * color32ArrScanlineStride,
                 this.intPixelArr,
                 dstY * this.scanlineStride,
                 area);
         } else {
             final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
-            for (int j = 0; j < dstHeight; j++) {
-                final int srcLineOffset = j * color32ArrScanlineStride;
+            for (int j = 0; j < height; j++) {
+                final int srcLineOffset = (srcY + j) * color32ArrScanlineStride + srcX;
                 final int dstLineOffset = (dstY + j) * this.scanlineStride + dstX;
                 
                 System.arraycopy(
@@ -2696,12 +2711,12 @@ public class BufferedImageHelper {
                     srcLineOffset,
                     this.intPixelArr,
                     dstLineOffset,
-                    dstWidth);
+                    width);
                 
                 // Memory-friendly reverse-loop,
                 // assuming arraycopy() is forward-looping.
                 if (needFormatRework) {
-                    for (int i = dstWidth; --i >= 0;) {
+                    for (int i = width; --i >= 0;) {
                         final int index = dstLineOffset + i;
                         int pixel = this.intPixelArr[index];
                         int argb32 = pixelFormatFrom.toArgb32FromPixel(pixel);
@@ -2716,7 +2731,7 @@ public class BufferedImageHelper {
                         this.intPixelArr[index] = pixel;
                     }
                 } else if (needPremulRework) {
-                    for (int i = dstWidth; --i >= 0;) {
+                    for (int i = width; --i >= 0;) {
                         final int index = dstLineOffset + i;
                         int pixel = this.intPixelArr[index];
                         if (premulFrom) {
@@ -2843,20 +2858,23 @@ public class BufferedImageHelper {
     private void getPixelsInto_noCheck_arrOrRaster(
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        //
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         
-        for (int j = 0; j < srcHeight; j++) {
+        for (int j = 0; j < height; j++) {
             final int sy = srcY + j;
             final int dstLineOffset =
-                j * color32ArrScanlineStride;
-            for (int i = 0; i < srcWidth; i++) {
+                (dstY + j) * color32ArrScanlineStride + dstX;
+            for (int i = 0; i < width; i++) {
                 final int sx = srcX + i;
                 final int argb32 =
                     this.getArgb32At_noCheck_arrOrRaster(
@@ -2875,20 +2893,22 @@ public class BufferedImageHelper {
     private void setPixelsFrom_noCheck_arrOrRaster(
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         
-        for (int j = 0; j < dstHeight; j++) {
+        for (int j = 0; j < height; j++) {
             final int dy = dstY + j;
             final int srcLineOffset =
-                j * color32ArrScanlineStride;
-            for (int i = 0; i < dstWidth; i++) {
+                (srcY + j) * color32ArrScanlineStride + srcX;
+            for (int i = 0; i < width; i++) {
                 final int dx = dstX + i;
                 final int indexFrom = srcLineOffset + i;
                 final int color32 = color32Arr[indexFrom];
@@ -2940,16 +2960,18 @@ public class BufferedImageHelper {
     private void getPixelsInto_noCheck_drawImage(
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         
-        if ((color32ArrScanlineStride == 0) || (srcHeight == 0)) {
+        if ((color32ArrScanlineStride == 0) || (height == 0)) {
             /*
              * SampleModel creation would throw.
              * Nothing to do.
@@ -2963,35 +2985,37 @@ public class BufferedImageHelper {
             zeroizePixels(
                 color32Arr,
                 color32ArrScanlineStride,
-                srcWidth,
-                srcHeight);
+                dstX,
+                dstY,
+                width,
+                height);
         }
         
         final BihPixelFormat tmpImageToPixelFormat = DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
         final BufferedImage tmpImageTo = newBufferedImageWithIntArray(
             color32Arr,
             color32ArrScanlineStride,
-            srcHeight,
+            dstY + height,
             tmpImageToPixelFormat,
             premulTo);
-        final Graphics2D tmpG = tmpImageTo.createGraphics();
+        final Graphics2D g = tmpImageTo.createGraphics();
         try {
-            tmpG.drawImage(
+            g.drawImage(
                 this.image,
                 //
-                0, // dx1
-                0, // dy1
-                srcWidth, // dx2 (exclusive)
-                srcHeight, // dy2 (exclusive)
+                dstX, // dx1
+                dstY, // dy1
+                dstX + width, // dx2 (exclusive)
+                dstY + height, // dy2 (exclusive)
                 //
                 srcX, // sx1
                 srcY, // sy1
-                srcX + srcWidth, // sx2 (exclusive)
-                srcY + srcHeight, // sy2 (exclusive)
+                srcX + width, // sx2 (exclusive)
+                srcY + height, // sy2 (exclusive)
                 //
                 null);
         } finally {
-            tmpG.dispose();
+            g.dispose();
         }
         
         /*
@@ -3000,10 +3024,11 @@ public class BufferedImageHelper {
          */
         
         if (pixelFormatTo != tmpImageToPixelFormat) {
-            for (int y = 0; y < srcHeight; y++) {
-                final int lineOffset = y * color32ArrScanlineStride;
-                for (int x = 0; x < srcWidth; x++) {
-                    final int index = lineOffset + x;
+            for (int j = 0; j < height; j++) {
+                final int lineOffset =
+                    (dstY + j) * color32ArrScanlineStride + dstX;
+                for (int i = 0; i < width; i++) {
+                    final int index = lineOffset + i;
                     color32Arr[index] =
                         pixelFormatTo.toPixelFromArgb32(
                             color32Arr[index]);
@@ -3015,16 +3040,18 @@ public class BufferedImageHelper {
     private void setPixelsFrom_noCheck_drawImage(
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         
-        if ((color32ArrScanlineStride == 0) || (dstHeight == 0)) {
+        if ((color32ArrScanlineStride == 0) || (height == 0)) {
             /*
              * SampleModel creation would throw.
              * Nothing to do.
@@ -3035,7 +3062,7 @@ public class BufferedImageHelper {
         final BufferedImage tmpImageFrom = newBufferedImageWithIntArray(
             color32Arr,
             color32ArrScanlineStride,
-            dstHeight,
+            srcY + height,
             pixelFormatFrom,
             premulFrom);
         final Graphics2D g = this.image.createGraphics();
@@ -3044,20 +3071,20 @@ public class BufferedImageHelper {
                 // Need to reset destination pixels before using
                 // drawImage(), for it does blending.
                 g.setBackground(COLOR_TRANSPARENT);
-                g.clearRect(dstX, dstY, dstWidth, dstHeight);
+                g.clearRect(dstX, dstY, width, height);
             }
             g.drawImage(
                 tmpImageFrom,
                 //
                 dstX, // dx1
                 dstY, // dy1
-                dstX + dstWidth, // dx2 (exclusive)
-                dstY + dstHeight, // dy2 (exclusive)
+                dstX + width, // dx2 (exclusive)
+                dstY + height, // dy2 (exclusive)
                 //
-                0, // sx1
-                0, // sy1
-                dstWidth, // sx2 (exclusive)
-                dstHeight, // sy2 (exclusive)
+                srcX, // sx1
+                srcY, // sy1
+                srcX + width, // sx2 (exclusive)
+                srcY + height, // sy2 (exclusive)
                 //
                 null);
         } finally {
@@ -3149,16 +3176,41 @@ public class BufferedImageHelper {
         return (a != null) && (a == b);
     }
     
+    private static int computeArrayHeight(
+        int arrayLength,
+        int scanlineStride,
+        int arrX,
+        int width) {
+        final int aw = scanlineStride;
+        final int fullLineCount = arrayLength / aw;
+        final int partialLineLength = arrayLength - aw * fullLineCount;
+        final int ah;
+        if ((partialLineLength != 0)
+            && (partialLineLength - width >= arrX)) {
+            // Partial line large enough to count.
+            ah = fullLineCount + 1;
+        } else {
+            ah = fullLineCount;
+        }
+        return ah;
+    }
+    
     private static void zeroizePixels(
         int[] color32Arr,
         int color32ArrScanlineStride,
+        int x,
+        int y,
         int width,
         int height) {
-        if (color32ArrScanlineStride == width) {
-            Arrays.fill(color32Arr, 0, width * height, 0);
+        if (width == color32ArrScanlineStride) {
+            final int offset =
+                y * color32ArrScanlineStride;
+            final int area = width * height;
+            Arrays.fill(color32Arr, offset, offset + area, 0);
         } else {
-            for (int y = 0; y < height; y++) {
-                final int lineOffset = y * color32ArrScanlineStride;
+            for (int j = 0; j < height; j++) {
+                final int lineOffset =
+                    (y + j) * color32ArrScanlineStride + x;
                 Arrays.fill(color32Arr, lineOffset, lineOffset + width, 0);
             }
         }

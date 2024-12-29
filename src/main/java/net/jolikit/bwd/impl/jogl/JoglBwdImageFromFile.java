@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package net.jolikit.bwd.impl.jogl;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 
@@ -65,9 +64,8 @@ public class JoglBwdImageFromFile extends AbstractJoglBwdImage {
             throw new IllegalArgumentException("could not load image at " + filePath);
         }
         
-        final ImageObserver observer = null;
-        final int width = readImage.getWidth(observer);
-        final int height = readImage.getHeight(observer);
+        final int width = readImage.getWidth();
+        final int height = readImage.getHeight();
         this.setWidth_final(width);
         this.setHeight_final(height);
         
@@ -80,10 +78,18 @@ public class JoglBwdImageFromFile extends AbstractJoglBwdImage {
         final BufferedImageHelper bufferedImageHelper =
                 new BufferedImageHelper(readImage);
         bufferedImageHelper.getPixelsInto(
-                color32Arr,
-                color32ArrScanlineStride,
-                BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
-                BufferedImageHelper.PREMUL);
+            0,
+            0,
+            //
+            color32Arr,
+            color32ArrScanlineStride,
+            BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
+            BufferedImageHelper.PREMUL,
+            0,
+            0,
+            //
+            readImage.getWidth(),
+            readImage.getHeight());
         this.color32Arr = color32Arr;
     }
 

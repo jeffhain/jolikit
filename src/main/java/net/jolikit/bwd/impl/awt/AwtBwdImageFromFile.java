@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2024 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 package net.jolikit.bwd.impl.awt;
 
 import java.awt.image.BufferedImage;
-import java.awt.image.ImageObserver;
 import java.io.File;
 import java.io.IOException;
 
@@ -63,10 +62,9 @@ public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
             throw new IllegalArgumentException("could not load image at " + filePath);
         }
         this.bufferedImageHelper = new BufferedImageHelper(readImage);
-
-        final ImageObserver observer = null;
-        final int width = readImage.getWidth(observer);
-        final int height = readImage.getHeight(observer);
+        
+        final int width = readImage.getWidth();
+        final int height = readImage.getHeight();
         this.setWidth_final(width);
         this.setHeight_final(height);
         
@@ -79,10 +77,18 @@ public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
         final BihPixelFormat pixelFormat = BihPixelFormat.ARGB32;
         final boolean premul = true;
         this.bufferedImageHelper.getPixelsInto(
-                color32Arr,
-                color32ArrScanlineStride,
-                pixelFormat,
-                premul);
+            0,
+            0,
+            //
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormat,
+            premul,
+            0,
+            0,
+            //
+            width,
+            height);
         this.premulArgb32Arr = color32Arr;
     }
 

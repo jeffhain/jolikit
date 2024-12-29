@@ -249,20 +249,22 @@ public class BihTestUtils {
         //
         int srcX,
         int srcY,
-        int srcWidth,
-        int srcHeight,
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatTo,
-        boolean premulTo) {
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
         
-        for (int j = 0; j < srcHeight; j++) {
+        for (int j = 0; j < height; j++) {
             final int lineOffset =
-                j * color32ArrScanlineStride;
-            for (int i = 0; i < srcWidth; i++) {
-                final int indexTo = lineOffset + i;
+                (dstY + j) * color32ArrScanlineStride + dstX;
+            for (int i = 0; i < width; i++) {
+                final int dstIndex = lineOffset + i;
                 final int argb32 = helper.getArgb32At(
                     srcX + i,
                     srcY + j,
@@ -270,7 +272,7 @@ public class BihTestUtils {
                 final int color32 =
                     pixelFormatTo.toPixelFromArgb32(
                         argb32);
-                color32Arr[indexTo] = color32;
+                color32Arr[dstIndex] = color32;
             }
         }
     }
@@ -285,21 +287,23 @@ public class BihTestUtils {
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        //
         BihPixelFormat pixelFormatFrom,
         boolean premulFrom,
+        int srcX,
+        int srcY,
         //
         int dstX,
         int dstY,
-        int dstWidth,
-        int dstHeight) {
+        //
+        int width,
+        int height) {
         
-        for (int j = 0; j < dstHeight; j++) {
+        for (int j = 0; j < height; j++) {
             final int lineOffset =
-                j * color32ArrScanlineStride;
-            for (int i = 0; i < dstWidth; i++) {
-                final int indexFrom = lineOffset + i;
-                final int color32 = color32Arr[indexFrom];
+                (srcY + j) * color32ArrScanlineStride + srcX;
+            for (int i = 0; i < width; i++) {
+                final int srcIndex = lineOffset + i;
+                final int color32 = color32Arr[srcIndex];
                 final int argb32 =
                     pixelFormatFrom.toArgb32FromPixel(
                         color32);
@@ -321,9 +325,11 @@ public class BihTestUtils {
         BufferedImageHelper helperFrom,
         int srcX,
         int srcY,
+        //
         BufferedImageHelper helperTo,
         int dstX,
         int dstY,
+        //
         int width,
         int height) {
         
