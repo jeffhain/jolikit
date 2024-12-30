@@ -1422,73 +1422,28 @@ public class BufferedImageHelper {
         NbrsUtils.requireInRange(0, dh - 1, dstY, "dstY");
         NbrsUtils.requireInRange(0, dh - dstY, height, "height");
         
+        if ((width == 0) || (height == 0)) {
+            // Easy.
+            return;
+        }
+        
         /*
          * Getting pixels.
          */
         
-        if (this.intPixelArr != null) {
-            /*
-             * A lot faster than drawImage() if we only use arraycopy(),
-             * and still faster if doing rework.
-             */
-            this.getPixelsInto_noCheck_intArr(
-                srcX,
-                srcY,
-                //
-                color32Arr,
-                color32ArrScanlineStride,
-                pixelFormatTo,
-                premulTo,
-                dstX,
-                dstY,
-                //
-                width,
-                height);
-        } else {
-            /*
-             * We only use drawImage() if avoiding color model,
-             * for it avoids it.
-             */
-            final boolean mustUseDrawImage =
-                this.isColorModelAvoidingAllowed()
-                && mustUseDrawImageOverPixelLoop(
-                    this.image.getType(),
-                    this.pixelFormat,
-                    this.image.isAlphaPremultiplied(),
-                    //
-                    DRAW_IMAGE_FAST_DST_PIXEL_FORMAT.toImageType(premulTo),
-                    DRAW_IMAGE_FAST_DST_PIXEL_FORMAT,
-                    premulTo);
-            if (mustUseDrawImage) {
-                this.getPixelsInto_noCheck_drawImage(
-                    srcX,
-                    srcY,
-                    //
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    pixelFormatTo,
-                    premulTo,
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            } else {
-                this.getPixelsInto_noCheck_arrOrRaster(
-                    srcX,
-                    srcY,
-                    //
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    pixelFormatTo,
-                    premulTo,
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            }
-        }
+        this.getPixelsInto_noCheck(
+            srcX,
+            srcY,
+            //
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormatTo,
+            premulTo,
+            dstX,
+            dstY,
+            //
+            width,
+            height);
     }
     
     /**
@@ -1566,69 +1521,28 @@ public class BufferedImageHelper {
         NbrsUtils.requireInRange(0, sh - 1, srcY, "srcY");
         NbrsUtils.requireInRange(0, sh - srcY, height, "height");
         
+        if ((width == 0) || (height == 0)) {
+            // Easy.
+            return;
+        }
+        
         /*
          * Getting pixels.
          */
         
-        if (this.intPixelArr != null) {
-            this.setPixelsFrom_noCheck_intArr(
-                color32Arr,
-                color32ArrScanlineStride,
-                pixelFormatFrom,
-                premulFrom,
-                srcX,
-                srcY,
-                //
-                dstX,
-                dstY,
-                //
-                width,
-                height);
-        } else {
-            /*
-             * We only use drawImage() if avoiding color model,
-             * for it avoids it.
-             */
-            final boolean mustUseDrawImage =
-                this.isColorModelAvoidingAllowed()
-                && mustUseDrawImageOverPixelLoop(
-                    pixelFormatFrom.toImageType(premulFrom),
-                    pixelFormatFrom,
-                    premulFrom,
-                    //
-                    this.image.getType(),
-                    this.pixelFormat,
-                    this.image.isAlphaPremultiplied());
-            if (mustUseDrawImage) {
-                this.setPixelsFrom_noCheck_drawImage(
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    pixelFormatFrom,
-                    premulFrom,
-                    srcX,
-                    srcY,
-                    //
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            } else {
-                this.setPixelsFrom_noCheck_arrOrRaster(
-                    color32Arr,
-                    color32ArrScanlineStride,
-                    pixelFormatFrom,
-                    premulFrom,
-                    srcX,
-                    srcY,
-                    //
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            }
-        }
+        this.setPixelsFrom_noCheck(
+            color32Arr,
+            color32ArrScanlineStride,
+            pixelFormatFrom,
+            premulFrom,
+            srcX,
+            srcY,
+            //
+            dstX,
+            dstY,
+            //
+            width,
+            height);
     }
     
     /*
@@ -1669,6 +1583,10 @@ public class BufferedImageHelper {
         int width,
         int height) {
         
+        /*
+         * Checks.
+         */
+        
         // Implicit null checks.
         final BufferedImage imageFrom = helperFrom.getImage();
         final BufferedImage imageTo = helperTo.getImage();
@@ -1708,67 +1626,20 @@ public class BufferedImageHelper {
         }
         
         /*
-         * 
+         * Copying image.
          */
         
-        if ((helperFrom.intPixelArr != null)
-            && (helperTo.intPixelArr != null)) {
-            copyPixels_noCheck_2intArr(
-                helperFrom,
-                srcX,
-                srcY,
-                //
-                helperTo,
-                dstX,
-                dstY,
-                //
-                width,
-                height);
-        } else {
-            final int imageTypeFrom = imageFrom.getType();
-            final BihPixelFormat pixelFormatFrom = helperFrom.getPixelFormat();
-            final boolean premulFrom = imageFrom.isAlphaPremultiplied();
-
-            final int imageTypeTo = imageTo.getType();
-            final BihPixelFormat pixelFormatTo = helperTo.getPixelFormat();
-            final boolean premulTo = imageTo.isAlphaPremultiplied();
-            
-            if (helperFrom.isColorModelAvoidingAllowed()
-                && helperTo.isColorModelAvoidingAllowed()
-                && mustUseDrawImageOverPixelLoop(
-                    imageTypeFrom,
-                    pixelFormatFrom,
-                    premulFrom,
-                    //
-                    imageTypeTo,
-                    pixelFormatTo,
-                    premulTo)) {
-                
-                copyPixels_noCheck_drawImage(
-                    helperFrom,
-                    srcX,
-                    srcY,
-                    //
-                    helperTo,
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            } else {
-                copyPixels_noCheck_arrOrRaster(
-                    helperFrom,
-                    srcX,
-                    srcY,
-                    //
-                    helperTo,
-                    dstX,
-                    dstY,
-                    //
-                    width,
-                    height);
-            }
-        }
+        copyImage_noCheck(
+            helperFrom,
+            srcX,
+            srcY,
+            //
+            helperTo,
+            dstX,
+            dstY,
+            //
+            width,
+            height);
     }
     
     //--------------------------------------------------------------------------
@@ -2179,21 +2050,16 @@ public class BufferedImageHelper {
      */
     
     /**
-     * Does not check (x,y).
+     * Does not check (x,y), does not check
+     * for int array (not called if having int array).
      * Useful for bulk methods.
      */
-    private int getArgb32At_noCheck_arrOrRaster(
+    private int getArgb32At_noCheck_shortByteArrOrRaster(
         int x,
         int y,
         boolean premul) {
         final int ret;
-        if (this.intPixelArr != null) {
-            final int index = this.toIndex_noCheck(x, y);
-            final int pixel = this.intPixelArr[index];
-            ret = this.convertPixelToArgb32_INT_BIH_PIXEL_FORMAT(
-                pixel,
-                premul);
-        } else if (this.shortPixelArr != null) {
+        if (this.shortPixelArr != null) {
             final int index = this.toIndex_noCheck(x, y);
             final short pixel = this.shortPixelArr[index];
             if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
@@ -2225,23 +2091,16 @@ public class BufferedImageHelper {
     }
     
     /**
-     * Does not check (x,y).
+     * Does not check (x,y), does not check
+     * for int array (not called if having int array).
      * Useful for bulk methods.
      */
-    private void setArgb32At_noCheck_arrOrRaster(
+    private void setArgb32At_noCheck_shortByteArrOrRaster(
         int x,
         int y,
         int argb32,
         boolean premul) {
-        if (this.intPixelArr != null) {
-            final int index = this.toIndex_noCheck(x, y);
-            final int pixel =
-                this.convertArgb32ToPixel_INT_BIH_PIXEL_FORMAT(
-                    argb32,
-                    premul);
-            this.intPixelArr[index] = pixel;
-            
-        } else if (this.shortPixelArr != null) {
+        if (this.shortPixelArr != null) {
             final int index = this.toIndex_noCheck(x, y);
             final short pixel;
             if (this.singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB) {
@@ -2580,6 +2439,236 @@ public class BufferedImageHelper {
      * 
      */
     
+    private void getPixelsInto_noCheck(
+        int srcX,
+        int srcY,
+        //
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        BihPixelFormat pixelFormatTo,
+        boolean premulTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        if (this.intPixelArr != null) {
+            this.getPixelsInto_noCheck_intArr(
+                srcX,
+                srcY,
+                //
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatTo,
+                premulTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if (this.isColorModelAvoidingAllowed()
+            && mustUseDrawImageOverPixelLoop(
+                this.image.getType(),
+                this.pixelFormat,
+                this.image.isAlphaPremultiplied(),
+                //
+                DRAW_IMAGE_FAST_DST_PIXEL_FORMAT.toImageType(premulTo),
+                DRAW_IMAGE_FAST_DST_PIXEL_FORMAT,
+                premulTo)) {
+            this.getPixelsInto_noCheck_drawImage(
+                srcX,
+                srcY,
+                //
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatTo,
+                premulTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else {
+            this.getPixelsInto_noCheck_shortByteArrOrRaster(
+                srcX,
+                srcY,
+                //
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatTo,
+                premulTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        }
+    }
+    
+    private void setPixelsFrom_noCheck(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
+        int srcX,
+        int srcY,
+        //
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        if (this.intPixelArr != null) {
+            this.setPixelsFrom_noCheck_intArr(
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatFrom,
+                premulFrom,
+                srcX,
+                srcY,
+                //
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if (this.isColorModelAvoidingAllowed()
+            && mustUseDrawImageOverPixelLoop(
+                pixelFormatFrom.toImageType(premulFrom),
+                pixelFormatFrom,
+                premulFrom,
+                //
+                this.image.getType(),
+                this.pixelFormat,
+                this.image.isAlphaPremultiplied())) {
+            this.setPixelsFrom_noCheck_drawImage(
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatFrom,
+                premulFrom,
+                srcX,
+                srcY,
+                //
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else {
+            this.setPixelsFrom_noCheck_shortByteArrOrRaster(
+                color32Arr,
+                color32ArrScanlineStride,
+                pixelFormatFrom,
+                premulFrom,
+                srcX,
+                srcY,
+                //
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        }
+    }
+    
+    private static void copyImage_noCheck(
+        BufferedImageHelper helperFrom,
+        int srcX,
+        int srcY,
+        //
+        BufferedImageHelper helperTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        final BufferedImage imageFrom = helperFrom.getImage();
+        final BufferedImage imageTo = helperTo.getImage();
+        
+        if ((helperFrom.intPixelArr != null)
+            && (helperTo.intPixelArr != null)) {
+            copyImage_noCheck_2intArr(
+                helperFrom,
+                srcX,
+                srcY,
+                //
+                helperTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if (helperFrom.intPixelArr != null) {
+            helperTo.setPixelsFrom_noCheck(
+                helperFrom.intPixelArr,
+                helperFrom.scanlineStride,
+                helperFrom.pixelFormat,
+                helperFrom.image.isAlphaPremultiplied(),
+                srcX,
+                srcY,
+                //
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if (helperTo.intPixelArr != null) {
+            helperFrom.getPixelsInto_noCheck(
+                srcX,
+                srcY,
+                //
+                helperTo.intPixelArr,
+                helperTo.scanlineStride,
+                helperTo.pixelFormat,
+                helperTo.image.isAlphaPremultiplied(),
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if (helperFrom.isColorModelAvoidingAllowed()
+            && helperTo.isColorModelAvoidingAllowed()
+            && mustUseDrawImageOverPixelLoop(
+                imageFrom.getType(),
+                helperFrom.getPixelFormat(),
+                imageFrom.isAlphaPremultiplied(),
+                //
+                imageTo.getType(),
+                helperTo.getPixelFormat(),
+                imageTo.isAlphaPremultiplied())) {
+            copyImage_noCheck_drawImage(
+                helperFrom,
+                srcX,
+                srcY,
+                //
+                helperTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else {
+            copyImage_noCheck_shortByteArrOrRaster(
+                helperFrom,
+                srcX,
+                srcY,
+                //
+                helperTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        }
+    }
+    
+    /*
+     * 
+     */
+    
     private void getPixelsInto_noCheck_intArr(
         int srcX,
         int srcY,
@@ -2754,7 +2843,7 @@ public class BufferedImageHelper {
         }
     }
     
-    private static void copyPixels_noCheck_2intArr(
+    private static void copyImage_noCheck_2intArr(
         BufferedImageHelper helperFrom,
         int srcX,
         int srcY,
@@ -2855,7 +2944,7 @@ public class BufferedImageHelper {
      * 
      */
     
-    private void getPixelsInto_noCheck_arrOrRaster(
+    private void getPixelsInto_noCheck_shortByteArrOrRaster(
         int srcX,
         int srcY,
         //
@@ -2877,7 +2966,7 @@ public class BufferedImageHelper {
             for (int i = 0; i < width; i++) {
                 final int sx = srcX + i;
                 final int argb32 =
-                    this.getArgb32At_noCheck_arrOrRaster(
+                    this.getArgb32At_noCheck_shortByteArrOrRaster(
                         sx,
                         sy,
                         premulTo);
@@ -2890,7 +2979,7 @@ public class BufferedImageHelper {
         }
     }
     
-    private void setPixelsFrom_noCheck_arrOrRaster(
+    private void setPixelsFrom_noCheck_shortByteArrOrRaster(
         int[] color32Arr,
         int color32ArrScanlineStride,
         BihPixelFormat pixelFormatFrom,
@@ -2914,7 +3003,7 @@ public class BufferedImageHelper {
                 final int color32 = color32Arr[indexFrom];
                 final int argb32 =
                     pixelFormatFrom.toArgb32FromPixel(color32);
-                this.setArgb32At_noCheck_arrOrRaster(
+                this.setArgb32At_noCheck_shortByteArrOrRaster(
                     dx,
                     dy,
                     argb32,
@@ -2923,7 +3012,7 @@ public class BufferedImageHelper {
         }
     }
     
-    private static void copyPixels_noCheck_arrOrRaster(
+    private static void copyImage_noCheck_shortByteArrOrRaster(
         BufferedImageHelper helperFrom,
         int srcX,
         int srcY,
@@ -2944,7 +3033,7 @@ public class BufferedImageHelper {
                 final int sx = srcX + i;
                 final int dx = dstX + i;
                 final int argb32 =
-                    helperFrom.getArgb32At_noCheck_arrOrRaster(
+                    helperFrom.getArgb32At_noCheck_shortByteArrOrRaster(
                         sx,
                         sy,
                         premulTo);
@@ -2992,10 +3081,12 @@ public class BufferedImageHelper {
         }
         
         final BihPixelFormat tmpImageToPixelFormat = DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
-        final BufferedImage tmpImageTo = newBufferedImageWithIntArray(
+        final BufferedImage tmpImageTo = newWrappedImage(
             color32Arr,
             color32ArrScanlineStride,
+            dstX + width,
             dstY + height,
+            //
             tmpImageToPixelFormat,
             premulTo);
         final Graphics2D g = tmpImageTo.createGraphics();
@@ -3059,10 +3150,12 @@ public class BufferedImageHelper {
             return;
         }
         
-        final BufferedImage tmpImageFrom = newBufferedImageWithIntArray(
+        final BufferedImage tmpImageFrom = newWrappedImage(
             color32Arr,
             color32ArrScanlineStride,
+            srcX + width,
             srcY + height,
+            //
             pixelFormatFrom,
             premulFrom);
         final Graphics2D g = this.image.createGraphics();
@@ -3092,7 +3185,7 @@ public class BufferedImageHelper {
         }
     }   
     
-    private static void copyPixels_noCheck_drawImage(
+    private static void copyImage_noCheck_drawImage(
         BufferedImageHelper helperFrom,
         int srcX,
         int srcY,
@@ -3135,6 +3228,32 @@ public class BufferedImageHelper {
         } finally {
             g.dispose();
         }
+    }
+    
+    /*
+     * 
+     */
+    
+    private static BufferedImage newWrappedImage(
+        int[] color32Arr,
+        int color32ArrScanlineStride,
+        int width,
+        int height,
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        
+        return newBufferedImageWithIntArray(
+            color32Arr,
+            color32ArrScanlineStride,
+            width,
+            height,
+            //
+            premul,
+            pixelFormat.aIndex(),
+            //
+            pixelFormat.rIndex(),
+            pixelFormat.gIndex(),
+            pixelFormat.bIndex());
     }
     
     /*

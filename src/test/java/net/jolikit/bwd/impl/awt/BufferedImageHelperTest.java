@@ -2786,7 +2786,7 @@ public class BufferedImageHelperTest extends TestCase {
                 final int actualArgb32 =
                     helperTo.getNonPremulArgb32At(x, y);
                 
-                final int drawImageTol =
+                final int drawImageTolWithFormatTo =
                     BufferedImageHelper.getDrawImageMaxCptDelta(
                         imageFrom.getType(),
                         pixelFormatFrom,
@@ -2795,10 +2795,22 @@ public class BufferedImageHelperTest extends TestCase {
                         imageTo.getType(),
                         pixelFormatTo,
                         premulTo);
+                final BihPixelFormat fastDstFormat =
+                    BufferedImageHelper.DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
+                final int drawImageTolWithFastDstFormat =
+                    BufferedImageHelper.getDrawImageMaxCptDelta(
+                        imageFrom.getType(),
+                        pixelFormatFrom,
+                        premulFrom,
+                        //
+                        fastDstFormat.toImageType(premulTo),
+                        fastDstFormat,
+                        premulTo);
                 
                 if (cmaAllowedFrom
                     && cmaAllowedTo
-                    && (drawImageTol == 1)) {
+                    && ((drawImageTolWithFormatTo == 1)
+                        || (drawImageTolWithFastDstFormat == 1))) {
                     /*
                      * In this case, we use drawImage(),
                      * but it can give a slightly different result,
