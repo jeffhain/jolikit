@@ -446,8 +446,9 @@ public class BufferedImageHelper {
         
         final Raster raster = image.getRaster();
         
-        this.scanlineStride = getScanlineStride(image);
-
+        final int stride = getScanlineStride(image);
+        this.scanlineStride = stride;
+        
         // Implicit null check.
         final BihPixelFormat pixelFormat =
             computePixelFormat(image);
@@ -468,7 +469,9 @@ public class BufferedImageHelper {
         int[] intArr = null;
         short[] shortArr = null;
         byte[] byteArr = null;
-        if (isAduAllowed) {
+        if (isAduAllowed
+            // If stride is unknown, can't use array.
+            && (stride != -1)) {
             if ((singlePixelCmaType == MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT)
                 && hasDirectlyUsableArrayOfType(
                     image,
@@ -1229,110 +1232,75 @@ public class BufferedImageHelper {
      */
     
     /**
-     * Does SRC_OVER blending.
-     * 
-     * @param premulArgb32 Alpha premultiplied 32 bits ARGB color to blend.
-     * @throws ArrayIndexOutOfBoundsException if the specified position
-     *         is out of range.
-     */
-    public void drawPointPremulAt(int x, int y, int premulArgb32) {
-        final int srcPremulArgb32 = premulArgb32;
-        
-        final int newPremulArgb32;
-        if (Argb32.isOpaque(srcPremulArgb32)) {
-            // No need to get previous color for blending.
-            newPremulArgb32 = srcPremulArgb32;
-        } else {
-            final int dstPremulArgb32 = this.getPremulArgb32At(x, y);
-            
-            newPremulArgb32 =
-                BindingColorUtils.blendPremulAxyz32_srcOver(
-                    srcPremulArgb32,
-                    dstPremulArgb32);
-        }
-        
-        this.setPremulArgb32At(x, y, newPremulArgb32);
-    }
-    
-    /*
-     * 
-     */
-    
-    /**
-     * Uses setArgb32At().
-     * 
      * @param argb32 An ARGB 32 value.
      * @param premul Whether the specified value is alpha-premultiplied.
-     * @throws ArrayIndexOutOfBoundsException if a specified position
+     * @throws IllegalArgumentException if a specified position
      *         is out of range.
      */
     public void clearRect(
         int x, int y, int width, int height,
         int argb32,
         boolean premul) {
+        
         /*
-         * Converting color into image premul or not
-         * for faster setting.
+         * Checks.
          */
-        final boolean imagePremul =
-            this.image.isAlphaPremultiplied();
-        final int imageArgb32;
-        if (premul != imagePremul) {
-            if (imagePremul) {
-                imageArgb32 = BindingColorUtils.toPremulAxyz32(argb32);
-            } else {
-                imageArgb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
-            }
+        
+        this.checkRectInImage(x, "x", y, "y", width, "width", height, "height");
+        
+        if ((width == 0) || (height == 0)) {
+            // Easy.
+            return;
+        }
+        
+        /*
+         * Clear.
+         */
+        
+        final Object data =
+            this.convertArgb32ToData(argb32, premul);
+        
+        if (this.intPixelArr != null) {
+            final int pixel = ((int[]) data)[0];
+            fillRect_intArr(
+                this.intPixelArr,
+                this.scanlineStride,
+                x,
+                y,
+                width,
+                height,
+                //
+                pixel);
+        } else if (this.shortPixelArr != null) {
+            final short pixel = ((short[]) data)[0];
+            fillRect_shortArr(
+                this.shortPixelArr,
+                this.scanlineStride,
+                x,
+                y,
+                width,
+                height,
+                //
+                pixel);
+        } else if (this.bytePixelArr != null) {
+            final byte pixel = ((byte[]) data)[0];
+            fillRect_byteArr(
+                this.bytePixelArr,
+                this.scanlineStride,
+                x,
+                y,
+                width,
+                height,
+                //
+                pixel);
         } else {
-            imageArgb32 = argb32;
-        }
-        for (int j = 0; j < height; j++) {
-            final int py = y + j;
-            for (int i = 0; i < width; i++) {
-                final int px = x + i;
-                this.setArgb32At(px, py, imageArgb32, imagePremul);
-            }
-        }
-    }
-    
-    /**
-     * Does SRC_OVER blending.
-     * 
-     * @param premulArgb32 Alpha premultiplied 32 bits ARGB color to blend.
-     * @throws ArrayIndexOutOfBoundsException if a specified position
-     *         is out of range.
-     */
-    public void fillRectPremul(
-        int x, int y, int width, int height,
-        int premulArgb32) {
-        for (int j = 0; j < height; j++) {
-            final int py = y + j;
-            for (int i = 0; i < width; i++) {
-                final int px = x + i;
-                this.drawPointPremulAt(
-                    px,
-                    py,
-                    premulArgb32);
-            }
-        }
-    }
-    
-    /*
-     * 
-     */
-    
-    /**
-     * @throws ArrayIndexOutOfBoundsException if a specified position
-     *         is out of range.
-     */
-    public void invertPixels(int x, int y, int width, int height) {
-        for (int j = 0; j < height; j++) {
-            final int py = y + j;
-            for (int i = 0; i < width; i++) {
-                final int px = x + i;
-                final int argb32 = this.getNonPremulArgb32At(px, py);
-                final int invertedArgb32 = Argb32.inverted(argb32);
-                this.setNonPremulArgb32At(px, py, invertedArgb32);
+            final WritableRaster raster = this.image.getRaster();
+            for (int j = 0; j < height; j++) {
+                final int py = y + j;
+                for (int i = 0; i < width; i++) {
+                    final int px = x + i;
+                    raster.setDataElements(px, py, data);
+                }
             }
         }
     }
@@ -1403,12 +1371,7 @@ public class BufferedImageHelper {
                 "color32Arr is image array");
         }
         
-        final int sw = this.imageWidth;
-        final int sh = this.imageHeight;
-        NbrsUtils.requireInRange(0, sw - 1, srcX, "srcX");
-        NbrsUtils.requireInRange(0, sh - 1, srcY, "srcY");
-        NbrsUtils.requireInRange(0, sw - srcX, width, "width");
-        NbrsUtils.requireInRange(0, sh - srcY, height, "height");
+        this.checkRectInImage(srcX, "srcX", srcY, "srcY", width, "width", height, "height");
         
         final int dw = color32ArrScanlineStride;
         NbrsUtils.requireSupOrEq(width, dw, "color32ArrScanlineStride");
@@ -1502,12 +1465,7 @@ public class BufferedImageHelper {
                 "color32Arr is image array");
         }
         
-        final int dw = this.imageWidth;
-        final int dh = this.imageHeight;
-        NbrsUtils.requireInRange(0, dw - 1, dstX, "dstX");
-        NbrsUtils.requireInRange(0, dh - 1, dstY, "dstY");
-        NbrsUtils.requireInRange(0, dw - dstX, width, "width");
-        NbrsUtils.requireInRange(0, dh - dstY, height, "height");
+        this.checkRectInImage(dstX, "dstX", dstY, "dstY", width, "width", height, "height");
         
         final int sw = color32ArrScanlineStride;
         NbrsUtils.requireSupOrEq(width, sw, "color32ArrScanlineStride");
@@ -2150,10 +2108,35 @@ public class BufferedImageHelper {
             this.tmpDataLazy);
         this.tmpDataLazy = data;
         
+        return this.convertDataToArgb32(data, premul);
+    }
+    
+    private void setArgb32At_raster(
+        int x,
+        int y,
+        int argb32,
+        boolean premul) {
+        
+        final WritableRaster raster = this.image.getRaster();
+        
+        final Object data =
+            this.convertArgb32ToData(argb32, premul);
+        
+        raster.setDataElements(x, y, data);
+    }
+    
+    /*
+     * convertXxxToArgb32
+     */
+    
+    private int convertDataToArgb32(
+        Object data,
+        boolean premul) {
+        
         final int argb32;
         switch (this.singlePixelCmaType) {
             case NONE: {
-                argb32 = this.convertDataToArgb32(
+                argb32 = this.convertDataToArgb32_colorModel(
                     data,
                     premul);
             } break;
@@ -2187,78 +2170,7 @@ public class BufferedImageHelper {
         return argb32;
     }
     
-    private void setArgb32At_raster(
-        int x,
-        int y,
-        int argb32,
-        boolean premul) {
-        
-        final WritableRaster raster = this.image.getRaster();
-        
-        final Object data;
-        switch (this.singlePixelCmaType) {
-            case NONE: {
-                data = this.convertArgb32ToData(
-                    argb32,
-                    premul);
-            } break;
-            case INT_BIH_PIXEL_FORMAT: {
-                final int pixel =
-                    this.convertArgb32ToPixel_INT_BIH_PIXEL_FORMAT(
-                        argb32,
-                        premul);
-                final int[] dataImpl = this.ensureAndGetDataLazy_int();
-                dataImpl[0] = pixel;
-                data = dataImpl;
-            } break;
-            case USHORT_555_RGB: {
-                final short pixel =
-                    this.convertArgb32ToPixel_USHORT_555_RGB(
-                        argb32,
-                        premul);
-                final short[] dataImpl = this.ensureAndGetDataLazy_short();
-                dataImpl[0] = pixel;
-                data = dataImpl;
-            } break;
-            case USHORT_565_RGB: {
-                final short pixel =
-                    this.convertArgb32ToPixel_USHORT_565_RGB(
-                        argb32,
-                        premul);
-                final short[] dataImpl = this.ensureAndGetDataLazy_short();
-                dataImpl[0] = pixel;
-                data = dataImpl;
-            } break;
-            case USHORT_GRAY: {
-                final short pixel =
-                    this.convertArgb32ToPixel_USHORT_GRAY(
-                        argb32,
-                        premul);
-                final short[] dataImpl = this.ensureAndGetDataLazy_short();
-                dataImpl[0] = pixel;
-                data = dataImpl;
-            } break;
-            case BYTE_GRAY: {
-                final byte pixel =
-                    this.convertArgb32ToPixel_BYTE_GRAY(
-                        argb32,
-                        premul);
-                final byte[] dataImpl = this.ensureAndGetDataLazy_byte();
-                dataImpl[0] = pixel;
-                data = dataImpl;
-            } break;
-            default: throw new AssertionError();
-        }
-        this.tmpDataLazy = data;
-        
-        raster.setDataElements(x, y, data);
-    }
-    
-    /*
-     * convertXxxToArgb32
-     */
-    
-    private int convertDataToArgb32(
+    private int convertDataToArgb32_colorModel(
         Object data,
         boolean premul) {
         final ColorModel colorModel = this.image.getColorModel();
@@ -2351,13 +2263,79 @@ public class BufferedImageHelper {
     private Object convertArgb32ToData(
         int argb32,
         boolean premul) {
+        
+        final Object data;
+        switch (this.singlePixelCmaType) {
+            case NONE: {
+                data = this.convertArgb32ToData_colorModel(
+                    argb32,
+                    premul);
+            } break;
+            case INT_BIH_PIXEL_FORMAT: {
+                final int pixel =
+                    this.convertArgb32ToPixel_INT_BIH_PIXEL_FORMAT(
+                        argb32,
+                        premul);
+                final int[] dataImpl = this.ensureAndGetDataLazy_int();
+                dataImpl[0] = pixel;
+                data = dataImpl;
+            } break;
+            case USHORT_555_RGB: {
+                final short pixel =
+                    this.convertArgb32ToPixel_USHORT_555_RGB(
+                        argb32,
+                        premul);
+                final short[] dataImpl = this.ensureAndGetDataLazy_short();
+                dataImpl[0] = pixel;
+                data = dataImpl;
+            } break;
+            case USHORT_565_RGB: {
+                final short pixel =
+                    this.convertArgb32ToPixel_USHORT_565_RGB(
+                        argb32,
+                        premul);
+                final short[] dataImpl = this.ensureAndGetDataLazy_short();
+                dataImpl[0] = pixel;
+                data = dataImpl;
+            } break;
+            case USHORT_GRAY: {
+                final short pixel =
+                    this.convertArgb32ToPixel_USHORT_GRAY(
+                        argb32,
+                        premul);
+                final short[] dataImpl = this.ensureAndGetDataLazy_short();
+                dataImpl[0] = pixel;
+                data = dataImpl;
+            } break;
+            case BYTE_GRAY: {
+                final byte pixel =
+                    this.convertArgb32ToPixel_BYTE_GRAY(
+                        argb32,
+                        premul);
+                final byte[] dataImpl = this.ensureAndGetDataLazy_byte();
+                dataImpl[0] = pixel;
+                data = dataImpl;
+            } break;
+            default: throw new AssertionError();
+        }
+        return data;
+    }
+    
+    private Object convertArgb32ToData_colorModel(
+        int argb32,
+        boolean premul) {
         if (premul) {
             argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
         }
         final ColorModel colorModel = this.image.getColorModel();
-        return colorModel.getDataElements(
+        final Object oldData = this.tmpDataLazy;
+        final Object newData = colorModel.getDataElements(
             argb32,
-            this.tmpDataLazy);
+            oldData);
+        if (oldData == null) {
+            this.tmpDataLazy = newData;
+        }
+        return newData;
     }
     
     private int convertArgb32ToPixel_INT_BIH_PIXEL_FORMAT(
@@ -3071,13 +3049,15 @@ public class BufferedImageHelper {
         if (this.image.getTransparency() != Transparency.OPAQUE) {
             // Need to reset destination pixels before using
             // drawImage(), for it does blending.
-            zeroizePixels(
+            fillRect_intArr(
                 color32Arr,
                 color32ArrScanlineStride,
                 dstX,
                 dstY,
                 width,
-                height);
+                height,
+                //
+                0);
         }
         
         final BihPixelFormat tmpImageToPixelFormat = DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
@@ -3291,6 +3271,23 @@ public class BufferedImageHelper {
      * 
      */
     
+    private void checkRectInImage(
+        int x,
+        String xName,
+        int y,
+        String yName,
+        int width,
+        String widthName,
+        int height,
+        String heightName) {
+        final int iw = this.imageWidth;
+        final int ih = this.imageHeight;
+        NbrsUtils.requireInRange(0, iw - 1, x, xName);
+        NbrsUtils.requireInRange(0, ih - 1, y, yName);
+        NbrsUtils.requireInRange(0, iw - x, width, widthName);
+        NbrsUtils.requireInRange(0, ih - y, height, heightName);
+    }
+    
     private static boolean sameAndNotNull(Object a, Object b) {
         return (a != null) && (a == b);
     }
@@ -3314,23 +3311,68 @@ public class BufferedImageHelper {
         return ah;
     }
     
-    private static void zeroizePixels(
-        int[] color32Arr,
-        int color32ArrScanlineStride,
+    private static void fillRect_intArr(
+        int[] arr,
+        int arrScanlineStride,
         int x,
         int y,
         int width,
-        int height) {
-        if (width == color32ArrScanlineStride) {
-            final int offset =
-                y * color32ArrScanlineStride;
+        int height,
+        //
+        int val) {
+        
+        int lineOffset = y * arrScanlineStride + x;
+        if (width == arrScanlineStride) {
             final int area = width * height;
-            Arrays.fill(color32Arr, offset, offset + area, 0);
+            Arrays.fill(arr, lineOffset, lineOffset + area, val);
         } else {
             for (int j = 0; j < height; j++) {
-                final int lineOffset =
-                    (y + j) * color32ArrScanlineStride + x;
-                Arrays.fill(color32Arr, lineOffset, lineOffset + width, 0);
+                Arrays.fill(arr, lineOffset, lineOffset + width, val);
+                lineOffset += arrScanlineStride;
+            }
+        }
+    }
+    
+    private static void fillRect_shortArr(
+        short[] arr,
+        int arrScanlineStride,
+        int x,
+        int y,
+        int width,
+        int height,
+        //
+        short val) {
+        
+        int lineOffset = y * arrScanlineStride + x;
+        if (width == arrScanlineStride) {
+            final int area = width * height;
+            Arrays.fill(arr, lineOffset, lineOffset + area, val);
+        } else {
+            for (int j = 0; j < height; j++) {
+                Arrays.fill(arr, lineOffset, lineOffset + width, val);
+                lineOffset += arrScanlineStride;
+            }
+        }
+    }
+    
+    private static void fillRect_byteArr(
+        byte[] arr,
+        int arrScanlineStride,
+        int x,
+        int y,
+        int width,
+        int height,
+        //
+        byte val) {
+        
+        int lineOffset = y * arrScanlineStride + x;
+        if (width == arrScanlineStride) {
+            final int area = width * height;
+            Arrays.fill(arr, lineOffset, lineOffset + area, val);
+        } else {
+            for (int j = 0; j < height; j++) {
+                Arrays.fill(arr, lineOffset, lineOffset + width, val);
+                lineOffset += arrScanlineStride;
             }
         }
     }

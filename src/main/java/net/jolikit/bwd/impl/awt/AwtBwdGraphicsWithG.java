@@ -34,6 +34,7 @@ import net.jolikit.bwd.impl.utils.fonts.AbstractBwdFont;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtils;
 import net.jolikit.bwd.impl.utils.graphics.AbstractBwdGraphics;
 import net.jolikit.bwd.impl.utils.graphics.AbstractBwdPrimitives;
+import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.lang.Dbg;
 import net.jolikit.lang.LangUtils;
 
@@ -60,15 +61,17 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * which can be:
      * - much slower, for example for drawLine(...) with non-opaque colors.
      * - much less accurate, especially for ovals and arcs.
+     * 
+     * Times from DrawingBench test case.
      */
     
     /**
-     * Using backing graphics is much faster,
+     * Using backing graphics is about twice faster for opaque,
      * so we only use redefined treatments when necessary,
      * i.e. when clearing a writable image with a non opaque color.
      * 
-     * backing : 0.16 ms
-     * redefined : 12 ms
+     * backing : 0.13 ms (opaque)
+     * redefined : 0.22 ms (opaque)
      */
     private static final boolean MUST_USE_REDEF_FOR_CLEAR_RECT = false;
     
@@ -78,8 +81,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * and 1000 times slower for transparent colors.
      * 
      * fillRect : 0.2 ms, 2.5 ms (opaque, alpha)
-     * false : 50 ms, 2500 ms
-     * true : 22 ms, 30 ms
+     * backing : 50 ms, 2500 ms
+     * redefined : 7 ms, 14 ms
      */
     private static final boolean MUST_USE_REDEF_FOR_DRAW_POINT = true;
     
@@ -90,18 +93,18 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * so we prefer not to use it.
      * 
      * fillRect : 0.2 ms, 2.5 ms
-     * false :
+     * backing :
      * - H : 0.001 ms, 0.02 ms
      * - V : 0.002 ms, 0.13 ms
      * - GEN : 0.002 ms, 0.13 ms
      * - HRECT : 0.2 ms, 7 ms
      * - VRECT : 1.8 ms, 120 ms
-     * true :
-     * - H : 0.02 ms, 0.03 ms
-     * - V : 0.03 ms, 0.03 ms
-     * - GEN : 0.05 ms, 0.05 ms
-     * - HRECT : 20 ms, 31 ms
-     * - VRECT : 23 ms, 31 ms
+     * redefined :
+     * - H : 0.007 ms, 0.014 ms
+     * - V : 0.007 ms, 0.014 ms
+     * - GEN : 0.014 ms, 0.026 ms
+     * - HRECT : 6.2 ms, 12.3 ms
+     * - VRECT : 6.3 ms, 13.1 ms
      */
     private static final boolean MUST_USE_REDEF_FOR_DRAW_LINE = false;
     
@@ -113,7 +116,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     /**
      * Redefined treatment is much slower, not using it.
      * 
-     * fillRect : 0.2 ms, 2.5 ms
+     * backing : 0.2 ms, 2.5 ms
      * redefined : 18 ms, 24 ms
      */
     private static final boolean MUST_USE_REDEF_FOR_FILL_RECT = false;
@@ -150,8 +153,8 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
      * Redefined treatment is much slower, not using it
      * (unless needed, since backing don't handle transparency properly).
      * 
-     * backing : 0.2 ms
-     * redefined : 18 ms
+     * false : 0.2 ms
+     * true : 10-14 ms
      */
     private static final boolean MUST_USE_REDEF_FOR_FLIP_COLORS = false;
     
@@ -741,7 +744,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             final int xSpanInBaseClipped = rectInBaseClipped.xSpan();
             final int ySpanInBaseClipped = rectInBaseClipped.ySpan();
             
-            this.bufferedImageHelper.invertPixels(
+            this.invertPixels(
                     xInBaseClipped,
                     yInBaseClipped,
                     xSpanInBaseClipped,
@@ -1014,7 +1017,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final int yInBi = transformBiToUser.yIn1(x, y);
         
         final int premulArgb32 = this.getPremulArgb32();
-        this.bufferedImageHelper.drawPointPremulAt(
+        this.drawPointPremulAt(
             xInBi,
             yInBi,
             premulArgb32);
@@ -1063,11 +1066,83 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         final int xSpanInBase = rectInBase.xSpan();
         final int ySpanInBase = rectInBase.ySpan();
         
-        this.bufferedImageHelper.fillRectPremul(
+        this.fillRectPremul(
                 xInBase,
                 yInBase,
                 xSpanInBase,
                 ySpanInBase,
                 premulArgb32);
+    }
+    
+    /*
+     * Methods removed from BufferedImageHelper
+     * (since they are small and use its public API,
+     * so don't add much value).
+     */
+    
+    /**
+     * Does SRC_OVER blending.
+     * 
+     * @param premulArgb32 Alpha premultiplied 32 bits ARGB color to blend.
+     */
+    private void drawPointPremulAt(int x, int y, int premulArgb32) {
+        final int srcPremulArgb32 = premulArgb32;
+        
+        final int newPremulArgb32;
+        if (Argb32.isOpaque(srcPremulArgb32)) {
+            // No need to get previous color for blending.
+            newPremulArgb32 = srcPremulArgb32;
+        } else {
+            final int dstPremulArgb32 =
+                this.bufferedImageHelper.getPremulArgb32At(x, y);
+            
+            newPremulArgb32 =
+                BindingColorUtils.blendPremulAxyz32_srcOver(
+                    srcPremulArgb32,
+                    dstPremulArgb32);
+        }
+        
+        this.bufferedImageHelper.setPremulArgb32At(x, y, newPremulArgb32);
+    }
+    
+    /**
+     * Does SRC_OVER blending.
+     * 
+     * @param premulArgb32 Alpha premultiplied 32 bits ARGB color to blend.
+     */
+    private void fillRectPremul(
+        int x, int y, int width, int height,
+        int premulArgb32) {
+        
+        if (Argb32.isOpaque(premulArgb32)) {
+            this.bufferedImageHelper.clearRect(x, y, width, height, premulArgb32, true);
+        } else {
+            for (int j = 0; j < height; j++) {
+                final int py = y + j;
+                for (int i = 0; i < width; i++) {
+                    final int px = x + i;
+                    this.drawPointPremulAt(
+                        px,
+                        py,
+                        premulArgb32);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Uses Argb32.inverted().
+     */
+    private void invertPixels(int x, int y, int width, int height) {
+        
+        for (int j = 0; j < height; j++) {
+            final int py = y + j;
+            for (int i = 0; i < width; i++) {
+                final int px = x + i;
+                final int argb32 = this.bufferedImageHelper.getNonPremulArgb32At(px, py);
+                final int invertedArgb32 = Argb32.inverted(argb32);
+                this.bufferedImageHelper.setNonPremulArgb32At(px, py, invertedArgb32);
+            }
+        }
     }
 }

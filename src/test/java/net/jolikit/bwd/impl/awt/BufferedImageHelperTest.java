@@ -1526,55 +1526,7 @@ public class BufferedImageHelperTest extends TestCase {
      * 
      */
     
-    public void test_drawPointPremulAt_allBihPixelFormat() {
-        final int imageWidth = SMALL_WIDTH;
-        final int imageHeight = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
-            
-            final BufferedImageHelper helper = new BufferedImageHelper(image);
-            assertTrue(helper.isColorModelAvoidedForSinglePixelMethods());
-            
-            final BihPixelFormat pixelFormat = helper.getPixelFormat();
-            
-            final int x = 1;
-            final int y = 2;
-            // Components values high enough to preserve bijectivity
-            // when converting between premul and non premul.
-            int nonPremulArgb32 = 0xA76543B1;
-            if (!pixelFormat.hasAlpha()) {
-                nonPremulArgb32 = Argb32.toOpaque(nonPremulArgb32);
-            }
-            final int premulArgb32 = BindingColorUtils.toPremulAxyz32(nonPremulArgb32);
-            
-            // First draw: blending equivalent to set.
-            {
-                final int expectedNonPremulArgb32 = nonPremulArgb32;
-                helper.drawPointPremulAt(x, y, premulArgb32);
-                
-                final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                checkEqual(expectedNonPremulArgb32, actualNonPremulArgb32);
-            }
-            
-            // Second draw: blending into itself.
-            {
-                final int expectedNonPremulArgb32 =
-                    BindingColorUtils.toNonPremulAxyz32(
-                        BindingColorUtils.blendPremulAxyz32_srcOver(
-                            premulArgb32,
-                            premulArgb32));
-                helper.drawPointPremulAt(x, y, premulArgb32);
-                
-                final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                checkEqual(expectedNonPremulArgb32, actualNonPremulArgb32);
-            }
-        }
-    }
-    
-    /*
-     * 
-     */
-    
-    public void test_clearRect_fillRectPremul_invertPixels_exceptions() {
+    public void test_clearRect_exceptions() {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         for (BufferedImage image : BihTestUtils.newImageList(imageWidth, imageHeight)) {
@@ -1584,21 +1536,7 @@ public class BufferedImageHelperTest extends TestCase {
                     try {
                         helper.clearRect(badX, 0, 1, 1, 0xFF000000, false);
                         fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        assertNotNull(e);
-                    }
-                    
-                    try {
-                        helper.fillRectPremul(badX, 0, 1, 1, 0xFF000000);
-                        fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        assertNotNull(e);
-                    }
-                    
-                    try {
-                        helper.invertPixels(badX, 0, 1, 1);
-                        fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
+                    } catch (IllegalArgumentException e) {
                         assertNotNull(e);
                     }
                 }
@@ -1607,21 +1545,7 @@ public class BufferedImageHelperTest extends TestCase {
                     try {
                         helper.clearRect(0, badY, 1, 1, 0xFF000000, false);
                         fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        assertNotNull(e);
-                    }
-                    
-                    try {
-                        helper.fillRectPremul(0, badY, 1, 1, 0xFF000000);
-                        fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
-                        assertNotNull(e);
-                    }
-                    
-                    try {
-                        helper.invertPixels(0, badY, 1, 1);
-                        fail();
-                    } catch (ArrayIndexOutOfBoundsException e) {
+                    } catch (IllegalArgumentException e) {
                         assertNotNull(e);
                     }
                 }
@@ -1686,137 +1610,6 @@ public class BufferedImageHelperTest extends TestCase {
                         final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
                         checkEqual(nonPremulArgb32, actualNonPremulArgb32);
                     }
-                }
-            }
-        }
-    }
-    
-    public void test_fillRectPremul_allBihPixelFormat() {
-        final int imageWidth = SMALL_WIDTH;
-        final int imageHeight = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
-            final BufferedImageHelper helper = new BufferedImageHelper(image);
-            
-            final BihPixelFormat pixelFormat = helper.getPixelFormat();
-            
-            final int initialNonPremulArgb32 = helper.getNonPremulArgb32At(0, 0);
-            
-            int nonPremulArgb32 = 0xC0806040;
-            if (!pixelFormat.hasAlpha()) {
-                nonPremulArgb32 = Argb32.toOpaque(nonPremulArgb32);
-            }
-            final int premulArgb32 =
-                BindingColorUtils.toPremulAxyz32(nonPremulArgb32);
-            // Must be bijective.
-            checkEqual(nonPremulArgb32, BindingColorUtils.toNonPremulAxyz32(premulArgb32));
-            
-            /*
-             * Filling.
-             */
-            
-            helper.fillRectPremul(1, 1, 3, 2, premulArgb32);
-            
-            // Rectangle filled.
-            for (int x = 1; x <= 3; x++) {
-                for (int y = 1; y <= 2; y++) {
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(nonPremulArgb32, actualNonPremulArgb32);
-                }
-            }
-            
-            // Surroundings not filled.
-            for (int x : new int[] {0, 4}) {
-                for (int y : new int[] {0, 3}) {
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(initialNonPremulArgb32, actualNonPremulArgb32);
-                }
-            }
-            
-            /*
-             * Filling again.
-             */
-            
-            helper.fillRectPremul(1, 1, 3, 2, premulArgb32);
-            
-            // Color blended into itself (no change if opaque).
-            for (int x = 1; x <= 3; x++) {
-                for (int y = 1; y <= 2; y++) {
-                    final int expectedNonPremulArgb32 =
-                        BindingColorUtils.toNonPremulAxyz32(
-                            BindingColorUtils.blendPremulAxyz32_srcOver(
-                                premulArgb32,
-                                premulArgb32));
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(expectedNonPremulArgb32, actualNonPremulArgb32);
-                }
-            }
-        }
-    }
-    
-    public void test_invertPixels_allBihPixelFormat() {
-        final int imageWidth = SMALL_WIDTH;
-        final int imageHeight = SMALL_HEIGHT;
-        for (BufferedImage image : BihTestUtils.newImageList_allPixelFormat(imageWidth, imageHeight)) {
-            final BufferedImageHelper helper = new BufferedImageHelper(image);
-            
-            final BihPixelFormat pixelFormat = helper.getPixelFormat();
-            
-            int nonPremulArgb32 = 0xCC88C88C;
-            if (!pixelFormat.hasAlpha()) {
-                nonPremulArgb32 = Argb32.toOpaque(nonPremulArgb32);
-            }
-            final int premulArgb32 =
-                BindingColorUtils.toPremulAxyz32(nonPremulArgb32);
-            // Inverted must be bijective through premul.
-            checkEqual(nonPremulArgb32,
-                Argb32.inverted(
-                    BindingColorUtils.toNonPremulAxyz32(
-                        BindingColorUtils.toPremulAxyz32(
-                            Argb32.inverted(
-                                BindingColorUtils.toNonPremulAxyz32(
-                                    premulArgb32))))));
-            
-            /*
-             * Clearing all with the color (to invert it).
-             */
-            
-            helper.clearRect(0, 0, imageWidth, imageHeight, nonPremulArgb32, false);
-            
-            /*
-             * Inverting.
-             */
-            
-            helper.invertPixels(1, 1, 3, 2);
-            
-            // Rectangle inverted.
-            for (int x = 1; x <= 3; x++) {
-                for (int y = 1; y <= 2; y++) {
-                    final int expectedNonPremulArgb32 =
-                        Argb32.inverted(nonPremulArgb32);
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(expectedNonPremulArgb32, actualNonPremulArgb32);
-                }
-            }
-            
-            // Surroundings not inverted.
-            for (int x : new int[] {0, 4}) {
-                for (int y : new int[] {0, 3}) {
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(nonPremulArgb32, actualNonPremulArgb32);
-                }
-            }
-            
-            /*
-             * Inverting again.
-             */
-            
-            helper.invertPixels(1, 1, 3, 2);
-            
-            // All become as after clearing.
-            for (int y = 0; y < imageHeight; y++) {
-                for (int x = 0; x < imageWidth; x++) {
-                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                    checkEqual(nonPremulArgb32, actualNonPremulArgb32);
                 }
             }
         }

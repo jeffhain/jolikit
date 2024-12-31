@@ -40,6 +40,7 @@ public class BufferedImageHelperPerfs {
     
     private static final boolean MUST_BENCH_SINGLE_PIXEL_GET_METHODS = true;
     private static final boolean MUST_BENCH_SINGLE_PIXEL_SET_METHODS = true;
+    private static final boolean MUST_BENCH_CLEAR_METHOD = true;
     private static final boolean MUST_BENCH_BULK_GET_METHODS = true;
     private static final boolean MUST_BENCH_BULK_SET_METHODS = true;
     private static final boolean MUST_BENCH_BULK_COPY_METHODS = true;
@@ -133,10 +134,10 @@ public class BufferedImageHelperPerfs {
             bench_setArgb32At_premul_opaque();
             
             bench_setArgb32At_premul_translucent();
-            
-            bench_drawPointPremulAt_opaque();
-            
-            bench_drawPointPremulAt_translucent();
+        }
+        
+        if (MUST_BENCH_CLEAR_METHOD) {
+            bench_clearRect_3840_2160();
         }
         
         if (MUST_BENCH_BULK_GET_METHODS) {
@@ -272,39 +273,24 @@ public class BufferedImageHelperPerfs {
      */
     
     private static void bench_setArgb32At_nonPremul_opaque() {
-        bench_setArgb32At_drawPointPremulAt_xxx(false, true, false);
+        bench_setArgb32At_xxx(false, false);
     }
     
     private static void bench_setArgb32At_nonPremul_translucent() {
-        bench_setArgb32At_drawPointPremulAt_xxx(false, true, true);
+        bench_setArgb32At_xxx(false, true);
     }
     
     private static void bench_setArgb32At_premul_opaque() {
-        bench_setArgb32At_drawPointPremulAt_xxx(true, true, false);
+        bench_setArgb32At_xxx(true, false);
     }
     
     private static void bench_setArgb32At_premul_translucent() {
-        bench_setArgb32At_drawPointPremulAt_xxx(true, true, true);
+        bench_setArgb32At_xxx(true, true);
     }
     
-    private static void bench_drawPointPremulAt_opaque() {
-        bench_setArgb32At_drawPointPremulAt_xxx(true, false, false);
-    }
-    
-    private static void bench_drawPointPremulAt_translucent() {
-        bench_setArgb32At_drawPointPremulAt_xxx(true, false, true);
-    }
-    
-    private static void bench_setArgb32At_drawPointPremulAt_xxx(
+    private static void bench_setArgb32At_xxx(
         boolean setPremulElseNonPremul,
-        boolean setElseDraw,
         boolean withTranslucency) {
-        
-        if ((!setElseDraw)
-            && (!setPremulElseNonPremul)) {
-            // draw only accepts premul.
-            throw new IllegalArgumentException();
-        }
         
         final int width = SMALL_IMAGE_WIDTH;
         final int height = SMALL_IMAGE_HEIGHT;
@@ -359,11 +345,7 @@ public class BufferedImageHelperPerfs {
                         }
                         final int toSet = toSetArr[y * width + x];
                         if (setPremulElseNonPremul) {
-                            if (setElseDraw) {
-                                helper.setPremulArgb32At(x, y, toSet);
-                            } else {
-                                helper.drawPointPremulAt(x, y, toSet);
-                            }
+                            helper.setPremulArgb32At(x, y, toSet);
                         } else {
                             helper.setNonPremulArgb32At(x, y, toSet);
                         }
@@ -375,11 +357,7 @@ public class BufferedImageHelperPerfs {
                         imagePremul);
                     final String methodStr;
                     if (setPremulElseNonPremul) {
-                        if (setElseDraw) {
-                            methodStr = "setP()";
-                        } else {
-                            methodStr = "drawP()";
-                        }
+                        methodStr = "setP()";
                     } else {
                         methodStr = "setNp()";
                     }
@@ -387,6 +365,74 @@ public class BufferedImageHelperPerfs {
                         + ", " + methodStr
                         + ", " + (withTranslucency ? "(tr)" : "(op)")
                         + ", " + typeStr
+                        + toStringHelperCapabilitiesForSinglePixel(helper)
+                        + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                }
+            }
+        }
+    }
+    
+    /*
+     * 
+     */
+    
+    private void bench_clearRect_3840_2160() {
+        bench_clearRect_xxx(10, 3840, 2160);
+    }
+    
+    private static void bench_clearRect_xxx(
+        int bulkNbrOfCalls,
+        int width,
+        int height) {
+        
+        /*
+         * No need to bench premul vs non-premul,
+         * or translucent vs opaque,
+         * since input color is only converted once
+         * into pixel to set.
+         */
+        final int clearNonPremulArgb32 = 0x87654321;
+        
+        // Separation between input types.
+        System.out.println();
+        
+        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+            
+            final boolean imagePremul = image.isAlphaPremultiplied();
+            
+            final BihPixelFormat pixelFormat =
+                BufferedImageHelper.computePixelFormat(image);
+            final int imageType = image.getType();
+            
+            final ImageTypeEnum imageTypeEnum =
+                ImageTypeEnum.enumByType().get(imageType);
+            
+            // clearRect() uses single-pixel CMA avoidance,
+            // not (allow flag, drawImage()).
+            for (BufferedImageHelper helper : BihTestUtils.newHelperListForSinglePixel(image)) {
+                
+                for (int k = 0; k < NBR_OF_RUNS; k++) {
+                    int antiOptim = 0;
+                    final long a = System.nanoTime();
+                    for (int i = 0; i < bulkNbrOfCalls; i++) {
+                        helper.clearRect(0, 0, width, height, clearNonPremulArgb32, false);
+                        antiOptim += helper.getArgb32At(0, 0, imagePremul);
+                    }
+                    final long b = System.nanoTime();
+                    if (antiOptim == 0) {
+                        System.out.println("rare");
+                    }
+                    final String methodStr = "clear()(" + width + "x" + height + ")";
+                    final String typeStr = getPixelTypeStr(
+                        imageTypeEnum,
+                        pixelFormat,
+                        imagePremul);
+                    System.out.println(bulkNbrOfCalls + " call"
+                        + (bulkNbrOfCalls >= 2 ? "s" : "")
+                        + ", " + methodStr
+                        + ", " + typeStr
+                        // clearRect() uses single-pixel CMA avoidance,
+                        // not (allow flag, drawImage()).
                         + toStringHelperCapabilitiesForSinglePixel(helper)
                         + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                 }
