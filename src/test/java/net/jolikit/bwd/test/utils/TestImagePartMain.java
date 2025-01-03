@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -84,9 +84,11 @@ public class TestImagePartMain {
         final int dw = PART_RECT.xSpan();
         final int dh = PART_RECT.ySpan();
         final int[] dstBiArr = new int[dw * dh];
+        final int scanlineStride = dw;
         final BufferedImage dstBi =
             BufferedImageHelper.newBufferedImageWithIntArray(
                 dstBiArr,
+                scanlineStride,
                 dw,
                 dh,
                 BufferedImage.TYPE_INT_ARGB);

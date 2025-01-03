@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -446,8 +446,7 @@ public class BufferedImageHelper {
         
         final Raster raster = image.getRaster();
         
-        final int stride = getScanlineStride(image);
-        this.scanlineStride = stride;
+        this.scanlineStride = getScanlineStride(image);
         
         // Implicit null check.
         final BihPixelFormat pixelFormat =
@@ -469,11 +468,9 @@ public class BufferedImageHelper {
         int[] intArr = null;
         short[] shortArr = null;
         byte[] byteArr = null;
-        if (isAduAllowed
-            // If stride is unknown, can't use array.
-            && (stride != -1)) {
+        if (isAduAllowed) {
             if ((singlePixelCmaType == MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT)
-                && hasDirectlyUsableArrayOfType(
+                && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_INT)) {
                 final DataBufferInt buffer =
@@ -483,7 +480,7 @@ public class BufferedImageHelper {
             } else if (((singlePixelCmaType == MySinglePixelCmaType.USHORT_555_RGB)
                 || (singlePixelCmaType == MySinglePixelCmaType.USHORT_565_RGB)
                 || (singlePixelCmaType == MySinglePixelCmaType.USHORT_GRAY))
-                && hasDirectlyUsableArrayOfType(
+                && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_USHORT)) {
                 final DataBufferUShort buffer =
@@ -491,7 +488,7 @@ public class BufferedImageHelper {
                 shortArr = buffer.getData();
                 
             } else if ((singlePixelCmaType == MySinglePixelCmaType.BYTE_GRAY)
-                && hasDirectlyUsableArrayOfType(
+                && hasSimpleArrayOfType(
                     image,
                     DataBuffer.TYPE_BYTE)) {
                 final DataBufferByte buffer =
@@ -643,12 +640,11 @@ public class BufferedImageHelper {
      */
     
     /**
-     * Uses width as scanline stride.
-     * 
      * @param pixelArr The int array of pixels to use, or null for the array
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
      *        the array is retrieved afterwards with DataBufferInt.getData()).
+     * @param scanlineStride Scanline stride to use. Must be >= width.
      * @param width Image width. Must be >= 1.
      * @param height Image height. Must be >= 1.
      * @param imageType Type of the backing BufferedImage.
@@ -657,8 +653,9 @@ public class BufferedImageHelper {
      * @return The created buffered image, with 32 bits pixels if there is
      *         alpha component, and 24 bits pixels otherwise.
      * @throws IllegalArgumentException if the specified width or height
-     *         are not strictly positive, or the specified array is non-null
-     *         and too small for width and height.
+     *         are not strictly positive, or the specified scanline stride
+     *         is inferior to width, or this triplet of values is too large
+     *         for int range or for the specified array length (if any).
      * @throws ArithmeticException if the specified width and height
      *         cause int overflow when multiplied with each other.
      * @throws OutOfMemoryError if the specified array is null
@@ -666,8 +663,11 @@ public class BufferedImageHelper {
      */
     public static BufferedImage newBufferedImageWithIntArray(
         int[] pixelArr,
+        int scanlineStride,
+        //
         int width,
         int height,
+        //
         int imageType) {
         
         /*
@@ -701,6 +701,7 @@ public class BufferedImageHelper {
         
         return newBufferedImageWithIntArray(
             pixelArr,
+            scanlineStride,
             width,
             height,
             //
@@ -709,12 +710,11 @@ public class BufferedImageHelper {
     }
     
     /**
-     * Uses width as scanline stride.
-     * 
      * @param pixelArr The int array of pixels to use, or null for the array
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
      *        the array is retrieved afterwards with DataBufferInt.getData()).
+     * @param scanlineStride Scanline stride to use. Must be >= width.
      * @param width Image width. Must be >= 1.
      * @param height Image height. Must be >= 1.
      * @param pixelFormat The pixel format to use.
@@ -723,8 +723,9 @@ public class BufferedImageHelper {
      *         alpha component, and 24 bits pixels otherwise.
      * @throws NullPointerException if the specified pixel format is null.
      * @throws IllegalArgumentException if the specified width or height
-     *         are not strictly positive, or the specified array is non-null
-     *         and too small for width and height,
+     *         are not strictly positive, or the specified scanline stride
+     *         is inferior to width, or this triplet of values is too large
+     *         for int range or for the specified array length (if any),
      *         or the specified pixel format has no alpha and premul is true.
      * @throws ArithmeticException if the specified width and height
      *         cause int overflow when multiplied with each other.
@@ -733,8 +734,11 @@ public class BufferedImageHelper {
      */
     public static BufferedImage newBufferedImageWithIntArray(
         int[] pixelArr,
+        int scanlineStride,
+        //
         int width,
         int height,
+        //
         BihPixelFormat pixelFormat,
         boolean premul) {
         // Implicit null check.
@@ -742,7 +746,6 @@ public class BufferedImageHelper {
             throw new IllegalArgumentException(
                 "premul can't be true for " + pixelFormat);
         }
-        final int scanlineStride = width;
         return newBufferedImageWithIntArray(
             pixelArr,
             scanlineStride,
@@ -764,7 +767,7 @@ public class BufferedImageHelper {
      *        to use to be created and owned by the internal DataBufferInt
      *        (i.e. no call to "theTrackable.setUntrackable()", unless
      *        the array is retrieved afterwards with DataBufferInt.getData()).
-     * @param scanlineStride Scanline stride to use. Must be >= 1.
+     * @param scanlineStride Scanline stride to use. Must be >= width.
      * @param width Image width. Must be >= 1.
      * @param height Image height. Must be >= 1.
      * @param premul True if the raster must be alpha-premultiplied.
@@ -778,11 +781,10 @@ public class BufferedImageHelper {
      *        in [0,3] if having alpha, else in [1,3].
      * @return The created buffered image, with 32 bits pixels
      *         if having alpha, and 24 bits pixels otherwise.
-     * @throws IllegalArgumentException if the specified width, height
-     *         or scanline stride are not strictly positive,
-     *         or the specified scanline stride is inferior to width
-     *         or too large for int range or for the specified array
-     *         length (if any),
+     * @throws IllegalArgumentException if the specified width or height
+     *         are not strictly positive, or the specified scanline stride
+     *         is inferior to width, or this triplet of values is too large
+     *         for int range or for the specified array length (if any),
      *         or component indexes are out of range,
      *         or alpha index is -1 but premul is true,
      *         or some components use a same index.
@@ -794,6 +796,7 @@ public class BufferedImageHelper {
     public static BufferedImage newBufferedImageWithIntArray(
         int[] pixelArr,
         int scanlineStride,
+        //
         int width,
         int height,
         //
@@ -917,16 +920,16 @@ public class BufferedImageHelper {
     
     /**
      * @return True if the specified image is backed by a single int array
-     *         of pixels that can be used directly and simply
-     *         (DataBufferInt buffer, one pixel per data element,
+     *         of pixels that can be used directly and simply:
+     *         DataBufferInt buffer, one pixel per data element,
      *         raster (width,height) equal to image (width,height),
-     *         width as scanline stride and no translation).
+     *         no translation, and a retrievable scanline stride
+     *         (getScanlineStride(image) != -1).
      */
     public static boolean hasSimpleIntArray(BufferedImage image) {
-        return hasDirectlyUsableArrayOfType(
+        return hasSimpleArrayOfType(
             image,
-            DataBuffer.TYPE_INT)
-            && (getScanlineStride(image) == image.getWidth());
+            DataBuffer.TYPE_INT);
     }
     
     /**
@@ -950,8 +953,8 @@ public class BufferedImageHelper {
      * @param premul Alpha premultiplied flag.
      * @return The specified image.
      * @throws IllegalArgumentException if the specified image
-     *         is not backed by a single int array usable directly
-     *         and simply (no translation etc.) and compatible
+     *         is not backed by a 'simple' int array
+     *         (cf. hasSimpleIntArray()) compatible
      *         with the specified pixel and premul format.
      */
     public static BufferedImage requireCompatibleSimpleIntArray(
@@ -1874,23 +1877,24 @@ public class BufferedImageHelper {
      * 
      */
     
-    private static boolean hasDirectlyUsableArrayOfType(
+    private static boolean hasSimpleArrayOfType(
         BufferedImage image,
         int bufferType) {
-        return (getCstErrorNoDirectlyUsableArrayOfType(
+        return (getCstErrorNoSimpleArrayOfType(
             image,
             bufferType) == null);
     }
     
     /**
-     * "Directly Usable" = "Simple" minus the constraint on scanline stride,
-     * which here is allowed to be different from width.
-     * 
      * @return String with constant error message,
      *         or null if the specified image has
-     *         a directly usable array of the specified type.
+     *         a simple array of the specified type,
+     *         i.e. with one pixel per data element,
+     *         raster (width,height) equal to image (width,height),
+     *         no translation, and a retrievable scanline stride
+     *         (getScanlineStride(image) != -1).
      */
-    private static String getCstErrorNoDirectlyUsableArrayOfType(
+    private static String getCstErrorNoSimpleArrayOfType(
         BufferedImage image,
         int bufferType) {
         
@@ -1925,6 +1929,11 @@ public class BufferedImageHelper {
             error = "raster translation";
         }
         
+        if ((error == null)
+            && (getScanlineStride(image) == -1)) {
+            error = "scanline stride not retrievable";
+        }
+        
         return error;
     }
     
@@ -1938,14 +1947,9 @@ public class BufferedImageHelper {
         BihPixelFormat pixelFormat,
         boolean premul) {
         
-        String error = getCstErrorNoDirectlyUsableArrayOfType(
+        String error = getCstErrorNoSimpleArrayOfType(
             image,
             DataBuffer.TYPE_INT);
-        
-        if ((error == null)
-            && (getScanlineStride(image) != image.getWidth())) {
-            error = "scanline stride != width";
-        }
         
         if (error == null) {
             if (premul) {
@@ -3061,14 +3065,16 @@ public class BufferedImageHelper {
         }
         
         final BihPixelFormat tmpImageToPixelFormat = DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
-        final BufferedImage tmpImageTo = newWrappedImage(
-            color32Arr,
-            color32ArrScanlineStride,
-            dstX + width,
-            dstY + height,
-            //
-            tmpImageToPixelFormat,
-            premulTo);
+        final BufferedImage tmpImageTo =
+            newBufferedImageWithIntArray(
+                color32Arr,
+                color32ArrScanlineStride,
+                //
+                dstX + width,
+                dstY + height,
+                //
+                tmpImageToPixelFormat,
+                premulTo);
         final Graphics2D g = tmpImageTo.createGraphics();
         try {
             g.drawImage(
@@ -3130,14 +3136,16 @@ public class BufferedImageHelper {
             return;
         }
         
-        final BufferedImage tmpImageFrom = newWrappedImage(
-            color32Arr,
-            color32ArrScanlineStride,
-            srcX + width,
-            srcY + height,
-            //
-            pixelFormatFrom,
-            premulFrom);
+        final BufferedImage tmpImageFrom =
+            newBufferedImageWithIntArray(
+                color32Arr,
+                color32ArrScanlineStride,
+                //
+                srcX + width,
+                srcY + height,
+                //
+                pixelFormatFrom,
+                premulFrom);
         final Graphics2D g = this.image.createGraphics();
         try {
             if (pixelFormatFrom.hasAlpha()) {
@@ -3208,32 +3216,6 @@ public class BufferedImageHelper {
         } finally {
             g.dispose();
         }
-    }
-    
-    /*
-     * 
-     */
-    
-    private static BufferedImage newWrappedImage(
-        int[] color32Arr,
-        int color32ArrScanlineStride,
-        int width,
-        int height,
-        BihPixelFormat pixelFormat,
-        boolean premul) {
-        
-        return newBufferedImageWithIntArray(
-            color32Arr,
-            color32ArrScanlineStride,
-            width,
-            height,
-            //
-            premul,
-            pixelFormat.aIndex(),
-            //
-            pixelFormat.rIndex(),
-            pixelFormat.gIndex(),
-            pixelFormat.bIndex());
     }
     
     /*

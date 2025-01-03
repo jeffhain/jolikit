@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,10 +166,14 @@ public class AwtGraphicBuffer extends AbstractGraphicBuffer<BufferedImage> {
         if (this.mustUseIntArrayRaster) {
             final int pixelCapacity = NbrsUtils.timesExact(newStorageWidth, newStorageHeight);
             final int[] pixelArr = new int[pixelCapacity];
+            final int scanlineStride = newStorageWidth;
             image = BufferedImageHelper.newBufferedImageWithIntArray(
                     pixelArr,
+                    scanlineStride,
+                    //
                     newStorageWidth,
                     newStorageHeight,
+                    //
                     this.bufferedImageType);
         } else {
             image = new BufferedImage(

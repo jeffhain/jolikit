@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,16 @@ public class BufferedImageHelperTest extends TestCase {
     
     private static final boolean DEBUG = false;
     
+    //--------------------------------------------------------------------------
+    // PRIVATE CLASSES
+    //--------------------------------------------------------------------------
+    
+    private enum MyNewImageMethodType {
+        WITH_IMAGE_TYPE,
+        WITH_PIXEL_FORMAT,
+        WITH_CPT_INDEXES,
+    }
+
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
@@ -269,6 +279,7 @@ public class BufferedImageHelperTest extends TestCase {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
                         imageWidth,
+                        imageWidth,
                         imageHeight,
                         pixelFormat,
                         premul);
@@ -316,57 +327,9 @@ public class BufferedImageHelperTest extends TestCase {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         
-        /*
-         * Too small array.
-         */
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[imageWidth * imageHeight - 1],
-                imageWidth,
-                imageHeight,
-                BufferedImage.TYPE_INT_ARGB);
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertNotNull(e);
-        }
-        /*
-         * Bad width.
-         */
-        for (int badWidth : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    badWidth,
-                    imageHeight,
-                    BufferedImage.TYPE_INT_ARGB);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad height.
-         */
-        for (int badHeight : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    imageWidth,
-                    badHeight,
-                    BufferedImage.TYPE_INT_ARGB);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
+        test_newBufferedImageWithIntArray_exceptions_lengthsSpans_xxx(
+            MyNewImageMethodType.WITH_IMAGE_TYPE);
+        
         /*
          * Bad type.
          */
@@ -375,6 +338,7 @@ public class BufferedImageHelperTest extends TestCase {
                 try {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
+                        imageWidth,
                         imageWidth,
                         imageHeight,
                         imageType);
@@ -390,9 +354,11 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         for (int imageType : TYPE_INT_XXX_LIST) {
+            final int scanlineStride = imageWidth + 1;
             final BufferedImage image =
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
+                    scanlineStride,
                     imageWidth,
                     imageHeight,
                     imageType);
@@ -401,7 +367,9 @@ public class BufferedImageHelperTest extends TestCase {
             assertEquals(imageType, image.getType());
             final int[] pixelArr = BufferedImageHelper.getIntArray(image);
             assertNotNull(pixelArr);
-            assertEquals(imageWidth * imageHeight, pixelArr.length);
+            final int expectedLength =
+                (imageHeight - 1) * scanlineStride + imageWidth;
+            assertEquals(expectedLength, pixelArr.length);
         }
         
         /*
@@ -409,11 +377,15 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         {
-            final int[] pixelArr = new int[imageWidth * imageHeight];
+            final int scanlineStride = imageWidth + 1;
+            final int length =
+                (imageHeight - 1) * scanlineStride + imageWidth;
+            final int[] pixelArr = new int[length];
             for (int imageType : TYPE_INT_XXX_LIST) {
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
+                        scanlineStride,
                         imageWidth,
                         imageHeight,
                         imageType);
@@ -421,6 +393,7 @@ public class BufferedImageHelperTest extends TestCase {
                 assertEquals(imageHeight, image.getHeight());
                 assertEquals(imageType, image.getType());
                 assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+                assertEquals(scanlineStride, BufferedImageHelper.getScanlineStride(image));
             }
         }
     }
@@ -429,66 +402,16 @@ public class BufferedImageHelperTest extends TestCase {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         
-        /*
-         * Too small array.
-         */
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[imageWidth * imageHeight - 1],
-                imageWidth,
-                imageHeight,
-                BihPixelFormat.ARGB32,
-                false);
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertNotNull(e);
-        }
-        /*
-         * Bad width.
-         */
-        for (int badWidth : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    badWidth,
-                    imageHeight,
-                    BihPixelFormat.ARGB32,
-                    false);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad height.
-         */
-        for (int badHeight : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    imageWidth,
-                    badHeight,
-                    BihPixelFormat.ARGB32,
-                    false);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
+        test_newBufferedImageWithIntArray_exceptions_lengthsSpans_xxx(
+            MyNewImageMethodType.WITH_PIXEL_FORMAT);
+        
         /*
          * Null pixel format.
          */
         try {
             BufferedImageHelper.newBufferedImageWithIntArray(
                 null,
+                imageWidth,
                 imageWidth,
                 imageHeight,
                 null,
@@ -506,6 +429,7 @@ public class BufferedImageHelperTest extends TestCase {
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
                         imageWidth,
+                        imageWidth,
                         imageHeight,
                         pixelFormat,
                         true);
@@ -522,9 +446,11 @@ public class BufferedImageHelperTest extends TestCase {
         
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
             for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
+                final int scanlineStride = imageWidth + 1;
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
+                        scanlineStride,
                         imageWidth,
                         imageHeight,
                         pixelFormat,
@@ -536,7 +462,9 @@ public class BufferedImageHelperTest extends TestCase {
                 assertEquals(expectedImageType, image.getType());
                 final int[] pixelArr = BufferedImageHelper.getIntArray(image);
                 assertNotNull(pixelArr);
-                assertEquals(imageWidth * imageHeight, pixelArr.length);
+                final int expectedLength =
+                    (imageHeight - 1) * scanlineStride + imageWidth;
+                assertEquals(expectedLength, pixelArr.length);
             }
         }
         
@@ -545,12 +473,16 @@ public class BufferedImageHelperTest extends TestCase {
          */
         
         {
-            final int[] pixelArr = new int[imageWidth * imageHeight];
+            final int scanlineStride = imageWidth + 1;
+            final int length =
+                (imageHeight - 1) * scanlineStride + imageWidth;
+            final int[] pixelArr = new int[length];
             for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
                 for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
                     final BufferedImage image =
                         BufferedImageHelper.newBufferedImageWithIntArray(
                             pixelArr,
+                            scanlineStride,
                             imageWidth,
                             imageHeight,
                             pixelFormat,
@@ -561,6 +493,7 @@ public class BufferedImageHelperTest extends TestCase {
                         pixelFormat.toImageType(premul);
                     assertEquals(expectedImageType, image.getType());
                     assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+                    assertEquals(scanlineStride, BufferedImageHelper.getScanlineStride(image));
                 }
             }
         }
@@ -570,134 +503,9 @@ public class BufferedImageHelperTest extends TestCase {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         
-        /*
-         * Too small array.
-         */
-        try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                new int[imageWidth * imageHeight - 1],
-                imageWidth,
-                //
-                imageWidth,
-                imageHeight,
-                //
-                false,
-                -1,
-                //
-                1,
-                2,
-                3);
-            fail();
-        } catch (IllegalArgumentException e) {
-            assertNotNull(e);
-        }
-        /*
-         * Bad scanline stride.
-         */
-        for (int badScanlineStride : newBadScanlineStrideArr(imageWidth)) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    new int[imageWidth * imageHeight],
-                    badScanlineStride,
-                    //
-                    imageWidth,
-                    imageHeight,
-                    //
-                    false,
-                    -1,
-                    //
-                    1,
-                    2,
-                    3);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad array length.
-         */
-        {
-            final int scanlineStride = imageWidth + 1;
-            for (int badArrayLength : new int[] {
-                0,
-                1,
-                ((imageHeight - 1) * scanlineStride + imageWidth) - 1,
-            }) {
-                try {
-                    BufferedImageHelper.newBufferedImageWithIntArray(
-                        new int[badArrayLength],
-                        scanlineStride,
-                        //
-                        imageWidth,
-                        imageHeight,
-                        //
-                        false,
-                        -1,
-                        //
-                        1,
-                        2,
-                        3);
-                    fail();
-                } catch (IllegalArgumentException e) {
-                    assertNotNull(e);
-                }
-            }
-        }
-        /*
-         * Bad width.
-         */
-        for (int badWidth : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    imageWidth,
-                    //
-                    badWidth,
-                    imageHeight,
-                    //
-                    true,
-                    -1,
-                    //
-                    1,
-                    2,
-                    3);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
-        /*
-         * Bad height.
-         */
-        for (int badHeight : new int[] {
-            Integer.MIN_VALUE,
-            -1,
-            0,
-        }) {
-            try {
-                BufferedImageHelper.newBufferedImageWithIntArray(
-                    null,
-                    imageWidth,
-                    //
-                    imageWidth,
-                    badHeight,
-                    //
-                    true,
-                    -1,
-                    //
-                    1,
-                    2,
-                    3);
-                fail();
-            } catch (IllegalArgumentException e) {
-                assertNotNull(e);
-            }
-        }
+        test_newBufferedImageWithIntArray_exceptions_lengthsSpans_xxx(
+            MyNewImageMethodType.WITH_CPT_INDEXES);
+        
         /*
          * Bad premul.
          */
@@ -833,8 +641,9 @@ public class BufferedImageHelperTest extends TestCase {
         {
             for (boolean premul : new boolean[] {false, true}) {
                 final int scanlineStride = imageWidth + 1;
-                // Possibly larger than needed, doesnt hurt.
-                final int[] pixelArr = new int[scanlineStride * imageHeight];
+                final int length =
+                    (imageHeight - 1) * scanlineStride + imageWidth;
+                final int[] pixelArr = new int[length];
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
@@ -857,6 +666,118 @@ public class BufferedImageHelperTest extends TestCase {
                             : BufferedImage.TYPE_INT_ARGB);
                 assertEquals(expectedImageType, image.getType());
                 assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+                assertEquals(scanlineStride, BufferedImageHelper.getScanlineStride(image));
+            }
+        }
+    }
+    
+    public void test_newBufferedImageWithIntArray_exceptions_lengthsSpans_xxx(
+        MyNewImageMethodType methodType) {
+        
+        final int imageWidth = SMALL_WIDTH;
+        final int imageHeight = SMALL_HEIGHT;
+        
+        /*
+         * Too small array.
+         */
+        try {
+            callNewImageWithIntArray_lengthsSpans(
+                methodType,
+                //
+                new int[imageWidth * imageHeight - 1],
+                imageWidth,
+                //
+                imageWidth,
+                imageHeight);
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertNotNull(e);
+        }
+        /*
+         * Bad scanline stride.
+         */
+        for (int badScanlineStride : newBadScanlineStrideArr(imageWidth)) {
+            try {
+                callNewImageWithIntArray_lengthsSpans(
+                    methodType,
+                    //
+                    new int[imageWidth * imageHeight],
+                    badScanlineStride,
+                    //
+                    imageWidth,
+                    imageHeight);
+                fail();
+            } catch (IllegalArgumentException e) {
+                assertNotNull(e);
+            }
+        }
+        /*
+         * Bad array length.
+         */
+        {
+            final int scanlineStride = imageWidth + 1;
+            for (int badArrayLength : new int[] {
+                0,
+                1,
+                ((imageHeight - 1) * scanlineStride + imageWidth) - 1,
+            }) {
+                try {
+                    callNewImageWithIntArray_lengthsSpans(
+                        methodType,
+                        //
+                        new int[badArrayLength],
+                        scanlineStride,
+                        //
+                        imageWidth,
+                        imageHeight);
+                    fail();
+                } catch (IllegalArgumentException e) {
+                    assertNotNull(e);
+                }
+            }
+        }
+        /*
+         * Bad width.
+         */
+        for (int badWidth : new int[] {
+            Integer.MIN_VALUE,
+            -1,
+            0,
+        }) {
+            try {
+                callNewImageWithIntArray_lengthsSpans(
+                    methodType,
+                    //
+                    null,
+                    imageWidth,
+                    //
+                    badWidth,
+                    imageHeight);
+                fail();
+            } catch (IllegalArgumentException e) {
+                assertNotNull(e);
+            }
+        }
+        /*
+         * Bad height.
+         */
+        for (int badHeight : new int[] {
+            Integer.MIN_VALUE,
+            -1,
+            0,
+        }) {
+            try {
+                callNewImageWithIntArray_lengthsSpans(
+                    methodType,
+                    //
+                    null,
+                    imageWidth,
+                    //
+                    imageWidth,
+                    badHeight);
+                fail();
+            } catch (IllegalArgumentException e) {
+                assertNotNull(e);
             }
         }
     }
@@ -871,7 +792,9 @@ public class BufferedImageHelperTest extends TestCase {
     public void test_xxxIntArray_static() {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
-        final int[] pixelArr = new int[imageWidth * imageHeight];
+        final int scanlineStride = imageWidth + 1;
+        // Fine if larger than needed.
+        final int[] pixelArr = new int[scanlineStride * imageHeight];
         
         /*
          * Bad array type.
@@ -911,12 +834,17 @@ public class BufferedImageHelperTest extends TestCase {
             }
         }
         
+        /*
+         * 
+         */
+        
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
             for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
                 
                 final BufferedImage image =
                     BufferedImageHelper.newBufferedImageWithIntArray(
                         pixelArr,
+                        scanlineStride,
                         imageWidth,
                         imageHeight,
                         pixelFormat,
@@ -939,6 +867,8 @@ public class BufferedImageHelperTest extends TestCase {
                     premul);
                 
                 assertSame(pixelArr, BufferedImageHelper.getIntArray(image));
+                
+                assertEquals(scanlineStride, BufferedImageHelper.getScanlineStride(image));
                 
                 /*
                  * Bad pixel formats.
@@ -2878,6 +2808,64 @@ public class BufferedImageHelperTest extends TestCase {
         TestCase.assertEquals(ve2, va2, cptDeltaTol);
         TestCase.assertEquals(ve3, va3, cptDeltaTol);
         TestCase.assertEquals(ve4, va4, cptDeltaTol);
+    }
+    
+    /*
+     * 
+     */
+    
+    /**
+     * Useful for exceptions tests,
+     * since the checks on lengths/spans are the same
+     * for all image creation methods.
+     */
+    private static BufferedImage callNewImageWithIntArray_lengthsSpans(
+        MyNewImageMethodType methodType,
+        //
+        int[] pixelArr,
+        int scanlineStride,
+        //
+        int width,
+        int height) {
+        
+        final BufferedImage ret;
+        if (methodType == MyNewImageMethodType.WITH_IMAGE_TYPE) {
+            ret = BufferedImageHelper.newBufferedImageWithIntArray(
+                pixelArr,
+                scanlineStride,
+                //
+                width,
+                height,
+                //
+                BufferedImage.TYPE_INT_ARGB);
+        } else if (methodType == MyNewImageMethodType.WITH_PIXEL_FORMAT) {
+            ret = BufferedImageHelper.newBufferedImageWithIntArray(
+                pixelArr,
+                scanlineStride,
+                //
+                width,
+                height,
+                //
+                BihPixelFormat.ARGB32,
+                false);
+        } else if (methodType == MyNewImageMethodType.WITH_CPT_INDEXES) {
+            ret = BufferedImageHelper.newBufferedImageWithIntArray(
+                pixelArr,
+                scanlineStride,
+                //
+                width,
+                height,
+                //
+                false,
+                -1,
+                //
+                1,
+                2,
+                3);
+        } else {
+            throw new AssertionError();
+        }
+        return ret;
     }
     
     /*

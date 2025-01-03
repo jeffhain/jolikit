@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -100,7 +100,10 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
             BufferedImageHelper.newBufferedImageWithIntArray(
                 pixelArr,
                 pixelArrScanlineStride,
+                //
+                box.xSpan(),
                 box.ySpan(),
+                //
                 BufferedImageHelper.NATIVE_RGBA32_PIXEL_FORMAT,
                 BufferedImageHelper.PREMUL));
     }
@@ -369,7 +372,7 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
             //
             isImageGraphics,
             BufferedImageHelper.getIntArray(bufferedImage),
-            bufferedImage.getWidth());
+            BufferedImageHelper.getScanlineStride(bufferedImage));
         
         this.bufferedImage = bufferedImage;
     }

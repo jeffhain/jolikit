@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -371,8 +371,10 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         final int pixelCapacity = maxClippedTextRectInText.area();
         final int[] mcColor32Arr = new int[pixelCapacity];
 
+        final int scanlineStride = mcTextWidth;
         final BufferedImage image = BufferedImageHelper.newBufferedImageWithIntArray(
                 mcColor32Arr,
+                scanlineStride,
                 mcTextWidth,
                 mcTextHeight,
                 AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN);
@@ -482,7 +484,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 //
                 isImageGraphics,
                 BufferedImageHelper.getIntArray(backingImage),
-                backingImage.getWidth());
+                BufferedImageHelper.getScanlineStride(backingImage));
         this.backingImage = backingImage;
     }
     

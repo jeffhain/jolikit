@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -58,10 +58,15 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
         
         final int pixelCapacity = box.area();
         final int[] premulArgb32Arr = new int[pixelCapacity];
-        final BufferedImage backingImage = BufferedImageHelper.newBufferedImageWithIntArray(
+        final int scanlineStride = width;
+        final BufferedImage backingImage =
+            BufferedImageHelper.newBufferedImageWithIntArray(
                 premulArgb32Arr,
+                scanlineStride,
+                //
                 width,
                 height,
+                //
                 AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN);
         this.bufferedImageHelper = new BufferedImageHelper(backingImage);
 

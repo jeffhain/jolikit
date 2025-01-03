@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -155,11 +155,17 @@ public class BihTestUtils {
         
         final BufferedImage imageClone;
         if (pixelFormat != null) {
+            // Not trying to clone stride,
+            // just using smallest allowed value.
+            final int scanlineStride = image.getWidth();
             imageClone =
                 BufferedImageHelper.newBufferedImageWithIntArray(
                     null,
+                    scanlineStride,
+                    //
                     image.getWidth(),
                     image.getHeight(),
+                    //
                     pixelFormat,
                     image.isAlphaPremultiplied());
         } else {

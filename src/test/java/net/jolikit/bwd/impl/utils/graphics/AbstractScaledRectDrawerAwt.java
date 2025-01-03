@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,6 +176,7 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
 
         final int[] srcPixelArr;
         final int srcPixelArrScanlineStride;
+        final int srcImgWidth;
         final int srcImgHeight;
         final GRect srcRectInImg;
         if (srcColor32Arr != null) {
@@ -184,14 +185,16 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
             srcRectInImg = srcRect.withPosDeltas(
                 -srcPixelsRect.x(),
                 -srcPixelsRect.y());
-            // Might not need all this height depending on srcRect,
+            // Might not need all this area depending on srcRect,
             // but simplest to compute and doesn't hurt.
+            srcImgWidth = srcPixelsRect.xSpan();
             srcImgHeight = srcPixelsRect.ySpan();
         } else {
             srcPixelArr = tmpBigArrHolder1.getArr(sw * sh);
             srcPixelArrScanlineStride = sw;
             srcRectInImg = srcRect.withPos(0, 0);
-            srcImgHeight = srcRect.ySpan();
+            srcImgWidth = sw;
+            srcImgHeight = sh;
             for (int y = srcRect.y(); y <= srcRect.yMax(); y++) {
                 final int offset = (y - srcRect.y()) * srcPixelArrScanlineStride;
                 for (int x = srcRect.x(); x <= srcRect.xMax(); x++) {
@@ -212,18 +215,25 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
             BufferedImageHelper.newBufferedImageWithIntArray(
                 srcPixelArr,
                 srcPixelArrScanlineStride,
+                //
+                srcImgWidth,
                 srcImgHeight,
+                //
                 bufImgType);
         
         final int dstRectClippedArea = dstRectClipped.area();
         final int[] dstPixelArr = tmpBigArrHolder2.getArr(dstRectClippedArea);
+        final int dstPixelArrScanlineStride = dstRectClipped.xSpan();
         // Need to zeroize because AWT will blend into it.
         Arrays.fill(dstPixelArr, 0, dstRectClippedArea, 0);
         final BufferedImage dstImg =
             BufferedImageHelper.newBufferedImageWithIntArray(
                 dstPixelArr,
+                dstPixelArrScanlineStride,
+                //
                 dstRectClipped.xSpan(),
                 dstRectClipped.ySpan(),
+                //
                 bufImgType);
 
         /*
