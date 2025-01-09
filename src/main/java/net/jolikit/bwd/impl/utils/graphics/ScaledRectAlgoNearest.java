@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ public class ScaledRectAlgoNearest extends AbstractScaledRectAlgo {
         final PooledIntArrHolder tmpArrHolder2 = tl.borrowArrHolder();
 
         final int[] rowArr;
-        // Optimization, to avoid computing columns scaling for each row.
+        // Optimization, to avoid computing columns scaling for each column.
         final int[] siByDicArr;
         if (gotXScaling) {
             rowArr = tmpArrHolder1.getArr(drcw);

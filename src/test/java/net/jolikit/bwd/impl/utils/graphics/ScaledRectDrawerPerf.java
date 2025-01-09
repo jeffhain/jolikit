@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Jeff Hain
+ * Copyright 2021-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -398,8 +398,8 @@ public class ScaledRectDrawerPerf {
                                 final String pixChgProbaStr =
                                     (newColorProba < 1.0 ? "(reg)" : "(rnd)");
                                 System.out.println(nbrOfCalls + " calls"
-                                    + ", spans (" + srcSpans + " -> " + dstSpans + ")"
-                                    + ", prl = " + parallelizer.getParallelism()
+                                    + ", (" + srcSpans + "->" + dstSpans + ")"
+                                    + ", prl=" + parallelizer.getParallelism()
                                     + ", " + drawer
                                     + " " + premulStr + opaqueStr + pixChgProbaStr
                                     + ", took " + TestUtils.nsToSRounded(b-a) + " s");

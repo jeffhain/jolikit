@@ -390,7 +390,7 @@ public class BufferedImageHelper {
     private Object tmpDataLazy = null;
     
     //--------------------------------------------------------------------------
-    // PUBLIC METHODS
+    // CONSTRUCTORS
     //--------------------------------------------------------------------------
     
     /**
@@ -501,6 +501,40 @@ public class BufferedImageHelper {
         this.bytePixelArr = byteArr;
     }
     
+    /**
+     * Copy constructor.
+     * Can be called concurrently with toCopy usage.
+     * Shallow copy (the image is the same).
+     */
+    private BufferedImageHelper(
+        BufferedImageHelper toCopy) {
+        
+        /*
+         * Only copying non-mutated (and final) references.
+         */
+        
+        this.image = toCopy.image;
+        this.imageWidth = toCopy.imageWidth;
+        this.imageHeight = toCopy.imageHeight;
+        
+        this.scanlineStride = toCopy.scanlineStride;
+        
+        this.pixelFormat = toCopy.pixelFormat;
+        
+        this.isCmaAllowed = toCopy.isCmaAllowed;
+        this.isAduAllowed = toCopy.isAduAllowed;
+        
+        this.singlePixelCmaType = toCopy.singlePixelCmaType;
+        
+        this.intPixelArr = toCopy.intPixelArr;
+        this.shortPixelArr = toCopy.shortPixelArr;
+        this.bytePixelArr = toCopy.bytePixelArr;
+    }
+
+    //--------------------------------------------------------------------------
+    // PUBLIC METHODS
+    //--------------------------------------------------------------------------
+    
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -508,7 +542,7 @@ public class BufferedImageHelper {
         sb.append(this.imageWidth);
         sb.append("x");
         sb.append(this.imageHeight);
-        sb.append(",type=");
+        sb.append("),type=");
         if (this.pixelFormat != null) {
             sb.append(this.pixelFormat);
         } else {
@@ -531,6 +565,18 @@ public class BufferedImageHelper {
         }
         sb.append("]");
         return sb.toString();
+    }
+    
+    /**
+     * Useful for parallelization, to work on a same image
+     * with one helper per task.
+     * Can be called concurrently, as it only copies
+     * non-mutated references.
+     * 
+     * @return A new instance on the same image.
+     */
+    public BufferedImageHelper duplicate() {
+        return new BufferedImageHelper(this);
     }
     
     /**
@@ -2436,7 +2482,11 @@ public class BufferedImageHelper {
         int height) {
         
         if (this.intPixelArr != null) {
-            this.getPixelsInto_noCheck_intArr(
+            copyPixels_noCheck_2intArr(
+                this.intPixelArr,
+                this.scanlineStride,
+                this.pixelFormat,
+                this.image.isAlphaPremultiplied(),
                 srcX,
                 srcY,
                 //
@@ -2503,7 +2553,7 @@ public class BufferedImageHelper {
         int height) {
         
         if (this.intPixelArr != null) {
-            this.setPixelsFrom_noCheck_intArr(
+            copyPixels_noCheck_2intArr(
                 color32Arr,
                 color32ArrScanlineStride,
                 pixelFormatFrom,
@@ -2511,6 +2561,10 @@ public class BufferedImageHelper {
                 srcX,
                 srcY,
                 //
+                this.intPixelArr,
+                this.scanlineStride,
+                this.pixelFormat,
+                this.image.isAlphaPremultiplied(),
                 dstX,
                 dstY,
                 //
@@ -2570,20 +2624,8 @@ public class BufferedImageHelper {
         final BufferedImage imageFrom = helperFrom.getImage();
         final BufferedImage imageTo = helperTo.getImage();
         
-        if ((helperFrom.intPixelArr != null)
-            && (helperTo.intPixelArr != null)) {
-            copyImage_noCheck_2intArr(
-                helperFrom,
-                srcX,
-                srcY,
-                //
-                helperTo,
-                dstX,
-                dstY,
-                //
-                width,
-                height);
-        } else if (helperFrom.intPixelArr != null) {
+        if (helperFrom.intPixelArr != null) {
+            // Uses arraycopy() if possible.
             helperTo.setPixelsFrom_noCheck(
                 helperFrom.intPixelArr,
                 helperFrom.scanlineStride,
@@ -2598,6 +2640,8 @@ public class BufferedImageHelper {
                 width,
                 height);
         } else if (helperTo.intPixelArr != null) {
+            // Won't use arraycopy() because
+            // helperFrom has no int array.
             helperFrom.getPixelsInto_noCheck(
                 srcX,
                 srcY,
@@ -2606,6 +2650,41 @@ public class BufferedImageHelper {
                 helperTo.scanlineStride,
                 helperTo.pixelFormat,
                 helperTo.image.isAlphaPremultiplied(),
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if ((helperFrom.shortPixelArr != null)
+            && (helperTo.shortPixelArr != null)
+            // Short arrays not null, so types are TYPE_USHORT_XXX.
+            && (helperFrom.image.getType() == helperTo.image.getType())) {
+            copyPixels_noCheck_2arr_samePixelType(
+                helperFrom.shortPixelArr,
+                helperFrom.scanlineStride,
+                srcX,
+                srcY,
+                //
+                helperTo.shortPixelArr,
+                helperTo.scanlineStride,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
+        } else if ((helperFrom.bytePixelArr != null)
+            && (helperTo.bytePixelArr != null)
+            // Byte arrays not null, so type is TYPE_BYTE_GRAY.
+            // Still checking type, in case of evol.
+            && (helperFrom.image.getType() == helperTo.image.getType())) {
+            copyPixels_noCheck_2arr_samePixelType(
+                helperFrom.bytePixelArr,
+                helperFrom.scanlineStride,
+                srcX,
+                srcY,
+                //
+                helperTo.bytePixelArr,
+                helperTo.scanlineStride,
                 dstX,
                 dstY,
                 //
@@ -2651,12 +2730,16 @@ public class BufferedImageHelper {
      * 
      */
     
-    private void getPixelsInto_noCheck_intArr(
+    private static void copyPixels_noCheck_2intArr(
+        int[] arrFrom,
+        int scanlineStrideFrom,
+        BihPixelFormat pixelFormatFrom,
+        boolean premulFrom,
         int srcX,
         int srcY,
         //
-        int[] color32Arr,
-        int color32ArrScanlineStride,
+        int[] arrTo,
+        int scanlineStrideTo,
         BihPixelFormat pixelFormatTo,
         boolean premulTo,
         int dstX,
@@ -2670,208 +2753,30 @@ public class BufferedImageHelper {
          * to reduce cache misses.
          */
         final boolean needFormatRework =
-            (pixelFormatTo != this.pixelFormat);
-        final boolean needPremulRework =
-            (premulTo != this.image.isAlphaPremultiplied());
-        if ((!needFormatRework)
-            && (!needPremulRework)
-            && (width == this.scanlineStride)
-            && (width == color32ArrScanlineStride)) {
-            final int area = width * height;
-            System.arraycopy(
-                this.intPixelArr,
-                srcY * this.scanlineStride,
-                color32Arr,
-                dstY * color32ArrScanlineStride,
-                area);
-        } else {
-            final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
-            for (int j = 0; j < height; j++) {
-                final int srcLineOffset = (srcY + j) * this.scanlineStride + srcX;
-                final int dstLineOffset = (dstY + j) * color32ArrScanlineStride + dstX;
-                
-                System.arraycopy(
-                    this.intPixelArr,
-                    srcLineOffset,
-                    color32Arr,
-                    dstLineOffset,
-                    width);
-                
-                // Memory-friendly reverse-loop,
-                // assuming arraycopy() is forward-looping.
-                if (needFormatRework) {
-                    for (int i = width; --i >= 0;) {
-                        final int index = dstLineOffset + i;
-                        int pixel = color32Arr[index];
-                        int argb32 = this.pixelFormat.toArgb32FromPixel(pixel);
-                        if (needPremulRework) {
-                            if (premulTo) {
-                                argb32 = BindingColorUtils.toPremulAxyz32(argb32);
-                            } else {
-                                argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
-                            }
-                        }
-                        pixel = pixelFormatTo.toPixelFromArgb32(argb32);
-                        color32Arr[index] = pixel;
-                    }
-                } else if (needPremulRework) {
-                    for (int i = width; --i >= 0;) {
-                        final int index = dstLineOffset + i;
-                        int pixel = color32Arr[index];
-                        if (premulTo) {
-                            if (isAlphaInMSByte) {
-                                pixel = BindingColorUtils.toPremulAxyz32(pixel);
-                            } else {
-                                pixel = BindingColorUtils.toPremulXyza32(pixel);
-                            }
-                        } else {
-                            if (isAlphaInMSByte) {
-                                pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
-                            } else {
-                                pixel = BindingColorUtils.toNonPremulXyza32(pixel);
-                            }
-                        }
-                        color32Arr[index] = pixel;
-                    }
-                }
-            }
-        }
-    }
-    
-    private void setPixelsFrom_noCheck_intArr(
-        int[] color32Arr,
-        int color32ArrScanlineStride,
-        BihPixelFormat pixelFormatFrom,
-        boolean premulFrom,
-        int srcX,
-        int srcY,
-        //
-        int dstX,
-        int dstY,
-        //
-        int width,
-        int height) {
-        /*
-         * If need rework,
-         * doing it after each line copy,
-         * to reduce cache misses.
-         */
-        final boolean needFormatRework =
-            (pixelFormatFrom != this.pixelFormat);
-        final boolean needPremulRework =
-            (premulFrom != this.image.isAlphaPremultiplied());
-        if ((!needFormatRework)
-            && (!needPremulRework)
-            && (width == this.scanlineStride)
-            && (width == color32ArrScanlineStride)) {
-            final int area = width * height;
-            System.arraycopy(
-                color32Arr,
-                srcY * color32ArrScanlineStride,
-                this.intPixelArr,
-                dstY * this.scanlineStride,
-                area);
-        } else {
-            final boolean isAlphaInMSByte = this.pixelFormat.areColorsInLsbElseMsb();
-            for (int j = 0; j < height; j++) {
-                final int srcLineOffset = (srcY + j) * color32ArrScanlineStride + srcX;
-                final int dstLineOffset = (dstY + j) * this.scanlineStride + dstX;
-                
-                System.arraycopy(
-                    color32Arr,
-                    srcLineOffset,
-                    this.intPixelArr,
-                    dstLineOffset,
-                    width);
-                
-                // Memory-friendly reverse-loop,
-                // assuming arraycopy() is forward-looping.
-                if (needFormatRework) {
-                    for (int i = width; --i >= 0;) {
-                        final int index = dstLineOffset + i;
-                        int pixel = this.intPixelArr[index];
-                        int argb32 = pixelFormatFrom.toArgb32FromPixel(pixel);
-                        if (needPremulRework) {
-                            if (premulFrom) {
-                                argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
-                            } else {
-                                argb32 = BindingColorUtils.toPremulAxyz32(argb32);
-                            }
-                        }
-                        pixel = this.pixelFormat.toPixelFromArgb32(argb32);
-                        this.intPixelArr[index] = pixel;
-                    }
-                } else if (needPremulRework) {
-                    for (int i = width; --i >= 0;) {
-                        final int index = dstLineOffset + i;
-                        int pixel = this.intPixelArr[index];
-                        if (premulFrom) {
-                            if (isAlphaInMSByte) {
-                                pixel = BindingColorUtils.toNonPremulAxyz32(pixel);
-                            } else {
-                                pixel = BindingColorUtils.toNonPremulXyza32(pixel);
-                            }
-                        } else {
-                            if (isAlphaInMSByte) {
-                                pixel = BindingColorUtils.toPremulAxyz32(pixel);
-                            } else {
-                                pixel = BindingColorUtils.toPremulXyza32(pixel);
-                            }
-                        }
-                        this.intPixelArr[index] = pixel;
-                    }
-                }
-            }
-        }
-    }
-    
-    private static void copyImage_noCheck_2intArr(
-        BufferedImageHelper helperFrom,
-        int srcX,
-        int srcY,
-        //
-        BufferedImageHelper helperTo,
-        int dstX,
-        int dstY,
-        //
-        int width,
-        int height) {
-        
-        final int[] arrFrom = helperFrom.intPixelArr;
-        final int scanlineStrideFrom = helperFrom.scanlineStride;
-        final int[] arrTo = helperTo.intPixelArr;
-        final int scanlineStrideTo = helperTo.scanlineStride;
-        
-        final BihPixelFormat pixelFormatFrom = helperFrom.pixelFormat;
-        final boolean premulFrom = helperFrom.image.isAlphaPremultiplied();
-        final BihPixelFormat pixelFormatTo = helperTo.pixelFormat;
-        final boolean premulTo = helperTo.image.isAlphaPremultiplied();
-        
-        /*
-         * If need rework,
-         * doing it after each line copy,
-         * to reduce cache misses.
-         */
-        final boolean needFormatRework =
             (pixelFormatFrom != pixelFormatTo);
         final boolean needPremulRework =
             (premulFrom != premulTo);
-        if ((!needFormatRework)
-            && (!needPremulRework)
-            && (width == scanlineStrideFrom)
-            && (width == scanlineStrideTo)) {
-            final int areaTo = width * height;
-            System.arraycopy(
+        final boolean samePixelType =
+            (!needFormatRework)
+            && (!needPremulRework);
+        if (samePixelType) {
+            copyPixels_noCheck_2arr_samePixelType(
                 arrFrom,
-                srcY * scanlineStrideFrom,
+                scanlineStrideFrom,
+                srcX,
+                srcY,
+                //
                 arrTo,
-                dstY * scanlineStrideTo,
-                areaTo);
+                scanlineStrideTo,
+                dstX,
+                dstY,
+                //
+                width,
+                height);
         } else {
+            int srcLineOffset = srcY * scanlineStrideFrom + srcX;
+            int dstLineOffset = dstY * scanlineStrideTo + dstX;
             for (int j = 0; j < height; j++) {
-                final int srcLineOffset = (srcY + j) * scanlineStrideFrom + srcX;
-                final int dstLineOffset = (dstY + j) * scanlineStrideTo + dstX;
-                
                 System.arraycopy(
                     arrFrom,
                     srcLineOffset,
@@ -2918,6 +2823,56 @@ public class BufferedImageHelper {
                         arrTo[index] = pixel;
                     }
                 }
+                
+                srcLineOffset += scanlineStrideFrom;
+                dstLineOffset += scanlineStrideTo;
+            }
+        }
+    }
+    
+    /**
+     * When drawImage() is very fast
+     * (like same source and destination image types
+     * with TYPE_USHORT_XXX or TYPE_BYTE_GRAY),
+     * this method is always as fast or a bit faster,
+     * and like twice faster for tiny images
+     * (much less overhead: no graphics etc.).
+     */
+    private static void copyPixels_noCheck_2arr_samePixelType(
+        Object arrFrom,
+        int scanlineStrideFrom,
+        int srcX,
+        int srcY,
+        //
+        Object arrTo,
+        int scanlineStrideTo,
+        int dstX,
+        int dstY,
+        //
+        int width,
+        int height) {
+        
+        int srcLineOffset = srcY * scanlineStrideFrom + srcX;
+        int dstLineOffset = dstY * scanlineStrideTo + dstX;
+        if ((width == scanlineStrideFrom)
+            && (width == scanlineStrideTo)) {
+            final int areaTo = width * height;
+            System.arraycopy(
+                arrFrom,
+                srcLineOffset,
+                arrTo,
+                dstLineOffset,
+                areaTo);
+        } else {
+            for (int j = 0; j < height; j++) {
+                System.arraycopy(
+                    arrFrom,
+                    srcLineOffset,
+                    arrTo,
+                    dstLineOffset,
+                    width);
+                srcLineOffset += scanlineStrideFrom;
+                dstLineOffset += scanlineStrideTo;
             }
         }
     }

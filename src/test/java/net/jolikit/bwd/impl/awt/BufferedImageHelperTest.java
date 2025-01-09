@@ -197,6 +197,39 @@ public class BufferedImageHelperTest extends TestCase {
      * 
      */
     
+    public void test_duplicate() {
+        for (BufferedImage image : newImageList()) {
+            for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
+                final BufferedImageHelper dup = helper.duplicate();
+                test_duplicate_xxx(helper, dup);
+            }
+        }
+    }
+    
+    public void test_duplicate_xxx(
+        BufferedImageHelper helper,
+        BufferedImageHelper dup) {
+        
+        assertSame(helper.getImage(), dup.getImage());
+        assertSame(helper.getPixelFormat(), dup.getPixelFormat());
+        //
+        assertSame(helper.isColorModelAvoidingAllowed(), dup.isColorModelAvoidingAllowed());
+        assertSame(helper.isColorModelAvoidedForSinglePixelMethods(), dup.isColorModelAvoidedForSinglePixelMethods());
+        //
+        assertSame(helper.isArrayDirectUseAllowed(), dup.isArrayDirectUseAllowed());
+        assertSame(helper.isArrayDirectlyUsed(), dup.isArrayDirectlyUsed());
+        //
+        assertSame(helper.getIntArrayDirectlyUsed(), dup.getIntArrayDirectlyUsed());
+        assertSame(helper.getShortArrayDirectlyUsed(), dup.getShortArrayDirectlyUsed());
+        assertSame(helper.getByteArrayDirectlyUsed(), dup.getByteArrayDirectlyUsed());
+        //
+        assertSame(helper.getScanlineStride(), dup.getScanlineStride());
+    }
+    
+    /*
+     * 
+     */
+    
     public void test_getImage() {
         final BufferedImage image = newImage();
         final BufferedImageHelper helper = new BufferedImageHelper(image);
