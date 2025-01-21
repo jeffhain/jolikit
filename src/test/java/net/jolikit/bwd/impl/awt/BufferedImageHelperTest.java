@@ -2186,13 +2186,15 @@ public class BufferedImageHelperTest extends TestCase {
                                         /*
                                          * In this case, we use drawImage(),
                                          * but it can give a slightly different result,
-                                         * but only when color is not opaque.
+                                         * but only when color is not opaque or
+                                         * (destination) image is of gray type.
                                          */
                                         final int refAlpha8 =
                                             Argb32.getAlpha8(
                                                 expectedNonPremulArgb32);
                                         final int cptDeltaTol =
-                                            ((refAlpha8 <= 0xFE) ? 1 : 0);
+                                            ((refAlpha8 <= 0xFE)
+                                                || isGray(image.getType()) ? 1 : 0);
                                         checkCloseColor32(
                                             expectedNonPremulArgb32,
                                             actualNonPremulArgb32,
@@ -2570,7 +2572,8 @@ public class BufferedImageHelperTest extends TestCase {
                     /*
                      * In this case, we use drawImage(),
                      * but it can give a slightly different result,
-                     * but only when color is not opaque.
+                     * but only when color is not opaque or
+                     * destination image is of gray type.
                      */
                     final int dx = x + (srcX - dstX);
                     final int dy = y + (srcY - dstY);
@@ -2578,7 +2581,8 @@ public class BufferedImageHelperTest extends TestCase {
                         helperFrom.getNonPremulArgb32At(dx, dy);
                     final int refAlpha8 = Argb32.getAlpha8(refArgb32);
                     final int cptDeltaTol =
-                        ((refAlpha8 <= 0xFE) ? 1 : 0);
+                        ((refAlpha8 <= 0xFE)
+                            || isGray(imageTo.getType()) ? 1 : 0);
                     checkCloseColor32(
                         expectedArgb32,
                         actualArgb32,
@@ -2799,6 +2803,15 @@ public class BufferedImageHelperTest extends TestCase {
         return retList.toArray(new int[retList.size()][]);
     }
     
+    /*
+     * 
+     */
+    
+    private static boolean isGray(int imageType) {
+        return (imageType == BufferedImage.TYPE_USHORT_GRAY)
+            || (imageType == BufferedImage.TYPE_BYTE_GRAY);
+    }
+
     /*
      * 
      */

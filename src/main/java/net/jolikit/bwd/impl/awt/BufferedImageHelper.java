@@ -348,6 +348,10 @@ public class BufferedImageHelper {
     
     private static final Color COLOR_TRANSPARENT = new Color(0, 0, 0, 0); 
     
+    private static final double GRAY_R_WEIGHT = 0.299;
+    private static final double GRAY_G_WEIGHT = 0.587;
+    private static final double GRAY_B_WEIGHT = 0.114;
+    
     /*
      * 
      */
@@ -1732,8 +1736,9 @@ public class BufferedImageHelper {
         }
         
         if (isRgb24Permu(imageTypeFrom, pixelFormatFrom)) {
-            if (isGray(imageTypeTo)
-                || (imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
+            if (isGray(imageTypeTo)) {
+                return 1;
+            } else if ((imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
                 || (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED)) {
                 return max;
             } else {
@@ -1742,8 +1747,9 @@ public class BufferedImageHelper {
         }
         
         if (isUShortRgb(imageTypeFrom)) {
-            if (isGray(imageTypeTo)
-                || (imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
+            if (isGray(imageTypeTo)) {
+                return 1;
+            } else if ((imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
                 || (imageTypeTo == BufferedImage.TYPE_BYTE_INDEXED)) {
                 return max;
             } else {
@@ -1768,8 +1774,9 @@ public class BufferedImageHelper {
         }
         
         if (imageTypeFrom == BufferedImage.TYPE_BYTE_INDEXED) {
-            if ((imageTypeTo == BufferedImage.TYPE_BYTE_BINARY)
-                || isGray(imageTypeTo)) {
+            if (isGray(imageTypeTo)) {
+                return 1;
+            } else if (imageTypeTo == BufferedImage.TYPE_BYTE_BINARY) {
                 return max;
             } else {
                 return 0;
@@ -2439,13 +2446,8 @@ public class BufferedImageHelper {
     private short convertArgb32ToPixel_USHORT_GRAY(
         int argb32,
         boolean premul) {
-        if (premul) {
-            argb32 = BindingColorUtils.toNonPremulAxyz32(argb32);
-        }
-        final int r8 = Argb32.getRed8(argb32);
-        final int g8 = Argb32.getGreen8(argb32);
-        final int b8 = Argb32.getBlue8(argb32);
-        final int uVal = (int) ((r8 + g8 + b8) * (1.0 / 3) + 0.5);
+        final int uVal =
+            convertArgb32ToPixel_BYTE_GRAY(argb32, premul) & 0xFF;
         // Also using uVal for LSByte, for 0x00 to give 0x0000
         // and 0xFF to give 0xFFFF and have full range covered.
         return (short) ((uVal << 8) | uVal);
@@ -2460,7 +2462,10 @@ public class BufferedImageHelper {
         final int r8 = Argb32.getRed8(argb32);
         final int g8 = Argb32.getGreen8(argb32);
         final int b8 = Argb32.getBlue8(argb32);
-        return (byte) ((r8 + g8 + b8) * (1.0 / 3) + 0.5);
+        return (byte) (GRAY_R_WEIGHT * r8
+            + GRAY_G_WEIGHT * g8
+            + GRAY_B_WEIGHT * b8
+            + 0.5);
     }
     
     /*
