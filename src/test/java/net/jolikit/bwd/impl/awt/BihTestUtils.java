@@ -391,14 +391,14 @@ public class BihTestUtils {
         final ImageTypeEnum imageTypeEnum =
             ImageTypeEnum.enumByType().get(imageType);
         if (imageTypeEnum != null) {
-            sb.append(imageTypeEnum);
+            sb.append(imageTypeEnum.toStringShort());
         } else {
             final BihPixelFormat pixelFormat =
                 BufferedImageHelper.computePixelFormat(image);
             if (pixelFormat != null) {
                 sb.append(pixelFormat);
             } else {
-                sb.append("TYPE_CUSTOM");
+                sb.append("CUSTOM");
             }
         }
         

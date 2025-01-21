@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -240,10 +240,10 @@ public class BihDrawImageTestMain {
                 final String resStr;
                 if (dtSDrawImage < dtSPixelLoop / equivFactor) {
                     resStr = srcDstStr + " : drawImage speedUp = " + speedUp;
-                } else if (dtSDrawImage > dtSPixelLoop * equivFactor) {
-                    resStr = srcDstStr + " : drawImage speedUp (slowwwwwwwwwwwwwwwwwwwwwer) = " + speedUp;
-                } else {
+                } else if (dtSDrawImage < dtSPixelLoop * equivFactor) {
                     resStr = srcDstStr + " : drawImage speedUp (equivvvvvvvalent) = " + speedUp;
+                } else {
+                    resStr = srcDstStr + " : drawImage speedUp (slowwwwwwwwwwwwwwwwwwwwwer) = " + speedUp;
                 }
                 System.out.println(resStr);
                 final boolean didAdd = resStrSet.add(resStr);

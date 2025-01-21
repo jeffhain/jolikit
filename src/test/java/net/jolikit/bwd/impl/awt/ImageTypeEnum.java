@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,6 +56,9 @@ public enum ImageTypeEnum {
         this.imageType = imageType;
         this.hasAlpha = hasAlpha;
         this.isPremul = isPremul;
+    }
+    public String toStringShort() {
+        return super.toString().substring("TYPE_".length());
     }
     public int imageType() {
         return this.imageType;
