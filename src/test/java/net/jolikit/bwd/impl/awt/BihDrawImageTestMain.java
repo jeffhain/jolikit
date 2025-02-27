@@ -72,11 +72,11 @@ public class BihDrawImageTestMain {
         
         final Set<String> resStrSet = new TreeSet<>();
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList_allImageType(width, height)) {
-            if (ignoredImageTypeSet.contains(imageFrom.getType())) {
+        for (BufferedImage srcImage : BihTestUtils.newImageList_allImageType(width, height)) {
+            if (ignoredImageTypeSet.contains(srcImage.getType())) {
                 continue;
             }
-            final BufferedImageHelper helperFrom = new BufferedImageHelper(imageFrom);
+            final BufferedImageHelper srcHelper = new BufferedImageHelper(srcImage);
             
             // Randomizing input image
             // (always the same, to have same deltas
@@ -86,43 +86,43 @@ public class BihDrawImageTestMain {
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         final int argb32 = random.nextInt();
-                        helperFrom.setNonPremulArgb32At(x, y, argb32);
+                        srcHelper.setNonPremulArgb32At(x, y, argb32);
                     }
                 }
             }
             
-            for (BufferedImage imageTo : BihTestUtils.newImageList_allImageType(width, height)) {
-                if (ignoredImageTypeSet.contains(imageTo.getType())) {
+            for (BufferedImage dstImage : BihTestUtils.newImageList_allImageType(width, height)) {
+                if (ignoredImageTypeSet.contains(dstImage.getType())) {
                     continue;
                 }
-                final BufferedImageHelper helperTo = new BufferedImageHelper(imageTo);
+                final BufferedImageHelper dstHelper = new BufferedImageHelper(dstImage);
                 
-                final BufferedImageHelper expectedHelperTo =
-                    BihTestUtils.newIdenticalImageAndHelper(helperTo);
+                final BufferedImageHelper expectedDstHelper =
+                    BihTestUtils.newIdenticalImageAndHelper(dstHelper);
                 
                 BihTestUtils.copyImage_reference(
-                    helperFrom,
+                    srcHelper,
                     0,
                     0,
-                    expectedHelperTo,
+                    expectedDstHelper,
                     0,
                     0,
                     width,
                     height);
                 
-                final Graphics g = imageTo.getGraphics();
+                final Graphics g = dstImage.getGraphics();
                 try {
-                    g.drawImage(imageFrom, 0, 0, null);
+                    g.drawImage(srcImage, 0, 0, null);
                 } finally {
                     g.dispose();
                 }
                 
                 final int maxCptDelta =
                     BihTestUtils.computeMaxCptDelta(
-                        expectedHelperTo,
-                        helperTo);
-                final String srcStr = BihTestUtils.toStringImageKind(imageFrom);
-                final String dstStr = BihTestUtils.toStringImageKind(imageTo);
+                        expectedDstHelper,
+                        dstHelper);
+                final String srcStr = BihTestUtils.toStringImageKind(srcImage);
+                final String dstStr = BihTestUtils.toStringImageKind(dstImage);
                 final String srcDstStr = srcStr + "->" + dstStr;
                 final String resStr;
                 if (maxCptDelta <= cptDeltaTol) {
@@ -165,9 +165,9 @@ public class BihDrawImageTestMain {
         final Set<String> resStrSet = new TreeSet<>();
         
         // All images types and pixel formats.
-        for (BufferedImage imageFrom : BihTestUtils.newImageList_forBench(width, height)) {
-            final BufferedImageHelper helperFrom = new BufferedImageHelper(
-                imageFrom,
+        for (BufferedImage srcImage : BihTestUtils.newImageList_forBench(width, height)) {
+            final BufferedImageHelper srcHelper = new BufferedImageHelper(
+                srcImage,
                 optimGetSet,
                 optimGetSet);
             
@@ -177,26 +177,26 @@ public class BihDrawImageTestMain {
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         final int argb32 = random.nextInt();
-                        helperFrom.setNonPremulArgb32At(x, y, argb32);
+                        srcHelper.setNonPremulArgb32At(x, y, argb32);
                     }
                 }
             }
             
-            for (BufferedImage imageTo : BihTestUtils.newImageList_forBench(width, height)) {
-                final BufferedImageHelper helperTo = new BufferedImageHelper(
-                    imageTo,
+            for (BufferedImage dstImage : BihTestUtils.newImageList_forBench(width, height)) {
+                final BufferedImageHelper dstHelper = new BufferedImageHelper(
+                    dstImage,
                     optimGetSet,
                     optimGetSet);
                 
                 if (!BufferedImageHelper.isDrawImageMaxCptDeltaSmallEnough(
                     BufferedImageHelper.getDrawImageMaxCptDelta(
-                        imageFrom.getType(),
-                        helperFrom.getPixelFormat(),
-                        imageFrom.isAlphaPremultiplied(),
+                        srcImage.getType(),
+                        srcHelper.getPixelFormat(),
+                        srcImage.isAlphaPremultiplied(),
                         //
-                        imageTo.getType(),
-                        helperTo.getPixelFormat(),
-                        imageTo.isAlphaPremultiplied()))) {
+                        dstImage.getType(),
+                        dstHelper.getPixelFormat(),
+                        dstImage.isAlphaPremultiplied()))) {
                     // No need to bench.
                     continue;
                 }
@@ -205,10 +205,10 @@ public class BihDrawImageTestMain {
                 for (int k = 0; k < nbrOfRuns; k++) {
                     long a = System.nanoTime();
                     BihTestUtils.copyImage_reference(
-                        helperFrom,
+                        srcHelper,
                         0,
                         0,
-                        helperTo,
+                        dstHelper,
                         0,
                         0,
                         width,
@@ -220,9 +220,9 @@ public class BihDrawImageTestMain {
                 long minDtNsDrawImage = Long.MAX_VALUE;
                 for (int k = 0; k < nbrOfRuns; k++) {
                     long a = System.nanoTime();
-                    final Graphics g = imageTo.getGraphics();
+                    final Graphics g = dstImage.getGraphics();
                     try {
-                        g.drawImage(imageFrom, 0, 0, null);
+                        g.drawImage(srcImage, 0, 0, null);
                     } finally {
                         g.dispose();
                     }
@@ -234,8 +234,8 @@ public class BihDrawImageTestMain {
                 final float dtSDrawImage = (float) (minDtNsDrawImage / (1000 * 1000) / 1e3);
                 final float speedUp = (dtSPixelLoop / dtSDrawImage);
 
-                final String srcStr = BihTestUtils.toStringImageKind(imageFrom);
-                final String dstStr = BihTestUtils.toStringImageKind(imageTo);
+                final String srcStr = BihTestUtils.toStringImageKind(srcImage);
+                final String dstStr = BihTestUtils.toStringImageKind(dstImage);
                 final String srcDstStr = srcStr + "->" + dstStr;
                 final String resStr;
                 if (dtSDrawImage < dtSPixelLoop / equivFactor) {

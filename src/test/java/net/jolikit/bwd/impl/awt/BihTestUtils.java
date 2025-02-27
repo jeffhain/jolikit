@@ -258,8 +258,8 @@ public class BihTestUtils {
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        BihPixelFormat pixelFormatTo,
-        boolean premulTo,
+        BihPixelFormat dstPixelFormat,
+        boolean dstPremul,
         int dstX,
         int dstY,
         //
@@ -274,9 +274,9 @@ public class BihTestUtils {
                 final int argb32 = helper.getArgb32At(
                     srcX + i,
                     srcY + j,
-                    premulTo);
+                    dstPremul);
                 final int color32 =
-                    pixelFormatTo.toPixelFromArgb32(
+                    dstPixelFormat.toPixelFromArgb32(
                         argb32);
                 color32Arr[dstIndex] = color32;
             }
@@ -293,8 +293,8 @@ public class BihTestUtils {
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        BihPixelFormat pixelFormatFrom,
-        boolean premulFrom,
+        BihPixelFormat srcPixelFormat,
+        boolean srcPremul,
         int srcX,
         int srcY,
         //
@@ -311,13 +311,13 @@ public class BihTestUtils {
                 final int srcIndex = lineOffset + i;
                 final int color32 = color32Arr[srcIndex];
                 final int argb32 =
-                    pixelFormatFrom.toArgb32FromPixel(
+                    srcPixelFormat.toArgb32FromPixel(
                         color32);
                 helper.setArgb32At(
                     dstX + i,
                     dstY + j,
                     argb32,
-                    premulFrom);
+                    srcPremul);
             }
         }
     }
@@ -328,29 +328,29 @@ public class BihTestUtils {
      * other than for exception checks.
      */
     public static void copyImage_reference(
-        BufferedImageHelper helperFrom,
+        BufferedImageHelper srcHelper,
         int srcX,
         int srcY,
         //
-        BufferedImageHelper helperTo,
+        BufferedImageHelper dstHelper,
         int dstX,
         int dstY,
         //
         int width,
         int height) {
         
-        final boolean premulTo = helperTo.getImage().isAlphaPremultiplied();
+        final boolean dstPremul = dstHelper.getImage().isAlphaPremultiplied();
         for (int j = 0; j < height; j++) {
             for (int i = 0; i < width; i++) {
-                final int argb32 = helperFrom.getArgb32At(
+                final int argb32 = srcHelper.getArgb32At(
                     srcX + i,
                     srcY + j,
-                    premulTo);
-                helperTo.setArgb32At(
+                    dstPremul);
+                dstHelper.setArgb32At(
                     dstX + i,
                     dstY + j,
                     argb32,
-                    premulTo);
+                    dstPremul);
             }
         }
     }

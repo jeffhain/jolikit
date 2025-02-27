@@ -1864,8 +1864,8 @@ public class BufferedImageHelperTest extends TestCase {
                         }
                     }
                     
-                    for (BihPixelFormat pixelFormatTo : BihPixelFormat.values()) {
-                        for (boolean premulTo : BihTestUtils.newPremulArr(pixelFormatTo)) {
+                    for (BihPixelFormat dstPixelFormat : BihPixelFormat.values()) {
+                        for (boolean dstPremul : BihTestUtils.newPremulArr(dstPixelFormat)) {
                             if (DEBUG) {
                                 System.out.println();
                                 System.out.println("imageWidth = " + imageWidth);
@@ -1874,9 +1874,9 @@ public class BufferedImageHelperTest extends TestCase {
                                 System.out.println("imagePremul = " + imagePremul);
                                 System.out.println("imageTypeEnum = " + imageTypeEnum);
                                 System.out.println("colorModelAvoidingAllowed = " + cmaAllowed);
-                                System.out.println("scanlineStrideTo = " + color32ArrScanlineStride);
-                                System.out.println("pixelFormatTo = " + pixelFormatTo);
-                                System.out.println("premulTo = " + premulTo);
+                                System.out.println("dstScanlineStride = " + color32ArrScanlineStride);
+                                System.out.println("dstPixelFormat = " + dstPixelFormat);
+                                System.out.println("dstPremul = " + dstPremul);
                             }
                             
                             final int srcX;
@@ -1902,13 +1902,13 @@ public class BufferedImageHelperTest extends TestCase {
                             final int initialPixel;
                             {
                                 int initialArgb32 = 0x80FFFFFF;
-                                if (premulTo) {
+                                if (dstPremul) {
                                     initialArgb32 =
                                         BindingColorUtils.toPremulAxyz32(
                                             initialArgb32);
                                 }
                                 initialPixel =
-                                    pixelFormatTo.toPixelFromArgb32(
+                                    dstPixelFormat.toPixelFromArgb32(
                                         initialArgb32);
                                 Arrays.fill(actualColor32Arr, initialPixel);
                             }
@@ -1921,8 +1921,8 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 expectedColor32Arr,
                                 color32ArrScanlineStride,
-                                pixelFormatTo,
-                                premulTo,
+                                dstPixelFormat,
+                                dstPremul,
                                 0,
                                 0,
                                 //
@@ -1937,8 +1937,8 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 actualColor32Arr,
                                 color32ArrScanlineStride,
-                                pixelFormatTo,
-                                premulTo,
+                                dstPixelFormat,
+                                dstPremul,
                                 0,
                                 0,
                                 //
@@ -1965,7 +1965,7 @@ public class BufferedImageHelperTest extends TestCase {
                                     final int expectedColor32 = expectedColor32Arr[index];
                                     final int actualColor32 = actualColor32Arr[index];
                                     
-                                    final BihPixelFormat drawPixelFormatTo =
+                                    final BihPixelFormat dstDrawPixelFormat =
                                         BufferedImageHelper.DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
                                     
                                     final int drawImageTol =
@@ -1974,9 +1974,9 @@ public class BufferedImageHelperTest extends TestCase {
                                             helper.getPixelFormat(),
                                             image.isAlphaPremultiplied(),
                                             //
-                                            drawPixelFormatTo.toImageType(premulTo),
-                                            drawPixelFormatTo,
-                                            premulTo);
+                                            dstDrawPixelFormat.toImageType(dstPremul),
+                                            dstDrawPixelFormat,
+                                            dstPremul);
                                     
                                     if (cmaAllowed
                                         && (drawImageTol == 1)) {
@@ -2056,13 +2056,13 @@ public class BufferedImageHelperTest extends TestCase {
                     final BufferedImageHelper expectedImageHelper =
                         BihTestUtils.newIdenticalImageAndHelper(helper);
                     
-                    for (BihPixelFormat pixelFormatFrom : BihPixelFormat.values()) {
-                        for (boolean premulFrom : BihTestUtils.newPremulArr(pixelFormatFrom)) {
+                    for (BihPixelFormat srcPixelFormat : BihPixelFormat.values()) {
+                        for (boolean srcPremul : BihTestUtils.newPremulArr(srcPixelFormat)) {
                             if (DEBUG) {
                                 System.out.println();
                                 System.out.println("scanlineStrideFrom = " + color32ArrScanlineStride);
-                                System.out.println("pixelFormatFrom = " + pixelFormatFrom);
-                                System.out.println("premulFrom = " + premulFrom);
+                                System.out.println("srcPixelFormat = " + srcPixelFormat);
+                                System.out.println("srcPremul = " + srcPremul);
                                 System.out.println("imageWidth = " + imageWidth);
                                 System.out.println("imageHeight = " + imageHeight);
                                 System.out.println("imagePixelFormat = " + imagePixelFormat);
@@ -2091,14 +2091,14 @@ public class BufferedImageHelperTest extends TestCase {
                             // Randomizing input array.
                             for (int i = 0; i < color32Arr.length; i++) {
                                 int argb32 = random.nextInt();
-                                if (pixelFormatFrom.hasAlpha()) {
-                                    if (premulFrom) {
+                                if (srcPixelFormat.hasAlpha()) {
+                                    if (srcPremul) {
                                         argb32 = BindingColorUtils.toPremulAxyz32(argb32);
                                     }
                                 } else {
                                     argb32 = Argb32.toOpaque(argb32);
                                 }
-                                final int pixel = pixelFormatFrom.toPixelFromArgb32(argb32);
+                                final int pixel = srcPixelFormat.toPixelFromArgb32(argb32);
                                 color32Arr[i] = pixel;
                             }
                             
@@ -2120,8 +2120,8 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 color32Arr,
                                 color32ArrScanlineStride,
-                                pixelFormatFrom,
-                                premulFrom,
+                                srcPixelFormat,
+                                srcPremul,
                                 0,
                                 0,
                                 //
@@ -2136,8 +2136,8 @@ public class BufferedImageHelperTest extends TestCase {
                                 //
                                 color32Arr,
                                 color32ArrScanlineStride,
-                                pixelFormatFrom,
-                                premulFrom,
+                                srcPixelFormat,
+                                srcPremul,
                                 0,
                                 0,
                                 //
@@ -2173,9 +2173,9 @@ public class BufferedImageHelperTest extends TestCase {
                                     
                                     final int drawImageTol =
                                         BufferedImageHelper.getDrawImageMaxCptDelta(
-                                            pixelFormatFrom.toImageType(premulFrom),
-                                            pixelFormatFrom,
-                                            premulFrom,
+                                            srcPixelFormat.toImageType(srcPremul),
+                                            srcPixelFormat,
+                                            srcPremul,
                                             //
                                             image.getType(),
                                             helper.getPixelFormat(),
@@ -2219,19 +2219,19 @@ public class BufferedImageHelperTest extends TestCase {
         // Large enough for some coordinates leeway.
         for (int srcWidth : new int[] {30,31}) {
             for (int srcHeight : new int[] {20,21}) {
-                final BufferedImage imageFrom =
+                final BufferedImage srcImage =
                     newImage(srcWidth, srcHeight);
-                final BufferedImageHelper helperFrom =
-                    new BufferedImageHelper(imageFrom);
+                final BufferedImageHelper srcHelper =
+                    new BufferedImageHelper(srcImage);
                 for (int dstWidth : new int[] {30,31}) {
                     for (int dstHeight : new int[] {20,21}) {
-                        final BufferedImage imageTo =
+                        final BufferedImage dstImage =
                             newImage(dstWidth, dstHeight);
-                        final BufferedImageHelper helperTo =
-                            new BufferedImageHelper(imageTo);
+                        final BufferedImageHelper dstHelper =
+                            new BufferedImageHelper(dstImage);
                         test_copyImage_exceptions_xxx(
-                            helperFrom,
-                            helperTo);
+                            srcHelper,
+                            dstHelper);
                     }
                 }
             }
@@ -2239,17 +2239,17 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_copyImage_exceptions_xxx(
-        BufferedImageHelper helperFrom,
-        BufferedImageHelper helperTo) {
+        BufferedImageHelper srcHelper,
+        BufferedImageHelper dstHelper) {
         
-        final BufferedImage imageFrom = helperFrom.getImage();
-        final BufferedImage imageTo = helperTo.getImage();
+        final BufferedImage srcImage = srcHelper.getImage();
+        final BufferedImage dstImage = dstHelper.getImage();
         
-        final int srcWidth = imageFrom.getWidth();
-        final int srcHeight = imageFrom.getHeight();
+        final int srcWidth = srcImage.getWidth();
+        final int srcHeight = srcImage.getHeight();
         
-        final int dstWidth = imageTo.getWidth();
-        final int dstHeight = imageTo.getHeight();
+        final int dstWidth = dstImage.getWidth();
+        final int dstHeight = dstImage.getHeight();
         
         final int minWidth = Math.min(srcWidth, dstWidth);
         final int minHeight = Math.min(srcHeight, dstHeight);
@@ -2259,7 +2259,7 @@ public class BufferedImageHelperTest extends TestCase {
          */
         try {
             callCopyImage(
-                helperFrom,
+                srcHelper,
                 0,
                 0,
                 null,
@@ -2276,7 +2276,7 @@ public class BufferedImageHelperTest extends TestCase {
                 null,
                 0,
                 0,
-                helperTo,
+                dstHelper,
                 0,
                 0,
                 minWidth,
@@ -2294,10 +2294,10 @@ public class BufferedImageHelperTest extends TestCase {
             final int width = srcDstSpan[2];
             try {
                 callCopyImage(
-                    helperFrom,
+                    srcHelper,
                     srcX,
                     0,
-                    helperTo,
+                    dstHelper,
                     dstX,
                     0,
                     width,
@@ -2316,10 +2316,10 @@ public class BufferedImageHelperTest extends TestCase {
             final int height = srcDstSpan[2];
             try {
                 callCopyImage(
-                    helperFrom,
+                    srcHelper,
                     0,
                     srcY,
-                    helperTo,
+                    dstHelper,
                     0,
                     dstY,
                     0,
@@ -2355,23 +2355,23 @@ public class BufferedImageHelperTest extends TestCase {
         
         final Random random = TestUtils.newRandom123456789L();
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList(imageWidth, imageHeight)) {
-            for (BufferedImageHelper helperFrom : BihTestUtils.newHelperList(imageFrom)) {
+        for (BufferedImage srcImage : BihTestUtils.newImageList(imageWidth, imageHeight)) {
+            for (BufferedImageHelper srcHelper : BihTestUtils.newHelperList(srcImage)) {
                 
                 // When not doing full copies,
                 // using different image width and height.
                 final int spanDelta = (srcDstRectElseFullRect ? 1 : 0);
                 
-                for (BufferedImage imageTo : BihTestUtils.newImageList(
+                for (BufferedImage dstImage : BihTestUtils.newImageList(
                     imageWidth + spanDelta,
                     imageHeight - spanDelta)) {
-                    for (BufferedImageHelper helperTo : BihTestUtils.newHelperList(imageTo)) {
+                    for (BufferedImageHelper dstHelper : BihTestUtils.newHelperList(dstImage)) {
                         
                         test_copyImage_xxx_withHelpers(
                             random,
                             srcDstRectElseFullRect,
-                            helperFrom,
-                            helperTo);
+                            srcHelper,
+                            dstHelper);
                     }
                 }
             }
@@ -2381,17 +2381,17 @@ public class BufferedImageHelperTest extends TestCase {
     public void test_copyImage_xxx_withHelpers(
         Random random,
         boolean srcDstRectElseFullRect,
-        BufferedImageHelper helperFrom,
-        BufferedImageHelper helperTo) {
+        BufferedImageHelper srcHelper,
+        BufferedImageHelper dstHelper) {
         
-        final BufferedImage imageFrom = helperFrom.getImage();
-        final BufferedImage imageTo = helperTo.getImage();
+        final BufferedImage srcImage = srcHelper.getImage();
+        final BufferedImage dstImage = dstHelper.getImage();
         
-        final int srcImageWidth = imageFrom.getWidth();
-        final int srcImageHeight = imageFrom.getHeight();
+        final int srcImageWidth = srcImage.getWidth();
+        final int srcImageHeight = srcImage.getHeight();
         
-        final int dstImageWidth = imageTo.getWidth();
-        final int dstImageHeight = imageTo.getHeight();
+        final int dstImageWidth = dstImage.getWidth();
+        final int dstImageHeight = dstImage.getHeight();
         
         final int minImageWidth = Math.min(srcImageWidth, dstImageWidth);
         final int minImageHeight = Math.min(srcImageHeight, dstImageHeight);
@@ -2400,35 +2400,35 @@ public class BufferedImageHelperTest extends TestCase {
         for (int y = 0; y < srcImageHeight; y++) {
             for (int x = 0; x < srcImageWidth; x++) {
                 final int argb32 = random.nextInt();
-                helperFrom.setNonPremulArgb32At(x, y, argb32);
+                srcHelper.setNonPremulArgb32At(x, y, argb32);
             }
         }
         
         // Can be null.
-        final ImageTypeEnum imageTypeEnumFrom =
-            ImageTypeEnum.enumByType().get(imageFrom.getType());
+        final ImageTypeEnum srcImageTypeEnum =
+            ImageTypeEnum.enumByType().get(srcImage.getType());
         // Can be null.
-        final BihPixelFormat pixelFormatFrom =
-            helperFrom.getPixelFormat();
-        final boolean premulFrom = imageFrom.isAlphaPremultiplied();
+        final BihPixelFormat srcPixelFormat =
+            srcHelper.getPixelFormat();
+        final boolean srcPremul = srcImage.isAlphaPremultiplied();
         
         // Can be null.
-        final ImageTypeEnum imageTypeEnumTo =
-            ImageTypeEnum.enumByType().get(imageTo.getType());
+        final ImageTypeEnum dstImageTypeEnum =
+            ImageTypeEnum.enumByType().get(dstImage.getType());
         // Can be null.
-        final BihPixelFormat pixelFormatTo =
-            helperTo.getPixelFormat();
-        final boolean premulTo = imageTo.isAlphaPremultiplied();
+        final BihPixelFormat dstPixelFormat =
+            dstHelper.getPixelFormat();
+        final boolean dstPremul = dstImage.isAlphaPremultiplied();
         
-        final boolean cmaAllowedFrom =
-            helperFrom.isColorModelAvoidingAllowed();
-        final boolean aduAllowedFrom =
-            helperFrom.isArrayDirectUseAllowed();
+        final boolean srcCmaAllowed =
+            srcHelper.isColorModelAvoidingAllowed();
+        final boolean srcAduAllowed =
+            srcHelper.isArrayDirectUseAllowed();
         
-        final boolean cmaAllowedTo =
-            helperTo.isColorModelAvoidingAllowed();
-        final boolean aduAllowedTo =
-            helperTo.isArrayDirectUseAllowed();
+        final boolean dstCmaAllowed =
+            dstHelper.isColorModelAvoidingAllowed();
+        final boolean dstAduAllowed =
+            dstHelper.isArrayDirectUseAllowed();
         
         if (DEBUG) {
             System.out.println();
@@ -2437,17 +2437,17 @@ public class BufferedImageHelperTest extends TestCase {
             System.out.println("dstImageWidth = " + dstImageWidth);
             System.out.println("dstImageHeight = " + dstImageHeight);
             //
-            System.out.println("imageTypeEnumFrom = " + imageTypeEnumFrom);
-            System.out.println("pixelFormatFrom = " + pixelFormatFrom);
-            System.out.println("premulFrom = " + premulFrom);
-            System.out.println("imageTypeEnumTo = " + imageTypeEnumTo);
-            System.out.println("pixelFormatTo = " + pixelFormatTo);
-            System.out.println("premulTo = " + premulTo);
+            System.out.println("srcImageTypeEnum = " + srcImageTypeEnum);
+            System.out.println("srcPixelFormat = " + srcPixelFormat);
+            System.out.println("srcPremul = " + srcPremul);
+            System.out.println("dstImageTypeEnum = " + dstImageTypeEnum);
+            System.out.println("dstPixelFormat = " + dstPixelFormat);
+            System.out.println("dstPremul = " + dstPremul);
             //
-            System.out.println("cmaAllowedFrom = " + cmaAllowedFrom);
-            System.out.println("aduAllowedFrom = " + aduAllowedFrom);
-            System.out.println("cmaAllowedTo = " + cmaAllowedTo);
-            System.out.println("aduAllowedTo = " + aduAllowedTo);
+            System.out.println("srcCmaAllowed = " + srcCmaAllowed);
+            System.out.println("srcAduAllowed = " + srcAduAllowed);
+            System.out.println("dstCmaAllowed = " + dstCmaAllowed);
+            System.out.println("dstAduAllowed = " + dstAduAllowed);
         }
         
         final int srcX;
@@ -2486,22 +2486,22 @@ public class BufferedImageHelperTest extends TestCase {
         final int initialNonPremulArgb32;
         {
             int argb32 = 0x80FFFFFF;
-            if (imageTo.getTransparency() == Transparency.OPAQUE) {
+            if (dstImage.getTransparency() == Transparency.OPAQUE) {
                 argb32 = Argb32.toOpaque(argb32);
             }
             initialNonPremulArgb32 = argb32;
             for (int y = 0; y < dstImageHeight; y++) {
                 for (int x = 0; x < dstImageWidth; x++) {
-                    helperTo.setNonPremulArgb32At(x, y, initialNonPremulArgb32);
+                    dstHelper.setNonPremulArgb32At(x, y, initialNonPremulArgb32);
                 }
             }
         }
         
         final BufferedImageHelper expectedImageHelper =
-            BihTestUtils.newIdenticalImageAndHelper(helperTo);
+            BihTestUtils.newIdenticalImageAndHelper(dstHelper);
         
         BihTestUtils.copyImage_reference(
-            helperFrom,
+            srcHelper,
             srcX,
             srcY,
             expectedImageHelper,
@@ -2511,10 +2511,10 @@ public class BufferedImageHelperTest extends TestCase {
             height);
         
         callCopyImage(
-            helperFrom,
+            srcHelper,
             srcX,
             srcY,
-            helperTo,
+            dstHelper,
             dstX,
             dstY,
             width,
@@ -2528,7 +2528,7 @@ public class BufferedImageHelperTest extends TestCase {
                     || (x >= dstX + width)
                     || (y >= dstY + height)) {
                     final int actualArgb32 =
-                        helperTo.getNonPremulArgb32At(x, y);
+                        dstHelper.getNonPremulArgb32At(x, y);
                     checkEqual(
                         initialNonPremulArgb32,
                         actualArgb32);
@@ -2542,32 +2542,32 @@ public class BufferedImageHelperTest extends TestCase {
                 final int expectedArgb32 =
                     expectedImageHelper.getNonPremulArgb32At(x, y);
                 final int actualArgb32 =
-                    helperTo.getNonPremulArgb32At(x, y);
+                    dstHelper.getNonPremulArgb32At(x, y);
                 
-                final int drawImageTolWithFormatTo =
+                final int drawImageTolWithDstFormat =
                     BufferedImageHelper.getDrawImageMaxCptDelta(
-                        imageFrom.getType(),
-                        pixelFormatFrom,
-                        premulFrom,
+                        srcImage.getType(),
+                        srcPixelFormat,
+                        srcPremul,
                         //
-                        imageTo.getType(),
-                        pixelFormatTo,
-                        premulTo);
+                        dstImage.getType(),
+                        dstPixelFormat,
+                        dstPremul);
                 final BihPixelFormat fastDstFormat =
                     BufferedImageHelper.DRAW_IMAGE_FAST_DST_PIXEL_FORMAT;
                 final int drawImageTolWithFastDstFormat =
                     BufferedImageHelper.getDrawImageMaxCptDelta(
-                        imageFrom.getType(),
-                        pixelFormatFrom,
-                        premulFrom,
+                        srcImage.getType(),
+                        srcPixelFormat,
+                        srcPremul,
                         //
-                        fastDstFormat.toImageType(premulTo),
+                        fastDstFormat.toImageType(dstPremul),
                         fastDstFormat,
-                        premulTo);
+                        dstPremul);
                 
-                if (cmaAllowedFrom
-                    && cmaAllowedTo
-                    && ((drawImageTolWithFormatTo == 1)
+                if (srcCmaAllowed
+                    && dstCmaAllowed
+                    && ((drawImageTolWithDstFormat == 1)
                         || (drawImageTolWithFastDstFormat == 1))) {
                     /*
                      * In this case, we use drawImage(),
@@ -2578,11 +2578,11 @@ public class BufferedImageHelperTest extends TestCase {
                     final int dx = x + (srcX - dstX);
                     final int dy = y + (srcY - dstY);
                     final int refArgb32 =
-                        helperFrom.getNonPremulArgb32At(dx, dy);
+                        srcHelper.getNonPremulArgb32At(dx, dy);
                     final int refAlpha8 = Argb32.getAlpha8(refArgb32);
                     final int cptDeltaTol =
                         ((refAlpha8 <= 0xFE)
-                            || isGray(imageTo.getType()) ? 1 : 0);
+                            || isGray(dstImage.getType()) ? 1 : 0);
                     checkCloseColor32(
                         expectedArgb32,
                         actualArgb32,
@@ -2604,8 +2604,8 @@ public class BufferedImageHelperTest extends TestCase {
         final int imageWidth = 256;
         final int imageHeight = 256;
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
-            final BufferedImageHelper helperFrom = new BufferedImageHelper(imageFrom);
+        for (BufferedImage srcImage : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
+            final BufferedImageHelper srcHelper = new BufferedImageHelper(srcImage);
             
             // Randomizing input image (always the same).
             {
@@ -2613,38 +2613,38 @@ public class BufferedImageHelperTest extends TestCase {
                 for (int y = 0; y < imageHeight; y++) {
                     for (int x = 0; x < imageWidth; x++) {
                         final int argb32 = random.nextInt();
-                        helperFrom.setNonPremulArgb32At(x, y, argb32);
+                        srcHelper.setNonPremulArgb32At(x, y, argb32);
                     }
                 }
             }
             
-            for (BufferedImage imageTo : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
-                final BufferedImageHelper helperTo = new BufferedImageHelper(imageTo);
+            for (BufferedImage dstImage : BihTestUtils.newImageList_allImageType(imageWidth, imageHeight)) {
+                final BufferedImageHelper dstHelper = new BufferedImageHelper(dstImage);
                 
-                final BufferedImageHelper expectedHelperTo =
-                    BihTestUtils.newIdenticalImageAndHelper(helperTo);
+                final BufferedImageHelper expectedDstHelper =
+                    BihTestUtils.newIdenticalImageAndHelper(dstHelper);
                 
                 BihTestUtils.copyImage_reference(
-                    helperFrom,
+                    srcHelper,
                     0,
                     0,
-                    expectedHelperTo,
+                    expectedDstHelper,
                     0,
                     0,
                     imageWidth,
                     imageHeight);
                 
-                final Graphics g = imageTo.getGraphics();
+                final Graphics g = dstImage.getGraphics();
                 try {
-                    g.drawImage(imageFrom, 0, 0, null);
+                    g.drawImage(srcImage, 0, 0, null);
                 } finally {
                     g.dispose();
                 }
                 
                 final int expectedMaxCptDelta_raw =
                     BihTestUtils.computeMaxCptDelta(
-                        expectedHelperTo,
-                        helperTo);
+                        expectedDstHelper,
+                        dstHelper);
                 // For whatever >= 2 we use 0xFF.
                 final int expectedMaxCptDelta =
                     (expectedMaxCptDelta_raw >= 2
@@ -2652,17 +2652,17 @@ public class BufferedImageHelperTest extends TestCase {
                 
                 final int actualMaxCptDelta =
                     BufferedImageHelper.getDrawImageMaxCptDelta(
-                        imageFrom.getType(),
-                        helperFrom.getPixelFormat(),
-                        imageFrom.isAlphaPremultiplied(),
+                        srcImage.getType(),
+                        srcHelper.getPixelFormat(),
+                        srcImage.isAlphaPremultiplied(),
                         //
-                        imageTo.getType(),
-                        helperTo.getPixelFormat(),
-                        imageTo.isAlphaPremultiplied());
+                        dstImage.getType(),
+                        dstHelper.getPixelFormat(),
+                        dstImage.isAlphaPremultiplied());
                 
                 if (expectedMaxCptDelta != actualMaxCptDelta) {
-                    final String srcStr = BihTestUtils.toStringImageKind(imageFrom);
-                    final String dstStr = BihTestUtils.toStringImageKind(imageTo);
+                    final String srcStr = BihTestUtils.toStringImageKind(srcImage);
+                    final String dstStr = BihTestUtils.toStringImageKind(dstImage);
                     final String srcDstStr = srcStr + "->" + dstStr;
                     System.out.println(
                         srcDstStr
@@ -2985,8 +2985,8 @@ public class BufferedImageHelperTest extends TestCase {
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        BihPixelFormat pixelFormatTo,
-        boolean premulTo,
+        BihPixelFormat dstPixelFormat,
+        boolean dstPremul,
         int dstX,
         int dstY,
         //
@@ -3000,8 +3000,8 @@ public class BufferedImageHelperTest extends TestCase {
             System.out.println("color32Arr.length = "
                 + ((color32Arr != null) ? color32Arr.length : 0));
             System.out.println("color32ArrScanlineStride = " + color32ArrScanlineStride);
-            System.out.println("pixelFormatTo = " + pixelFormatTo);
-            System.out.println("premulTo = " + premulTo);
+            System.out.println("dstPixelFormat = " + dstPixelFormat);
+            System.out.println("dstPremul = " + dstPremul);
             System.out.println("dstX = " + dstX);
             System.out.println("dstY = " + dstY);
             System.out.println("width = " + width);
@@ -3014,8 +3014,8 @@ public class BufferedImageHelperTest extends TestCase {
             //
             color32Arr,
             color32ArrScanlineStride,
-            pixelFormatTo,
-            premulTo,
+            dstPixelFormat,
+            dstPremul,
             dstX,
             dstY,
             //
@@ -3028,8 +3028,8 @@ public class BufferedImageHelperTest extends TestCase {
         //
         int[] color32Arr,
         int color32ArrScanlineStride,
-        BihPixelFormat pixelFormatFrom,
-        boolean premulFrom,
+        BihPixelFormat srcPixelFormat,
+        boolean srcPremul,
         int srcX,
         int srcY,
         //
@@ -3044,8 +3044,8 @@ public class BufferedImageHelperTest extends TestCase {
             System.out.println("color32Arr.length = "
                 + ((color32Arr != null) ? color32Arr.length : 0));
             System.out.println("color32ArrScanlineStride = " + color32ArrScanlineStride);
-            System.out.println("pixelFormatFrom = " + pixelFormatFrom);
-            System.out.println("premulFrom = " + premulFrom);
+            System.out.println("srcPixelFormat = " + srcPixelFormat);
+            System.out.println("srcPremul = " + srcPremul);
             System.out.println("srcX = " + srcX);
             System.out.println("srcY = " + srcY);
             System.out.println("dstX = " + dstX);
@@ -3057,8 +3057,8 @@ public class BufferedImageHelperTest extends TestCase {
         helper.setPixelsFrom(
             color32Arr,
             color32ArrScanlineStride,
-            pixelFormatFrom,
-            premulFrom,
+            srcPixelFormat,
+            srcPremul,
             srcX,
             srcY,
             //
@@ -3070,11 +3070,11 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     private static void callCopyImage(
-        BufferedImageHelper helperFrom,
+        BufferedImageHelper srcHelper,
         int srcX,
         int srcY,
         //
-        BufferedImageHelper helperTo,
+        BufferedImageHelper dstHelper,
         int dstX,
         int dstY,
         //
@@ -3083,10 +3083,10 @@ public class BufferedImageHelperTest extends TestCase {
         
         if (DEBUG) {
             System.out.println("calling copyImage():");
-            System.out.println("helperFrom = " + helperFrom);
+            System.out.println("srcHelper = " + srcHelper);
             System.out.println("srcX = " + srcX);
             System.out.println("srcY = " + srcY);
-            System.out.println("helperTo = " + helperTo);
+            System.out.println("dstHelper = " + dstHelper);
             System.out.println("dstX = " + dstX);
             System.out.println("dstY = " + dstY);
             System.out.println("width = " + width);
@@ -3094,11 +3094,11 @@ public class BufferedImageHelperTest extends TestCase {
         }
         
         BufferedImageHelper.copyImage(
-            helperFrom,
+            srcHelper,
             srcX,
             srcY,
             //
-            helperTo,
+            dstHelper,
             dstX,
             dstY,
             //

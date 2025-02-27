@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -508,12 +508,12 @@ public class BufferedImageHelperPerfs {
             // Separation between input types.
             System.out.println();
             
-            for (BihPixelFormat pixelFormatTo : BihPixelFormat.values()) {
-                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatTo)) {
+            for (BihPixelFormat dstPixelFormat : BihPixelFormat.values()) {
+                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(dstPixelFormat)) {
                     continue;
                 }
                 
-                for (boolean premulTo : BihTestUtils.newPremulArr(pixelFormatTo)) {
+                for (boolean dstPremul : BihTestUtils.newPremulArr(dstPixelFormat)) {
                     
                     for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                         
@@ -527,8 +527,8 @@ public class BufferedImageHelperPerfs {
                                     //
                                     color32Arr,
                                     color32ArrScanlineStride,
-                                    pixelFormatTo,
-                                    premulTo,
+                                    dstPixelFormat,
+                                    dstPremul,
                                     0,
                                     0,
                                     //
@@ -541,20 +541,20 @@ public class BufferedImageHelperPerfs {
                                 System.out.println("rare");
                             }
                             final String methodStr = "getPix()(" + width + "x" + height + ")";
-                            final String typeFromStr = getPixelTypeStr(
+                            final String srcTypeStr = getPixelTypeStr(
                                 imageTypeEnum,
                                 pixelFormat,
                                 imagePremul);
-                            final String typeToStr = getPixelTypeStr(
+                            final String dstTypeStr = getPixelTypeStr(
                                 null,
-                                pixelFormatTo,
-                                premulTo);
+                                dstPixelFormat,
+                                dstPremul);
                             System.out.println(bulkNbrOfCalls + " call"
                                 + (bulkNbrOfCalls >= 2 ? "s" : "")
                                 + ", " + methodStr
                                 + ", " + (withTranslucency ? "(tr)" : "(op)")
-                                + ", " + typeFromStr
-                                + "->" + typeToStr
+                                + ", " + srcTypeStr
+                                + "->" + dstTypeStr
                                 + toStringHelperCapabilitiesForBulk(helper)
                                 + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                         }
@@ -585,18 +585,18 @@ public class BufferedImageHelperPerfs {
         final int color32ArrScanlineStride = width;
         final int[] color32Arr = new int[color32ArrScanlineStride * height];
         
-        for (BihPixelFormat pixelFormatFrom : BihPixelFormat.values()) {
+        for (BihPixelFormat srcPixelFormat : BihPixelFormat.values()) {
             if (withTranslucency
-                && (!pixelFormatFrom.hasAlpha())) {
+                && (!srcPixelFormat.hasAlpha())) {
                 // N/A
                 continue;
             }
             
-            if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatFrom)) {
+            if (!QUADRATIC_PIXEL_FORMAT_SET.contains(srcPixelFormat)) {
                 continue;
             }
             
-            for (boolean premulFrom : BihTestUtils.newPremulArr(pixelFormatFrom)) {
+            for (boolean srcPremul : BihTestUtils.newPremulArr(srcPixelFormat)) {
                 
                 // Randomizing input.
                 {
@@ -609,11 +609,11 @@ public class BufferedImageHelperPerfs {
                             } else {
                                 argb32 = Argb32.toOpaque(argb32);
                             }
-                            if (premulFrom) {
+                            if (srcPremul) {
                                 argb32 = BindingColorUtils.toPremulAxyz32(argb32);
                             }
                             final int pixel =
-                                pixelFormatFrom.toPixelFromArgb32(
+                                srcPixelFormat.toPixelFromArgb32(
                                     argb32);
                             color32Arr[y * color32ArrScanlineStride + x] = pixel;
                         }
@@ -653,8 +653,8 @@ public class BufferedImageHelperPerfs {
                                 helper.setPixelsFrom(
                                     color32Arr,
                                     color32ArrScanlineStride,
-                                    pixelFormatFrom,
-                                    premulFrom,
+                                    srcPixelFormat,
+                                    srcPremul,
                                     0,
                                     0,
                                     //
@@ -670,11 +670,11 @@ public class BufferedImageHelperPerfs {
                                 System.out.println("rare");
                             }
                             final String methodStr = "setPix()(" + width + "x" + height + ")";
-                            final String typeFromStr = getPixelTypeStr(
+                            final String srcTypeStr = getPixelTypeStr(
                                 null,
-                                pixelFormatFrom,
-                                premulFrom);
-                            final String typeToStr = getPixelTypeStr(
+                                srcPixelFormat,
+                                srcPremul);
+                            final String dstTypeStr = getPixelTypeStr(
                                 imageTypeEnum,
                                 pixelFormat,
                                 imagePremul);
@@ -682,8 +682,8 @@ public class BufferedImageHelperPerfs {
                                 + (bulkNbrOfCalls >= 2 ? "s" : "")
                                 + ", " + methodStr
                                 + ", " + (withTranslucency ? "(tr)" : "(op)")
-                                + ", " + typeFromStr
-                                + "->" + typeToStr
+                                + ", " + srcTypeStr
+                                + "->" + dstTypeStr
                                 + toStringHelperCapabilitiesForBulk(helper)
                                 + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                         }
@@ -711,35 +711,35 @@ public class BufferedImageHelperPerfs {
         int height,
         boolean withTranslucency) {
         
-        for (BufferedImage imageFrom : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage srcImage : BihTestUtils.newImageList_forBench(width, height)) {
             if (withTranslucency
-                && (imageFrom.getTransparency() != Transparency.TRANSLUCENT)) {
+                && (srcImage.getTransparency() != Transparency.TRANSLUCENT)) {
                 // N/A
                 continue;
             }
             
-            final int imageTypeFrom = imageFrom.getType();
-            final BihPixelFormat pixelFormatFrom =
-                BufferedImageHelper.computePixelFormat(imageFrom);
-            if (pixelFormatFrom != null) {
-                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatFrom)) {
+            final int srcImageType = srcImage.getType();
+            final BihPixelFormat srcPixelFormat =
+                BufferedImageHelper.computePixelFormat(srcImage);
+            if (srcPixelFormat != null) {
+                if (!QUADRATIC_PIXEL_FORMAT_SET.contains(srcPixelFormat)) {
                     continue;
                 }
             } else {
-                if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(imageTypeFrom)) {
+                if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(srcImageType)) {
                     continue;
                 }
             }
             
-            final ImageTypeEnum imageTypeEnumFrom =
-                ImageTypeEnum.enumByType().get(imageTypeFrom);
-            final boolean premulFrom = imageFrom.isAlphaPremultiplied();
+            final ImageTypeEnum srcImageTypeEnum =
+                ImageTypeEnum.enumByType().get(srcImageType);
+            final boolean srcPremul = srcImage.isAlphaPremultiplied();
             
             // Randomizing input.
             {
                 final Random random = TestUtils.newRandom123456789L();
                 final BufferedImageHelper helperForSet =
-                    new BufferedImageHelper(imageFrom);
+                    new BufferedImageHelper(srcImage);
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         int argb = random.nextInt();
@@ -756,124 +756,124 @@ public class BufferedImageHelperPerfs {
             // Separation between input types.
             System.out.println();
             
-            for (BufferedImage imageTo : BihTestUtils.newImageList_forBench(width, height)) {
+            for (BufferedImage dstImage : BihTestUtils.newImageList_forBench(width, height)) {
                 if (withTranslucency
-                    && (imageTo.getTransparency() != Transparency.TRANSLUCENT)) {
+                    && (dstImage.getTransparency() != Transparency.TRANSLUCENT)) {
                     // N/A
                     continue;
                 }
                 
-                final int imageTypeTo = imageTo.getType();
-                final BihPixelFormat pixelFormatTo =
-                    BufferedImageHelper.computePixelFormat(imageTo);
-                if (pixelFormatTo != null) {
-                    if (!QUADRATIC_PIXEL_FORMAT_SET.contains(pixelFormatTo)) {
+                final int dstImageType = dstImage.getType();
+                final BihPixelFormat dstPixelFormat =
+                    BufferedImageHelper.computePixelFormat(dstImage);
+                if (dstPixelFormat != null) {
+                    if (!QUADRATIC_PIXEL_FORMAT_SET.contains(dstPixelFormat)) {
                         continue;
                     }
                 } else {
-                    if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(imageTypeTo)) {
+                    if (!QUADRATIC_SRC_IMAGE_TYPE_SET.contains(dstImageType)) {
                         continue;
                     }
                 }
                 
-                final ImageTypeEnum imageTypeEnumTo =
-                    ImageTypeEnum.enumByType().get(imageTypeTo);
-                final boolean premulTo = imageTo.isAlphaPremultiplied();
+                final ImageTypeEnum dstImageTypeEnum =
+                    ImageTypeEnum.enumByType().get(dstImageType);
+                final boolean dstPremul = dstImage.isAlphaPremultiplied();
                 
                 /*
                  * 
                  */
                 
-                final List<BufferedImageHelper> helperFromList = new ArrayList<>();
-                final List<BufferedImageHelper> helperToList = new ArrayList<>();
+                final List<BufferedImageHelper> srcHelperList = new ArrayList<>();
+                final List<BufferedImageHelper> dstHelperList = new ArrayList<>();
                 {
                     /*
                      * Optimizations order to go crescendo
                      * on max used optimization,
-                     * with priority to "from" over "to". 
+                     * with priority to "src" over "dst". 
                      */
-                    final List<Integer> optimFromList = new ArrayList<>();
-                    final List<Integer> optimToList = new ArrayList<>();
+                    final List<Integer> srcOptimList = new ArrayList<>();
+                    final List<Integer> dstOptimList = new ArrayList<>();
                     final int maxOptim = 2; // cma+arr
                     for (int hi = 0; hi <= maxOptim; hi++) {
                         for (int lo = 0; lo <= hi; lo++) {
-                            // "from" high first.
-                            optimFromList.add(hi);
-                            optimToList.add(lo);
+                            // "dst" high first.
+                            srcOptimList.add(hi);
+                            dstOptimList.add(lo);
                             if (lo < hi) {
-                                optimFromList.add(lo);
-                                optimToList.add(hi);
+                                srcOptimList.add(lo);
+                                dstOptimList.add(hi);
                             }
                         }
                     }
-                    final int optimPairCount = optimFromList.size();
+                    final int optimPairCount = srcOptimList.size();
                     for (int i = 0; i < optimPairCount; i++) {
-                        final int optimFrom = optimFromList.get(i);
-                        final int optimTo = optimToList.get(i);
-                        final boolean cmaFrom = (optimFrom >= 1);
-                        final boolean aduFrom = (optimFrom == 2);
-                        final boolean cmaTo = (optimTo >= 1);
-                        final boolean aduTo = (optimTo == 2);
-                        final BufferedImageHelper helperFrom =
+                        final int srcOptim = srcOptimList.get(i);
+                        final int dstOptim = dstOptimList.get(i);
+                        final boolean srcCma = (srcOptim >= 1);
+                        final boolean srcAdu = (srcOptim == 2);
+                        final boolean dstCma = (dstOptim >= 1);
+                        final boolean dstAdu = (dstOptim == 2);
+                        final BufferedImageHelper srcHelper =
                             new BufferedImageHelper(
-                                imageFrom, cmaFrom, aduFrom);
-                        if (helperFrom.isArrayDirectUseAllowed()
-                            && (!helperFrom.isArrayDirectlyUsed())) {
+                                srcImage, srcCma, srcAdu);
+                        if (srcHelper.isArrayDirectUseAllowed()
+                            && (!srcHelper.isArrayDirectlyUsed())) {
                             // Optimization ineffective: not benching it.
                             continue;
                         }
-                        final BufferedImageHelper helperTo =
+                        final BufferedImageHelper dstHelper =
                             new BufferedImageHelper(
-                                imageTo, cmaTo, aduTo);
-                        if (helperTo.isArrayDirectUseAllowed()
-                            && (!helperTo.isArrayDirectlyUsed())) {
+                                dstImage, dstCma, dstAdu);
+                        if (dstHelper.isArrayDirectUseAllowed()
+                            && (!dstHelper.isArrayDirectlyUsed())) {
                             // Optimization ineffective: not benching it.
                             continue;
                         }
-                        helperFromList.add(helperFrom);
-                        helperToList.add(helperTo);
+                        srcHelperList.add(srcHelper);
+                        dstHelperList.add(dstHelper);
                     }
                 }
-                final int helperPairCount = helperFromList.size();
+                final int helperPairCount = srcHelperList.size();
                 for (int helperIndex = 0; helperIndex < helperPairCount; helperIndex++) {
-                    final BufferedImageHelper helperFrom = helperFromList.get(helperIndex);
-                    final BufferedImageHelper helperTo = helperToList.get(helperIndex);
+                    final BufferedImageHelper srcHelper = srcHelperList.get(helperIndex);
+                    final BufferedImageHelper dstHelper = dstHelperList.get(helperIndex);
                     
                     for (int k = 0; k < NBR_OF_RUNS; k++) {
                         int antiOptim = 0;
                         final long a = System.nanoTime();
                         for (int i = 0; i < bulkNbrOfCalls; i++) {
                             BufferedImageHelper.copyImage(
-                                helperFrom,
+                                srcHelper,
                                 0,
                                 0,
-                                helperTo,
+                                dstHelper,
                                 0,
                                 0,
                                 width,
                                 height);
-                            antiOptim += helperTo.getNonPremulArgb32At(0, 0);
+                            antiOptim += dstHelper.getNonPremulArgb32At(0, 0);
                         }
                         final long b = System.nanoTime();
                         if (antiOptim == 0) {
                             System.out.println("rare");
                         }
                         final String methodStr = "copy()(" + width + "x" + height + ")";
-                        final String typeFromStr = getPixelTypeStr(
-                            imageTypeEnumFrom,
-                            pixelFormatFrom,
-                            premulFrom);
-                        final String typeToStr = getPixelTypeStr(
-                            imageTypeEnumTo,
-                            pixelFormatTo,
-                            premulTo);
+                        final String srcTypeStr = getPixelTypeStr(
+                            srcImageTypeEnum,
+                            srcPixelFormat,
+                            srcPremul);
+                        final String dstTypeStr = getPixelTypeStr(
+                            dstImageTypeEnum,
+                            dstPixelFormat,
+                            dstPremul);
                         System.out.println(bulkNbrOfCalls + " call"
                             + (bulkNbrOfCalls >= 2 ? "s" : "")
                             + ", " + methodStr
                             + ", " + (withTranslucency ? "(tr)" : "(op)")
-                            + ", " + typeFromStr
-                            + "->" + typeToStr
-                            + toStringHelperCapabilitiesForBulk(helperFrom, helperTo)
+                            + ", " + srcTypeStr
+                            + "->" + dstTypeStr
+                            + toStringHelperCapabilitiesForBulk(srcHelper, dstHelper)
                             + ", took " + TestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
@@ -935,28 +935,28 @@ public class BufferedImageHelperPerfs {
     }
     
     private static String toStringHelperCapabilitiesForBulk(
-        BufferedImageHelper helperFrom,
-        BufferedImageHelper helperTo) {
+        BufferedImageHelper srcHelper,
+        BufferedImageHelper dstHelper) {
         
         final StringBuilder sb1 = new StringBuilder();
-        if (helperFrom.isArrayDirectlyUsed()) {
-            if (!helperFrom.isColorModelAvoidingAllowed()) {
+        if (srcHelper.isArrayDirectlyUsed()) {
+            if (!srcHelper.isColorModelAvoidingAllowed()) {
                 throw new AssertionError();
             }
             sb1.append("(cma+arr)");
-        } else if (helperFrom.isColorModelAvoidingAllowed()) {
+        } else if (srcHelper.isColorModelAvoidingAllowed()) {
             sb1.append("(cma)");
         } else {
             sb1.append("()");
         }
         
         final StringBuilder sb2 = new StringBuilder();
-        if (helperTo.isArrayDirectlyUsed()) {
-            if (!helperTo.isColorModelAvoidingAllowed()) {
+        if (dstHelper.isArrayDirectlyUsed()) {
+            if (!dstHelper.isColorModelAvoidingAllowed()) {
                 throw new AssertionError();
             }
             sb2.append("(cma+arr)");
-        } else if (helperTo.isColorModelAvoidingAllowed()) {
+        } else if (dstHelper.isColorModelAvoidingAllowed()) {
             sb2.append("(cma)");
         } else {
             sb2.append("()");
