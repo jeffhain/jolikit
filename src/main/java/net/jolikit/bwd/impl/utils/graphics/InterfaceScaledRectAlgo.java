@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,15 +24,16 @@ import net.jolikit.bwd.api.graphics.GRect;
 public interface InterfaceScaledRectAlgo {
 
     /**
-     * Not making this value depend on particular inputs,
-     * to keep things simple.
-     * 
-     * @return The area, in number of source or destination pixels
-     *         (using the max) corresponding to clipped destination
-     *         rectangle, from which it's worth to split in two
-     *         for parallelization.
+     * @return The area of clipped source rectangle,
+     *         from which it's worth to split in two for parallelization.
      */
-    public int getAreaThresholdForSplit();
+    public int getSrcAreaThresholdForSplit();
+
+    /**
+     * @return The area of clipped destination rectangle,
+     *         from which it's worth to split in two for parallelization.
+     */
+    public int getDstAreaThresholdForSplit();
     
     /**
      * @return Factor by which to multiply growing destination span

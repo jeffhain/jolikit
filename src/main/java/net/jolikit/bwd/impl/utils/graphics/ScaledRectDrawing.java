@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,6 +73,27 @@ public class ScaledRectDrawing {
         GRect dstRect,
         GRect dstClip,
         InterfaceRowDrawer dstRowDrawer) {
+        
+        /*
+         * Early switch to NEAREST in case of no-scaling
+         * or in case of pixel-aligned upscaling with BOXSAMPLED,
+         * to use proper split thresholds.
+         * Doesn't make the eventual delegations from within
+         * other algos useless, since these algos can be used
+         * as sub-algos after others, in which case they might
+         * end up equivalent to NEAREST as well.
+         */
+        if (((srcRect.xSpan() == dstRect.xSpan())
+            && (srcRect.ySpan() == dstRect.ySpan()))
+            || ((scalingType == BwdScalingType.BOXSAMPLED)
+                && ScaledRectUtils.isNearestExact(
+                    srcRect.xSpan(), srcRect.ySpan(),
+                    dstRect.xSpan(), dstRect.ySpan()))) {
+            /*
+             * NEAREST equivalent but much faster.
+             */
+            scalingType = BwdScalingType.NEAREST;
+        }
         
         final InterfaceScaledRectDrawer drawer;
         switch (scalingType) {

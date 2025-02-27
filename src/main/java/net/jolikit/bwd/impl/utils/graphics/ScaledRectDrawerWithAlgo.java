@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +39,7 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
         final GRect dstRect;
         final GRect dstRectClipped;
         final InterfaceRowDrawer dstRowDrawer;
-        final double dstLineCost;
-        final double minAreaCostForSplit;
+        final double srcAreaOverDstArea;
         public MyCmnData(
             InterfaceColorTypeHelper colorTypeHelper,
             InterfaceSrcPixels srcPixels,
@@ -48,16 +47,14 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
             GRect dstRect,
             GRect dstRectClipped,
             InterfaceRowDrawer dstRowDrawer,
-            double dstLineCost,
-            double minAreaCostForSplit) {
+            double srcAreaOverDstArea) {
             this.colorTypeHelper = colorTypeHelper;
             this.srcPixels = srcPixels;
             this.srcRect = srcRect;
             this.dstRect = dstRect;
             this.dstRectClipped = dstRectClipped;
             this.dstRowDrawer = dstRowDrawer;
-            this.dstLineCost = dstLineCost;
-            this.minAreaCostForSplit = minAreaCostForSplit;
+            this.srcAreaOverDstArea = srcAreaOverDstArea;
         }
     }
             
@@ -98,11 +95,14 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
         }
         @Override
         public boolean worthToSplit() {
+            final int currentHeight =
+                (this.dstYEnd - this.dstYStart + 1);
             return ScaledRectUtils.isWorthToSplit(
-                this.cmn.dstLineCost,
-                this.dstYStart,
-                this.dstYEnd,
-                this.cmn.minAreaCostForSplit);
+                algo.getSrcAreaThresholdForSplit(),
+                algo.getDstAreaThresholdForSplit(),
+                this.cmn.srcAreaOverDstArea,
+                this.cmn.dstRectClipped.xSpan(),
+                currentHeight);
         }
         @Override
         public InterfaceSplittable split() {
@@ -420,17 +420,15 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
         
         boolean didGoPrl = false;
         if (parallelizer.getParallelism() >= 2) {
-            final double dstLineCost =
-                ScaledRectUtils.computeDstLineCost(
-                    srcRect,
-                    dstRect,
-                    dstRectClipped);
-            final double minAreaCostForSplit = this.algo.getAreaThresholdForSplit();
+            final double srcAreaOverDstArea =
+                srcRect.areaLong() / (double) dstRect.areaLong();
             if (ScaledRectUtils.isWorthToSplit(
-                dstLineCost,
-                dstYStart,
-                dstYEnd,
-                minAreaCostForSplit)) {
+                this.algo.getSrcAreaThresholdForSplit(),
+                this.algo.getDstAreaThresholdForSplit(),
+                srcAreaOverDstArea,
+                dstRectClipped.xSpan(),
+                dstRectClipped.ySpan())) {
+                
                 didGoPrl = true;
                 
                 final MyCmnData cmn =
@@ -441,8 +439,7 @@ public class ScaledRectDrawerWithAlgo implements InterfaceScaledRectDrawer {
                         dstRect,
                         dstRectClipped,
                         dstRowDrawer,
-                        dstLineCost,
-                        minAreaCostForSplit);
+                        srcAreaOverDstArea);
                 
                 final MySplittable splittable =
                     new MySplittable(

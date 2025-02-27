@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ public class ScaledRectAlgoBilinear extends AbstractScaledRectAlgo {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    static final int AREA_THRESHOLD_FOR_SPLIT = 4 * 1024;
+    static final int DST_AREA_THRESHOLD_FOR_SPLIT = 16 * 1024;
     
     private static final double H = 0.5;
     
@@ -42,8 +42,13 @@ public class ScaledRectAlgoBilinear extends AbstractScaledRectAlgo {
     }
     
     @Override
-    public int getAreaThresholdForSplit() {
-        return AREA_THRESHOLD_FOR_SPLIT;
+    public int getSrcAreaThresholdForSplit() {
+        return Integer.MAX_VALUE;
+    }
+    
+    @Override
+    public int getDstAreaThresholdForSplit() {
+        return DST_AREA_THRESHOLD_FOR_SPLIT;
     }
     
     @Override
@@ -65,15 +70,10 @@ public class ScaledRectAlgoBilinear extends AbstractScaledRectAlgo {
         //
         InterfaceRowDrawer dstRowDrawer) {
         
-        /*
-         * Eventually delegating to faster equivalent algorithm
-         * as late as possible, to benefit from it whenever we can.
-         */
         if ((srcRect.xSpan() == dstRect.xSpan())
             && (srcRect.ySpan() == dstRect.ySpan())) {
             /*
-             * No scaling: nearest equivalent to bilinear
-             * but faster.
+             * Faster, and exact in case of alpha.
              */
             ALGO_NEAREST.drawScaledRectChunk(
                 colorTypeHelper,

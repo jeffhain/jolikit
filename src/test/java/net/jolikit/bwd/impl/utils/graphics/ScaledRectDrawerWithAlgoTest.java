@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ public class ScaledRectDrawerWithAlgoTest extends TestCase {
     
     private static class MyAlgo extends AbstractScaledRectAlgo {
 
-        int areaThresholdForSplit;
+        int srcAreaThresholdForSplit;
+        int dstAreaThresholdForSplit;
         double iterationSpanGrowthFactor;
         double iterationSpanShrinkFactor;
         final List<GRect> srcRectList = new ArrayList<>();
@@ -54,7 +55,8 @@ public class ScaledRectDrawerWithAlgoTest extends TestCase {
                 System.out.println("clear()");
             }
             // By default, no parallelism.
-            this.areaThresholdForSplit = Integer.MAX_VALUE;
+            this.srcAreaThresholdForSplit = Integer.MAX_VALUE;
+            this.dstAreaThresholdForSplit = Integer.MAX_VALUE;
             //
             this.iterationSpanGrowthFactor = Double.POSITIVE_INFINITY;
             this.iterationSpanShrinkFactor = 0.0;
@@ -64,8 +66,13 @@ public class ScaledRectDrawerWithAlgoTest extends TestCase {
         }
         
         @Override
-        public int getAreaThresholdForSplit() {
-            return this.areaThresholdForSplit;
+        public int getSrcAreaThresholdForSplit() {
+            return this.srcAreaThresholdForSplit;
+        }
+        
+        @Override
+        public int getDstAreaThresholdForSplit() {
+            return this.dstAreaThresholdForSplit;
         }
         
         @Override

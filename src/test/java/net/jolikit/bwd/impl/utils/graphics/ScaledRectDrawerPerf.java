@@ -36,7 +36,7 @@ public class ScaledRectDrawerPerf {
     /**
      * To tune area thresholds for parallelization splits.
      */
-    private static final boolean SPLIT_TUNING_MODE = false;
+    private static final boolean SPLIT_TUNING_MODE = true;
 
     /**
      * For quick bench of our code for basic cases.
@@ -203,14 +203,16 @@ public class ScaledRectDrawerPerf {
     private void run(String[] args) {
         final long a = System.nanoTime();
         System.out.println("--- " + ScaledRectDrawerPerf.class.getSimpleName() + "... ---");
-        System.out.println("AREA_THRESHOLD_FOR_SPLIT (NEAREST) = "
-            + ScaledRectAlgoNearest.AREA_THRESHOLD_FOR_SPLIT);
-        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BOXSAMPLED) = "
-            + ScaledRectAlgoBoxsampled.AREA_THRESHOLD_FOR_SPLIT);
-        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BILINEAR) = "
-            + ScaledRectAlgoBilinear.AREA_THRESHOLD_FOR_SPLIT);
-        System.out.println("AREA_THRESHOLD_FOR_SPLIT (BICUBIC) = "
-            + ScaledRectAlgoBicubic.AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("DST_AREA_THRESHOLD_FOR_SPLIT (NEAREST) = "
+            + ScaledRectAlgoNearest.DST_AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("SRC_AREA_THRESHOLD_FOR_SPLIT (BOXSAMPLED) = "
+            + ScaledRectAlgoBoxsampled.SRC_AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("DST_AREA_THRESHOLD_FOR_SPLIT (BOXSAMPLED) = "
+            + ScaledRectAlgoBoxsampled.DST_AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("DST_AREA_THRESHOLD_FOR_SPLIT (BILINEAR) = "
+            + ScaledRectAlgoBilinear.DST_AREA_THRESHOLD_FOR_SPLIT);
+        System.out.println("DST_AREA_THRESHOLD_FOR_SPLIT (BICUBIC) = "
+            + ScaledRectAlgoBicubic.DST_AREA_THRESHOLD_FOR_SPLIT);
         
         for (int[] srcDstSpans : SRC_DST_SPANS_ARR) {
             System.out.println();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,27 +176,21 @@ public class ScaledRectUtils {
     //--------------------------------------------------------------------------
     
     static boolean isWorthToSplit(
-        double dstLineCost,
-        int dstYStart,
-        int dstYEnd,
-        double minAreaCostForSplit) {
-        final int dstLineCount = (dstYEnd - dstYStart + 1);
-        final boolean ret;
-        if (dstLineCount <= 1) {
-            ret = false;
-        } else {
-            final double areaCost = dstLineCount * dstLineCost;
-            ret = (areaCost >= minAreaCostForSplit);  
+        int srcAreaThresholdForSplit,
+        int dstAreaThresholdForSplit,
+        double srcAreaOverDstArea,
+        int dstClippedWidth,
+        int dstClippedHeight) {
+        
+        if (dstClippedHeight <= 1) {
+            return false;
         }
-        return ret;
-    }
-    
-    static double computeDstLineCost(
-        GRect srcRect,
-        GRect dstRect,
-        GRect dstRectClipped) {
-        final double dstPixelCost = computeDstPixelCost(srcRect, dstRect);
-        return dstRectClipped.xSpan() * dstPixelCost;
+        
+        final int dstClippedArea = dstClippedWidth * dstClippedHeight;
+        final double srcClippedAreaFp =
+            dstClippedArea * srcAreaOverDstArea;
+        return (srcClippedAreaFp >= srcAreaThresholdForSplit)
+            || (dstClippedArea >= dstAreaThresholdForSplit);
     }
     
     //--------------------------------------------------------------------------
@@ -259,23 +253,5 @@ public class ScaledRectUtils {
         }
         
         return (((long) newPeerPos) << 32 | newPeerSpan);
-    }
-    
-    /*
-     * 
-     */
-    
-    private static double computeDstPixelCost(
-        GRect srcRect,
-        GRect dstRect) {
-        final long srcArea = srcRect.areaLong();
-        final long dstArea = dstRect.areaLong();
-        final double ret;
-        if (srcArea <= dstArea) {
-            ret = 1.0;
-        } else {
-            ret = (srcArea / (double) dstArea);
-        }
-        return ret;
     }
 }

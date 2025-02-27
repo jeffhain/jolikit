@@ -25,12 +25,7 @@ public class ScaledRectAlgoNearest extends AbstractScaledRectAlgo {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    /**
-     * Two or four times higher would give a bit better perfs
-     * for huge images, but would not allow to parallelize
-     * smaller ones.
-     */
-    static final int AREA_THRESHOLD_FOR_SPLIT = 256 * 1024;
+    static final int DST_AREA_THRESHOLD_FOR_SPLIT = 256 * 1024;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -40,8 +35,13 @@ public class ScaledRectAlgoNearest extends AbstractScaledRectAlgo {
     }
     
     @Override
-    public int getAreaThresholdForSplit() {
-        return AREA_THRESHOLD_FOR_SPLIT;
+    public int getSrcAreaThresholdForSplit() {
+        return Integer.MAX_VALUE;
+    }
+    
+    @Override
+    public int getDstAreaThresholdForSplit() {
+        return DST_AREA_THRESHOLD_FOR_SPLIT;
     }
     
     /**

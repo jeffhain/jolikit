@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,7 +35,12 @@ public class ScaledRectDrawerNearestAwt extends AbstractScaledRectDrawerAwt {
     //--------------------------------------------------------------------------
     
     @Override
-    protected int getAreaThresholdForSplit() {
-        return ScaledRectAlgoNearest.AREA_THRESHOLD_FOR_SPLIT;
+    protected int getSrcAreaThresholdForSplit() {
+        return Integer.MAX_VALUE;
+    }
+    
+    @Override
+    protected int getDstAreaThresholdForSplit() {
+        return ScaledRectAlgoNearest.DST_AREA_THRESHOLD_FOR_SPLIT;
     }
 }

@@ -45,21 +45,18 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         final GRect srcRectInImg;
         final GRect dstRectClippedInImg;
         final BufferedImage dstImg;
-        final double dstLineCost;
-        final double minAreaCostForSplit;
+        final double srcAreaOverDstArea;
         public MyCmnData(
             BufferedImage srcImg,
             GRect srcRectInImg,
             GRect dstRectClippedInImg,
             BufferedImage dstImg,
-            double dstLineCost,
-            double minAreaCostForSplit) {
+            double srcAreaOverDstArea) {
             this.srcImg = srcImg;
             this.srcRectInImg = srcRectInImg;
             this.dstRectClippedInImg = dstRectClippedInImg;
             this.dstImg = dstImg;
-            this.dstLineCost = dstLineCost;
-            this.minAreaCostForSplit = minAreaCostForSplit;
+            this.srcAreaOverDstArea = srcAreaOverDstArea;
         }
     }
             
@@ -98,11 +95,14 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         }
         @Override
         public boolean worthToSplit() {
+            final int currentHeight =
+                (this.dstYEndInImg - this.dstYStartInImg + 1);
             return ScaledRectUtils.isWorthToSplit(
-                this.cmn.dstLineCost,
-                this.dstYStartInImg,
-                this.dstYEndInImg,
-                this.cmn.minAreaCostForSplit);
+                getSrcAreaThresholdForSplit(),
+                getDstAreaThresholdForSplit(),
+                this.cmn.srcAreaOverDstArea,
+                this.cmn.dstRectClippedInImg.xSpan(),
+                currentHeight);
         }
         @Override
         public InterfaceSplittable split() {
@@ -288,7 +288,9 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
     
-    protected abstract int getAreaThresholdForSplit();
+    protected abstract int getSrcAreaThresholdForSplit();
+    
+    protected abstract int getDstAreaThresholdForSplit();
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
@@ -315,17 +317,14 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
         
         boolean didGoPrl = false;
         if (parallelizer.getParallelism() >= 2) {
-            final double dstLineCost =
-                ScaledRectUtils.computeDstLineCost(
-                    srcRectInImg,
-                    dstRectInImg,
-                    dstRectClippedInImg);
-            final double minAreaCostForSplit = this.getAreaThresholdForSplit();
+            final double srcAreaOverDstArea =
+                srcRectInImg.areaLong() / (double) dstRectInImg.areaLong();
             if (ScaledRectUtils.isWorthToSplit(
-                dstLineCost,
-                dstYStartInImg,
-                dstYEndInImg,
-                minAreaCostForSplit)) {
+                getSrcAreaThresholdForSplit(),
+                getDstAreaThresholdForSplit(),
+                srcAreaOverDstArea,
+                dstRectClippedInImg.xSpan(),
+                dstRectClippedInImg.ySpan())) {
                 
                 didGoPrl = true;
                 
@@ -335,8 +334,7 @@ public abstract class AbstractScaledRectDrawerAwt implements InterfaceScaledRect
                         srcRectInImg,
                         dstRectClippedInImg,
                         dstImg,
-                        dstLineCost,
-                        minAreaCostForSplit);
+                        srcAreaOverDstArea);
                 
                 final MySplittable splittable =
                     new MySplittable(

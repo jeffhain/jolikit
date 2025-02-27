@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,16 @@ public abstract class AbstractScaledRectAlgo implements InterfaceScaledRectAlgo 
      * i.e. ensures no splitting (no parallelism).
      */
     @Override
-    public int getAreaThresholdForSplit() {
+    public int getSrcAreaThresholdForSplit() {
+        return Integer.MAX_VALUE;
+    }
+
+    /**
+     * This default implementation returns Integer.MAX_VALUE,
+     * i.e. ensures no splitting (no parallelism).
+     */
+    @Override
+    public int getDstAreaThresholdForSplit() {
         return Integer.MAX_VALUE;
     }
 

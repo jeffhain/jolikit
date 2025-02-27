@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,11 +27,12 @@ public class ScaledRectAlgoBoxsampled extends AbstractScaledRectAlgo {
     //--------------------------------------------------------------------------
     
     /**
-     * Two or four times higher would give a bit better perfs
-     * for huge images, but would not allow to parallelize
-     * smaller ones.
+     * Src pixels cost less than dst pixels,
+     * for which many ifs and loops intervene for reading src pixels.
      */
-    static final int AREA_THRESHOLD_FOR_SPLIT = 16 * 1024;
+    static final int SRC_AREA_THRESHOLD_FOR_SPLIT = 16 * 1024;
+    
+    static final int DST_AREA_THRESHOLD_FOR_SPLIT = 8 * 1024;
     
     /**
      * Ignoring src pixels which less than an epsilon is covered.
@@ -80,8 +81,13 @@ public class ScaledRectAlgoBoxsampled extends AbstractScaledRectAlgo {
     //--------------------------------------------------------------------------
     
     @Override
-    public int getAreaThresholdForSplit() {
-        return AREA_THRESHOLD_FOR_SPLIT;
+    public int getSrcAreaThresholdForSplit() {
+        return SRC_AREA_THRESHOLD_FOR_SPLIT;
+    }
+    
+    @Override
+    public int getDstAreaThresholdForSplit() {
+        return DST_AREA_THRESHOLD_FOR_SPLIT;
     }
     
     /**
@@ -347,7 +353,7 @@ public class ScaledRectAlgoBoxsampled extends AbstractScaledRectAlgo {
             srcRect.xSpan(), srcRect.ySpan(),
             dstRect.xSpan(), dstRect.ySpan())) {
             // No scale change, or pixel-aligned growth.
-            // Faster.
+            // Faster, and exact in case of alpha.
             ret = MyAlgoType.NEAREST;
         } else {
             if ((srcRect.xSpan() % dstRect.xSpan() == 0)
