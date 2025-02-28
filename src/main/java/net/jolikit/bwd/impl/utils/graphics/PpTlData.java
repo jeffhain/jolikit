@@ -55,7 +55,7 @@ class PpTlData {
     //--------------------------------------------------------------------------
     
     private static class MyIntArrHolderPool {
-        private final List<PooledIntArrHolder> list = new ArrayList<>();
+        private final List<PooledIntArrHolder> list = new ArrayList<PooledIntArrHolder>();
         public MyIntArrHolderPool() {
         }
         public PooledIntArrHolder borrow() {
