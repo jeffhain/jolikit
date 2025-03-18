@@ -305,6 +305,21 @@ public class Argb32 {
          * for the other 254 values.
          * But no library seem to do that, so not to surprise users
          * we stick to the usual way.
+         * 
+         * NB: These kinds of optimizations cause
+         * toNonPremul(toPremul(np)) conversions to often not be identity,
+         * even for alphas as high as 0xFE.
+         * Ex:
+         * - Smallest value case:
+         *   np = 0x01010101 gives p = 0x01000000,
+         *   so cptP8=0, alpha8=1,
+         *   cpt8NpBis=(int)(0*255.0/1+0.5)=0,
+         *   which causes npBis = 0x01000000.
+         * - Largest value case:
+         *   np = 0xFE7F7F7F gives p = 0xFE7F7F7F (same),
+         *   so cptP8=0x7F=127, alpha8=0xFE=254,
+         *   cpt8NpBis=(int)(127*255.0/254+0.5)=128=0x80,
+         *   which causes npBis = 0xFE808080.
          */
         return (int) (valueFp * INT_255 + 0.5);
     }

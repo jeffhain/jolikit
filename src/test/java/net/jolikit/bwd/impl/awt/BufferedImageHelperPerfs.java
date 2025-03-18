@@ -27,7 +27,6 @@ import java.util.TreeSet;
 import net.jolikit.bwd.api.graphics.Argb32;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
-import net.jolikit.test.utils.TestUtils;
 
 public class BufferedImageHelperPerfs {
     
@@ -94,25 +93,25 @@ public class BufferedImageHelperPerfs {
             BufferedImage.TYPE_BYTE_GRAY));
     
     //--------------------------------------------------------------------------
+    // CONSTRUCTORS
+    //--------------------------------------------------------------------------
+    
+    private BufferedImageHelperPerfs() {
+    }
+    
+    //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
     
     public static void main(String[] args) {
-        newRun(args);
-    }
-    
-    public static void newRun(String[] args) {
-        new BufferedImageHelperPerfs().run(args);
-    }
-    
-    public BufferedImageHelperPerfs() {
+        run();
     }
     
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private void run(String[] args) {
+    private static void run() {
         final long a = System.nanoTime();
         System.out.println("--- " + BufferedImageHelperPerfs.class.getSimpleName() + "... ---");
         
@@ -160,7 +159,7 @@ public class BufferedImageHelperPerfs {
         
         final long b = System.nanoTime();
         System.out.println("--- ..." + BufferedImageHelperPerfs.class.getSimpleName()
-            + ", " + TestUtils.nsToSRounded(b-a) + " s ---");
+            + ", " + BihTestUtils.nsToSRounded(b-a) + " s ---");
     }
     
     /*
@@ -190,7 +189,7 @@ public class BufferedImageHelperPerfs {
         final int width = SMALL_IMAGE_WIDTH;
         final int height = SMALL_IMAGE_HEIGHT;
         
-        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
             if ((getPremulElseNonPremul || withTranslucency)
                 && (image.getTransparency() == Transparency.OPAQUE)) {
                 // N/A
@@ -203,13 +202,13 @@ public class BufferedImageHelperPerfs {
                 BufferedImageHelper.computePixelFormat(image);
             
             final int imageType = image.getType();
-            final ImageTypeEnum imageTypeEnum =
-                ImageTypeEnum.enumByType().get(imageType);
+            final TestImageTypeEnum imageTypeEnum =
+                TestImageTypeEnum.enumByType().get(imageType);
             
             System.out.println();
             
             {
-                final Random random = TestUtils.newRandom123456789L();
+                final Random random = BihTestUtils.newRandom();
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         int argb = random.nextInt();
@@ -262,7 +261,7 @@ public class BufferedImageHelperPerfs {
                         + ", " + (withTranslucency ? "(tr)" : "(op)")
                         + ", " + typeStr
                         + toStringHelperCapabilitiesForSinglePixel(helper)
-                        + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                        + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                 }
             }
         }
@@ -295,7 +294,7 @@ public class BufferedImageHelperPerfs {
         final int width = SMALL_IMAGE_WIDTH;
         final int height = SMALL_IMAGE_HEIGHT;
         
-        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
             if ((setPremulElseNonPremul || withTranslucency)
                 && (image.getTransparency() == Transparency.OPAQUE)) {
                 // N/A
@@ -308,14 +307,14 @@ public class BufferedImageHelperPerfs {
                 BufferedImageHelper.computePixelFormat(image);
             
             final int imageType = image.getType();
-            final ImageTypeEnum imageTypeEnum =
-                ImageTypeEnum.enumByType().get(imageType);
+            final TestImageTypeEnum imageTypeEnum =
+                TestImageTypeEnum.enumByType().get(imageType);
             
             System.out.println();
             
             final int[] toSetArr = new int[width * height];
             {
-                final Random random = TestUtils.newRandom123456789L();
+                final Random random = BihTestUtils.newRandom();
                 for (int y = 0; y < height; y++) {
                     for (int x = 0; x < width; x++) {
                         int argb = random.nextInt();
@@ -366,7 +365,7 @@ public class BufferedImageHelperPerfs {
                         + ", " + (withTranslucency ? "(tr)" : "(op)")
                         + ", " + typeStr
                         + toStringHelperCapabilitiesForSinglePixel(helper)
-                        + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                        + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                 }
             }
         }
@@ -376,7 +375,7 @@ public class BufferedImageHelperPerfs {
      * 
      */
     
-    private void bench_clearRect_3840_2160() {
+    private static void bench_clearRect_3840_2160() {
         bench_clearRect_xxx(10, 3840, 2160);
     }
     
@@ -396,7 +395,7 @@ public class BufferedImageHelperPerfs {
         // Separation between input types.
         System.out.println();
         
-        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -404,8 +403,8 @@ public class BufferedImageHelperPerfs {
                 BufferedImageHelper.computePixelFormat(image);
             final int imageType = image.getType();
             
-            final ImageTypeEnum imageTypeEnum =
-                ImageTypeEnum.enumByType().get(imageType);
+            final TestImageTypeEnum imageTypeEnum =
+                TestImageTypeEnum.enumByType().get(imageType);
             
             // clearRect() uses single-pixel CMA avoidance,
             // not (allow flag, drawImage()).
@@ -434,7 +433,7 @@ public class BufferedImageHelperPerfs {
                         // clearRect() uses single-pixel CMA avoidance,
                         // not (allow flag, drawImage()).
                         + toStringHelperCapabilitiesForSinglePixel(helper)
-                        + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                        + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                 }
             }
         }
@@ -461,7 +460,7 @@ public class BufferedImageHelperPerfs {
         final int color32ArrScanlineStride = width;
         final int[] color32Arr = new int[color32ArrScanlineStride * height];
         
-        for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
             if (withTranslucency
                 && (image.getTransparency() != Transparency.TRANSLUCENT)) {
                 // N/A
@@ -484,12 +483,12 @@ public class BufferedImageHelperPerfs {
                 }
             }
             
-            final ImageTypeEnum imageTypeEnum =
-                ImageTypeEnum.enumByType().get(imageType);
+            final TestImageTypeEnum imageTypeEnum =
+                TestImageTypeEnum.enumByType().get(imageType);
             
             // Randomizing input.
             {
-                final Random random = TestUtils.newRandom123456789L();
+                final Random random = BihTestUtils.newRandom();
                 final BufferedImageHelper helperForSet =
                     new BufferedImageHelper(image);
                 for (int y = 0; y < height; y++) {
@@ -556,7 +555,7 @@ public class BufferedImageHelperPerfs {
                                 + ", " + srcTypeStr
                                 + "->" + dstTypeStr
                                 + toStringHelperCapabilitiesForBulk(helper)
-                                + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                                + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                         }
                     }
                 }
@@ -600,7 +599,7 @@ public class BufferedImageHelperPerfs {
                 
                 // Randomizing input.
                 {
-                    final Random random = TestUtils.newRandom123456789L();
+                    final Random random = BihTestUtils.newRandom();
                     for (int y = 0; y < height; y++) {
                         for (int x = 0; x < width; x++) {
                             int argb32 = random.nextInt();
@@ -623,7 +622,7 @@ public class BufferedImageHelperPerfs {
                 // Separation between input types.
                 System.out.println();
                 
-                for (BufferedImage image : BihTestUtils.newImageList_forBench(width, height)) {
+                for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
                     
                     final boolean imagePremul = image.isAlphaPremultiplied();
                     
@@ -641,8 +640,8 @@ public class BufferedImageHelperPerfs {
                         }
                     }
                     
-                    final ImageTypeEnum imageTypeEnum =
-                        ImageTypeEnum.enumByType().get(imageType);
+                    final TestImageTypeEnum imageTypeEnum =
+                        TestImageTypeEnum.enumByType().get(imageType);
                     
                     for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
 
@@ -685,7 +684,7 @@ public class BufferedImageHelperPerfs {
                                 + ", " + srcTypeStr
                                 + "->" + dstTypeStr
                                 + toStringHelperCapabilitiesForBulk(helper)
-                                + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                                + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                         }
                     }
                 }
@@ -711,7 +710,7 @@ public class BufferedImageHelperPerfs {
         int height,
         boolean withTranslucency) {
         
-        for (BufferedImage srcImage : BihTestUtils.newImageList_forBench(width, height)) {
+        for (BufferedImage srcImage : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
             if (withTranslucency
                 && (srcImage.getTransparency() != Transparency.TRANSLUCENT)) {
                 // N/A
@@ -731,13 +730,13 @@ public class BufferedImageHelperPerfs {
                 }
             }
             
-            final ImageTypeEnum srcImageTypeEnum =
-                ImageTypeEnum.enumByType().get(srcImageType);
+            final TestImageTypeEnum srcImageTypeEnum =
+                TestImageTypeEnum.enumByType().get(srcImageType);
             final boolean srcPremul = srcImage.isAlphaPremultiplied();
             
             // Randomizing input.
             {
-                final Random random = TestUtils.newRandom123456789L();
+                final Random random = BihTestUtils.newRandom();
                 final BufferedImageHelper helperForSet =
                     new BufferedImageHelper(srcImage);
                 for (int y = 0; y < height; y++) {
@@ -756,7 +755,7 @@ public class BufferedImageHelperPerfs {
             // Separation between input types.
             System.out.println();
             
-            for (BufferedImage dstImage : BihTestUtils.newImageList_forBench(width, height)) {
+            for (BufferedImage dstImage : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
                 if (withTranslucency
                     && (dstImage.getTransparency() != Transparency.TRANSLUCENT)) {
                     // N/A
@@ -776,8 +775,8 @@ public class BufferedImageHelperPerfs {
                     }
                 }
                 
-                final ImageTypeEnum dstImageTypeEnum =
-                    ImageTypeEnum.enumByType().get(dstImageType);
+                final TestImageTypeEnum dstImageTypeEnum =
+                    TestImageTypeEnum.enumByType().get(dstImageType);
                 final boolean dstPremul = dstImage.isAlphaPremultiplied();
                 
                 /*
@@ -874,7 +873,7 @@ public class BufferedImageHelperPerfs {
                             + ", " + srcTypeStr
                             + "->" + dstTypeStr
                             + toStringHelperCapabilitiesForBulk(srcHelper, dstHelper)
-                            + ", took " + TestUtils.nsToSRounded(b-a) + " s");
+                            + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                     }
                 }
             }
@@ -886,7 +885,7 @@ public class BufferedImageHelperPerfs {
      */
     
     private static String getPixelTypeStr(
-        ImageTypeEnum imageTypeEnum,
+        TestImageTypeEnum imageTypeEnum,
         BihPixelFormat pixelFormat,
         boolean premul) {
         final String ret;

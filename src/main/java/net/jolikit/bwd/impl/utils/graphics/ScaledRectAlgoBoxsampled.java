@@ -201,6 +201,8 @@ public class ScaledRectAlgoBoxsampled extends AbstractScaledRectAlgo {
         if (dstPixelSurfInSrcInv == Double.POSITIVE_INFINITY) {
             /*
              * Tiny surface.
+             * Can't happen due to pixel spans, which are never tiny enough,
+             * but due to center being out of clip.
              */
             final int srcX = srcRect.clampX(
                 BindingCoordsUtils.roundToInt(centerXFp));
