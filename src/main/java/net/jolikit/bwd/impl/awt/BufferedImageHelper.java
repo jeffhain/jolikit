@@ -552,13 +552,11 @@ public class BufferedImageHelper {
         sb.append("x");
         sb.append(this.imageHeight);
         sb.append("),type=");
+        sb.append(this.image.getType());
         if (this.pixelFormat != null) {
-            sb.append(this.image.getType());
             sb.append("(");
             sb.append(this.pixelFormat);
             sb.append(")");
-        } else {
-            sb.append(this.image.getType());
         }
         if (this.image.isAlphaPremultiplied()) {
             sb.append(",premul");
@@ -1058,8 +1056,8 @@ public class BufferedImageHelper {
      * @param image An image.
      * @return The backing int array of pixels, or null if the specified image
      *         is not backed by an int array.
-     * @throws ClassCastException if the specified image is not backed
-     *         by an int array.
+     * @throws ClassCastException if the specified image is backed
+     *         by a non-int array.
      */
     public static int[] getIntArray(BufferedImage image) {
         final WritableRaster raster = image.getRaster();
@@ -2287,7 +2285,9 @@ public class BufferedImageHelper {
                 this.image.getType(),
                 srcX,
                 srcY,
-                dstPixelFormat.toImageType(dstPremul));
+                dstPixelFormat.toImageType(dstPremul),
+                dstX,
+                dstY);
         
         if (canUseIntArrayCopy) {
             copyPixels_noCheck_2intArr(
@@ -2374,7 +2374,9 @@ public class BufferedImageHelper {
                 srcPixelFormat.toImageType(srcPremul),
                 srcX,
                 srcY,
-                this.image.getType());
+                this.image.getType(),
+                dstX,
+                dstY);
         
         if (canUseIntArrayCopy) {
             copyPixels_noCheck_2intArr(
@@ -2471,7 +2473,9 @@ public class BufferedImageHelper {
                 srcHelper.image.getType(),
                 srcX,
                 srcY,
-                dstHelper.image.getType());
+                dstHelper.image.getType(),
+                dstX,
+                dstY);
         
         if (canUseIntArrayCopy) {
             copyPixels_noCheck_2intArr(
@@ -2776,7 +2780,9 @@ public class BufferedImageHelper {
         int srcImageType,
         int srcX,
         int srcY,
-        int dstImageType) {
+        int dstImageType,
+        int dstX,
+        int dstY) {
         
         if ((srcImageType == BufferedImage.TYPE_CUSTOM)
             || (dstImageType == BufferedImage.TYPE_CUSTOM)) {
@@ -2789,18 +2795,19 @@ public class BufferedImageHelper {
         /*
          * TODO awt bug: When both types are TYPE_INT_XXX,
          * and both are premul or both non-premul,
-         * setComposite(AlphaComposite.Src) only works
-         * when srcX=srcY=0.
+         * setComposite(AlphaComposite.Src)
+         * is only reliable if no more than two
+         * of (srcX,srcY,dstX,dstY) are zero.
          */
         final boolean mustGuardAgainstAwtBug = true;
         
         if (isTypeIntNotPremul(srcImageType)
-            && isTypeIntNotPremul(dstImageType)) {
+            && isTypeInt(dstImageType)) {
             /*
              * drawImage() normally exact and fast in this case.
              */
             if (mustGuardAgainstAwtBug
-                && ((srcX|srcY) != 0)) {
+                && mightAlphaCompositeFail(srcX, srcY, dstX, dstY)) {
                 return false;
             }
             return true;
@@ -2812,7 +2819,7 @@ public class BufferedImageHelper {
              */
             if (mustGuardAgainstAwtBug
                 && (srcImageType == BufferedImage.TYPE_INT_ARGB_PRE)
-                && ((srcX|srcY) != 0)) {
+                && mightAlphaCompositeFail(srcX, srcY, dstX, dstY)) {
                 return false;
             }
             return true;
@@ -2821,10 +2828,28 @@ public class BufferedImageHelper {
         return false;
     }
     
+    private static boolean mightAlphaCompositeFail(
+        int srcX,
+        int srcY,
+        int dstX,
+        int dstY) {
+        int nonZeroCount = 0;
+        nonZeroCount += ((srcX != 0) ? 1 : 0);
+        nonZeroCount += ((srcY != 0) ? 1 : 0);
+        nonZeroCount += ((dstX != 0) ? 1 : 0);
+        nonZeroCount += ((dstY != 0) ? 1 : 0);
+        return (nonZeroCount >= 3);
+    }
+    
     private static boolean isTypeIntNotPremul(int imageType) {
-        return (imageType == BufferedImage.TYPE_INT_RGB)
-            || (imageType == BufferedImage.TYPE_INT_ARGB)
+        return (imageType == BufferedImage.TYPE_INT_ARGB)
+            || (imageType == BufferedImage.TYPE_INT_RGB)
             || (imageType == BufferedImage.TYPE_INT_BGR);
+    }
+    
+    private static boolean isTypeInt(int imageType) {
+        return (imageType == BufferedImage.TYPE_INT_ARGB_PRE)
+            || isTypeIntNotPremul(imageType);
     }
     
     private static void copyImage_noCheck_drawImage(
@@ -2870,9 +2895,10 @@ public class BufferedImageHelper {
     private static Graphics2D createGraphicsForCopy(BufferedImage dstImage) {
         final Graphics2D g = dstImage.createGraphics();
         /*
-         * Needed even if source is always opaque
-         * (like for RGB to RGB).
-         * NB: Only works when source coordinates are (0,0).
+         * Only reliable if no more than two
+         * of (srcX,srcY,dstX,dstY) are zero,
+         * which is always the case here when needed,
+         * thanks to checks in canUseDrawImageFor().
          */
         g.setComposite(AlphaComposite.Src);
         /*
