@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -70,10 +70,7 @@ public class AwtPaintUtils {
      * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB(_PRE),
      * and black if using BufferedImage.TYPE_INT_RGB.
      */
-    public static final int BUFFERED_IMAGE_TYPE_FOR_CLIENT_G_DRAWING =
-        BufferedImage.TYPE_INT_ARGB_PRE;
-    
-    public static final int BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN =
+    public static final int COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE =
         BufferedImage.TYPE_INT_ARGB_PRE;
     
     /*
@@ -204,8 +201,7 @@ public class AwtPaintUtils {
         final Composite previousComposite = g.getComposite();
         try {
             if (MUST_SET_ALPHA_1_COMPOSITE) {
-                AlphaComposite composite = AlphaComposite.getInstance(AlphaComposite.SRC, 1.0f);
-                g.setComposite(composite);
+                g.setComposite(AlphaComposite.Src);
             }
             /*
              * Eventual scaling only due to pixel scaling,

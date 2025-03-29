@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +15,7 @@
  */
 package net.jolikit.bwd.test.cases.visualtests;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
-
 import net.jolikit.bwd.api.InterfaceBwdBinding;
 import net.jolikit.bwd.api.InterfaceBwdHost;
 import net.jolikit.bwd.api.events.BwdKeyEventPr;
@@ -28,22 +23,13 @@ import net.jolikit.bwd.api.events.BwdKeys;
 import net.jolikit.bwd.api.events.BwdWindowEvent;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.graphics.BwdColor;
+import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
-import net.jolikit.bwd.impl.utils.graphics.InterfaceScaledRectDrawer;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBicubic;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBicubicAwt;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilinear;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBilinearAwt;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampled;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampledBicubic;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerBoxsampledBilinear;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerNearest;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerNearestAwt;
 import net.jolikit.bwd.test.utils.BwdTestResources;
 import net.jolikit.bwd.test.utils.InterfaceBwdTestCase;
 
@@ -108,27 +94,15 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final SortedMap<String,InterfaceScaledRectDrawer> DRAWER_BY_NAME;
-    static {
-        final SortedMap<String,InterfaceScaledRectDrawer> map = new TreeMap<>();
-        map.put("1_NEAREST", new ScaledRectDrawerNearest());
-        map.put("2_NEAREST_AWT", new ScaledRectDrawerNearestAwt());
-        map.put("3_BOXSAMPLED", new ScaledRectDrawerBoxsampled());
-        map.put("4_BOXSAMPLED_BILINEAR", new ScaledRectDrawerBoxsampledBilinear());
-        map.put("5_BILINEAR", new ScaledRectDrawerBilinear());
-        map.put("6_BILINEAR_AWT", new ScaledRectDrawerBilinearAwt());
-        map.put("7_BOXSAMPLED_BICUBIC", new ScaledRectDrawerBoxsampledBicubic());
-        map.put("8_BICUBIC", new ScaledRectDrawerBicubic());
-        map.put("9_BICUBIC_AWT", new ScaledRectDrawerBicubicAwt());
-        DRAWER_BY_NAME = Collections.unmodifiableSortedMap(map);
-    }
+    private static final BwdScalingType[] BwdScalingType_VALUES =
+        BwdScalingType.values();
     
     private InterfaceBwdFont font;
     
     private InterfaceBwdImage image;
     
     private int currentImageIndex = 0;
-    private int currentImageScalingTypeIndex = 0;
+    private int currentScalingTypeIndex = 0;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -186,13 +160,13 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
             if (event.isShiftDown()) {
                 this.changeClientSize(true);
             } else {
-                this.changeImageScalingType(true);
+                this.changeScalingType(true);
             }
         } else if (key == BwdKeys.DOWN) {
             if (event.isShiftDown()) {
                 this.changeClientSize(false);
             } else {
-                this.changeImageScalingType(false);
+                this.changeScalingType(false);
             }
         } else if (key == BwdKeys.LEFT) {
             this.changeImage(false);
@@ -216,11 +190,8 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
 
         final InterfaceBwdBinding binding = this.getBinding();
         
-        final Map.Entry<String, InterfaceScaledRectDrawer> entry =
-            this.getDrawerEntry();
-        final String algoName = entry.getKey();
-        final InterfaceScaledRectDrawer drawer = entry.getValue();
-
+        final BwdScalingType scalingType = this.getScalingType();
+        
         /*
          * 
          */
@@ -241,7 +212,7 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
             image,
             g,
             imgBox,
-            drawer);
+            scalingType);
         
         /*
          * infos
@@ -261,7 +232,7 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
             int tmpX = box.x();
             int tmpY = box.y();
             
-            g.drawText(tmpX, tmpY, "scaling: " + algoName);
+            g.drawText(tmpX, tmpY, "scaling: " + scalingType);
             tmpY += lineHeight;
             
             g.drawText(tmpX, tmpY, "xRatio: " + (imgBox.xSpan() / (float) imgRect.xSpan()));
@@ -296,11 +267,8 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
 
-    private Map.Entry<String, InterfaceScaledRectDrawer> getDrawerEntry() {
-        final Object[] ea = DRAWER_BY_NAME.entrySet().toArray();
-        final Map.Entry<String, InterfaceScaledRectDrawer> e =
-            (Map.Entry<String, InterfaceScaledRectDrawer>) ea[this.currentImageScalingTypeIndex];
-        return e;
+    private BwdScalingType getScalingType() {
+        return BwdScalingType_VALUES[this.currentScalingTypeIndex];
     }
 
     private InterfaceBwdImage getOrCreateImage() {
@@ -453,12 +421,12 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
         host.ensurePendingClientPainting();
     }
     
-    private void changeImageScalingType(boolean nextElsePrev) {
+    private void changeScalingType(boolean nextElsePrev) {
         final int delta = (nextElsePrev ? 1 : -1);
-        this.currentImageScalingTypeIndex =
-            ((this.currentImageScalingTypeIndex
-                + delta + DRAWER_BY_NAME.size())
-                % DRAWER_BY_NAME.size());
+        this.currentScalingTypeIndex =
+            ((this.currentScalingTypeIndex
+                + delta + BwdScalingType_VALUES.length)
+                % BwdScalingType_VALUES.length);
         
         final InterfaceBwdHost host = this.getHost();
         host.ensurePendingClientPainting();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,9 +15,9 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
@@ -335,23 +335,13 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
-            new AffineTransform();
-
-    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
-            AwtUtils.newRotationTransformArr();
-    
-    /*
-     * 
-     */
-    
     private final MyPrimitives primitives = new MyPrimitives();
     
     private final boolean isImageGraphics;
     
     private final BufferedImageHelper bufferedImageHelper;
     
-    private final AwtImgDrawingUtils imgDrawingUtils = new AwtImgDrawingUtils();
+    private final AwtPrlResizeImage prlResizeImage = new AwtPrlResizeImage();
     
     private Graphics2D g;
     
@@ -900,28 +890,30 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             InterfaceBwdImage image,
             int sx, int sy, int sxSpan, int sySpan) {
         
-        final AbstractAwtBwdImage imageImpl = (AbstractAwtBwdImage) image;
-        final BufferedImage backingImage = imageImpl.getBufferedImage();
+        final AbstractAwtBwdImage toDrawAwtImage =
+            (AbstractAwtBwdImage) image;
         
-        this.imgDrawingUtils.drawBufferedImageOnG(
+        final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
+        final GRect dstRect = GRect.valueOf(x, y, xSpan, ySpan);
+        final GRect dstClip = this.getClipInUser();
+        
+        this.prlResizeImage.drawImage(
+            this.getBinding().getInternalParallelizer(),
+            //
+            this.getImageScalingType(),
+            this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
             this.xShiftInUser,
             this.yShiftInUser,
             this.getRootBoxTopLeft(),
             this.getTransform(),
-            this.getClipInUser(),
+            AlphaComposite.SrcOver,
             //
-            x, y, xSpan, ySpan,
-            //
-            backingImage,
-            //
-            sx, sy, sxSpan, sySpan,
-            //
-            this.getBinding().getInternalParallelizer(),
-            this.getImageScalingType(),
-            this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
+            toDrawAwtImage.getBufferedImageHelperArgbPre(),
+            srcRect,
             //
             this.bufferedImageHelper,
-            this.g);
+            dstRect,
+            dstClip);
     }
 
     //--------------------------------------------------------------------------
@@ -948,7 +940,11 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         // The point of this graphics is to not use the array directly.
         // Also might allow for some hardware acceleration
         // due to no call to "theTrackable.setUntrackable()".
-        final boolean allowArrayDirectUse = false;
+        // NB: Now true: now using BufferedImage along with
+        // AWT's drawImage() for max speed, and will soon
+        // merge that into the other graphics and only keep
+        // one BWD graphics impl.
+        final boolean allowArrayDirectUse = true;
         this.bufferedImageHelper = new BufferedImageHelper(
             backingImage,
             allowColorModelAvoiding,
@@ -986,12 +982,7 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
         
         final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         
-        this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
-        
-        this.g.translate(
-            transform.frame2XIn1() - rootBoxTopLeft.x(),
-            transform.frame2YIn1() - rootBoxTopLeft.y());
-        this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
+        AwtUtils.setGraphicsTransform(rootBoxTopLeft, transform, this.g);
         
         this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
         this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);

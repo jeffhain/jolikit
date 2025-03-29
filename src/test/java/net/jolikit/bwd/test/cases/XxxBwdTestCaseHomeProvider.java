@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,10 +37,8 @@ import net.jolikit.bwd.test.cases.unittests.HostUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.unittests.UiSchedulerAndThrowUnitTestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBulkBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDirtyFillRectBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBicubicBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBilinearBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBicubicBwdTestCase;
-import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBilinearBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageIterBicuBwdTestCase;
+import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageIterBiliBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageBoxsampledBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawImageNearestBwdTestCase;
 import net.jolikit.bwd.test.cases.visualbenches.BenchDrawTextBwdTestCase;
@@ -303,12 +301,11 @@ public class XxxBwdTestCaseHomeProvider implements InterfaceBwdTestCaseHomeProvi
              */
             column.addHomeGroup(new InterfaceBwdTestCaseHome[]{
                     new BenchDrawTextBwdTestCase(),
+                    // Just the base algos (no non-uniform scaling).
                     new BenchDrawImageNearestBwdTestCase(),
                     new BenchDrawImageBoxsampledBwdTestCase(),
-                    new BenchDrawImageBilinearBwdTestCase(),
-                    new BenchDrawImageBicubicBwdTestCase(),
-                    new BenchDrawImageBoxsampledBilinearBwdTestCase(),
-                    new BenchDrawImageBoxsampledBicubicBwdTestCase(),
+                    new BenchDrawImageIterBiliBwdTestCase(),
+                    new BenchDrawImageIterBicuBwdTestCase(),
             });
 
             /*

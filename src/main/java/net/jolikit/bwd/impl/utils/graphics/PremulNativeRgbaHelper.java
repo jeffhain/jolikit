@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,18 @@ public class PremulNativeRgbaHelper implements InterfaceColorTypeHelper {
     
     public static PremulNativeRgbaHelper getInstance() {
         return INSTANCE;
+    }
+    
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        sb.append(this.getClass().getSimpleName());
+        if (BindingBasicsUtils.NATIVE_IS_LITTLE) {
+            sb.append("(ABGR)");
+        } else {
+            sb.append("(RGBA)");
+        }
+        return sb.toString();
     }
     
     @Override
@@ -77,12 +89,5 @@ public class PremulNativeRgbaHelper implements InterfaceColorTypeHelper {
             //
             return BindingColorUtils.toAbcd32_noCheck(a8, b8, c8, d8);
         }
-    }
-
-    //--------------------------------------------------------------------------
-    // PRIVATE METHODS
-    //--------------------------------------------------------------------------
-    
-    private PremulNativeRgbaHelper() {
     }
 }

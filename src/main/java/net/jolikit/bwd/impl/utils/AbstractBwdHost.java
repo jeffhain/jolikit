@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -189,6 +189,11 @@ public abstract class AbstractBwdHost implements InterfaceBwdHostImpl, Interface
      * Could just use 1, but we prefer to use 2,
      * for pixels coordinates evenness to be preserved,
      * as it could impact rounding.
+     * 
+     * Can use larger values to make issue of not taking that
+     * into account more visible, for example when testing with
+     * DrawingMethodsCliScaledBwdTestCase and dragging
+     * left side to the right or top side to bottom.
      */
     public static final int PADDING_BORDER_SPAN = 2;
     

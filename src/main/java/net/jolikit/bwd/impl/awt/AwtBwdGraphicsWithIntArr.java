@@ -18,7 +18,6 @@ package net.jolikit.bwd.impl.awt;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
@@ -88,12 +87,6 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     // FIELDS
     //--------------------------------------------------------------------------
 
-    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
-            new AffineTransform();
-
-    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
-            AwtUtils.newRotationTransformArr();
-    
     private final BufferedImage backingImage;
     
     /*
@@ -362,7 +355,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
             throw new UnsupportedOperationException();
         }
         
-        final AwtBwdFont font = (AwtBwdFont) this.getFont();
+        final AwtBwdFont font = this.getFont();
         final Font backingFont = font.getBackingFont();
         
         final int mcTextWidth = maxClippedTextRectInText.xSpan();
@@ -377,7 +370,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 scanlineStride,
                 mcTextWidth,
                 mcTextHeight,
-                AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN);
+                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
 
         // Drawing the text in the image.
         final Graphics2D g2d = image.createGraphics();
@@ -515,12 +508,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         
         final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         
-        this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
-        
-        this.g.translate(
-            transform.frame2XIn1() - rootBoxTopLeft.x(),
-            transform.frame2YIn1() - rootBoxTopLeft.y());
-        this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
+        AwtUtils.setGraphicsTransform(rootBoxTopLeft, transform, this.g);
         
         this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
         this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);

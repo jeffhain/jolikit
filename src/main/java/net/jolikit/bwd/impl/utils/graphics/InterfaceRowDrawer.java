@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Jeff Hain
+ * Copyright 2021-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,9 @@ package net.jolikit.bwd.impl.utils.graphics;
 
 /**
  * Interface to draw pixels row by row.
+ * 
+ * When used for BWD graphic's drawImage() implementation,
+ * should use pîxel blending if possible.  
  */
 public interface InterfaceRowDrawer {
     
@@ -28,11 +31,11 @@ public interface InterfaceRowDrawer {
      * @param length Length of the row.
      */
     public void drawRow(
-            int[] rowArr,
-            int rowOffset,
-            //
-            int dstX,
-            int dstY,
-            //
-            int length);
+        int[] rowArr,
+        int rowOffset,
+        //
+        int dstX,
+        int dstY,
+        //
+        int length);
 }

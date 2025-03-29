@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -654,7 +654,7 @@ public class AwtBwdHost extends AbstractBwdHost {
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
-                AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_CLIENT_G_DRAWING);
+                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
 
         /*
          * 

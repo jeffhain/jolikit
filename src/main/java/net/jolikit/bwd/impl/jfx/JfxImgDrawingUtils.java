@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Jeff Hain
+ * Copyright 2021-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -328,16 +328,18 @@ public class JfxImgDrawingUtils {
          * 
          * JavaFX bicubic appears to be faster (asynchonous so measured
          * by FPS on resizing), but does not seem to use all covered pixels
-         * on downscaling, so for BICUBIC we only use it if shrinking
-         * does not divide width or height by more than two,
-         * and for BOXSAMPLED_BICUBIC we do the same to avoid BOXSAMPLED to kick in.
+         * on downscaling, so for BICUBIC we only use it if downscaling
+         * does not divide width or height by more than two.
+         * For BOXSAMPLED_BICUBIC, we only use BICUBIC if no downscaling.
          */
         final boolean ret;
         if (mustUseBackingImageScalingIfApplicable) {
-            if ((scalingType == BwdScalingType.BICUBIC)
-                || (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC)) {
+            if (scalingType == BwdScalingType.ITERATIVE_BICUBIC) {
                 ret = (dxSpan >= (sxSpan >> 1))
                     && (dySpan >= (sySpan >> 1));
+            } else if (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC) {
+                ret = (dxSpan >= sxSpan)
+                    && (dySpan >= sySpan);
             } else {
                 ret = false;
             }

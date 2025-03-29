@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -60,6 +60,13 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
         if (false) {
             this.setMaxRawFontSize_final(Short.MAX_VALUE);
         }
+        
+        /*
+         * True because we use AWT drawImage() only in for both
+         * accurate and fast use cases (all images (ARGB,premul)),
+         * and want to benefit from its speed.
+         */
+        this.setMustUseBackingImageScalingIfApplicable_final(true);
 
         /*
          * TODO awt iconified/deiconified/iconified flickering

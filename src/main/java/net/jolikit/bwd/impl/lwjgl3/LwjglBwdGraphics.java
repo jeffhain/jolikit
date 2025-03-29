@@ -17,7 +17,6 @@ package net.jolikit.bwd.impl.lwjgl3;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
-import java.awt.geom.AffineTransform;
 import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
@@ -49,12 +48,6 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-    
-    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
-            new AffineTransform();
-
-    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
-            AwtUtils.newRotationTransformArr();
     
     /*
      * For drawing text on backing int array directly.
@@ -401,14 +394,9 @@ public class LwjglBwdGraphics extends AbstractIntArrayBwdGraphics {
     private void setBackingTransformToCurrent() {
         final GTransform transformArrToUser = this.getTransformArrToUser();
         
-        this.g.setTransform(BACKING_TRANSFORM_IDENTITY);
+        AwtUtils.setGraphicsTransform(GPoint.ZERO, transformArrToUser, this.g);
         
         final GRotation rotation = transformArrToUser.rotation();
-        this.g.translate(
-            transformArrToUser.frame2XIn1() ,
-            transformArrToUser.frame2YIn1());
-        this.g.transform(ROTATION_TRANSFORM_BY_ORDINAL[rotation.ordinal()]);
-        
         this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
         this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
     }

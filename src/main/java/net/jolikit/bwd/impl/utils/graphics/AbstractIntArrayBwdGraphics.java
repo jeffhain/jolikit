@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         }
     }
 
-    private class MyRowDrawer implements  InterfaceRowDrawer {
+    private class MyRowDrawer implements InterfaceRowDrawer {
         public MyRowDrawer() {
         }
         @Override
@@ -580,7 +580,7 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
              */
             return;
         }
-
+        
         final GRect srcRectInImg = GRect.valueOf(sx, sy, sxSpan, sySpan);
         
         final Object imageDataAccessor = this.getImageDataAccessor(image);

@@ -150,6 +150,52 @@ public enum TestImageTypeEnum {
         return this.premul;
     }
     /*
+     * Methods below not used, but could be.
+     */
+    public boolean hasAlpha() {
+        return (this == TYPE_INT_ARGB_PRE)
+            || (this == TYPE_INT_ARGB)
+            || (this == TYPE_4BYTE_ABGR_PRE)
+            || (this == TYPE_4BYTE_ABGR)
+            || ((this.pixelFormat != null)
+                && this.pixelFormat.hasAlpha())
+            || (this == TYPE_CUSTOM_INT_GRAB_PRE)
+            || (this == TYPE_CUSTOM_INT_GRAB);
+    }
+    /**
+     * @return True if is custom (premul or not).
+     */
+    public boolean isCustom() {
+        return this.imageType == BufferedImage.TYPE_CUSTOM;
+    }
+    public boolean isWithAccurateColor() {
+        return this.hasAlpha()
+            || (this == TYPE_INT_RGB)
+            || (this == TYPE_INT_BGR)
+            || (this == TYPE_3BYTE_BGR);
+    }
+    public boolean isWithColor() {
+        return !this.isBlackAndWhite();
+    }
+    public boolean isUShortRgb() {
+        return (this == TYPE_USHORT_555_RGB)
+            || (this == TYPE_USHORT_565_RGB);
+    }
+    public boolean isGray() {
+        return (this == TYPE_USHORT_GRAY)
+            || (this == TYPE_BYTE_GRAY);
+    }
+    public boolean isBlackAndWhite() {
+        return this.isGray()
+            || this.isBinary();
+    }
+    public boolean isBinary() {
+        return (this == TYPE_BYTE_BINARY);
+    }
+    public boolean isIndexed() {
+        return (this == TYPE_BYTE_INDEXED);
+    }
+    /*
      * 
      */
     private static final SortedMap<Integer,TestImageTypeEnum> ENUM_BY_TYPE;

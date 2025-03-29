@@ -28,7 +28,7 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private final BufferedImageHelper bufferedImageHelper;
+    private final BufferedImageHelper bufferedImageHelperArgbPre;
     
     private final int[] premulArgb32Arr;
 
@@ -67,15 +67,16 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
                 width,
                 height,
                 //
-                AwtPaintUtils.BUFFERED_IMAGE_TYPE_FOR_OFFSCREEN);
-        this.bufferedImageHelper = new BufferedImageHelper(backingImage);
+                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+        this.bufferedImageHelperArgbPre =
+            new BufferedImageHelper(backingImage);
 
+        this.premulArgb32Arr = premulArgb32Arr;
+        
         final AwtBwdBindingConfig bindingConfig = binding.getBindingConfig();
         
         final InterfaceBwdGraphics graphics;
         if (bindingConfig.getMustUseIntArrayGraphicsForWritableImages()) {
-            this.premulArgb32Arr = premulArgb32Arr;
-            
             graphics = new AwtBwdGraphicsWithIntArr(
                     binding,
                     box,
@@ -89,8 +90,6 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
                     //
                     isImageGraphics,
                     backingImage);
-            
-            this.premulArgb32Arr = premulArgb32Arr;
         }
 
         this.graphics = graphics;
@@ -104,10 +103,10 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
     }
     
     @Override
-    public BufferedImage getBufferedImage() {
-        return this.bufferedImageHelper.getImage();
+    public BufferedImageHelper getBufferedImageHelperArgbPre() {
+        return this.bufferedImageHelperArgbPre;
     }
-
+    
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------

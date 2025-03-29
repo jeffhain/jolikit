@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import net.jolikit.bwd.impl.utils.gprim.DefaultPolyDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.GprimUtilsPerf;
 import net.jolikit.bwd.impl.utils.gprim.MidPointArcDrawerPerf;
 import net.jolikit.bwd.impl.utils.gprim.PolyArcDrawerPerf;
-import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawerPerf;
+import net.jolikit.bwd.impl.utils.graphics.ScaledRectDrawersPerf;
 import net.jolikit.lang.HeisenLoggerPerf;
 import net.jolikit.lang.NbrsUtilsPerf;
 import net.jolikit.lang.ThinTimePerf;
@@ -59,7 +59,7 @@ public class AllPerfs {
          * net.jolikit.bwd.impl.utils.graphics
          */
         
-        ScaledRectDrawerPerf.newRun(args);
+        ScaledRectDrawersPerf.newRun();
         
         /*
          * net.jolikit.bwd.impl.utils.fonts

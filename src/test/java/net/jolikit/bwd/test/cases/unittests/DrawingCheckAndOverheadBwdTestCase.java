@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Jeff Hain
+ * Copyright 2020-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -85,6 +85,11 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     
     private static final int NBR_OF_MEASURES = 1;
 
+    /**
+     * For class load and a bit more.
+     */
+    private static final int WARMUP_CALL_COUNT = 10;
+    
     /**
      * Not more else can cause much piling-up
      * in asynchronous libraries.
@@ -236,7 +241,6 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     private static boolean isDrawnColorBad(
             InterfaceBwdBinding binding,
             MyMethodType methodType,
-            MyImageType srcImageType,
             MyGraphicsType graphicsType,
             boolean withAlpha) {
         
@@ -314,9 +318,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     private static int getBadColorAbsTol(
             InterfaceBwdBinding binding,
             MyMethodType methodType,
-            MyImageType srcImageType,
-            MyGraphicsType graphicsType,
-            boolean withAlpha) {
+            MyImageType srcImageType) {
         final int ret;
         if (BwdTestUtils.isJfxBinding(binding)) {
             if ((methodType == MyMethodType.DRAW_IMAGE)
@@ -341,11 +343,7 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
      * Relative tolerance on 8 bits component value.
      */
     private static double getBadColorRelTol(
-            InterfaceBwdBinding binding,
-            MyMethodType methodType,
-            MyImageType srcImageType,
-            MyGraphicsType graphicsType,
-            boolean withAlpha) {
+            InterfaceBwdBinding binding) {
         final double ret;
         if (BwdTestUtils.isJfxBinding(binding)) {
             ret = 0.2;
@@ -892,21 +890,13 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
             if (isDrawnColorBad(
                     binding,
                     this.methodType,
-                    this.srcImageType,
                     this.current_graphicsType,
                     this.current_withAlpha)) {
                 final double absTol = getBadColorAbsTol(
                         binding,
                         this.methodType,
-                        this.srcImageType,
-                        this.current_graphicsType,
-                        this.current_withAlpha);
-                final double relTol = getBadColorRelTol(
-                        binding,
-                        this.methodType,
-                        this.srcImageType,
-                        this.current_graphicsType,
-                        this.current_withAlpha);
+                        this.srcImageType);
+                final double relTol = getBadColorRelTol(binding);
                 checkOk = areSomehowEqual_argb32(
                         expectedArgb32,
                         actualArgb32,
@@ -927,7 +917,6 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
          */
         public int callConfigMethods(InterfaceBwdGraphics testG) {
             return callConfigMethods_static(
-                    this.methodType,
                     testG,
                     nonDefaultFont);
         }
@@ -1093,8 +1082,10 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         this.createTestables();
 
         this.lineElemListList.add(Arrays.asList("Times are per call."));
-        this.lineElemListList.add(Arrays.asList("(time) = color changed"));
+        this.lineElemListList.add(Arrays.asList("(time) = with color changed"));
         this.lineElemListList.add(Arrays.asList("before each call."));
+        this.lineElemListList.add(Arrays.asList("Only 1-pixel areas for"));
+        this.lineElemListList.add(Arrays.asList("drawImage() and flipColor()."));
         this.lineElemListList.add(Arrays.asList(""));
         this.lineElemListList.add(G_TESTS_HEADER);
     }
@@ -1125,6 +1116,9 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
 
         this.srcImage_wi.dispose();
         this.srcImage_wi = null;
+        
+        // To see "Done".
+        this.getHost().ensurePendingClientPainting();
     }
 
     @Override
@@ -1534,6 +1528,13 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
         }
         
         int antiOptim = 0;
+        for (int i = 0; i < WARMUP_CALL_COUNT; i++) {
+            if (testable.opType() == MyOpType.CONFIG) {
+                antiOptim += testable.callConfigMethods(testG);
+            } else {
+                antiOptim += testable.callMethodForPixelAt(testG, x, y);
+            }
+        }
 
         int callCount = 0;
 
@@ -1693,7 +1694,6 @@ public class DrawingCheckAndOverheadBwdTestCase extends AbstractUnitTestBwdTestC
     }
 
     private static int callConfigMethods_static(
-            MyMethodType methodType,
             InterfaceBwdGraphics testG,
             InterfaceBwdFont font) {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2020 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,16 +18,29 @@ package net.jolikit.bwd.impl.awt;
 import java.awt.Color;
 import java.awt.Frame;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.geom.AffineTransform;
 
+import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
+import net.jolikit.bwd.api.graphics.GTransform;
 
 public class AwtUtils {
 
+    //--------------------------------------------------------------------------
+    // FIELDS
+    //--------------------------------------------------------------------------
+    
+    private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
+        new AffineTransform();
+    
+    private static final AffineTransform[] ROTATION_TRANSFORM_BY_ORDINAL =
+        newRotationTransformArr();
+    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -110,11 +123,58 @@ public class AwtUtils {
         final AffineTransform[] ret = new AffineTransform[rotations.length];
         for (int i = 0; i < rotations.length; i++) {
             final GRotation rotation = rotations[i];
-            final double angRad = Math.toRadians(rotation.angDeg());
             final AffineTransform affineTransform = new AffineTransform();
-            affineTransform.rotate(angRad);
+            affineTransform.rotate(rotation.cos(), rotation.sin());
             ret[i] = affineTransform;
         }
+        return ret;
+    }
+    
+    /**
+     * Sets transform from root box top-left to user
+     * into the specified graphics.
+     * (transform (dx,dy) = graphics transform (dx,dy) + rootBoxTopLeft (x,y))
+     * 
+     * @param rootBoxTopLeft Coordinates in base of graphics top-left pixel.
+     * @param transform Transform from base to user.
+     * @param g Graphics of which to configure the transform.
+     */
+    public static void setGraphicsTransform(
+        GPoint rootBoxTopLeft,
+        GTransform transform,
+        Graphics2D g) {
+        
+        g.setTransform(BACKING_TRANSFORM_IDENTITY);
+        
+        g.translate(
+            transform.frame2XIn1() - rootBoxTopLeft.x(),
+            transform.frame2YIn1() - rootBoxTopLeft.y());
+        
+        g.transform(ROTATION_TRANSFORM_BY_ORDINAL[transform.rotation().ordinal()]);
+    }
+    
+    /**
+     * Computes the corresponding graphics transform.
+     * (transform (dx,dy) = graphics transform (dx,dy) + rootBoxTopLeft (x,y))
+     * 
+     * @param rootBoxTopLeft Coordinates in base of graphics top-left pixel.
+     * @param transform Transform from base to user.
+     * @return The transform from root box top-left to user.
+     */
+    public static AffineTransform computeGraphicsTransform(
+        GPoint rootBoxTopLeft,
+        GTransform transform) {
+        
+        final AffineTransform ret = new AffineTransform();
+        
+        ret.translate(
+            transform.frame2XIn1() - rootBoxTopLeft.x(),
+            transform.frame2YIn1() - rootBoxTopLeft.y());
+        
+        ret.rotate(
+            transform.rotation().cos(),
+            transform.rotation().sin());
+        
         return ret;
     }
     

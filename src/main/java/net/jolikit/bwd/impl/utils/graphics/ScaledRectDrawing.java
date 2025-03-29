@@ -25,23 +25,17 @@ public class ScaledRectDrawing {
     // FIELDS
     //--------------------------------------------------------------------------
     
-    private static final ScaledRectDrawerNearest DRAWER_NEAREST =
-        new ScaledRectDrawerNearest();
+    private static final SrdNearest SRD_NEAREST = new SrdNearest();
 
-    private static final ScaledRectDrawerBoxsampled DRAWER_BOXSAMPLED =
-        new ScaledRectDrawerBoxsampled();
+    private static final SrdBoxsampled SRD_BOXSAMPLED = new SrdBoxsampled();
 
-    private static final ScaledRectDrawerBilinear DRAWER_BILINEAR =
-        new ScaledRectDrawerBilinear();
+    private static final SrdIterBili SRD_ITER_BILI = new SrdIterBili();
 
-    private static final ScaledRectDrawerBicubic DRAWER_BICUBIC =
-        new ScaledRectDrawerBicubic();
+    private static final SrdIterBicu SRD_ITER_BICU = new SrdIterBicu();
 
-    private static final ScaledRectDrawerBoxsampledBilinear DRAWER_BOXSAMPLED_BILINEAR =
-        new ScaledRectDrawerBoxsampledBilinear();
+    private static final SrdIterBiliBicu SRD_ITER_BILI_BICU = new SrdIterBiliBicu();
 
-    private static final ScaledRectDrawerBoxsampledBicubic DRAWER_BOXSAMPLED_BICUBIC =
-        new ScaledRectDrawerBoxsampledBicubic();
+    private static final SrdBoxBicu SRD_BOX_BICU = new SrdBoxBicu();
 
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -74,46 +68,46 @@ public class ScaledRectDrawing {
         GRect dstClip,
         InterfaceRowDrawer dstRowDrawer) {
         
+        final int sw = srcRect.xSpan();
+        final int sh = srcRect.ySpan();
+        final int dw = dstRect.xSpan();
+        final int dh = dstRect.ySpan();
+        
         /*
-         * Early switch to NEAREST in case of no-scaling
-         * or in case of pixel-aligned upscaling with BOXSAMPLED,
-         * to use proper split thresholds.
-         * Doesn't make the eventual delegations from within
-         * other algos useless, since these algos can be used
-         * as sub-algos after others, in which case they might
-         * end up equivalent to NEAREST as well.
+         * Eventual switch to NEAREST done here,
+         * not to have to do it in drawers implementations.
          */
-        if (((srcRect.xSpan() == dstRect.xSpan())
-            && (srcRect.ySpan() == dstRect.ySpan()))
-            || ((scalingType == BwdScalingType.BOXSAMPLED)
-                && ScaledRectUtils.isNearestExact(
-                    srcRect.xSpan(), srcRect.ySpan(),
-                    dstRect.xSpan(), dstRect.ySpan()))) {
-            /*
-             * NEAREST equivalent but much faster.
-             */
+        
+        if ((sw == dw)
+            && (sh == dh)) {
+            // No scaling: NEAREST is the fastest.
+            scalingType = BwdScalingType.NEAREST;
+        } else if ((scalingType == BwdScalingType.BOXSAMPLED)
+            && ScaledRectUtils.isNearestExact(sw, sh, dw, dh)) {
+            // Pixel-aligned growth.
+            // NEAREST equivalent and faster.
             scalingType = BwdScalingType.NEAREST;
         }
         
         final InterfaceScaledRectDrawer drawer;
         switch (scalingType) {
             case NEAREST:
-                drawer = DRAWER_NEAREST;
+                drawer = SRD_NEAREST;
                 break;
             case BOXSAMPLED:
-                drawer = DRAWER_BOXSAMPLED;
+                drawer = SRD_BOXSAMPLED;
                 break;
-            case BILINEAR:
-                drawer = DRAWER_BILINEAR;
+            case ITERATIVE_BILINEAR:
+                drawer = SRD_ITER_BILI;
                 break;
-            case BICUBIC:
-                drawer = DRAWER_BICUBIC;
+            case ITERATIVE_BICUBIC:
+                drawer = SRD_ITER_BICU;
                 break;
-            case BOXSAMPLED_BILINEAR:
-                drawer = DRAWER_BOXSAMPLED_BILINEAR;
+            case ITERATIVE_BILINEAR_BICUBIC:
+                drawer = SRD_ITER_BILI_BICU;
                 break;
             case BOXSAMPLED_BICUBIC:
-                drawer = DRAWER_BOXSAMPLED_BICUBIC;
+                drawer = SRD_BOX_BICU;
                 break;
             default:
                 throw new AssertionError();

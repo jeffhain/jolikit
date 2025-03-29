@@ -40,7 +40,7 @@ public class BihTestUtils {
     // CONFIGURATION
     //--------------------------------------------------------------------------
     
-    private static final boolean MUST_PRINT_IMAGE_ON_ERROR = false;
+    public static final boolean MUST_PRINT_IMAGE_ON_ERROR = false;
 
     //--------------------------------------------------------------------------
     // CONSTRUCTORS

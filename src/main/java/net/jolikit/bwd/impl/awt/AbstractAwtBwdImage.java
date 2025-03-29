@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Jeff Hain
+ * Copyright 2020-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 package net.jolikit.bwd.impl.awt;
-
-import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.impl.utils.graphics.BindingColorUtils;
 import net.jolikit.bwd.impl.utils.images.AbstractBwdImage;
@@ -32,11 +30,24 @@ public abstract class AbstractAwtBwdImage extends AbstractBwdImage {
      * @throws NullPointerException if disposalListener is null.
      */
     public AbstractAwtBwdImage(
-            InterfaceBwdImageDisposalListener disposalListener) {
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
     }
     
-    public abstract BufferedImage getBufferedImage();
+    /**
+     * For read only purpose.
+     * 
+     * Using TYPE_INT_ARGB_PRE format for both accuracy and speed
+     * when using drawImage() directly, possibly with other images
+     * of same type (like graphics backing image/array).
+     * 
+     * Not providing access to the originally loaded image
+     * if it was not (ARGB,premul), to have it garbaged and save memory.
+     * 
+     * @return Helper for the internal (ARGB,premul) copy of the image,
+     *         or for the image itself if it was already (ARGB,premul).
+     */
+    public abstract BufferedImageHelper getBufferedImageHelperArgbPre();
     
     //--------------------------------------------------------------------------
     // PROTECTED METHODS

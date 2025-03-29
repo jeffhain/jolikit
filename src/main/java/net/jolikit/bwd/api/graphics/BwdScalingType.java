@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Jeff Hain
+ * Copyright 2024-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,72 +30,50 @@ import java.util.List;
  * using images and/or graphics.
  */
 public enum BwdScalingType {
+    
+    /*
+     * Base algos.
+     */
+    
     /**
      * Fastest, but can quickly get ugly on downscaling
      * as more and more source pixels don't get used. 
      */
     NEAREST,
     /**
-     * Slower than NEAREST, but all source pixels covered
-     * by each destination pixel contribute proportionally to the overlap,
-     * so the quality is much better on downscaling.
+     * More accurate than iterative bilinear
+     * in case of non-uniform downscaling.
      * 
-     * If there is no scaling, or integer-multiple upscaling,
-     * is equivalent to NEAREST, so should delegate to NEAREST
-     * in these cases for speed.
+     * Not blurry on upscaling, as it preserves pixels shape,
+     * except eventually on pixel edges, which might make
+     * NEAREST preferable for large upscalings.
      */
     BOXSAMPLED,
     /**
-     * Unlike BOXSAMPLED, on upscaling it causes smoothing,
-     * but also some blurring.
-     * On downscaling, should use iterations to make sure that
-     * all covered source pixels contribute.
-     * Note that iterations on downscaling can both make it slower
-     * than BOXSAMPLED, and cause the end result to drift further away
-     * from original image than with BOXSAMPLED, due to accumulated deltas,
-     * such as for large downscaling BOXSAMPLED might be preferable.
-     * 
-     * If there is no scaling, is equivalent to NEAREST,
-     * so should delegate to NEAREST in that case for speed.
+     * BILINEAR with iterations for downscaling.
      */
-    BILINEAR,
+    ITERATIVE_BILINEAR,
     /**
-     * Similar to BILINEAR but gives a sharper result,
-     * at the cost of being slower.
-     * On downscaling, same remarks as for BILINEAR.
-     * 
-     * If there is no scaling, is equivalent to NEAREST,
-     * so should delegate to NEAREST in that case for speed.
+     * BICUBIC with iterations for downscaling.
      */
-    BICUBIC,
-    /**
-     * Same as BILINEAR except when downscaling divides width or height
-     * by more than two, in which case, instead of splitting
-     * the downscaling in multiple bilinear iterations,
-     * downscaling is first partially done using BOXSAMPLED,
-     * and then terminated using bilinear with width or height
-     * divided by two.
+    ITERATIVE_BICUBIC,
+    
+    /*
+     * Composite algos, with most useful/usual cases.
      * 
-     * Combines the smoothing qualities of BILINEAR,
-     * with the quality and speed of BOXSAMPLED for large downscalings. 
-     * 
-     * If there is no scaling, is equivalent to NEAREST,
-     * so should delegate to NEAREST in that case for speed.
+     * Useful both in case of non-uniform scaling,
+     * and not to have to change the scaling type
+     * depending on whether we have downscaling or upscaling.
      */
-    BOXSAMPLED_BILINEAR,
+    
     /**
-     * Same as BICUBIC except when downscaling divides width or height
-     * by more than two, in which case, instead of splitting
-     * the downscaling in multiple bicubic iterations,
-     * downscaling is first partially done using BOXSAMPLED,
-     * and then terminated using bicubic with width or height
-     * divided by two.
-     * 
-     * Combines the smoothing and sharpening qualities of BICUBIC,
-     * with the quality and speed of BOXSAMPLED for large downscalings. 
-     * 
-     * If there is no scaling, is equivalent to NEAREST,
-     * so should delegate to NEAREST in that case for speed.
+     * Uses ITERATIVE_BILINEAR for downscaling,
+     * and BICUBIC for upscaling.
+     */
+    ITERATIVE_BILINEAR_BICUBIC,
+    /**
+     * Uses BOXSAMPLED for downscaling,
+     * and BICUBIC for upscaling.
      */
     BOXSAMPLED_BICUBIC;
     

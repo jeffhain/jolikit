@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,18 +21,18 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-import net.jolikit.bwd.api.graphics.GRect;
-import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
 import net.jolikit.bwd.impl.utils.images.InterfaceBwdImageDisposalListener;
+import net.jolikit.lang.LangUtils;
+import net.jolikit.threading.prl.InterfaceParallelizer;
 
 public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
 
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-
-    private final BufferedImageHelper bufferedImageHelper;
-
+    
+    private final BufferedImageHelper bufferedImageHelperArgbPre;
+    
     private final int[] premulArgb32Arr;
 
     //--------------------------------------------------------------------------
@@ -41,13 +41,15 @@ public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
 
     /**
      * @param filePath Path of an image file.
+     * @param parallelizer Must not be null.
      * @param disposalListener Must not be null.
      * @throws NullPointerException if filePath or disposalListener is null.
      * @throws IllegalArgumentException if could not load the specified image.
      */
     public AwtBwdImageFromFile(
-            String filePath,
-            InterfaceBwdImageDisposalListener disposalListener) {
+        String filePath,
+        InterfaceParallelizer parallelizer,
+        InterfaceBwdImageDisposalListener disposalListener) {
         super(disposalListener);
 
         final File file = new File(filePath);
@@ -61,55 +63,61 @@ public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
             // Can happen.
             throw new IllegalArgumentException("could not load image at " + filePath);
         }
-        this.bufferedImageHelper = new BufferedImageHelper(readImage);
+        final BufferedImageHelper bufferedImageHelper =
+            new BufferedImageHelper(readImage);
         
         final int width = readImage.getWidth();
         final int height = readImage.getHeight();
         this.setWidth_final(width);
         this.setHeight_final(height);
         
-        final GRect box = this.getRect();
-
-        final int pixelCapacity = box.area();
-        final int[] color32Arr = new int[pixelCapacity];
-        final int color32ArrScanlineStride = width;
-
-        final BihPixelFormat pixelFormat = BihPixelFormat.ARGB32;
-        final boolean premul = true;
-        this.bufferedImageHelper.getPixelsInto(
+        final BufferedImage bufferedImageArgbPre =
+            BufferedImageHelper.newBufferedImageWithIntArray(
+                null,
+                width,
+                width,
+                height,
+                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+        final BufferedImageHelper bufferedImageHelperArgbPre =
+            new BufferedImageHelper(bufferedImageArgbPre);
+        AwtPrlCopyImage.copyImage(
+            parallelizer,
+            //
+            bufferedImageHelper,
             0,
             0,
             //
-            color32Arr,
-            color32ArrScanlineStride,
-            pixelFormat,
-            premul,
+            bufferedImageHelperArgbPre,
             0,
             0,
             //
             width,
             height);
-        this.premulArgb32Arr = color32Arr;
+        this.bufferedImageHelperArgbPre = bufferedImageHelperArgbPre;
+        
+        this.premulArgb32Arr =
+            LangUtils.requireNonNull(
+                bufferedImageHelperArgbPre.getIntArrayDirectlyUsed());
     }
-
+    
     @Override
-    public BufferedImage getBufferedImage() {
-        return this.bufferedImageHelper.getImage();
+    public BufferedImageHelper getBufferedImageHelperArgbPre() {
+        return this.bufferedImageHelperArgbPre;
     }
-
+    
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
-
+    
     @Override
     protected void disposeImpl() {
         // Nothing to do.
     }
-
+    
     //--------------------------------------------------------------------------
     // PACKAGE-PRIVATE METHODS
     //--------------------------------------------------------------------------
-
+    
     @Override
     int[] getPremulArgb32Arr() {
         return this.premulArgb32Arr;

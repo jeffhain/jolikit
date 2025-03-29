@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2024 Jeff Hain
+ * Copyright 2020-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -64,10 +64,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     // CONFIGURATION
     //--------------------------------------------------------------------------
 
-    /**
-     * NEAREST because we don't bench scaling algorithms here.
-     */
-    private static final BwdScalingType IMAGE_SCALING_TYPE = BwdScalingType.NEAREST;
+    private static final BwdScalingType SCALING_TYPE_NEAREST = BwdScalingType.NEAREST;
     
     /**
      * Normally 0.
@@ -77,6 +74,11 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
     private static final int NBR_OF_MEASURES = 1;
 
+    /**
+     * For class load and a bit more.
+     */
+    private static final int WARMUP_CALL_COUNT = 10;
+    
     /**
      * Not more else can cause much piling-up
      * in asynchronous libraries.
@@ -223,7 +225,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
      */
 
     private static final int INITIAL_WIDTH = 500 + (NBR_OF_MEASURES * 300);
-    private static final int INITIAL_HEIGHT = 500;
+    private static final int INITIAL_HEIGHT = 820;
     private static final GPoint INITIAL_CLIENT_SPANS = GPoint.valueOf(INITIAL_WIDTH, INITIAL_HEIGHT);
 
     //--------------------------------------------------------------------------
@@ -295,7 +297,8 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         //
         DRAW_TEXT(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         //
-        DRAW_IMAGE(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        DRAW_IMAGE_NEAREST(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
+        DRAW_IMAGE_BICU(MyInstanceKind.GRAPHICS, MyOpType.BLEND),
         //
         FLIP_COLORS(MyInstanceKind.GRAPHICS, MyOpType.INVERT),
         //
@@ -334,9 +337,13 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
     private class MyTestable {
         final MyMethodType methodType;
+        /**
+         * Useful when >= 2, to check that eventually delegating
+         * to methods with lower overhead when area is small.
+         */
+        final int spanDiv;
         final MyImageType srcImageType;
         InterfaceBwdGraphics current_testG;
-        MyGraphicsType current_graphicsType;
         boolean current_withAlpha;
         InterfaceBwdFont current_font;
         /**
@@ -350,17 +357,30 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
          * @param methodType Must not be null.
          */
         public MyTestable(MyMethodType methodType) {
-            this(methodType, null);
+            this(methodType, 1, null);
         }
         /**
          * @param methodType Must not be null.
-         * @param srcImageType Only useful for DRAW_IMAGE methods.
+         * @param spanDiv Only used for area methods. Must be >= 1.
+         */
+        public MyTestable(
+            MyMethodType methodType,
+            int spanDiv) {
+            this(methodType, spanDiv, null);
+        }
+        /**
+         * @param methodType Must not be null.
+         * @param spanDiv Only used for area methods. Must be >= 1.
+         * @param srcImageType Only useful for DRAW_IMAGE_XXX methods.
          */
         public MyTestable(
                 MyMethodType methodType,
+                int spanDiv,
                 MyImageType srcImageType) {
             this.methodType = LangUtils.requireNonNull(methodType);
-            if (methodType == MyMethodType.DRAW_IMAGE) {
+            this.spanDiv = NbrsUtils.requireSupOrEq(1, spanDiv, "spanDiv");
+            if ((methodType == MyMethodType.DRAW_IMAGE_NEAREST)
+                || (methodType == MyMethodType.DRAW_IMAGE_BICU)) {
                 LangUtils.requireNonNull(srcImageType);
             }
             this.srcImageType = srcImageType;
@@ -372,6 +392,11 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
             if (this.srcImageType != null) {
                 sb.append(" (src = ");
                 sb.append(this.srcImageType);
+                sb.append(")");
+            }
+            if (this.spanDiv >= 2) {
+                sb.append(" (spans/");
+                sb.append(this.spanDiv);
                 sb.append(")");
             }
             return sb.toString();
@@ -394,7 +419,6 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                 MyGraphicsType graphicsType,
                 boolean withAlpha) {
             this.current_testG = testG;
-            this.current_graphicsType = graphicsType;
             this.current_withAlpha = withAlpha;
 
             // Early and systematic nullification,
@@ -448,7 +472,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
             
             if (this.srcImageType == MyImageType.WI) {
                 /*
-                 * for G.DRAW_IMAGE(WI), or WI.GET_ARGB_32_AT().  
+                 * for G.DRAW_IMAGE_XXX(WI), or WI.GET_ARGB_32_AT().  
                  */
                 
                 final InterfaceBwdWritableImage srcWi =
@@ -473,7 +497,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
              * Setting various pixel values, using images.
              * Taking care to cover the whole box with the image.
              */
-            g.setImageScalingType(IMAGE_SCALING_TYPE);
+            g.setImageScalingType(SCALING_TYPE_NEAREST);
             if (this.current_withAlpha) {
                 final int prevArgb32 = g.getArgb32();
                 
@@ -511,6 +535,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
             return callMethodAt_static(
                     getBinding(),
                     this.methodType,
+                    this.spanDiv,
                     testG,
                     this.current_srcImage,
                     imageFilePath,
@@ -626,7 +651,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
                 TEST_GRAPHICS_HEIGHT);
 
         final InterfaceBwdFontHome fontHome = binding.getFontHome();
-        this.figureHeightFont = binding.getFontHome().newFontWithClosestHeight(
+        this.figureHeightFont = fontHome.newFontWithClosestHeight(
                 FIGURE_HEIGHT);
 
         this.srcImage_opaque_png = binding.newImage(IMAGE_OPAQUE_PNG_FILE_PATH);
@@ -670,6 +695,9 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
         this.srcImage_wi.dispose();
         this.srcImage_wi = null;
+        
+        // To see "Done".
+        this.getHost().ensurePendingClientPainting();
     }
 
     @Override
@@ -940,7 +968,8 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
 
         final boolean isCurrentColorUsed =
                 (testable.instanceKind() == MyInstanceKind.GRAPHICS)
-                && (testable.methodType != MyMethodType.DRAW_IMAGE)
+                && (testable.methodType != MyMethodType.DRAW_IMAGE_NEAREST)
+                && (testable.methodType != MyMethodType.DRAW_IMAGE_BICU)
                 && ((testable.opType() == MyOpType.SET)
                         || (testable.opType() == MyOpType.BLEND));
 
@@ -953,6 +982,9 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
         final int argb32_2 = Argb32.inverted(argb32_1);
 
         int antiOptim = 0;
+        for (int i = 0; i < WARMUP_CALL_COUNT; i++) {
+            antiOptim += testable.callMethodAt(testG, x0, y0);
+        }
 
         int callCount = 0;
 
@@ -1085,6 +1117,7 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
     private static int callMethodAt_static(
             InterfaceBwdBinding binding,
             MyMethodType methodType,
+            int spanDiv,
             InterfaceBwdGraphics testG,
             InterfaceBwdImage srcImg,
             String imageFilePath,
@@ -1213,19 +1246,49 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
             /*
              * 
              */
-            case DRAW_IMAGE: {
+            case DRAW_IMAGE_NEAREST: {
                 // No need to scale, image is of proper size.
                 if ((srcImg.getWidth() != xSpan)
                         || (srcImg.getHeight() != ySpan)) {
                     throw new AssertionError("" + srcImg.getRect());
                 }
-                testG.drawImage(x, y, srcImg);
+                final int width = xSpan / spanDiv;
+                final int height = ySpan / spanDiv;
+                testG.drawImage(
+                    x, y, width, height,
+                    srcImg,
+                    0, 0, width, height);
+            } break;
+            case DRAW_IMAGE_BICU: {
+                if ((srcImg.getWidth() != xSpan)
+                    || (srcImg.getHeight() != ySpan)) {
+                    throw new AssertionError("" + srcImg.getRect());
+                }
+                testG.setImageScalingType(BwdScalingType.ITERATIVE_BICUBIC);
+                // 1/4th of the image scaled up to x/y spans.
+                testG.drawImage(
+                    x,
+                    y,
+                    srcImg.getWidth(),
+                    srcImg.getHeight(),
+                    //
+                    srcImg,
+                    0,
+                    0,
+                    srcImg.getWidth() / 2,
+                    srcImg.getHeight() / 2);
+                testG.setImageScalingType(SCALING_TYPE_NEAREST);
             } break;
             /*
              * 
              */
+            /*
+             * 
+             */
             case FLIP_COLORS: {
-                testG.flipColors(x, y, xSpan, ySpan);
+                final int width = xSpan / spanDiv;
+                final int height = ySpan / spanDiv;
+                testG.flipColors(x, y, width, height);
             } break;
             /*
              * 
@@ -1290,11 +1353,26 @@ public class DrawingBenchBwdTestCase extends AbstractUnitTestBwdTestCase {
      */
 
     private void createTestables() {
+        final int log2MinSpan =
+            NbrsUtils.log2(
+                Math.min(FIGURE_WIDTH, FIGURE_HEIGHT));
+        
         for (MyMethodType methodType : MyMethodType.values()) {
-            if ((methodType == MyMethodType.DRAW_IMAGE)
+            if (methodType == MyMethodType.DRAW_IMAGE_NEAREST) {
+                this.testableList.add(new MyTestable(methodType, 1, MyImageType.IFF));
+                for (int i = 0; i < log2MinSpan; i++) {
+                    final int spanDiv = (1 << i);
+                    this.testableList.add(new MyTestable(methodType, spanDiv, MyImageType.WI));
+                }
+            } else if ((methodType == MyMethodType.DRAW_IMAGE_BICU)
                     || (methodType == MyMethodType.I_GET_ARGB_32_AT_RECT)) {
-                this.testableList.add(new MyTestable(methodType, MyImageType.IFF));
-                this.testableList.add(new MyTestable(methodType, MyImageType.WI));
+                this.testableList.add(new MyTestable(methodType, 1, MyImageType.IFF));
+                this.testableList.add(new MyTestable(methodType, 1, MyImageType.WI));
+            } else if (methodType == MyMethodType.FLIP_COLORS) {
+                for (int i = 0; i < log2MinSpan; i++) {
+                    final int spanDiv = (1 << i);
+                    this.testableList.add(new MyTestable(methodType, spanDiv));
+                }
             } else {
                 this.testableList.add(new MyTestable(methodType));
             }

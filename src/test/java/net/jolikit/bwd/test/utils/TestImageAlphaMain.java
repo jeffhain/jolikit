@@ -27,8 +27,8 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdImage;
 import net.jolikit.bwd.impl.awt.BufferedImageHelper;
 
 /**
- * Tool to create an image with alpha going
- * top to bottom from 255 to 0, from an input image.
+ * Tool to create an image with alpha,
+ * from an input image.
  */
 public class TestImageAlphaMain {
     
@@ -49,10 +49,23 @@ public class TestImageAlphaMain {
          * Vertical lines top to bottom and bottom to top.
          */
         TRANSP_DOWN_AND_UP_LINES,
+        /**
+         * From opaque to transparent
+         * depending on color intensity,
+         * cf. INTENSITY_ALPHA_XXX params.
+         */
+        INTENSITY_ALPHA,
     }
     
     private static final MyAlphaType ALPHA_TYPE = MyAlphaType.NO_STATEMENT;
-        
+
+    private static final boolean INTENSITY_ALPHA_BLACK_TR_ELSE_OP = false;
+    private static final boolean INTENSITY_ALPHA_RGB_ELSE_GRAY = false;
+
+    private static final double GRAY_R_WEIGHT = 0.299;
+    private static final double GRAY_G_WEIGHT = 0.587;
+    private static final double GRAY_B_WEIGHT = 0.114;
+    
     private static final String INPUT_IMG_PATH =
         BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_PNG;
     private static final String OUTPUT_IMG_PATH =
@@ -120,7 +133,7 @@ public class TestImageAlphaMain {
                     dstBiArr[sw * y + x] = dstArgb32;
                 }
             }
-        } else {
+        } else if (ALPHA_TYPE == MyAlphaType.TRANSP_DOWN_AND_UP_LINES) {
             boolean flipFlop = false;
             for (int x = 0; x < sw; x++) {
                 flipFlop = !flipFlop;
@@ -143,6 +156,34 @@ public class TestImageAlphaMain {
                     dstBiArr[sw * y + x] = dstArgb32;
                 }
             }
+        } else if (ALPHA_TYPE == MyAlphaType.INTENSITY_ALPHA) {
+            for (int y = 0; y < sh; y++) {
+                for (int x = 0; x < sw; x++) {
+                    final int srcArgb32 = srcImg.getArgb32At(x, y);
+                    final double srFp = Argb32.getRedFp(srcArgb32);
+                    final double sgFp = Argb32.getGreenFp(srcArgb32);
+                    final double sbFp = Argb32.getBlueFp(srcArgb32);
+                    final double intensityFp;
+                    if (INTENSITY_ALPHA_RGB_ELSE_GRAY) {
+                        intensityFp = (srFp + sgFp + sbFp) / 3.0;
+                    } else {
+                        intensityFp =
+                            GRAY_R_WEIGHT * srFp
+                            + GRAY_G_WEIGHT * sgFp
+                            + GRAY_B_WEIGHT * sbFp;
+                    }
+                    final double dAlphaFp;
+                    if (INTENSITY_ALPHA_BLACK_TR_ELSE_OP) {
+                        dAlphaFp = intensityFp;
+                    } else {
+                        dAlphaFp = (1.0 - intensityFp);
+                    }
+                    final int dstArgb32 = Argb32.withAlphaFp(srcArgb32, dAlphaFp);
+                    dstBiArr[sw * y + x] = dstArgb32;
+                }
+            }
+        } else {
+            // no-op
         }
         /*
          * 
