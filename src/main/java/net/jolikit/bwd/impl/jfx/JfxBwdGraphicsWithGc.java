@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -271,8 +271,9 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
     
     /**
      * Lazily computed.
+     * Stays null if color is already opaque.
      */
-    private Color backingColorOpaque = null;
+    private Color backingColorOpacified = null;
     
     /*
      * Common adjustments for some methods.
@@ -383,22 +384,26 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
 
         final Color backingColor = (Color) gc.getStroke();
 
-        Color backingColorOpaque = this.backingColorOpaque;
-        if (backingColorOpaque == null) {
+        Color backingColorOpacified = this.backingColorOpacified;
+        if (backingColorOpacified == null) {
             final long argb64 = this.getArgb64();
             if (Argb64.isOpaque(argb64)) {
-                backingColorOpaque = backingColor;
+                backingColorOpacified = null;
             } else {
-                backingColorOpaque = JfxUtils.newColor(Argb64.toOpaque(argb64));
+                backingColorOpacified = JfxUtils.newColor(Argb64.toOpaque(argb64));
             }
-            this.backingColorOpaque = backingColorOpaque;
+            this.backingColorOpacified = backingColorOpacified;
         }
 
-        gc.setFill(backingColorOpaque);
+        if (backingColorOpacified != null) {
+            gc.setFill(backingColorOpacified);
+        }
         try {
             this.fillRect(x, y, xSpan, ySpan);
         } finally {
-            gc.setFill(backingColor);
+            if (backingColorOpacified != null) {
+                gc.setFill(backingColor);
+            }
         }
     }
     
@@ -826,7 +831,7 @@ public class JfxBwdGraphicsWithGc extends AbstractBwdGraphics {
         /*
          * Computed lazily (rarely used).
          */
-        this.backingColorOpaque = null;
+        this.backingColorOpacified = null;
     }
 
     @Override
