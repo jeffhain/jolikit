@@ -364,7 +364,8 @@ public class AwtPrlDrawImage {
     }
     
     private static Map<RenderingHints.Key, Object> toInterpolationHintMap(Object hint) {
-        final Map<RenderingHints.Key, Object> map = new HashMap<>(1);
+        final Map<RenderingHints.Key, Object> map =
+            new HashMap<RenderingHints.Key, Object>(1);
         map.put(RenderingHints.KEY_INTERPOLATION, hint);
         return Collections.unmodifiableMap(map);
     }
