@@ -209,6 +209,12 @@ public class BufferedImageHelperTest extends TestCase {
         }
     }
     
+    public void test_BufferedImageHelper_BihPixelFormat() {
+        final boolean mustTestContructor = true;
+        this.test_newBufferedImageWithIntArrayOrConstructor_BihPixelFormat_xxx(
+            mustTestContructor);
+    }
+    
     /*
      * 
      */
@@ -423,6 +429,13 @@ public class BufferedImageHelperTest extends TestCase {
     }
     
     public void test_newBufferedImageWithIntArray_BihPixelFormat() {
+        final boolean mustTestContructor = false;
+        this.test_newBufferedImageWithIntArrayOrConstructor_BihPixelFormat_xxx(mustTestContructor);
+    }
+    
+    public void test_newBufferedImageWithIntArrayOrConstructor_BihPixelFormat_xxx(
+        boolean mustTestContructor) {
+        
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         
@@ -433,13 +446,23 @@ public class BufferedImageHelperTest extends TestCase {
          * Null pixel format.
          */
         try {
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                null,
-                imageWidth,
-                imageWidth,
-                imageHeight,
-                null,
-                false);
+            if (mustTestContructor) {
+                new BufferedImageHelper(
+                    null,
+                    imageWidth,
+                    imageWidth,
+                    imageHeight,
+                    null,
+                    false).hashCode(); // hashCode() anti-warning
+            } else {
+                BufferedImageHelper.newBufferedImageWithIntArray(
+                    null,
+                    imageWidth,
+                    imageWidth,
+                    imageHeight,
+                    null,
+                    false);
+            }
             fail();
         } catch (NullPointerException e) {
             assertNotNull(e);
@@ -450,13 +473,23 @@ public class BufferedImageHelperTest extends TestCase {
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
             if (!pixelFormat.hasAlpha()) {
                 try {
-                    BufferedImageHelper.newBufferedImageWithIntArray(
-                        null,
-                        imageWidth,
-                        imageWidth,
-                        imageHeight,
-                        pixelFormat,
-                        true);
+                    if (mustTestContructor) {
+                        new BufferedImageHelper(
+                            null,
+                            imageWidth,
+                            imageWidth,
+                            imageHeight,
+                            pixelFormat,
+                            true).hashCode(); // hashCode() anti-warning
+                    } else {
+                        BufferedImageHelper.newBufferedImageWithIntArray(
+                            null,
+                            imageWidth,
+                            imageWidth,
+                            imageHeight,
+                            pixelFormat,
+                            true);
+                    }
                     fail();
                 } catch (IllegalArgumentException e) {
                     assertNotNull(e);
@@ -471,14 +504,24 @@ public class BufferedImageHelperTest extends TestCase {
         for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
             for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
                 final int scanlineStride = imageWidth + 1;
-                final BufferedImage image =
-                    BufferedImageHelper.newBufferedImageWithIntArray(
+                final BufferedImage image;
+                if (mustTestContructor) {
+                    image = new BufferedImageHelper(
+                        null,
+                        scanlineStride,
+                        imageWidth,
+                        imageHeight,
+                        pixelFormat,
+                        premul).getImage();
+                } else {
+                    image = BufferedImageHelper.newBufferedImageWithIntArray(
                         null,
                         scanlineStride,
                         imageWidth,
                         imageHeight,
                         pixelFormat,
                         premul);
+                }
                 assertEquals(imageWidth, image.getWidth());
                 assertEquals(imageHeight, image.getHeight());
                 final int expectedImageType =
@@ -503,14 +546,24 @@ public class BufferedImageHelperTest extends TestCase {
             final int[] pixelArr = new int[length];
             for (BihPixelFormat pixelFormat : BihPixelFormat.values()) {
                 for (boolean premul : BihTestUtils.newPremulArr(pixelFormat)) {
-                    final BufferedImage image =
-                        BufferedImageHelper.newBufferedImageWithIntArray(
+                    final BufferedImage image;
+                    if (mustTestContructor) {
+                        image = new BufferedImageHelper(
+                            pixelArr,
+                            scanlineStride,
+                            imageWidth,
+                            imageHeight,
+                            pixelFormat,
+                            premul).getImage();
+                    } else {
+                        image = BufferedImageHelper.newBufferedImageWithIntArray(
                             pixelArr,
                             scanlineStride,
                             imageWidth,
                             imageHeight,
                             pixelFormat,
                             premul);
+                    }
                     assertEquals(imageWidth, image.getWidth());
                     assertEquals(imageHeight, image.getHeight());
                     final int expectedImageType =
@@ -1557,73 +1610,146 @@ public class BufferedImageHelperTest extends TestCase {
         final int imageWidth = SMALL_WIDTH;
         final int imageHeight = SMALL_HEIGHT;
         for (BufferedImage image : BihTestUtils.newImageListOfDimWithStrides(imageWidth, imageHeight)) {
-            
-            final BufferedImageHelper helper = new BufferedImageHelper(image);
-            
-            final boolean hasBihPixelFormat = (helper.getPixelFormat() != null);
-            
-            final int initialNonPremulArgb32 = helper.getNonPremulArgb32At(0, 0);
-            
-            for (boolean flipFlop : new boolean[] {false, true}) {
-                int nonPremulArgb32;
-                int argb32;
-                boolean premul;
-                if (hasBihPixelFormat) {
-                    nonPremulArgb32 = 0xC0806040;
-                    if (!helper.hasAlpha()) {
-                        nonPremulArgb32 = Argb32.toOpaque(nonPremulArgb32);
-                    }
-                    final int premulArgb32 =
-                        BindingColorUtils.toPremulAxyz32(nonPremulArgb32);
-                    // Must be bijective.
-                    BihTestUtils.checkColorEquals(
-                        nonPremulArgb32,
-                        BindingColorUtils.toNonPremulAxyz32(premulArgb32));
-                    
-                    premul = flipFlop;
-                    argb32 = (premul ? premulArgb32 : nonPremulArgb32);
-                } else {
-                    // Works for all image types.
+            for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
+                for (int k = 0; k <= 0xF; k++) {
+                    final boolean leftHit = ((k & 1) != 0);
+                    final boolean rightHit = ((k & 2) != 0);
+                    final boolean topHit = ((k & 4) != 0);
+                    final boolean bottomHit = ((k & 8) != 0);
+                    test_clearRect_xxx(
+                        helper,
+                        leftHit,
+                        rightHit,
+                        topHit,
+                        bottomHit);
+                }
+            }
+        }
+    }
+    
+    public void test_clearRect_xxx(
+        BufferedImageHelper helper,
+        boolean leftHit,
+        boolean rightHit,
+        boolean topHit,
+        boolean bottomHit) {
+        
+        // Always the same random initial state.
+        final Random random = BihTestUtils.newRandom();
+        BihTestUtils.randomizeHelper(
+            random,
+            helper,
+            false);
+        
+        final int iw = helper.getWidth();
+        final int ih = helper.getHeight();
+        
+        final BufferedImageHelper copyHelper =
+            BihTestUtils.newSameTypeImageAndHelper(helper);
+        BufferedImageHelper.copyImage(helper, 0, 0, copyHelper, 0, 0, iw, ih);
+        
+        final int imageType = helper.getImageType();
+        final BihPixelFormat pixelFormat = helper.getPixelFormat();
+        final boolean hasBihPixelFormat = (pixelFormat != null);
+        
+        final int rx = (leftHit ? 0 : 1);
+        final int ry = (topHit ? 0 : 1);
+        final int rw = (iw - rx) - (rightHit ? 0 : 1);
+        final int rh = (ih - ry) - (bottomHit ? 0 : 1);
+        if (DEBUG) {
+            System.out.println();
+            System.out.println("imageType = " + imageType);
+            System.out.println("pixelFormat = " + pixelFormat);
+            System.out.println("rx = " + rx);
+            System.out.println("ry = " + ry);
+            System.out.println("rw = " + rw);
+            System.out.println("rh = " + rh);
+        }
+
+        for (boolean flipFlop : new boolean[] {false, true}) {
+            int nonPremulArgb32;
+            int argb32;
+            boolean premul;
+            if (hasBihPixelFormat
+                || (imageType == BufferedImage.TYPE_4BYTE_ABGR_PRE)) {
+                /*
+                 * flipFlop: alternating between non-premul and premul.
+                 */
+                nonPremulArgb32 = 0xC0806040;
+                if (!helper.hasAlpha()) {
+                    nonPremulArgb32 = Argb32.toOpaque(nonPremulArgb32);
+                }
+                final int premulArgb32 =
+                    BindingColorUtils.toPremulAxyz32(nonPremulArgb32);
+                // Must be bijective.
+                BihTestUtils.checkColorEquals(
+                    nonPremulArgb32,
+                    BindingColorUtils.toNonPremulAxyz32(premulArgb32));
+                
+                premul = flipFlop;
+                argb32 = (premul ? premulArgb32 : nonPremulArgb32);
+            } else {
+                /*
+                 * flipFlop: alternating between two colors.
+                 */
+                if (imageType == BufferedImage.TYPE_BYTE_BINARY) {
                     nonPremulArgb32 = (flipFlop ? 0xFFFFFFFF : 0xFF000000);
-                    
-                    premul = false;
-                    argb32 = nonPremulArgb32;
+                } else if ((imageType == BufferedImage.TYPE_BYTE_GRAY)
+                    || (imageType == BufferedImage.TYPE_USHORT_GRAY)) {
+                    nonPremulArgb32 = (flipFlop ? 0xFF888888 : 0xFF666666);
+                } else if (imageType == BufferedImage.TYPE_BYTE_INDEXED) {
+                    nonPremulArgb32 = (flipFlop ? 0xFF00FF00 : 0xFFFF00FF);
+                } else {
+                    /*
+                     * Works for all remaining types.
+                     */
+                    nonPremulArgb32 = (flipFlop ? 0xFF42FF21 : 0xFFFF10FF);
                 }
-                
-                /*
-                 * Clearing.
-                 */
-                
-                helper.clearRect(1, 1, 3, 2, argb32, premul);
-                
-                // Rectangle cleared.
-                for (int x = 1; x <= 3; x++) {
-                    for (int y = 1; y <= 2; y++) {
-                        final int actualArgb32 = helper.getNonPremulArgb32At(x, y);
-                        BihTestUtils.checkColorEquals(nonPremulArgb32, actualArgb32);
+                premul = false;
+                argb32 = nonPremulArgb32;
+            }
+            
+            /*
+             * Clearing.
+             */
+            
+            helper.clearRect(rx, ry, rw, rh, argb32, premul);
+            
+            // Rectangle cleared.
+            for (int py = ry; py < ry + rh; py++) {
+                for (int px = rx; px < rx + rw; px++) {
+                    final int actualArgb32 = helper.getNonPremulArgb32At(px, py);
+                    BihTestUtils.checkColorEquals(nonPremulArgb32, actualArgb32);
+                }
+            }
+            
+            // Surroundings not cleared.
+            for (int py : new int[] {ry - 1, ry + rh}) {
+                for (int px : new int[] {rx - 1, rx + rw}) {
+                    if ((px >= 0)
+                        && (py >= 0)
+                        && (px < iw)
+                        && (py < ih)) {
+                        final int expectedNonPremulArgb32 = copyHelper.getNonPremulArgb32At(px, py);
+                        final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(px, py);
+                        BihTestUtils.checkColorEquals(
+                            expectedNonPremulArgb32,
+                            actualNonPremulArgb32);
                     }
                 }
-                
-                // Surroundings not cleared.
-                for (int x : new int[] {0, 4}) {
-                    for (int y : new int[] {0, 3}) {
-                        final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                        BihTestUtils.checkColorEquals(initialNonPremulArgb32, actualNonPremulArgb32);
-                    }
-                }
-                
-                /*
-                 * Clearing again.
-                 */
-                
-                helper.clearRect(1, 1, 3, 2, argb32, premul);
-                
-                // Still same color: equivalent to draw() not set().
-                for (int x = 1; x <= 3; x++) {
-                    for (int y = 1; y <= 2; y++) {
-                        final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(x, y);
-                        BihTestUtils.checkColorEquals(nonPremulArgb32, actualNonPremulArgb32);
-                    }
+            }
+            
+            /*
+             * Clearing again.
+             */
+            
+            helper.clearRect(rx, ry, rw, rh, argb32, premul);
+            
+            // Still same color: equivalent to set() not draw().
+            for (int py = ry; py < ry + rh; py++) {
+                for (int px = rx; px < rx + rw; px++) {
+                    final int actualNonPremulArgb32 = helper.getNonPremulArgb32At(px, py);
+                    BihTestUtils.checkColorEquals(nonPremulArgb32, actualNonPremulArgb32);
                 }
             }
         }

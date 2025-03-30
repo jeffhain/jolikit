@@ -16,6 +16,8 @@
 package net.jolikit.bwd.impl.awt;
 
 import java.awt.AlphaComposite;
+import java.awt.Color;
+import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.RenderingHints;
@@ -371,9 +373,22 @@ public class BufferedImageHelper {
      */
     private final BihPixelFormat pixelFormat;
     
+    /**
+     * If true, can use graphics methods that don't use color more,
+     * such as drawImage() or fillRect().
+     */
     private final boolean isCmaAllowed;
+    
+    /**
+     * If true, can use eventual array directly.
+     */
     private final boolean isAduAllowed;
     
+    /**
+     * Might not be able to avoid color model for single-pixel methods
+     * even though isCmaAllowed is true,
+     * because that also requires direct access to an actual array.
+     */
     private final MySinglePixelCmaType singlePixelCmaType;
     
     /**
@@ -513,6 +528,77 @@ public class BufferedImageHelper {
         this.bytePixelArr = byteArr;
     }
     
+    /**
+     * Creates a helper and the corresponding buffered image.
+     * Equivalent to creating the corresponding image,
+     * and then doing "new BufferedImageHelper(image)" on it. 
+     * 
+     * Designed for efficient (image + helper) creation,
+     * by avoiding the image analysis done in other constructors.
+     * 
+     * @param pixelArr The int array of pixels to use, or null for the array
+     *        to use to be created by the internal DataBufferInt,
+     *        and then retrieved afterwards with DataBufferInt.getData().
+     * @param scanlineStride Scanline stride to use. Must be >= width.
+     * @param width Image width. Must be >= 1.
+     * @param height Image height. Must be >= 1.
+     * @param pixelFormat The pixel format to use.
+     * @param premul Whether pixels must be alpha premultiplied.
+     * @throws NullPointerException if the specified pixel format is null.
+     * @throws IllegalArgumentException if the specified width or height
+     *         are not strictly positive, or the specified scanline stride
+     *         is inferior to width, or this triplet of values is too large
+     *         for int range or for the specified array length (if any),
+     *         or the specified pixel format has no alpha and premul is true.
+     * @throws ArithmeticException if the specified width and height
+     *         cause int overflow when multiplied with each other.
+     * @throws OutOfMemoryError if the specified array is null
+     *         and the array to create is too large for VM limit.
+     */
+    public BufferedImageHelper(
+        int[] pixelArr,
+        int scanlineStride,
+        //
+        int width,
+        int height,
+        //
+        BihPixelFormat pixelFormat,
+        boolean premul) {
+        
+        // Does all the required checks.
+        final BufferedImage image =
+            newBufferedImageWithIntArray(
+                pixelArr,
+                scanlineStride,
+                //
+                width,
+                height,
+                //
+                pixelFormat,
+                premul);
+        if (pixelArr == null) {
+            pixelArr = getIntArray(image);
+        }
+        
+        this.image = image;
+        this.imageWidth = width;
+        this.imageHeight = height;
+        
+        this.scanlineStride = scanlineStride;
+        
+        this.pixelFormat = pixelFormat;
+        
+        this.isCmaAllowed = true;
+        this.isAduAllowed = true;
+        
+        this.singlePixelCmaType = MySinglePixelCmaType.INT_BIH_PIXEL_FORMAT;
+        
+        this.pixelArr = pixelArr;
+        this.intPixelArr = pixelArr;
+        this.shortPixelArr = null;
+        this.bytePixelArr = null;
+    }
+
     /**
      * Copy constructor.
      * Can be called concurrently with toCopy usage.
@@ -817,9 +903,13 @@ public class BufferedImageHelper {
             throw new IllegalArgumentException(
                 "premul can't be true for " + pixelFormat);
         }
-        return newBufferedImageWithIntArray(
+        final boolean mustCheckFormat = false;
+        return newBufferedImageWithIntArray_internal(
+            mustCheckFormat,
+            //
             pixelArr,
             scanlineStride,
+            //
             width,
             height,
             //
@@ -878,111 +968,22 @@ public class BufferedImageHelper {
         int gIndex,
         int bIndex) {
         
-        NbrsUtils.requireSupOrEq(1, width, "width");
-        NbrsUtils.requireSupOrEq(1, height, "height");
-        NbrsUtils.requireSupOrEq(width, scanlineStride, "scanlineStride");
-        {
-            final int bound =
-                (pixelArr != null) ? pixelArr.length : Integer.MAX_VALUE;
-            // Check in long to avoid overflow/wrapping.
-            NbrsUtils.requireInfOrEq(
-                bound,
-                (height - 1) * (long) scanlineStride + width,
-                "(height-1)*scanlineStride+width");
-        }
-        
-        final int area = NbrsUtils.timesExact(width, height);
-        
-        if (premul) {
-            NbrsUtils.requireInRange(0, 3, aIndex, "aIndex");
-        } else {
-            NbrsUtils.requireInRange(-1, 3, aIndex, "aIndex");
-        }
-        
-        final boolean gotAlpha = (aIndex >= 0);
-        if (gotAlpha) {
-            NbrsUtils.requireInRange(0, 3, rIndex, "rIndex");
-            NbrsUtils.requireInRange(0, 3, gIndex, "gIndex");
-            NbrsUtils.requireInRange(0, 3, bIndex, "bIndex");
-        } else {
-            NbrsUtils.requireInRange(1, 3, rIndex, "rIndex");
-            NbrsUtils.requireInRange(1, 3, gIndex, "gIndex");
-            NbrsUtils.requireInRange(1, 3, bIndex, "bIndex");
-        }
-        
-        /*
-         * 
-         */
-        
-        final int bitSize = (gotAlpha ? 32 : 24);
-        
-        final int rMask = computeCptMask(rIndex);
-        final int gMask = computeCptMask(gIndex);
-        final int bMask = computeCptMask(bIndex);
-        final int aMask = computeCptMask(aIndex);
-        
-        // Index unicity check (can't count on JDK treatments for it).
-        // Fast no-GC check by using masks.
-        {
-            int allMask = rMask | gMask | bMask;
-            if (gotAlpha) {
-                allMask |= aMask;
-            }
-            if (Integer.bitCount(allMask) != bitSize) {
-                throw new IllegalArgumentException(
-                    "some components share a same index");
-            }
-        }
-        
-        /*
-         * 
-         */
-        
-        final int[] bitMasks;
-        final DirectColorModel colorModel;
-        if (gotAlpha) {
-            bitMasks = new int[] {rMask, gMask, bMask, aMask};
-            colorModel = new DirectColorModel(
-                ColorSpace.getInstance(ColorSpace.CS_sRGB),
-                bitSize,
-                rMask,
-                gMask,
-                bMask,
-                aMask,
-                premul,
-                DataBuffer.TYPE_INT);
-        } else {
-            bitMasks = new int[] {rMask, gMask, bMask};
-            colorModel = new DirectColorModel(bitSize, rMask, gMask, bMask);
-        }
-        
-        final SampleModel sampleModel = new SinglePixelPackedSampleModel(
-            DataBuffer.TYPE_INT,
+        final boolean mustCheckFormat = true;
+        return newBufferedImageWithIntArray_internal(
+            mustCheckFormat,
+            //
+            pixelArr,
+            scanlineStride,
+            //
             width,
             height,
-            scanlineStride,
-            bitMasks);
-        final DataBuffer dataBuffer;
-        if (pixelArr != null) {
-            dataBuffer = new DataBufferInt(
-                pixelArr,
-                area);
-        } else {
-            final int arrayLength =
-                (height - 1) * scanlineStride + width;
-            dataBuffer = new DataBufferInt(arrayLength);
-        }
-        final Point upperLeftLocation = new Point(0,0);
-        final WritableRaster raster = Raster.createWritableRaster(
-            sampleModel,
-            dataBuffer,
-            upperLeftLocation);
-        final BufferedImage image = new BufferedImage(
-            colorModel,
-            raster,
+            //
             premul,
-            null);
-        return image;
+            aIndex,
+            //
+            rIndex,
+            gIndex,
+            bIndex);
     }
     
     /*
@@ -1324,6 +1325,33 @@ public class BufferedImageHelper {
                 height,
                 //
                 pixel);
+        } else if (this.isCmaAllowed
+            && Argb32.isOpaque(argb32)) {
+            /*
+             * From clearRect(...) javadoc:
+             * "Beginning with Java 1.1, the background color
+             * of offscreen images may be system dependent.
+             * Applications should use setColor(...) followed by
+             * fillRect(...) to ensure that an offscreen image
+             * is cleared to a specific color."
+             * 
+             * Also, Graphics.fillRect(...) doesn't work properly
+             * for non-opaque colors, even with AlphaComposite.Src,
+             * so only using it if opaque.
+             * 
+             * Arrays.fill() is faster than Graphics.fillRect(...),
+             * maybe because optimized by the VM, so only using
+             * Graphics.fillRect() if could not use array.
+             */
+            final Graphics g = createGraphicsForCopy(this.image);
+            try {
+                // Color always opaque here so premul doesn't count.
+                final Color color = new Color(argb32);
+                g.setColor(color);
+                g.fillRect(x, y, width, height);
+            } finally {
+                g.dispose();
+            }
         } else {
             final WritableRaster raster = this.image.getRaster();
             for (int j = 0; j < height; j++) {
@@ -1648,6 +1676,138 @@ public class BufferedImageHelper {
     //--------------------------------------------------------------------------
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
+    
+    /**
+     * @return mustCheckFormat Use false for trusted code, for speed. 
+     */
+    private static BufferedImage newBufferedImageWithIntArray_internal(
+        boolean mustCheckFormat,
+        //
+        int[] pixelArr,
+        int scanlineStride,
+        //
+        int width,
+        int height,
+        //
+        boolean premul,
+        int aIndex,
+        //
+        int rIndex,
+        int gIndex,
+        int bIndex) {
+        
+        NbrsUtils.requireSupOrEq(1, width, "width");
+        NbrsUtils.requireSupOrEq(1, height, "height");
+        NbrsUtils.requireSupOrEq(width, scanlineStride, "scanlineStride");
+        {
+            final int bound =
+                (pixelArr != null) ? pixelArr.length : Integer.MAX_VALUE;
+            // Check in long to avoid overflow/wrapping.
+            NbrsUtils.requireInfOrEq(
+                bound,
+                (height - 1) * (long) scanlineStride + width,
+                "(height-1)*scanlineStride+width");
+        }
+        
+        final int area = NbrsUtils.timesExact(width, height);
+        
+        final boolean gotAlpha = (aIndex >= 0);
+        if (mustCheckFormat) {
+            if (premul) {
+                NbrsUtils.requireInRange(0, 3, aIndex, "aIndex");
+            } else {
+                NbrsUtils.requireInRange(-1, 3, aIndex, "aIndex");
+            }
+            
+            if (gotAlpha) {
+                NbrsUtils.requireInRange(0, 3, rIndex, "rIndex");
+                NbrsUtils.requireInRange(0, 3, gIndex, "gIndex");
+                NbrsUtils.requireInRange(0, 3, bIndex, "bIndex");
+            } else {
+                NbrsUtils.requireInRange(1, 3, rIndex, "rIndex");
+                NbrsUtils.requireInRange(1, 3, gIndex, "gIndex");
+                NbrsUtils.requireInRange(1, 3, bIndex, "bIndex");
+            }
+        }
+        
+        /*
+         * 
+         */
+        
+        final int bitSize = (gotAlpha ? 32 : 24);
+        
+        final int rMask = computeCptMask(rIndex);
+        final int gMask = computeCptMask(gIndex);
+        final int bMask = computeCptMask(bIndex);
+        final int aMask = computeCptMask(aIndex);
+        
+        // Index unicity check (can't count on JDK treatments for it).
+        // Fast no-GC check by using masks.
+        if (mustCheckFormat) {
+            int allMask = rMask | gMask | bMask;
+            if (gotAlpha) {
+                allMask |= aMask;
+            }
+            if (Integer.bitCount(allMask) != bitSize) {
+                throw new IllegalArgumentException(
+                    "some components share a same index");
+            }
+        }
+        
+        /*
+         * 
+         */
+        
+        final int[] bitMasks;
+        final DirectColorModel colorModel;
+        if (gotAlpha) {
+            bitMasks = new int[] {rMask, gMask, bMask, aMask};
+            colorModel = new DirectColorModel(
+                ColorSpace.getInstance(ColorSpace.CS_sRGB),
+                bitSize,
+                rMask,
+                gMask,
+                bMask,
+                aMask,
+                premul,
+                DataBuffer.TYPE_INT);
+        } else {
+            bitMasks = new int[] {rMask, gMask, bMask};
+            colorModel = new DirectColorModel(bitSize, rMask, gMask, bMask);
+        }
+        
+        final SampleModel sampleModel = new SinglePixelPackedSampleModel(
+            DataBuffer.TYPE_INT,
+            width,
+            height,
+            scanlineStride,
+            bitMasks);
+        final DataBuffer dataBuffer;
+        if (pixelArr != null) {
+            dataBuffer = new DataBufferInt(
+                pixelArr,
+                area);
+        } else {
+            final int arrayLength =
+                (height - 1) * scanlineStride + width;
+            dataBuffer = new DataBufferInt(arrayLength);
+        }
+        final Point upperLeftLocation = new Point(0,0);
+        final WritableRaster raster = Raster.createWritableRaster(
+            sampleModel,
+            dataBuffer,
+            upperLeftLocation);
+        final BufferedImage image = new BufferedImage(
+            colorModel,
+            raster,
+            premul,
+            null);
+        return image;
+    }
+    
+    /*
+     * 
+     */
     
     /**
      * @throws ArrayIndexOutOfBoundsException if not in image.

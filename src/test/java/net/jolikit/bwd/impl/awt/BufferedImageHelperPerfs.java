@@ -136,7 +136,9 @@ public class BufferedImageHelperPerfs {
         }
         
         if (MUST_BENCH_CLEAR_METHOD) {
-            bench_clearRect_3840_2160();
+            bench_clearRect_3840_2160_opaque();
+            
+            bench_clearRect_3840_2160_translucent();
         }
         
         if (MUST_BENCH_BULK_GET_METHODS) {
@@ -375,27 +377,34 @@ public class BufferedImageHelperPerfs {
      * 
      */
     
-    private static void bench_clearRect_3840_2160() {
-        bench_clearRect_xxx(10, 3840, 2160);
+    private static void bench_clearRect_3840_2160_opaque() {
+        bench_clearRect_xxx(10, 3840, 2160, false);
+    }
+    
+    private static void bench_clearRect_3840_2160_translucent() {
+        bench_clearRect_xxx(10, 3840, 2160, true);
     }
     
     private static void bench_clearRect_xxx(
         int bulkNbrOfCalls,
         int width,
-        int height) {
+        int height,
+        boolean withTranslucency) {
         
-        /*
-         * No need to bench premul vs non-premul,
-         * or translucent vs opaque,
-         * since input color is only converted once
-         * into pixel to set.
-         */
-        final int clearNonPremulArgb32 = 0x87654321;
+        int clearNonPremulArgb32 = 0x87654321;
+        if (!withTranslucency) {
+            clearNonPremulArgb32 = Argb32.toOpaque(clearNonPremulArgb32);
+        }
         
         // Separation between input types.
         System.out.println();
         
         for (BufferedImage image : BihTestUtils.newImageListOfDimNoStrides(width, height)) {
+            if (withTranslucency
+                && (!image.getColorModel().hasAlpha())) {
+                // N/A
+                continue;
+            }
             
             final boolean imagePremul = image.isAlphaPremultiplied();
             
@@ -406,9 +415,7 @@ public class BufferedImageHelperPerfs {
             final TestImageTypeEnum imageTypeEnum =
                 TestImageTypeEnum.enumByType().get(imageType);
             
-            // clearRect() uses single-pixel CMA avoidance,
-            // not (allow flag, drawImage()).
-            for (BufferedImageHelper helper : BihTestUtils.newHelperListForSinglePixel(image)) {
+            for (BufferedImageHelper helper : BihTestUtils.newHelperList(image)) {
                 
                 for (int k = 0; k < NBR_OF_RUNS; k++) {
                     int antiOptim = 0;
@@ -429,10 +436,9 @@ public class BufferedImageHelperPerfs {
                     System.out.println(bulkNbrOfCalls + " call"
                         + (bulkNbrOfCalls >= 2 ? "s" : "")
                         + ", " + methodStr
+                        + ", " + (withTranslucency ? "(tr)" : "(op)")
                         + ", " + typeStr
-                        // clearRect() uses single-pixel CMA avoidance,
-                        // not (allow flag, drawImage()).
-                        + toStringHelperCapabilitiesForSinglePixel(helper)
+                        + toStringHelperCapabilitiesForBulk(helper)
                         + ", took " + BihTestUtils.nsToSRounded(b-a) + " s");
                 }
             }
