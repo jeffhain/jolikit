@@ -15,13 +15,11 @@
  */
 package net.jolikit.bwd.impl.awt;
 
-import java.awt.AlphaComposite;
-import java.awt.Composite;
 import java.awt.Container;
 import java.awt.Graphics2D;
 import java.awt.Insets;
-import java.awt.Window;
 import java.awt.image.BufferedImage;
+import java.awt.image.ImageObserver;
 import java.util.List;
 
 import net.jolikit.bwd.api.graphics.GPoint;
@@ -30,65 +28,24 @@ import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.impl.utils.InterfaceBwdBindingImpl;
 import net.jolikit.bwd.impl.utils.basics.ScaleHelper;
 
-public class AwtPaintUtils {
-    
-    //--------------------------------------------------------------------------
-    // CONFIGURATION
-    //--------------------------------------------------------------------------
-    
-    /**
-     * No need, because default composite is SRC_OVER,
-     * and our client background is always opaque.
-     */
-    private static final boolean MUST_SET_ALPHA_1_COMPOSITE = false;
+public class AwtHostPaintHelper {
     
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
     
-    /**
-     * TODO awt TODO mac On Mac, at some point had trouble when using
-     * buffered images of type TYPE_INT_ARGB: painting did visibly show up
-     * only after some delay, or if we used a lot of drawXxx() primitives
-     * on window graphics (like when painting pixels one by one)
-     * (this workaround seemed to only work if client area height was above
-     * about 210), or did never show up in case of window painting frenzy
-     * such as in benches.
-     * For some time our workaround was to use TYPE_INT_RGB instead on Mac,
-     * which for some reason still allowed to do semi-transparent painting,
-     * although it could make things much slower (most likely because of
-     * conversions needed between "ARGB" and "RGB_").
-     * Another workaround was to do all of these:
-     * - have repaint() call super.repaint()
-     * - have paint() call paintComponentNowOnG()
-     *   and/or have paintComponents() call paintComponentNowOnG()
-     * - have paintClientNowOrLater() call window.repaint()
-     * Lately though, we didn't encounter this issue anymore,
-     * and now we always use TYPE_INT_ARGB_PRE, which is required
-     * by our AwtBwdGraphicsWithIntArr implementation.
-     * 
-     * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB(_PRE),
-     * and black if using BufferedImage.TYPE_INT_RGB.
-     */
-    public static final int COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE =
-        BufferedImage.TYPE_INT_ARGB_PRE;
-    
-    /*
-     * 
-     */
-    
     private BufferedImage currentPainting_offscreenImageInBd;
+    
+    //--------------------------------------------------------------------------
+    // CONSTRUCTORS
+    //--------------------------------------------------------------------------
+    
+    public AwtHostPaintHelper() {
+    }
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
-    
-    public AwtPaintUtils() {
-    }
-    
-    public boolean canPaintClientNowProxyImpl(Window window) {
-        return AwtUtils.isShowingAndDeiconified(window);
-    }
     
     public InterfaceBwdGraphics newRootGraphicsImpl(
         InterfaceBwdBindingImpl binding,
@@ -107,13 +64,15 @@ public class AwtPaintUtils {
         
         final InterfaceBwdGraphics gForBorder;
         if (bindingConfig.getMustUseIntArrayGraphicsForClients()) {
+            final BufferedImageHelper offscreenHelperInBd =
+                new BufferedImageHelper(offscreenImageInBd);
             gForBorder =
                 new AwtBwdGraphicsWithIntArr(
                     binding,
                     boxWithBorder,
                     //
                     isImageGraphics,
-                    offscreenImageInBd);
+                    offscreenHelperInBd);
         } else {
             gForBorder =
                 new AwtBwdGraphicsWithG(
@@ -198,31 +157,28 @@ public class AwtPaintUtils {
         final int wInOs = scaleHelper.spanBdToOs(wInBd);
         final int hInOs = scaleHelper.spanBdToOs(hInBd);
         
-        final Composite previousComposite = g.getComposite();
-        try {
-            if (MUST_SET_ALPHA_1_COMPOSITE) {
-                g.setComposite(AlphaComposite.Src);
-            }
-            /*
-             * Eventual scaling only due to pixel scaling,
-             * so always exact: no need for
-             * accurate scaling algorithm.
-             */
-            g.drawImage(
-                imageInBd,
-                dxInOs, // dx1
-                dyInOs, // dy1
-                dxInOs + wInOs, // dx2 (exclusive)
-                dyInOs + hInOs, // dy2 (exclusive)
-                sxInBd, // sx1
-                syInBd, // sy1
-                sxInBd + wInBd, // sx2 (exclusive)
-                syInBd + hInBd , // sy2 (exclusive)
-                null);
-        } finally {
-            if (MUST_SET_ALPHA_1_COMPOSITE) {
-                g.setComposite(previousComposite);
-            }
-        }
+        /*
+         * No need to set AlphaComposite.Src, because default composite is SrcOver,
+         * and our client background is always opaque.
+         * 
+         * Eventual scaling only due to pixel scaling, so always exact:
+         * default NEAREST is fine.
+         */
+        
+        final ImageObserver observer = null;
+        g.drawImage(
+            imageInBd,
+            //
+            dxInOs, // dx1
+            dyInOs, // dy1
+            dxInOs + wInOs, // dx2 (exclusive)
+            dyInOs + hInOs, // dy2 (exclusive)
+            //
+            sxInBd, // sx1
+            syInBd, // sy1
+            sxInBd + wInBd, // sx2 (exclusive)
+            syInBd + hInBd , // sy2 (exclusive)
+            //
+            observer);
     }
 }

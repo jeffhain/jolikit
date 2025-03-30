@@ -23,11 +23,13 @@ import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Window;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
 
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
+import net.jolikit.bwd.impl.awt.BufferedImageHelper.BihPixelFormat;
 
 public class AwtUtils {
 
@@ -35,6 +37,37 @@ public class AwtUtils {
     // FIELDS
     //--------------------------------------------------------------------------
     
+    /**
+     * TODO awt TODO mac On Mac, at some point had trouble when using
+     * buffered images of type TYPE_INT_ARGB: painting did visibly show up
+     * only after some delay, or if we used a lot of drawXxx() primitives
+     * on window graphics (like when painting pixels one by one)
+     * (this workaround seemed to only work if client area height was above
+     * about 210), or did never show up in case of window painting frenzy
+     * such as in benches.
+     * For some time our workaround was to use TYPE_INT_RGB instead on Mac,
+     * which for some reason still allowed to do semi-transparent painting,
+     * although it could make things much slower (most likely because of
+     * conversions needed between "ARGB" and "RGB_").
+     * Another workaround was to do all of these:
+     * - have repaint() call super.repaint()
+     * - have paint() call paintComponentNowOnG()
+     *   and/or have paintComponents() call paintComponentNowOnG()
+     * - have paintClientNowOrLater() call window.repaint()
+     * Lately though, we didn't encounter this issue anymore,
+     * and now we always use TYPE_INT_ARGB_PRE, which is required
+     * by our AwtBwdGraphicsWithIntArr implementation.
+     * 
+     * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB(_PRE),
+     * and black if using BufferedImage.TYPE_INT_RGB.
+     */
+    public static final int COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE =
+        BufferedImage.TYPE_INT_ARGB_PRE;
+    
+    public static final BihPixelFormat COMMON_BUFFERED_IMAGE_PIXEL_FORMAT_ARGB =
+        BihPixelFormat.ARGB32;
+    public static final boolean COMMON_BUFFERED_IMAGE_PREMUL = true;
+
     private static final AffineTransform BACKING_TRANSFORM_IDENTITY =
         new AffineTransform();
     

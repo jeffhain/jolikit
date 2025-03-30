@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -501,7 +501,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     
     @Override
     public boolean isClipEmpty() {
-        return this.getClipInBase().isEmpty();
+        return this.clipInBase.isEmpty();
     }
 
     /*
@@ -683,7 +683,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().drawPoint(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y);
     }
 
@@ -692,7 +692,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().drawLine(
-                this.getClipInUser(),
+                this.clipInUser,
                 x1, y1, x2, y2);
     }
 
@@ -711,7 +711,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         }
         
         return this.getPrimitives().drawLine(
-                this.getClipInUser(),
+                this.clipInUser,
                 x1, y1, x2, y2,
                 factor, pattern, pixelNum);
     }
@@ -725,7 +725,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().drawRect(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan);
     }
 
@@ -739,7 +739,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().fillRect(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan,
                 this.areHorVerFlipped());
     }
@@ -758,7 +758,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().drawOval(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan);
     }
     
@@ -772,7 +772,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         this.checkUsable();
         
         this.getPrimitives().fillOval(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan,
                 this.areHorVerFlipped());
     }
@@ -794,7 +794,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GprimUtils.checkArcAngles(startDeg, spanDeg);
 
         this.getPrimitives().drawArc(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg);
     }
@@ -814,7 +814,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GprimUtils.checkArcAngles(startDeg, spanDeg);
 
         this.getPrimitives().fillArc(
-                this.getClipInUser(),
+                this.clipInUser,
                 x, y, xSpan, ySpan,
                 startDeg, spanDeg,
                 this.areHorVerFlipped());
@@ -840,7 +840,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
         this.getPrimitives().drawPolyline(
-                this.getClipInUser(),
+                this.clipInUser,
                 xArr,
                 yArr,
                 pointCount);
@@ -855,7 +855,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
         this.getPrimitives().drawPolygon(
-                this.getClipInUser(),
+                this.clipInUser,
                 xArr,
                 yArr,
                 pointCount);
@@ -870,7 +870,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
         GprimUtils.checkPolyArgs(xArr, yArr, pointCount);
 
         this.getPrimitives().fillPolygon(
-                this.getClipInUser(),
+                this.clipInUser,
                 xArr,
                 yArr,
                 pointCount,
@@ -1063,7 +1063,7 @@ public abstract class AbstractBwdGraphics implements InterfaceBwdGraphics {
     public int getArgb32At(int x, int y) {
         this.checkUsable();
         
-        final GRect initialClip = this.getInitialClipInUser();
+        final GRect initialClip = this.initialClipInUser;
         if (!initialClip.contains(x, y)) {
             throw new IllegalArgumentException(
                     "position (" + x + "," + y + ") out of initial clip " + initialClip);

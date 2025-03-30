@@ -59,17 +59,19 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
         final int pixelCapacity = box.area();
         final int[] premulArgb32Arr = new int[pixelCapacity];
         final int scanlineStride = width;
-        final BufferedImage backingImage =
-            BufferedImageHelper.newBufferedImageWithIntArray(
+        final BufferedImageHelper backingHelper =
+            new BufferedImageHelper(
                 premulArgb32Arr,
                 scanlineStride,
                 //
                 width,
                 height,
                 //
-                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
-        this.bufferedImageHelperArgbPre =
-            new BufferedImageHelper(backingImage);
+                AwtUtils.COMMON_BUFFERED_IMAGE_PIXEL_FORMAT_ARGB,
+                AwtUtils.COMMON_BUFFERED_IMAGE_PREMUL);
+        final BufferedImage backingImage = backingHelper.getImage();
+        
+        this.bufferedImageHelperArgbPre = backingHelper;
 
         this.premulArgb32Arr = premulArgb32Arr;
         
@@ -82,7 +84,7 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
                     box,
                     //
                     isImageGraphics,
-                    backingImage);
+                    backingHelper);
         } else {
             graphics = new AwtBwdGraphicsWithG(
                     binding,

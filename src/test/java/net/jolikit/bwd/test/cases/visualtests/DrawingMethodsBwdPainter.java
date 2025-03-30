@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -73,7 +73,7 @@ public class DrawingMethodsBwdPainter {
      * 
      */
     
-    private static final int NBR_OF_ROWS = 6;
+    private static final int NBR_OF_ROWS = 7;
     private static final int NBR_OF_COLUMNS = 12;
     private static final int NBR_OF_CELLS = NBR_OF_ROWS * NBR_OF_COLUMNS;
     
@@ -239,12 +239,12 @@ public class DrawingMethodsBwdPainter {
          * Non-colored images.
          */
         
-        drawImages(g, cellIndex++);
-        
         {
             final InterfaceBwdImage image = this.image_struct_grey;
             // Checking that draws properly when using image spans.
             drawImages_adjusted_1(g, image.getWidth(), image.getHeight(), image, cellIndex++);
+            // Non-uniform scaling.
+            drawImages_adjusted_1(g, image.getWidth() / 3, image.getHeight() * 2, image, cellIndex++);
             drawImages_adjusted_1(g, CELL_HALF_INNER_SPAN, CELL_HALF_INNER_SPAN, image, cellIndex++);
             drawImages_adjusted_1(g, CELL_QUARTER_INNER_SPAN, CELL_QUARTER_INNER_SPAN, image, cellIndex++);
         }
@@ -296,6 +296,12 @@ public class DrawingMethodsBwdPainter {
                         cellIndex++);
                 }
             }
+        }
+        
+        if (cellIndex > NBR_OF_CELLS) {
+            throw new AssertionError(
+                (cellIndex - NBR_OF_CELLS)
+                + " cells could not be created");
         }
         
         bindingConfig.setMustUseBackingImageScalingIfApplicable(oldBackingScalingFlag);
@@ -1355,19 +1361,6 @@ public class DrawingMethodsBwdPainter {
      * 
      */
 
-    private void drawImages(InterfaceBwdGraphics g, int cellIndex) {
-        setFgColor(g);
-
-        final InterfaceBwdImage image = this.image_struct_grey;
-        
-        final int x0 = cellCenterX(g, cellIndex);
-        final int y0 = cellCenterY(g, cellIndex);
-        
-        for (GTransform transform : getQuadrantTransforms(x0, y0)) {
-            drawImage_basic(g, LOCAL_OFFSET, LOCAL_OFFSET, image, transform);
-        }
-    }
-    
     private void drawImage_basic(
             InterfaceBwdGraphics g,
             int x, int y,
@@ -1479,11 +1472,7 @@ public class DrawingMethodsBwdPainter {
                 y,
                 xSpan,
                 ySpan,
-                image,
-                5, // sx
-                5, // sy
-                11, // sxSpan
-                11); // sySpan
+                image);
     }
     
     /*
@@ -1586,8 +1575,14 @@ public class DrawingMethodsBwdPainter {
 
         final int x0 = cellCenterX(g, cellIndex);
         final int y0 = cellCenterY(g, cellIndex);
-        final int xSpan = CELL_HALF_INNER_SPAN;
-        final int ySpan = CELL_HALF_INNER_SPAN;
+        /*
+         * One span downscaled by more than 2,
+         * the other span upscaled.
+         * Allows to trigger both iterative
+         * and down-up scalings.
+         */
+        final int xSpan = image.getWidth() / 3; // 41 -> 13
+        final int ySpan = image.getHeight() * 2; // 21 -> 42
         
         for (GTransform transform : getQuadrantTransforms(x0, y0)) {
             drawImage_adjusted_3(

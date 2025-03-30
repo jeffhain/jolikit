@@ -590,7 +590,7 @@ public class AwtBwdHost extends AbstractBwdHost {
     
     private final AwtGraphicBuffer offscreenBuffer;
     
-    private final AwtPaintUtils paintUtils = new AwtPaintUtils();
+    private final AwtHostPaintHelper paintHelper = new AwtHostPaintHelper();
     
     private boolean mustBlockNextGraphicsAfterPaintClient = false;
     private boolean mustBlockNextGraphics = false;
@@ -654,7 +654,7 @@ public class AwtBwdHost extends AbstractBwdHost {
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
-                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+                AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
 
         /*
          * 
@@ -955,7 +955,7 @@ public class AwtBwdHost extends AbstractBwdHost {
     @Override
     protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
         
-        return this.paintUtils.newRootGraphicsImpl(
+        return this.paintHelper.newRootGraphicsImpl(
             this.getBinding(),
             this.getBindingConfig(),
             this.offscreenBuffer,
@@ -977,7 +977,7 @@ public class AwtBwdHost extends AbstractBwdHost {
         final Graphics2D backingG = this.currentPainting_backingG;
         final Container backingGContainer = this.window;
         
-        this.paintUtils.paintBackingClientImpl(
+        this.paintHelper.paintBackingClientImpl(
             scaleHelper,
             clientSpansInOs,
             bufferPosInCliInOs,

@@ -56,7 +56,7 @@ public class AwtGraphicBuffer extends AbstractGraphicBuffer<BufferedImage> {
             true, // mustCopyOnImageResize
             true, // allowShrinking
             true, // mustUseIntArrayRaster
-            AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+            AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
     }
 
     /**

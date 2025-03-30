@@ -58,7 +58,7 @@ import net.jolikit.bwd.impl.awt.AwtBwdCursorManager;
 import net.jolikit.bwd.impl.awt.AwtEventConverter;
 import net.jolikit.bwd.impl.awt.AwtGraphicBuffer;
 import net.jolikit.bwd.impl.awt.AwtHostBoundsHelper;
-import net.jolikit.bwd.impl.awt.AwtPaintUtils;
+import net.jolikit.bwd.impl.awt.AwtHostPaintHelper;
 import net.jolikit.bwd.impl.awt.AwtUtils;
 import net.jolikit.bwd.impl.utils.AbstractBwdHost;
 import net.jolikit.bwd.impl.utils.InterfaceHostLifecycleListener;
@@ -676,7 +676,7 @@ public class SwingBwdHost extends AbstractBwdHost {
     
     private final AwtGraphicBuffer offscreenBuffer;
     
-    private final AwtPaintUtils paintUtils = new AwtPaintUtils();
+    private final AwtHostPaintHelper paintHelper = new AwtHostPaintHelper();
 
     /*
      * 
@@ -758,7 +758,7 @@ public class SwingBwdHost extends AbstractBwdHost {
                 MUST_PRESERVE_OB_CONTENT_ON_RESIZE,
                 ALLOW_OB_SHRINKING,
                 MUST_USE_INT_ARRAY_RASTER,
-                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+                AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
         
         // To prevent buffer strategy to be created automatically.
         if (isDialog) {
@@ -1056,7 +1056,7 @@ public class SwingBwdHost extends AbstractBwdHost {
     @Override
     protected InterfaceBwdGraphics newRootGraphics(GRect boxWithBorder) {
         
-        return this.paintUtils.newRootGraphicsImpl(
+        return this.paintHelper.newRootGraphicsImpl(
             this.getBinding(),
             this.getBindingConfig(),
             this.offscreenBuffer,
@@ -1084,7 +1084,7 @@ public class SwingBwdHost extends AbstractBwdHost {
             backingGContainer = this.window;
         }
 
-        this.paintUtils.paintBackingClientImpl(
+        this.paintHelper.paintBackingClientImpl(
             scaleHelper,
             clientSpansInOs,
             bufferPosInCliInOs,

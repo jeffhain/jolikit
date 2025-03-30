@@ -15,6 +15,8 @@
  */
 package net.jolikit.bwd.impl.utils.graphics;
 
+import java.util.Arrays;
+
 import net.jolikit.bwd.api.fonts.InterfaceBwdFont;
 import net.jolikit.bwd.api.fonts.InterfaceBwdFontMetrics;
 import net.jolikit.bwd.api.graphics.Argb32;
@@ -442,10 +444,8 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
                 xInBaseClipped,
                 yInBaseClipped + j);
             for (int i = 0; i < xSpanInBaseClipped; i++) {
-                final int color32_from = pixelArr[index];
-                final int color32_to = toInvertedArrayColor32(color32_from);
-                pixelArr[index] = color32_to;
-                ++index;
+                final int color32From = pixelArr[index];
+                pixelArr[index++] = toInvertedArrayColor32(color32From);
             }
         }
     }
@@ -462,11 +462,10 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
         final GTransform transformArrToUser = this.transformArrToUser;
         final int xInArr = transformArrToUser.xIn1(x, y);
         final int yInArr = transformArrToUser.yIn1(x, y);
-        
         final int index = this.toPixelArrIndexFromArr(xInArr, yInArr);
+        
         final int color32 = this.pixelArr[index];
-        final int argb32 = this.getArgb32FromArrayColor32(color32);
-        return argb32;
+        return this.getArgb32FromArrayColor32(color32);
     }
     
     //--------------------------------------------------------------------------
@@ -854,30 +853,107 @@ public abstract class AbstractIntArrayBwdGraphics extends AbstractBwdGraphics {
             color32 = this.arrColor;
         }
 
-        // Hack: "-1" so that we can do "++index" instead of "index++".
-        int index = this.toPixelArrIndexFromBase(xInBase, yInBase) - 1;
+        int index = this.toPixelArrIndexFromBase(xInBase, yInBase);
 
-        // To optimize for the case where xSpanInBase is small.
-        final int indexJump = scanlineStride - xSpanInBase;
-
-        if (mustSetColor
-                || (this.getArrayColorAlpha8(color32) == 0xFF)) {
+        final boolean mustUseCopyAlgo =
+            mustSetColor
+            || (this.getArrayColorAlpha8(color32) == 0xFF);
+        if (xSpanInBase == 1) {
             /*
-             * Optimization when not having to blend.
+             * Optimization for vertical lines
+             * (can be like 4 times faster).
              */
-            for (int j = 0; j < ySpanInBase; j++) {
-                for (int i = 0; i < xSpanInBase; i++) {
-                    this.pixelArr[++index] = color32;
-                }
-                index += indexJump;
+            if (mustUseCopyAlgo) {
+                fillRectInClip_raw_inBase_verticalLine_copy(
+                    scanlineStride,
+                    xSpanInBase,
+                    ySpanInBase,
+                    index,
+                    color32);
+            } else {
+                fillRectInClip_raw_inBase_verticalLine_blend(
+                    scanlineStride,
+                    xSpanInBase,
+                    ySpanInBase,
+                    index,
+                    color32);
             }
         } else {
-            for (int j = 0; j < ySpanInBase; j++) {
-                for (int i = 0; i < xSpanInBase; i++) {
-                    this.blendColor32(++index, color32);
-                }
-                index += indexJump;
+            if (mustUseCopyAlgo) {
+                fillRectInClip_raw_inBase_copy(
+                    scanlineStride,
+                    xSpanInBase,
+                    ySpanInBase,
+                    index,
+                    color32);
+            } else {
+                fillRectInClip_raw_inBase_blend(
+                    scanlineStride,
+                    xSpanInBase,
+                    ySpanInBase,
+                    index,
+                    color32);
             }
+        }
+    }
+    
+    private void fillRectInClip_raw_inBase_verticalLine_copy(
+        int scanlineStride,
+        int xSpanInBase,
+        int ySpanInBase,
+        int index,
+        int color32) {
+        final int indexJump = scanlineStride - xSpanInBase;
+        for (int j = 0; j < ySpanInBase; j++) {
+            this.pixelArr[index++] = color32;
+            index += indexJump;
+        }
+    }
+    
+    private void fillRectInClip_raw_inBase_verticalLine_blend(
+        int scanlineStride,
+        int xSpanInBase,
+        int ySpanInBase,
+        int index,
+        int color32) {
+        final int indexJump = scanlineStride - xSpanInBase;
+        for (int j = 0; j < ySpanInBase; j++) {
+            this.blendColor32(index++, color32);
+            index += indexJump;
+        }
+    }
+    
+    private void fillRectInClip_raw_inBase_copy(
+        int scanlineStride,
+        int xSpanInBase,
+        int ySpanInBase,
+        int index,
+        int color32) {
+        if (xSpanInBase == scanlineStride) {
+            final int area = xSpanInBase * ySpanInBase;
+            Arrays.fill(this.pixelArr, index, index + area, color32);
+        } else {
+            for (int j = 0; j < ySpanInBase; j++) {
+                // Twice faster than a loop (when width not very small):
+                // VM must optimize it.
+                Arrays.fill(this.pixelArr, index, index + xSpanInBase, color32);
+                index += scanlineStride;
+            }
+        }
+    }
+    
+    private void fillRectInClip_raw_inBase_blend(
+        int scanlineStride,
+        int xSpanInBase,
+        int ySpanInBase,
+        int index,
+        int color32) {
+        final int indexJump = scanlineStride - xSpanInBase;
+        for (int j = 0; j < ySpanInBase; j++) {
+            for (int i = 0; i < xSpanInBase; i++) {
+                this.blendColor32(index++, color32);
+            }
+            index += indexJump;
         }
     }
 }

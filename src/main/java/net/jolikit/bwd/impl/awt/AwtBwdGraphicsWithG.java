@@ -902,8 +902,6 @@ public class AwtBwdGraphicsWithG extends AbstractBwdGraphics {
             //
             this.getImageScalingType(),
             this.getBindingConfig().getMustUseBackingImageScalingIfApplicable(),
-            this.xShiftInUser,
-            this.yShiftInUser,
             this.getRootBoxTopLeft(),
             this.getTransform(),
             AlphaComposite.SrcOver,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2024 Jeff Hain
+ * Copyright 2021-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -90,9 +90,9 @@ public class IntArrCopyRowDrawer implements InterfaceRowDrawer {
         
         final GTransform transformArrToUser = this.transformArrToUser;
         if (transformArrToUser.rotation() == GRotation.ROT_0) {
-            final int dstIndex =
-                (dstY + transformArrToUser.frame2YIn1()) * this.scanlineStride
-                + (dstX + transformArrToUser.frame2XIn1());
+            final int xInArr = dstX + transformArrToUser.frame2XIn1();
+            final int yInArr = dstY + transformArrToUser.frame2YIn1();
+            final int dstIndex = yInArr * this.scanlineStride + xInArr;
             System.arraycopy(
                 rowArr,
                 rowOffset,

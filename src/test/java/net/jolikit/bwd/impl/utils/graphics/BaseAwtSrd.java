@@ -162,8 +162,8 @@ public class BaseAwtSrd implements InterfaceScaledRectDrawer {
          */
         final int[] dstPixelArr = new int[dstRectClippedArea];
         final int dstPixelArrScanlineStride = dstRectClipped.xSpan();
-        final BufferedImage dstImg =
-            BufferedImageHelper.newBufferedImageWithIntArray(
+        final BufferedImageHelper dstImgHelper =
+            new BufferedImageHelper(
                 dstPixelArr,
                 dstPixelArrScanlineStride,
                 //
@@ -172,7 +172,8 @@ public class BaseAwtSrd implements InterfaceScaledRectDrawer {
                 //
                 bufImgPixelFormat,
                 bufImgPremul);
-
+        final BufferedImage dstImg = dstImgHelper.getImage();
+        
         /*
          * scaling
          */
@@ -191,8 +192,6 @@ public class BaseAwtSrd implements InterfaceScaledRectDrawer {
          */
 
         final int[] dstImgRowArr = new int[dstRectClippedInImg.xSpan()];
-        final BufferedImageHelper dstImgHelper =
-            new BufferedImageHelper(dstImg);
         for (int j = 0; j < dstRectClippedInImg.ySpan(); j++) {
             final int y = dstRectClippedInImg.y() + j;
             for (int i = 0; i < dstRectClippedInImg.xSpan(); i++) {

@@ -63,36 +63,40 @@ public class AwtBwdImageFromFile extends AbstractAwtBwdImage {
             // Can happen.
             throw new IllegalArgumentException("could not load image at " + filePath);
         }
-        final BufferedImageHelper bufferedImageHelper =
-            new BufferedImageHelper(readImage);
         
         final int width = readImage.getWidth();
         final int height = readImage.getHeight();
         this.setWidth_final(width);
         this.setHeight_final(height);
         
-        final BufferedImage bufferedImageArgbPre =
-            BufferedImageHelper.newBufferedImageWithIntArray(
-                null,
+        final BufferedImageHelper readHelper =
+            new BufferedImageHelper(readImage);
+        final BufferedImageHelper bufferedImageHelperArgbPre;
+        if (readHelper.getImageType() == AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE) {
+            bufferedImageHelperArgbPre = readHelper;
+        } else {
+            bufferedImageHelperArgbPre =
+                new BufferedImageHelper(
+                    null,
+                    width,
+                    width,
+                    height,
+                    AwtUtils.COMMON_BUFFERED_IMAGE_PIXEL_FORMAT_ARGB,
+                    AwtUtils.COMMON_BUFFERED_IMAGE_PREMUL);
+            AwtPrlCopyImage.copyImage(
+                parallelizer,
+                //
+                readHelper,
+                0,
+                0,
+                //
+                bufferedImageHelperArgbPre,
+                0,
+                0,
+                //
                 width,
-                width,
-                height,
-                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
-        final BufferedImageHelper bufferedImageHelperArgbPre =
-            new BufferedImageHelper(bufferedImageArgbPre);
-        AwtPrlCopyImage.copyImage(
-            parallelizer,
-            //
-            bufferedImageHelper,
-            0,
-            0,
-            //
-            bufferedImageHelperArgbPre,
-            0,
-            0,
-            //
-            width,
-            height);
+                height);
+        }
         this.bufferedImageHelperArgbPre = bufferedImageHelperArgbPre;
         
         this.premulArgb32Arr =

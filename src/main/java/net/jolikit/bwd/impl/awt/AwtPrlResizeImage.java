@@ -25,6 +25,7 @@ import java.util.Map;
 import net.jolikit.bwd.api.graphics.BwdScalingType;
 import net.jolikit.bwd.api.graphics.GPoint;
 import net.jolikit.bwd.api.graphics.GRect;
+import net.jolikit.bwd.api.graphics.GRotation;
 import net.jolikit.bwd.api.graphics.GTransform;
 import net.jolikit.bwd.impl.awt.PpTlData.PooledIntArrHolder;
 import net.jolikit.bwd.impl.utils.basics.BindingCoordsUtils;
@@ -85,8 +86,6 @@ public class AwtPrlResizeImage {
      * The resizing must not involve BOXSAMPLED usage
      * (not supported by AWT).
      * 
-     * @param xShiftInUser Only used when drawing through graphics.
-     * @param yShiftInUser Only used when drawing through graphics.
      * @param rootBoxTopLeft Base coordinates of destination top-left pixel.
      * @param transform Transform from base to user.
      * @param dstGraphicsComposite Composite to use for drawing on destination.
@@ -96,8 +95,6 @@ public class AwtPrlResizeImage {
         //
         BwdScalingType scalingType,
         boolean mustUseAwtScalingIfApplicable,
-        int xShiftInUser,
-        int yShiftInUser,
         GPoint rootBoxTopLeft,
         GTransform transform,
         Composite dstGraphicsComposite,
@@ -129,7 +126,6 @@ public class AwtPrlResizeImage {
          * NB: By default mustUseIntArrayGraphicsForXxx is true,
          * so we don't pass here.
          */
-        
         if (!mustUseAwtScalingIfApplicable) {
             final boolean mustBlendElseCopy = true;
             drawImage_jlk(
@@ -162,7 +158,7 @@ public class AwtPrlResizeImage {
             scalingType = BwdScalingType.NEAREST;
         } else if ((scalingType == BwdScalingType.BOXSAMPLED)
             && ScaledRectUtils.isNearestExact(sw, sh, dw, dh)) {
-            // Pixel-aligned growth.
+            // Pixel-aligned growth with BOXSAMPLED:
             // NEAREST equivalent and faster.
             scalingType = BwdScalingType.NEAREST;
         }
@@ -171,6 +167,9 @@ public class AwtPrlResizeImage {
         final BwdScalingType upscalingType;
         if ((scalingType == BwdScalingType.ITERATIVE_BILINEAR_BICUBIC)
             || (scalingType == BwdScalingType.BOXSAMPLED_BICUBIC)) {
+            /*
+             * down/up types
+             */
             if (scalingType == BwdScalingType.ITERATIVE_BILINEAR_BICUBIC) {
                 downscalingType = BwdScalingType.ITERATIVE_BILINEAR;
             } else {
@@ -178,14 +177,23 @@ public class AwtPrlResizeImage {
             }
             upscalingType = BwdScalingType.ITERATIVE_BICUBIC;
         } else {
-            // Either NEAREST, ITERATIVE_BILINEAR,
-            // ITERATIVE_BICUBIC, or BOXSAMPLED.
+            /*
+             * single type
+             */
             downscalingType = scalingType;
             upscalingType = scalingType;
         }
+        /*
+         * Ensures that we don't mistakenly use it
+         * instead of simplified down/up scaling types.
+         */
+        scalingType = null;
         
         PpTlData tl = null;
-
+        
+        final GRotation rotation = transform.rotation();
+        final int xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
+        final int yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
         final GRect dstRectWithAwtTransformShifts =
             dstRect.withPosDeltas(xShiftInUser, yShiftInUser);
         final GRect dstClipWithAwtTransformShifts =
@@ -210,24 +218,23 @@ public class AwtPrlResizeImage {
             
             final int[] interArr = tmpBigArrHolder.getArr(interWidth * interHeight);
             
-            final BufferedImage interImage =
-                BufferedImageHelper.newBufferedImageWithIntArray(
+            final BufferedImageHelper interHelper =
+                new BufferedImageHelper(
                     interArr,
                     interWidth,
                     interWidth,
                     interHeight,
-                    AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
-            final BufferedImageHelper interHelper =
-                new BufferedImageHelper(interImage);
+                    AwtUtils.COMMON_BUFFERED_IMAGE_PIXEL_FORMAT_ARGB,
+                    AwtUtils.COMMON_BUFFERED_IMAGE_PREMUL);
             if (downscalingType == BwdScalingType.BOXSAMPLED) {
                 final boolean mustBlendElseCopy = false;
                 drawImage_jlk(
                     parallelizer,
                     //
-                    scalingType,
+                    downscalingType,
                     mustBlendElseCopy,
-                    rootBoxTopLeft,
-                    transform,
+                    GPoint.ZERO,
+                    GTransform.IDENTITY,
                     //
                     srcHelper,
                     srcRect,
@@ -278,7 +285,6 @@ public class AwtPrlResizeImage {
             tmpBigArrHolder.release();
             
         } else {
-            
             final BwdScalingType onlyScalingType;
             if (gotDown) {
                 onlyScalingType = downscalingType;
@@ -290,7 +296,7 @@ public class AwtPrlResizeImage {
                 drawImage_jlk(
                     parallelizer,
                     //
-                    scalingType,
+                    onlyScalingType,
                     mustBlendElseCopy,
                     rootBoxTopLeft,
                     transform,
@@ -515,7 +521,7 @@ public class AwtPrlResizeImage {
                     itSrcScanlineStride,
                     itSrcRect.xSpan(),
                     itSrcRect.ySpan(),
-                    AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+                    AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
             }
             
             /*
@@ -556,7 +562,7 @@ public class AwtPrlResizeImage {
                     itDstScanlineStride,
                     itDstRect.xSpan(),
                     itDstRect.ySpan(),
-                    AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+                    AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
             }
             
             drawImage_awt_oneIteration(

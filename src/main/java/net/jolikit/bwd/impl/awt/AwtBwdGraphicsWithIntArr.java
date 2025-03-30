@@ -15,6 +15,7 @@
  */
 package net.jolikit.bwd.impl.awt;
 
+import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics2D;
@@ -86,22 +87,29 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     //--------------------------------------------------------------------------
     // FIELDS
     //--------------------------------------------------------------------------
-
-    private final BufferedImage backingImage;
+    
+    private final BufferedImageHelper backingHelper;
+    
+    private final AwtPrlResizeImage prlResizeImage = new AwtPrlResizeImage();
     
     /*
-     * For drawing text on backing image directly.
+     * We use backing graphics only in some particular cases,
+     * so to avoid the overhead of updating it all the time
+     * (e.g. when color changes, etc.), we only set dirty flags
+     * and update it when needed.
      */
     
-    private Graphics2D g;
+    private Graphics2D gPossiblyDirty;
+    private int xShiftInUserPossiblyDirty;
+    private int yShiftInUserPossiblyDirty;
     
-    private boolean mustUpdateGClip;
-    private boolean mustUpdateGTransform;
-    private boolean mustUpdateGColor;
-    private boolean mustUpdateGFont;
-    
-    private int xShiftInUser;
-    private int yShiftInUser;
+    /**
+     * Counts for shifts too.
+     */
+    private boolean isDirtyGTransform;
+    private boolean isDirtyGClip;
+    private boolean isDirtyGColor;
+    private boolean isDirtyGFont;
     
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
@@ -110,7 +118,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     /**
      * Constructor for root graphics.
      * 
-     * @param backingImage Must be backed by an int array
+     * @param backingHelper Image must be backed by an int array
      *        or alpha premultiplied ARGB32 pixels
      *        (due to this graphics drawing on it either
      *        directly into its array of pixels,
@@ -122,7 +130,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         GRect box,
         //
         boolean isImageGraphics,
-        BufferedImage backingImage) {
+        BufferedImageHelper backingHelper) {
         this(
                 binding,
                 topLeftOf(box),
@@ -130,10 +138,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 box, // initialClip
                 //
                 isImageGraphics,
-                BufferedImageHelper.requireCompatibleSimpleIntArray(
-                    backingImage,
-                    BihPixelFormat.ARGB32,
-                    BufferedImageHelper.PREMUL));
+                checkedArgbPre(backingHelper));
     }
     
     /*
@@ -164,7 +169,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 childInitialClip,
                 //
                 this.isImageGraphics(),
-                this.backingImage);
+                this.backingHelper.duplicate());
     }
     
     /*
@@ -175,7 +180,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     public AwtBwdFont getFont() {
         return (AwtBwdFont) super.getFont();
     }
-
+    
     /*
      * Text.
      */
@@ -201,42 +206,128 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 return;
             }
             
-            this.ensureUpToDateG();
+            final Graphics2D g = this.ensureAndGetUpToDateG();
             
             final int ascent = font.metrics().ascent();
             
-            final int _x = x + this.xShiftInUser;
-            final int _y = y + this.yShiftInUser + ascent;
+            final int _x = x + this.xShiftInUserPossiblyDirty;
+            final int _y = y + this.yShiftInUserPossiblyDirty + ascent;
             
-            this.g.drawString(text, _x, _y);
+            g.drawString(text, _x, _y);
         } else {
             super.drawText(x, y, text);
         }
     }
     
+    /*
+     * Images.
+     */
+
+    @Override
+    protected void drawImageImpl(
+            int x, int y, int xSpan, int ySpan,
+            InterfaceBwdImage image,
+            int sx, int sy, int sxSpan, int sySpan) {
+        
+        final boolean mustUseBackingImageScalingIfApplicable =
+            this.getBindingConfig().getMustUseBackingImageScalingIfApplicable();
+        if (!mustUseBackingImageScalingIfApplicable) {
+            /*
+             * A tad simpler than using ScaledRectDrawing from PrlResizeImage
+             * (row drawer already configured).
+             */
+            super.drawImageImpl(
+                x, y, xSpan, ySpan,
+                image,
+                sx, sy, sxSpan, sySpan);
+            return;
+        }
+        
+        /*
+         * Using AWT drawImage() whenever possible, for speed.
+         */
+        
+        final AbstractAwtBwdImage toDrawAwtImage =
+            (AbstractAwtBwdImage) image;
+        
+        final GRect srcRect = GRect.valueOf(sx, sy, sxSpan, sySpan);
+        final GRect dstRect = GRect.valueOf(x, y, xSpan, ySpan);
+        final GRect dstClip = this.getClipInUser();
+        
+        this.prlResizeImage.drawImage(
+            this.getBinding().getInternalParallelizer(),
+            //
+            this.getImageScalingType(),
+            mustUseBackingImageScalingIfApplicable,
+            this.getRootBoxTopLeft(),
+            this.getTransform(),
+            AlphaComposite.SrcOver,
+            //
+            toDrawAwtImage.getBufferedImageHelperArgbPre(),
+            srcRect,
+            //
+            this.backingHelper,
+            dstRect,
+            dstClip);
+    }
+    
+    /*
+     * 
+     */
+    
+    @Override
+    public void flipColors(int x, int y, int xSpan, int ySpan) {
+        /*
+         * TODO awt Graphics.setXORMode(...) is fast,
+         * but doesn't work properly with non-opaque background,
+         * so if image graphics (i.e. with potentially non-opaque background)
+         * we use super.
+         */
+        if (this.isImageGraphics()) {
+            super.flipColors(x, y, xSpan, ySpan);
+        } else {
+            this.checkUsable();
+            if ((xSpan <= 0) || (ySpan <= 0)) {
+                return;
+            }
+            
+            final Graphics2D g = this.ensureAndGetUpToDateG();
+            
+            final Color c = g.getColor();
+            g.setBackground(Color.WHITE);
+            g.setColor(Color.WHITE);
+            g.setXORMode(Color.BLACK);
+            try {
+                final int _x = x + this.xShiftInUserPossiblyDirty;
+                final int _y = y + this.yShiftInUserPossiblyDirty;
+                // Relying on backing clipping.
+                g.fillRect(_x, _y, xSpan, ySpan);
+            } finally {
+                g.setBackground(c);
+                g.setColor(c);
+                g.setPaintMode();
+            }
+        }
+    }
+
     //--------------------------------------------------------------------------
     // PROTECTED METHODS
     //--------------------------------------------------------------------------
     
     @Override
     protected void initImpl() {
-        if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.g = this.backingImage.createGraphics();
-            
-            this.mustUpdateGClip = true;
-            this.mustUpdateGTransform = true;
-            this.mustUpdateGColor = true;
-            this.mustUpdateGFont = true;
-        }
+        this.gPossiblyDirty = this.backingHelper.getImage().createGraphics();
+        this.isDirtyGTransform = true;
+        this.isDirtyGClip = true;
+        this.isDirtyGColor = true;
+        this.isDirtyGFont = MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY;
         
         super.initImpl();
     }
 
     @Override
     protected void finishImpl() {
-        if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.g.dispose();
-        }
+        this.gPossiblyDirty.dispose();
     }
 
     /*
@@ -245,25 +336,19 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     
     @Override
     protected void setBackingClip(GRect clipInBase) {
-        if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.mustUpdateGClip = true;
-        }
+        this.isDirtyGClip = true;
     }
     
     @Override
     protected void setBackingTransform(GTransform transform) {
-        if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.mustUpdateGTransform = true;
-        }
+        this.isDirtyGTransform = true;
     }
 
     @Override
     protected void setBackingArgb(int argb32, BwdColor colorElseNull) {
         super.setBackingArgb(argb32, colorElseNull);
         
-        if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.mustUpdateGColor = true;
-        }
+        this.isDirtyGColor = true;
     }
     
     /*
@@ -273,7 +358,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     @Override
     protected void setBackingFont(InterfaceBwdFont font) {
         if (MUST_DRAW_TEXT_ON_BACKING_IMAGE_DIRECTLY) {
-            this.mustUpdateGFont = true;
+            this.isDirtyGFont = true;
         } else {
             // We use AWT backed font stored in super.
         }
@@ -370,7 +455,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 scanlineStride,
                 mcTextWidth,
                 mcTextHeight,
-                AwtPaintUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
+                AwtUtils.COMMON_BUFFERED_IMAGE_TYPE_ARGB_PRE);
 
         // Drawing the text in the image.
         final Graphics2D g2d = image.createGraphics();
@@ -468,7 +553,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         GRect initialClip,
         //
         boolean isImageGraphics,
-        BufferedImage backingImage) {
+        BufferedImageHelper backingHelper) {
         super(
                 binding,
                 rootBoxTopLeft,
@@ -476,13 +561,27 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 initialClip,
                 //
                 isImageGraphics,
-                BufferedImageHelper.getIntArray(backingImage),
-                BufferedImageHelper.getScanlineStride(backingImage));
-        this.backingImage = backingImage;
+                backingHelper.getIntArrayDirectlyUsed(),
+                backingHelper.getScanlineStride());
+        this.backingHelper = backingHelper;
+    }
+    
+    private static BufferedImageHelper checkedArgbPre(BufferedImageHelper backingHelper) {
+        if (backingHelper.getIntArrayDirectlyUsed() == null) {
+            throw new IllegalArgumentException("helper has no directly usable int array");
+        }
+        if (backingHelper.getPixelFormat() != BihPixelFormat.ARGB32) {
+            throw new IllegalArgumentException("helper image is not ARGB32");
+        }
+        if (!backingHelper.isAlphaPremultiplied()) {
+            throw new IllegalArgumentException("helper image is not alpha-premultipled");
+        }
+        return backingHelper;
     }
     
     /**
      * Sets backing clip to be current clip.
+     * Backing transform must be up to date.
      */
     private void setBackingClipToCurrent() {
         /*
@@ -492,9 +591,9 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         
         final GRect clip = this.getClipInUser();
 
-        this.g.setClip(
-                clip.x() + this.xShiftInUser,
-                clip.y() + this.yShiftInUser,
+        this.gPossiblyDirty.setClip(
+                clip.x() + this.xShiftInUserPossiblyDirty,
+                clip.y() + this.yShiftInUserPossiblyDirty,
                 clip.xSpan(),
                 clip.ySpan());
     }
@@ -508,37 +607,42 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
         
         final GPoint rootBoxTopLeft = this.getRootBoxTopLeft();
         
-        AwtUtils.setGraphicsTransform(rootBoxTopLeft, transform, this.g);
+        AwtUtils.setGraphicsTransform(rootBoxTopLeft, transform, this.gPossiblyDirty);
         
-        this.xShiftInUser = AwtUtils.computeXShiftInUser(rotation);
-        this.yShiftInUser = AwtUtils.computeYShiftInUser(rotation);
+        this.xShiftInUserPossiblyDirty = AwtUtils.computeXShiftInUser(rotation);
+        this.yShiftInUserPossiblyDirty = AwtUtils.computeYShiftInUser(rotation);
     }
     
-    private void ensureUpToDateG() {
-        if (this.mustUpdateGTransform) {
+    /**
+     * @return Backing graphics ready to use (no longer dirty).
+     */
+    private Graphics2D ensureAndGetUpToDateG() {
+        if (this.isDirtyGTransform) {
             this.setBackingTransformToCurrent();
-            this.mustUpdateGTransform = false;
+            this.isDirtyGTransform = false;
             
             // Must reset clip as well, since we use transformed clip.
             this.setBackingClipToCurrent(); 
-            this.mustUpdateGClip = false;
+            this.isDirtyGClip = false;
             
-        } else if (this.mustUpdateGClip) {
+        } else if (this.isDirtyGClip) {
             this.setBackingClipToCurrent(); 
-            this.mustUpdateGClip = false;
+            this.isDirtyGClip = false;
         }
         
-        if (this.mustUpdateGColor) {
+        if (this.isDirtyGColor) {
             final int argb32 = this.getArgb32();
             final Color backingColor = AwtUtils.newColor(argb32);
-            this.g.setColor(backingColor);
-            this.mustUpdateGColor = false;
+            this.gPossiblyDirty.setColor(backingColor);
+            this.isDirtyGColor = false;
         }
         
-        if (this.mustUpdateGFont) {
+        if (this.isDirtyGFont) {
             final AwtBwdFont font = this.getFont();
-            this.g.setFont(font.getBackingFont());
-            this.mustUpdateGFont = false;
+            this.gPossiblyDirty.setFont(font.getBackingFont());
+            this.isDirtyGFont = false;
         }
+        
+        return this.gPossiblyDirty;
     }
 }
