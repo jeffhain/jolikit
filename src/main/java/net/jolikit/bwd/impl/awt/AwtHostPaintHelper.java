@@ -49,7 +49,6 @@ public class AwtHostPaintHelper {
     
     public InterfaceBwdGraphics newRootGraphicsImpl(
         InterfaceBwdBindingImpl binding,
-        AwtBwdBindingConfig bindingConfig,
         AwtGraphicBuffer offscreenBuffer,
         //
         GRect boxWithBorder) {
@@ -62,27 +61,14 @@ public class AwtHostPaintHelper {
         final BufferedImage offscreenImageInBd = offscreenBuffer.getImage();
         this.currentPainting_offscreenImageInBd = offscreenImageInBd;
         
-        final InterfaceBwdGraphics gForBorder;
-        if (bindingConfig.getMustUseIntArrayGraphicsForClients()) {
-            final BufferedImageHelper offscreenHelperInBd =
-                new BufferedImageHelper(offscreenImageInBd);
-            gForBorder =
-                new AwtBwdGraphicsWithIntArr(
-                    binding,
-                    boxWithBorder,
-                    //
-                    isImageGraphics,
-                    offscreenHelperInBd);
-        } else {
-            gForBorder =
-                new AwtBwdGraphicsWithG(
-                    binding,
-                    boxWithBorder,
-                    //
-                    isImageGraphics,
-                    offscreenImageInBd);
-        }
-        return gForBorder;
+        final BufferedImageHelper offscreenHelperInBd =
+            new BufferedImageHelper(offscreenImageInBd);
+        return new AwtBwdGraphics(
+            binding,
+            boxWithBorder,
+            //
+            isImageGraphics,
+            offscreenHelperInBd);
     }
     
     public void paintBackingClientImpl(

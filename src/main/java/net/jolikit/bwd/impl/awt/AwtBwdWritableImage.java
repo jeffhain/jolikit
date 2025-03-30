@@ -15,8 +15,6 @@
  */
 package net.jolikit.bwd.impl.awt;
 
-import java.awt.image.BufferedImage;
-
 import net.jolikit.bwd.api.graphics.GRect;
 import net.jolikit.bwd.api.graphics.InterfaceBwdGraphics;
 import net.jolikit.bwd.api.graphics.InterfaceBwdWritableImage;
@@ -69,31 +67,17 @@ public class AwtBwdWritableImage extends AbstractAwtBwdImage implements Interfac
                 //
                 AwtUtils.COMMON_BUFFERED_IMAGE_PIXEL_FORMAT_ARGB,
                 AwtUtils.COMMON_BUFFERED_IMAGE_PREMUL);
-        final BufferedImage backingImage = backingHelper.getImage();
-        
         this.bufferedImageHelperArgbPre = backingHelper;
 
         this.premulArgb32Arr = premulArgb32Arr;
         
-        final AwtBwdBindingConfig bindingConfig = binding.getBindingConfig();
-        
-        final InterfaceBwdGraphics graphics;
-        if (bindingConfig.getMustUseIntArrayGraphicsForWritableImages()) {
-            graphics = new AwtBwdGraphicsWithIntArr(
-                    binding,
-                    box,
-                    //
-                    isImageGraphics,
-                    backingHelper);
-        } else {
-            graphics = new AwtBwdGraphicsWithG(
-                    binding,
-                    box,
-                    //
-                    isImageGraphics,
-                    backingImage);
-        }
-
+        final InterfaceBwdGraphics graphics =
+            new AwtBwdGraphics(
+                binding,
+                box,
+                //
+                isImageGraphics,
+                backingHelper);
         this.graphics = graphics;
         
         graphics.init();

@@ -45,11 +45,9 @@ import net.jolikit.lang.LangUtils;
  * for which we draw directly on the backing image (much faster).
  * 
  * The point is that AWT Graphics can be relatively very slow
- * for some operations, like drawing pixel-by-pixel with drawLine(...)
- * (costs more to draw each pixel than to compute whether it is in
- * Mandelbrot!).
+ * for some operations, like drawing pixel-by-pixel with drawLine(...).
  */
-public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
+public class AwtBwdGraphics extends AbstractIntArrayBwdGraphics {
     
     //--------------------------------------------------------------------------
     // CONFIGURATION
@@ -125,7 +123,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
      *        or through its graphics).
      * @throws IllegalArgumentException if the image is not compatible.
      */
-    public AwtBwdGraphicsWithIntArr(
+    public AwtBwdGraphics(
         InterfaceBwdBindingImpl binding,
         GRect box,
         //
@@ -162,7 +160,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
                 this.getInitialClipInBase().intersected(
                         childMaxInitialClip.intersected(childBox));
         
-        return new AwtBwdGraphicsWithIntArr(
+        return new AwtBwdGraphics(
                 this.getBinding(),
                 this.getRootBoxTopLeft(),
                 childBox,
@@ -546,7 +544,7 @@ public class AwtBwdGraphicsWithIntArr extends AbstractIntArrayBwdGraphics {
     // PRIVATE METHODS
     //--------------------------------------------------------------------------
     
-    private AwtBwdGraphicsWithIntArr(
+    private AwtBwdGraphics(
         InterfaceBwdBindingImpl binding,
         GPoint rootBoxTopLeft,
         GRect box,

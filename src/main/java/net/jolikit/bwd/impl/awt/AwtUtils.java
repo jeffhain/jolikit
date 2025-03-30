@@ -56,7 +56,7 @@ public class AwtUtils {
      * - have paintClientNowOrLater() call window.repaint()
      * Lately though, we didn't encounter this issue anymore,
      * and now we always use TYPE_INT_ARGB_PRE, which is required
-     * by our AwtBwdGraphicsWithIntArr implementation.
+     * by our AwtBwdGraphics implementation.
      * 
      * NB: Default filling is white if using BufferedImage.TYPE_INT_ARGB(_PRE),
      * and black if using BufferedImage.TYPE_INT_RGB.

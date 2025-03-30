@@ -28,16 +28,6 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
 
     private Locale locale = Locale.ENGLISH;
     
-    /**
-     * True because never slower and often much faster.
-     */
-    private boolean mustUseIntArrayGraphicsForClients = true;
-    
-    /**
-     * True because never slower and often much faster.
-     */
-    private boolean mustUseIntArrayGraphicsForWritableImages = true;
-    
     //--------------------------------------------------------------------------
     // PUBLIC METHODS
     //--------------------------------------------------------------------------
@@ -62,8 +52,8 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
         }
         
         /*
-         * True because we use AWT drawImage() only in for both
-         * accurate and fast use cases (all images (ARGB,premul)),
+         * True because we use AWT drawImage() only in use cases
+         * where it's both accurate and fast (all images being (ARGB,premul)),
          * and want to benefit from its speed.
          */
         this.setMustUseBackingImageScalingIfApplicable_final(true);
@@ -99,21 +89,5 @@ public class AwtBwdBindingConfig extends BaseBwdBindingConfig {
 
     public void setLocale(Locale locale) {
         this.locale = locale;
-    }
-
-    public boolean getMustUseIntArrayGraphicsForClients() {
-        return this.mustUseIntArrayGraphicsForClients;
-    }
-
-    public void setMustUseIntArrayGraphicsForClients(boolean mustUseIntArrayGraphicsForClients) {
-        this.mustUseIntArrayGraphicsForClients = mustUseIntArrayGraphicsForClients;
-    }
-
-    public boolean getMustUseIntArrayGraphicsForWritableImages() {
-        return this.mustUseIntArrayGraphicsForWritableImages;
-    }
-
-    public void setMustUseIntArrayGraphicsForWritableImages(boolean mustUseIntArrayGraphicsForWritableImages) {
-        this.mustUseIntArrayGraphicsForWritableImages = mustUseIntArrayGraphicsForWritableImages;
     }
 }

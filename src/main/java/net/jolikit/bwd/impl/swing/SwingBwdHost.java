@@ -1058,7 +1058,6 @@ public class SwingBwdHost extends AbstractBwdHost {
         
         return this.paintHelper.newRootGraphicsImpl(
             this.getBinding(),
-            this.getBindingConfig(),
             this.offscreenBuffer,
             boxWithBorder);
     }
