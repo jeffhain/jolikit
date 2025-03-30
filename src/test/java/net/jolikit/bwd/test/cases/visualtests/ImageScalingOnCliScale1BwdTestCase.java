@@ -68,12 +68,10 @@ public class ImageScalingOnCliScale1BwdTestCase extends AbstractImageScalingBwdT
     private static final String[] IMG_FILE_PATH_ARR =
         new String[] {
             BwdTestResources.TEST_IMG_FILE_PATH_LOREM_PNG,
-            BwdTestResources.TEST_IMG_FILE_PATH_LOREM_X4_PNG,
-            //
+            BwdTestResources.TEST_IMG_FILE_PATH_MATH_LANDSCAPE_JPG,
             BwdTestResources.TEST_IMG_FILE_PATH_STRUCT_COLOR_PNG,
             //
             BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_PNG,
-            //
             BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_PNG,
             BwdTestResources.TEST_IMG_FILE_PATH_TIME_SQUARE_ALPHA_COLUMNS_PNG,
             //

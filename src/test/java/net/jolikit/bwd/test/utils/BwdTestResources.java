@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2024 Jeff Hain
+ * Copyright 2019-2025 Jeff Hain
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ public class BwdTestResources {
     public static final String TEST_IMG_FILE_PATH_FILLED_GREY_ALPHA_PNG = TEST_IMAGES_DIR_PATH + "/test_img_41_21_filled_grey_alpha.png";
     
     public static final String TEST_IMG_FILE_PATH_LOREM_PNG = TEST_IMAGES_DIR_PATH + "/lorem_334_164.png";
-    public static final String TEST_IMG_FILE_PATH_LOREM_X4_PNG = TEST_IMAGES_DIR_PATH + "/lorem_x4_1336_656.png";
+    public static final String TEST_IMG_FILE_PATH_MATH_LANDSCAPE_JPG = TEST_IMAGES_DIR_PATH + "/math_landscape_1570_870.jpg";
     
     public static final String TEST_IMG_FILE_PATH_STRUCT_GREY_PNG = TEST_IMAGES_DIR_PATH + "/test_img_41_21_struct_grey.png";
     
